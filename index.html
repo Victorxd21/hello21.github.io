@@ -21,50 +21,7 @@
       overflow: hidden;
     }
 
-    #hello {
-      color: #fff;
-      font-size: 10vw;
-      font-family: 'Courier New', monospace;
-      letter-spacing: 0.15em;
-      opacity: 0;
-      transform: scale(0.8);
-      transition: opacity 1s ease, transform 1s ease;
-      user-select: none;
-    }
-
-    #hello.visible {
-      opacity: 1;
-      transform: scale(1);
-    }
-
-    #flash {
-      position: fixed;
-      inset: 0;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 999;
-    }
-
-    #flash img {
-      max-width: 100vw;
-      max-height: 100vh;
-      object-fit: contain;
-    }
-
-    #flash.show {
-      animation: flashAnim 0.6s ease forwards;
-    }
-
-    @keyframes flashAnim {
-      0%   { opacity: 1; }
-      70%  { opacity: 1; }
-      100% { opacity: 0; }
-    }
-
+    /* ── Click to enter overlay ── */
     #overlay {
       position: fixed;
       inset: 0;
@@ -80,8 +37,50 @@
       color: #fff;
       font-family: 'Courier New', monospace;
       font-size: 2vw;
-      letter-spacing: 0.2em;
-      opacity: 0.5;
+      letter-spacing: 0.3em;
+      opacity: 0.4;
+    }
+
+    /* ── Hello text ── */
+    #hello {
+      position: relative;
+      z-index: 1;
+      color: #fff;
+      font-size: 10vw;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.15em;
+      opacity: 0;
+      transform: scale(0.85);
+      transition: opacity 1.2s ease, transform 1.2s ease;
+      user-select: none;
+    }
+
+    #hello.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* ── Image flash ── */
+    #flash-img {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      opacity: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    #flash-img.pop {
+      animation: fadeInOut 1.2s ease forwards;
+    }
+
+    @keyframes fadeInOut {
+      0%   { opacity: 0; }
+      15%  { opacity: 1; }
+      70%  { opacity: 1; }
+      100% { opacity: 0; }
     }
   </style>
 </head>
@@ -89,63 +88,66 @@
 
   <div id="overlay"><span>click anywhere</span></div>
   <div id="hello">hello</div>
-  <div id="flash"><img id="flash-img" src="" alt="" /></div>
+  <img id="flash-img" src="" alt="" />
 
   <script>
-    // ── CONFIG ──────────────────────────────────────────────
-    const SOUND_FOLDER  = 'sounds/';   // folder relative to index.html
-    const IMAGE_FOLDER  = 'images/';   // folder relative to index.html
-    const SOUND_PREFIX  = 'sound';     // files: sound1.mp3, sound2.mp3 …
-    const IMAGE_PREFIX  = 'image';     // files: image1.png, image2.png …
-    const SOUND_COUNT   = 10;          // how many sound/image files you have
-    const SOUND_GAP_MS  = 500;         // 0.5 s gap between sounds
-    const TEXT_DELAY_MS = 2000;        // 2 s before text appears
-    // ────────────────────────────────────────────────────────
+    // ── CONFIG ──────────────────────────────────────────
+    const SOUND_FOLDER  = 'sounds/';
+    const IMAGE_FOLDER  = 'images/';
+    const SOUND_PREFIX  = 'sound';
+    const IMAGE_PREFIX  = 'image';
+    const SOUND_COUNT   = 10;      // change to however many files you have
+    const SOUND_GAP_MS  = 500;     // gap between sounds
+    const TEXT_DELAY_MS = 2000;    // delay before hello appears
+    // ────────────────────────────────────────────────────
 
-    const flashEl  = document.getElementById('flash');
+    const helloEl  = document.getElementById('hello');
     const flashImg = document.getElementById('flash-img');
+    const overlay  = document.getElementById('overlay');
 
-    // Pre-load all audio objects
+    // Preload sounds
     const sounds = [];
     for (let i = 1; i <= SOUND_COUNT; i++) {
-      const audio = new Audio(`${SOUND_FOLDER}${SOUND_PREFIX}${i}.mp3`);
-      audio.preload = 'auto';
-      sounds.push(audio);
+      const a = new Audio(`${SOUND_FOLDER}${SOUND_PREFIX}${i}.mp3`);
+      a.preload = 'auto';
+      sounds.push(a);
     }
 
-    // Flash the matching image on screen
-    function flashImage(index) {
-      flashImg.src = `${IMAGE_FOLDER}${IMAGE_PREFIX}${index}.png`;
-      flashEl.classList.remove('show');
-      // Force reflow so the animation restarts if it's already playing
-      void flashEl.offsetWidth;
-      flashEl.classList.add('show');
+    // Show image and fade it out
+    function showImage(num) {
+      flashImg.src = `${IMAGE_FOLDER}${IMAGE_PREFIX}${num}.png`;
+      flashImg.classList.remove('pop');
+      void flashImg.offsetWidth; // force reflow so animation resets
+      flashImg.classList.add('pop');
     }
 
-    // Play sounds one by one; flash matching image when each one ends
-    function playSoundsInOrder(index = 0) {
-      if (index >= sounds.length) return;
+    // Play sounds in order, show matching image when each sound ends
+    function playSoundsInOrder(i = 0) {
+      if (i >= sounds.length) return;
 
-      const audio    = sounds[index];
-      const soundNum = index + 1; // sound1, sound2 …
+      const audio = sounds[i];
+      const num   = i + 1;
 
       audio.play().catch(() => {});
 
       audio.onended = () => {
-        flashImage(soundNum);
-        setTimeout(() => playSoundsInOrder(index + 1), SOUND_GAP_MS);
+        showImage(num);
+        setTimeout(() => playSoundsInOrder(i + 1), SOUND_GAP_MS);
       };
 
       audio.onerror = () => {
-        setTimeout(() => playSoundsInOrder(index + 1), SOUND_GAP_MS);
+        setTimeout(() => playSoundsInOrder(i + 1), SOUND_GAP_MS);
       };
     }
 
-    // Sequence: wait → show text → play sounds
-    setTimeout(() => {
-      document.getElementById('hello').classList.add('visible');
-      playSoundsInOrder();
-    }, TEXT_DELAY_MS);
+    // Click overlay -> remove it -> wait -> hello appears + sounds start
+    overlay.addEventListener('click', () => {
+      overlay.remove();
+      setTimeout(() => {
+        helloEl.classList.add('visible');
+        playSoundsInOrder();
+      }, TEXT_DELAY_MS);
+    });
   </script>
 </body>
 </html>
