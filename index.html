@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>hello</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #hello {
+      color: #fff;
+      font-size: 10vw;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.15em;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 1s ease, transform 1s ease;
+      user-select: none;
+    }
+
+    #hello.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="hello">hello</div>
+
+  <script>
+    // ── CONFIG ──────────────────────────────────────────────
+    const SOUND_FOLDER  = 'sounds/';   // folder relative to index.html
+    const SOUND_PREFIX  = 'sound';     // files: sound1.mp3, sound2.mp3 …
+    const SOUND_COUNT   = 10;          // how many sound files you have
+    const SOUND_GAP_MS  = 500;         // 0.5 s gap between sounds
+    const TEXT_DELAY_MS = 2000;        // 2 s before text appears
+    // ────────────────────────────────────────────────────────
+
+    // Pre-load all audio objects
+    const sounds = [];
+    for (let i = 1; i <= SOUND_COUNT; i++) {
+      const audio = new Audio(`${SOUND_FOLDER}${SOUND_PREFIX}${i}.mp3`);
+      audio.preload = 'auto';
+      sounds.push(audio);
+    }
+
+    // Play sounds one by one with a gap between them
+    function playSoundsInOrder(index = 0) {
+      if (index >= sounds.length) return;
+
+      const audio = sounds[index];
+
+      // Skip if the file failed to load
+      audio.play().catch(() => {});
+
+      audio.onended = () => {
+        setTimeout(() => playSoundsInOrder(index + 1), SOUND_GAP_MS);
+      };
+
+      // Fallback: if sound errors, still move on
+      audio.onerror = () => {
+        setTimeout(() => playSoundsInOrder(index + 1), SOUND_GAP_MS);
+      };
+    }
+
+    // Sequence: wait → show text → play sounds
+    setTimeout(() => {
+      document.getElementById('hello').classList.add('visible');
+      playSoundsInOrder();
+    }, TEXT_DELAY_MS);
+  </script>
+</body>
+</html>
