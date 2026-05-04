@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>hello</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       background: #000;
@@ -21,7 +17,7 @@
       overflow: hidden;
     }
 
-    /* ── Click to enter overlay ── */
+    /* ── Overlay ── */
     #overlay {
       position: fixed;
       inset: 0;
@@ -32,7 +28,6 @@
       z-index: 9999;
       cursor: pointer;
     }
-
     #overlay span {
       color: #fff;
       font-family: 'Courier New', monospace;
@@ -41,7 +36,7 @@
       opacity: 0.4;
     }
 
-    /* ── Center stack (hello + input box) ── */
+    /* ── Center stack ── */
     #center {
       display: flex;
       flex-direction: column;
@@ -49,7 +44,7 @@
       gap: 40px;
     }
 
-    /* ── Hello text ── */
+    /* ── Hello ── */
     #hello {
       color: #fff;
       font-size: 10vw;
@@ -57,32 +52,37 @@
       letter-spacing: 0.15em;
       opacity: 0;
       transform: scale(0.85);
-      transition: opacity 1.2s ease, transform 1.2s ease;
+      /* normal transition for fade-in */
+      transition: opacity 1.2s ease, transform 1.2s ease,
+                  font-size 1.4s cubic-bezier(0.22,1,0.36,1),
+                  top 1.4s cubic-bezier(0.22,1,0.36,1),
+                  left 1.4s cubic-bezier(0.22,1,0.36,1);
       user-select: none;
     }
-
     #hello.visible {
       opacity: 1;
       transform: scale(1);
     }
+    /* when credits fire, hello detaches and moves top-left */
+    #hello.corner {
+      position: fixed;
+      top: 18px;
+      left: 22px;
+      font-size: 1.8vw;
+      letter-spacing: 0.1em;
+    }
 
-    /* ── Input box wrapper ── */
+    /* ── Input box ── */
     #input-wrap {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 10px;
       transform: translateY(-120vh);
-      transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+      transition: transform 0.8s cubic-bezier(0.22,1,0.36,1);
     }
-
-    #input-wrap.slide-in {
-      transform: translateY(0);
-    }
-
-    #input-wrap.slide-out {
-      transform: translateY(120vh);
-    }
+    #input-wrap.slide-in  { transform: translateY(0); }
+    #input-wrap.slide-out { transform: translateY(120vh); }
 
     #input-box {
       background: transparent;
@@ -95,11 +95,7 @@
       outline: none;
       letter-spacing: 0.05em;
     }
-
-    #input-box::placeholder {
-      color: rgba(255,255,255,0.3);
-    }
-
+    #input-box::placeholder { color: rgba(255,255,255,0.3); }
     #input-tip {
       color: rgba(255,255,255,0.3);
       font-family: 'Courier New', monospace;
@@ -118,16 +114,85 @@
       z-index: 10;
       pointer-events: none;
     }
-
-    #flash-img.pop {
-      animation: fadeInOut 1.2s ease forwards;
-    }
-
+    #flash-img.pop { animation: fadeInOut 1.2s ease forwards; }
     @keyframes fadeInOut {
       0%   { opacity: 0; }
       15%  { opacity: 1; }
       70%  { opacity: 1; }
       100% { opacity: 0; }
+    }
+
+    /* ── Credits ── */
+    #credits {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1.6s ease;
+      z-index: 50;
+    }
+    #credits.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+    #credits p {
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 1.2vw;
+      letter-spacing: 0.06em;
+      line-height: 1.9;
+      text-align: center;
+      max-width: 640px;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: none;
+    }
+    #credits.show p {
+      animation: lineIn 0.9s ease forwards;
+    }
+    /* stagger each line */
+    #credits.show p:nth-child(1) { animation-delay: 0.1s; }
+    #credits.show p:nth-child(2) { animation-delay: 0.5s; }
+    #credits.show p:nth-child(3) { animation-delay: 0.9s; }
+    #credits.show p:nth-child(4) { animation-delay: 1.3s; }
+    #credits.show p:nth-child(5) { animation-delay: 1.7s; }
+    #credits.show p:nth-child(6) { animation-delay: 2.1s; }
+
+    @keyframes lineIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Twitter / X button ── */
+    #twitter-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 1vw;
+      letter-spacing: 0.08em;
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.35);
+      padding: 10px 20px;
+      transition: background 0.25s, border-color 0.25s;
+      opacity: 0;
+    }
+    #credits.show #twitter-link {
+      animation: lineIn 0.9s ease 2.5s forwards;
+    }
+    #twitter-link:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: #fff;
+    }
+    #twitter-link svg {
+      width: 18px;
+      height: 18px;
+      fill: #fff;
     }
   </style>
 </head>
@@ -145,17 +210,35 @@
 
   <img id="flash-img" src="" alt="" />
 
+  <!-- Credits screen -->
+  <div id="credits">
+    <p>Hello,  if u really got here... i hope so</p>
+    <p>i wanted to tell you that i really enjoyed doing this</p>
+    <p>this took 1 hour &mdash; i mean not that long for something this simple right?</p>
+    <p>so yeah.... oh and i also enjoyed doing it</p>
+    <p>and pls idk  uhh follow me i guess somewhere  like</p>
+    <a id="twitter-link" href="https://x.com/dxd_vic21" target="_blank" rel="noopener">
+      <!-- X / Twitter logo -->
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.258 5.63 5.906-5.63Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z"/>
+      </svg>
+      follow me on X
+    </a>
+    <p>oh also.... have a nice day&nbsp; :)</p>
+  </div>
+
   <script>
     // ── CONFIG ──────────────────────────────────────────
-    const SOUND_FOLDER    = 'sounds/';
-    const IMAGE_FOLDER    = 'images/';
-    const SOUND_PREFIX    = 'sound';
-    const IMAGE_PREFIX    = 'image';
-    const SOUND_COUNT     = 10;    // total number of sounds
-    const SOUND_GAP_MS    = 500;   // gap between sounds
-    const TEXT_DELAY_MS   = 2000;  // delay before hello appears
-    const INPUT_AFTER     = 6;     // show input box after this sound number ends
-    const INPUT_DELAY_MS  = 4000;  // delay after sound6 ends before box slides in
+    const SOUND_FOLDER   = 'sounds/';
+    const IMAGE_FOLDER   = 'images/';
+    const SOUND_PREFIX   = 'sound';
+    const IMAGE_PREFIX   = 'image';
+    const SOUND_COUNT    = 10;    // total numbered sounds
+    const SOUND_GAP_MS   = 500;
+    const TEXT_DELAY_MS  = 2000;
+    const INPUT_AFTER    = 6;
+    const INPUT_DELAY_MS = 4000;
+    const END_DELAY_MS   = 2000;  // gap after soundend before credits
     // ────────────────────────────────────────────────────
 
     const helloEl   = document.getElementById('hello');
@@ -163,8 +246,9 @@
     const overlay   = document.getElementById('overlay');
     const inputWrap = document.getElementById('input-wrap');
     const inputBox  = document.getElementById('input-box');
+    const credits   = document.getElementById('credits');
 
-    // Preload sounds
+    // Preload numbered sounds
     const sounds = [];
     for (let i = 1; i <= SOUND_COUNT; i++) {
       const a = new Audio(`${SOUND_FOLDER}${SOUND_PREFIX}${i}.mp3`);
@@ -172,7 +256,11 @@
       sounds.push(a);
     }
 
-    // Show image and fade it out
+    // Ending sound
+    const soundEnd = new Audio(`${SOUND_FOLDER}soundend.mp3`);
+    soundEnd.preload = 'auto';
+
+    // Flash image
     function showImage(num) {
       flashImg.src = `${IMAGE_FOLDER}${IMAGE_PREFIX}${num}.png`;
       flashImg.classList.remove('pop');
@@ -180,9 +268,31 @@
       flashImg.classList.add('pop');
     }
 
-    // Play sounds in order; pause at INPUT_AFTER for the input box
+    // Trigger credits screen
+    function showCredits() {
+      // Move hello to top-left corner smoothly
+      helloEl.classList.add('corner');
+      // Fade in credits after hello has had a moment to move
+      setTimeout(() => credits.classList.add('show'), 600);
+    }
+
+    // Called when all numbered sounds are done
+    function playEnding() {
+      soundEnd.play().catch(() => {});
+      soundEnd.addEventListener('ended', () => {
+        setTimeout(showCredits, END_DELAY_MS);
+      }, { once: true });
+      soundEnd.addEventListener('error', () => {
+        setTimeout(showCredits, END_DELAY_MS);
+      }, { once: true });
+    }
+
+    // Play sounds in order
     function playSoundsInOrder(i = 0) {
-      if (i >= sounds.length) return;
+      if (i >= sounds.length) {
+        playEnding();
+        return;
+      }
 
       const audio = sounds[i];
       const num   = i + 1;
@@ -207,7 +317,6 @@
             }
             inputBox.addEventListener('keydown', onEnter);
           }, INPUT_DELAY_MS);
-
         } else {
           setTimeout(() => playSoundsInOrder(i + 1), SOUND_GAP_MS);
         }
@@ -218,7 +327,7 @@
       }, { once: true });
     }
 
-    // Click overlay -> remove it -> wait -> hello + sounds start
+    // Start on click
     overlay.addEventListener('click', () => {
       overlay.remove();
       setTimeout(() => {
