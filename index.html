@@ -256,16 +256,17 @@
       sounds.push(a);
     }
 
-    // Ending sound
-    const soundEnd = new Audio(`${SOUND_FOLDER}soundend.mp3`);
-    soundEnd.preload = 'auto';
-
-    // Flash image
+    // Flash image — only fires if the file actually exists
     function showImage(num) {
-      flashImg.src = `${IMAGE_FOLDER}${IMAGE_PREFIX}${num}.png`;
-      flashImg.classList.remove('pop');
-      void flashImg.offsetWidth;
-      flashImg.classList.add('pop');
+      const test = new Image();
+      test.onload = () => {
+        flashImg.src = test.src;
+        flashImg.classList.remove('pop');
+        void flashImg.offsetWidth;
+        flashImg.classList.add('pop');
+      };
+      // if image doesn't exist or errors, do nothing
+      test.src = `${IMAGE_FOLDER}${IMAGE_PREFIX}${num}.png`;
     }
 
     // Trigger credits screen
@@ -278,13 +279,21 @@
 
     // Called when all numbered sounds are done
     function playEnding() {
-      soundEnd.play().catch(() => {});
-      soundEnd.addEventListener('ended', () => {
+      const endAudio = new Audio(`${SOUND_FOLDER}soundend.mp3`);
+
+      endAudio.addEventListener('ended', () => {
         setTimeout(showCredits, END_DELAY_MS);
       }, { once: true });
-      soundEnd.addEventListener('error', () => {
+
+      endAudio.addEventListener('error', () => {
+        // sound failed to load — still show credits
         setTimeout(showCredits, END_DELAY_MS);
       }, { once: true });
+
+      endAudio.play().catch(() => {
+        // play() was blocked — still show credits
+        setTimeout(showCredits, END_DELAY_MS);
+      });
     }
 
     // Play sounds in order
