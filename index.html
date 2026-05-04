@@ -41,10 +41,16 @@
       opacity: 0.4;
     }
 
+    /* ── Center stack (hello + input box) ── */
+    #center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 40px;
+    }
+
     /* ── Hello text ── */
     #hello {
-      position: relative;
-      z-index: 1;
       color: #fff;
       font-size: 10vw;
       font-family: 'Courier New', monospace;
@@ -58,6 +64,47 @@
     #hello.visible {
       opacity: 1;
       transform: scale(1);
+    }
+
+    /* ── Input box wrapper ── */
+    #input-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      transform: translateY(-120vh);
+      transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    #input-wrap.slide-in {
+      transform: translateY(0);
+    }
+
+    #input-wrap.slide-out {
+      transform: translateY(120vh);
+    }
+
+    #input-box {
+      background: transparent;
+      border: 1px solid #fff;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 1.1vw;
+      padding: 12px 20px;
+      width: 420px;
+      outline: none;
+      letter-spacing: 0.05em;
+    }
+
+    #input-box::placeholder {
+      color: rgba(255,255,255,0.3);
+    }
+
+    #input-tip {
+      color: rgba(255,255,255,0.3);
+      font-family: 'Courier New', monospace;
+      font-size: 0.75vw;
+      letter-spacing: 0.15em;
     }
 
     /* ── Image flash ── */
@@ -87,23 +134,35 @@
 <body>
 
   <div id="overlay"><span>click anywhere</span></div>
-  <div id="hello">hello</div>
+
+  <div id="center">
+    <div id="hello">hello</div>
+    <div id="input-wrap">
+      <input id="input-box" type="text" placeholder="Do not actually write your credit card information" />
+      <span id="input-tip">to confirm press enter</span>
+    </div>
+  </div>
+
   <img id="flash-img" src="" alt="" />
 
   <script>
     // ── CONFIG ──────────────────────────────────────────
-    const SOUND_FOLDER  = 'sounds/';
-    const IMAGE_FOLDER  = 'images/';
-    const SOUND_PREFIX  = 'sound';
-    const IMAGE_PREFIX  = 'image';
-    const SOUND_COUNT   = 10;      // change to however many files you have
-    const SOUND_GAP_MS  = 500;     // gap between sounds
-    const TEXT_DELAY_MS = 2000;    // delay before hello appears
+    const SOUND_FOLDER    = 'sounds/';
+    const IMAGE_FOLDER    = 'images/';
+    const SOUND_PREFIX    = 'sound';
+    const IMAGE_PREFIX    = 'image';
+    const SOUND_COUNT     = 10;    // total number of sounds
+    const SOUND_GAP_MS    = 500;   // gap between sounds
+    const TEXT_DELAY_MS   = 2000;  // delay before hello appears
+    const INPUT_AFTER     = 6;     // show input box after this sound number ends
+    const INPUT_DELAY_MS  = 4000;  // delay after sound6 ends before box slides in
     // ────────────────────────────────────────────────────
 
-    const helloEl  = document.getElementById('hello');
-    const flashImg = document.getElementById('flash-img');
-    const overlay  = document.getElementById('overlay');
+    const helloEl   = document.getElementById('hello');
+    const flashImg  = document.getElementById('flash-img');
+    const overlay   = document.getElementById('overlay');
+    const inputWrap = document.getElementById('input-wrap');
+    const inputBox  = document.getElementById('input-box');
 
     // Preload sounds
     const sounds = [];
@@ -117,11 +176,11 @@
     function showImage(num) {
       flashImg.src = `${IMAGE_FOLDER}${IMAGE_PREFIX}${num}.png`;
       flashImg.classList.remove('pop');
-      void flashImg.offsetWidth; // force reflow so animation resets
+      void flashImg.offsetWidth;
       flashImg.classList.add('pop');
     }
 
-    // Play sounds in order, show matching image when each sound ends
+    // Play sounds in order; pause at INPUT_AFTER for the input box
     function playSoundsInOrder(i = 0) {
       if (i >= sounds.length) return;
 
@@ -130,17 +189,36 @@
 
       audio.play().catch(() => {});
 
-      audio.onended = () => {
+      audio.addEventListener('ended', () => {
         showImage(num);
-        setTimeout(() => playSoundsInOrder(i + 1), SOUND_GAP_MS);
-      };
 
-      audio.onerror = () => {
+        if (num === INPUT_AFTER) {
+          setTimeout(() => {
+            inputWrap.classList.add('slide-in');
+            inputBox.focus();
+
+            function onEnter(e) {
+              if (e.key === 'Enter' && inputBox.value.trim() !== '') {
+                inputBox.removeEventListener('keydown', onEnter);
+                inputWrap.classList.remove('slide-in');
+                inputWrap.classList.add('slide-out');
+                setTimeout(() => playSoundsInOrder(i + 1), 900);
+              }
+            }
+            inputBox.addEventListener('keydown', onEnter);
+          }, INPUT_DELAY_MS);
+
+        } else {
+          setTimeout(() => playSoundsInOrder(i + 1), SOUND_GAP_MS);
+        }
+      }, { once: true });
+
+      audio.addEventListener('error', () => {
         setTimeout(() => playSoundsInOrder(i + 1), SOUND_GAP_MS);
-      };
+      }, { once: true });
     }
 
-    // Click overlay -> remove it -> wait -> hello appears + sounds start
+    // Click overlay -> remove it -> wait -> hello + sounds start
     overlay.addEventListener('click', () => {
       overlay.remove();
       setTimeout(() => {
