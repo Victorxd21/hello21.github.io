@@ -3,25 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supabase Discord-Style Chat</title>
+    <title>Supabase Discord-Style Chat with Admin Panel</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #313338; color: #dbdee1; margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
-        /* Layout Structure */
         .app-container { display: flex; width: 100vw; height: 100vh; }
-        .setup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .setup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .setup-box { background: #313338; padding: 30px; border-radius: 8px; width: 350px; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
         
-        /* Sidebar (Discord Style) */
+        /* Sidebar */
         .sidebar { width: 240px; background: #2b2d31; display: flex; flex-direction: column; border-right: 1px solid #1f2023; }
-        .sidebar-header { padding: 20px; font-weight: bold; font-size: 16px; border-bottom: 2px solid #1f2023; color: white; }
-        .channel-list { padding: 10px; display: flex; flex-direction: column; gap: 4px; }
-        .channel-btn { background: transparent; border: none; color: #949ba4; text-align: left; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 15px; font-weight: 500; }
+        .sidebar-header { padding: 20px; font-weight: bold; font-size: 16px; border-bottom: 2px solid #1f2023; color: white; display: flex; justify-content: space-between; align-items: center; }
+        .channel-list { padding: 10px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; flex: 1; }
+        .channel-item { display: flex; justify-content: space-between; align-items: center; border-radius: 4px; }
+        .channel-btn { background: transparent; border: none; color: #949ba4; text-align: left; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 15px; font-weight: 500; flex: 1; }
         .channel-btn:hover { background: #35373c; color: #dbdee1; }
         .channel-btn.active { background: #404249; color: white; }
+        
+        .del-channel-btn { background: transparent; color: #da373c; border: none; cursor: pointer; padding: 5px 8px; font-size: 14px; display: none; }
+        .channel-item:hover .del-channel-btn { display: block; }
 
-        /* Main Chat Area */
+        /* Admin Controls in Sidebar */
+        .admin-sidebar-panel { padding: 10px; border-top: 1px solid #1f2023; background: #232428; display: flex; flex-direction: column; gap: 8px; }
+        .admin-sidebar-panel input { padding: 8px; font-size: 12px; }
+        .admin-sidebar-panel button { background: #248046; color: white; font-size: 12px; padding: 8px; cursor: pointer; }
+        .admin-sidebar-panel button:hover { background: #1a6334; }
+
+        /* Chat Main Area */
         .chat-main { flex: 1; display: flex; flex-direction: column; background: #313338; }
         .chat-header { padding: 20px; font-size: 18px; font-weight: bold; border-bottom: 1px solid #1f2023; color: white; display: flex; justify-content: space-between; align-items: center; }
         #chat-box { flex: 1; overflow-y: scroll; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
@@ -31,7 +40,6 @@
         .message-content { background: #2b2d31; padding: 10px 14px; border-radius: 8px; word-break: break-word; max-width: 80%; }
         .admin-badge { background: #da373c; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: bold; }
         
-        /* Input Controls */
         .controls { padding: 20px; display: flex; gap: 10px; background: #313338; }
         input, button { padding: 12px; font-size: 14px; border: none; border-radius: 4px; outline: none; }
         input { background: #383a40; color: white; flex: 1; }
@@ -41,6 +49,10 @@
         .delete-btn { position: absolute; right: 0; top: 0; background: #da373c; color: white; border: none; padding: 4px 8px; font-size: 12px; border-radius: 4px; cursor: pointer; display: none; }
         .message:hover .delete-btn { display: block; }
         
+        .tab-toggles { display: flex; gap: 10px; margin-bottom: 10px; }
+        .tab-btn { flex: 1; background: #2b2d31; color: #949ba4; border: none; padding: 8px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .tab-btn.active { background: #5865f2; color: white; }
+
         .hidden { display: none !important; }
     </style>
 </head>
@@ -49,10 +61,17 @@
     <!-- LOGIN SCREEN -->
     <div id="setupScreen" class="setup-overlay">
         <div class="setup-box">
-            <h2 style="color: white; margin-top: 0;">Join Chat Server</h2>
-            <p style="color: #949ba4; font-size: 14px;">Tip: Enter name as <b>Admin</b> to test admin powers.</p>
-            <input type="text" id="usernameInput" placeholder="Your username...">
-            <button class="send-btn" onclick="joinChat()">Connect</button>
+            <h2 style="color: white; margin-top: 0; text-align: center;">Welcome to Chat</h2>
+            
+            <div class="tab-toggles">
+                <button id="userTabBtn" class="tab-btn active" onclick="switchLoginMode('user')">User Login</button>
+                <button id="adminTabBtn" class="tab-btn" onclick="switchLoginMode('admin')">Admin Login</button>
+            </div>
+
+            <input type="text" id="usernameInput" placeholder="Enter your username...">
+            <input type="password" id="passwordInput" placeholder="Enter admin password..." class="hidden">
+            
+            <button class="send-btn" onclick="handleLogin()">Connect to Server</button>
         </div>
     </div>
 
@@ -60,12 +79,19 @@
     <div id="appContainer" class="app-container hidden">
         <!-- Sidebar Channels -->
         <div class="sidebar">
-            <div class="sidebar-header">💬 My Community</div>
-            <div class="channel-list">
-                <button class="channel-btn active" onclick="switchChannel('general', this)"># general</button>
-                <button class="channel-btn" onclick="switchChannel('gaming', this)"># gaming</button>
-                <button class="channel-btn" onclick="switchChannel('coding', this)"># coding</button>
-                <button class="channel-btn" onclick="switchChannel('random', this)"># random</button>
+            <div class="sidebar-header">
+                <span>💬 Community</span>
+            </div>
+            
+            <div id="channelList" class="channel-list">
+                <!-- Dynamically loaded channels -->
+            </div>
+
+            <!-- Admin Channel Creation Panel -->
+            <div id="adminSidebarPanel" class="admin-sidebar-panel hidden">
+                <span style="font-size: 11px; font-weight: bold; color: #f2ba33;">ADMIN CONTROLS</span>
+                <input type="text" id="newChannelInput" placeholder="New channel name...">
+                <button onclick="createChannel()">+ Create Channel</button>
             </div>
         </div>
 
@@ -79,7 +105,7 @@
             <div id="chat-box"></div>
 
             <div class="controls">
-                <input type="text" id="messageInput" placeholder="Message #general..." onkeypress="checkEnter(event)">
+                <input type="text" id="messageInput" placeholder="Type a message..." onkeypress="checkEnter(event)">
                 <button class="send-btn" onclick="sendMessage()">Send</button>
             </div>
         </div>
@@ -95,35 +121,153 @@
     let currentRoom = 'general';
     let isAdmin = false;
     let chatSubscription = null;
+    let channelsSubscription = null;
 
-    function joinChat() {
-        const input = document.getElementById('usernameInput').value.trim();
-        if (!input) {
-            alert('Please enter a name!');
+    let loginMode = 'user'; // 'user' or 'admin'
+
+    function switchLoginMode(mode) {
+        loginMode = mode;
+        const passInput = document.getElementById('passwordInput');
+        const userBtn = document.getElementById('userTabBtn');
+        const adminBtn = document.getElementById('adminTabBtn');
+
+        if (mode === 'admin') {
+            passInput.classList.remove('hidden');
+            adminBtn.classList.add('active');
+            userBtn.classList.remove('active');
+            document.getElementById('usernameInput').value = 'admin';
+        } else {
+            passInput.classList.add('hidden');
+            userBtn.classList.add('active');
+            adminBtn.classList.remove('active');
+            document.getElementById('usernameInput').value = '';
+        }
+    }
+
+    async function handleLogin() {
+        const username = document.getElementById('usernameInput').value.trim();
+        if (!username) {
+            alert('Please enter a username!');
             return;
         }
-        myName = input;
-        isAdmin = (myName.toLowerCase() === 'admin');
 
+        if (loginMode === 'admin') {
+            const password = document.getElementById('passwordInput').value;
+            // Verify password against Supabase admins table
+            const { data, error } = await supabaseClient
+                .from('admins')
+                .select('*')
+                .eq('username', username)
+                .eq('password', password)
+                .single();
+
+            if (error || !data) {
+                alert('Invalid admin username or password!');
+                return;
+            }
+            isAdmin = true;
+        } else {
+            isAdmin = false;
+        }
+
+        myName = username;
         document.getElementById('userInfo').innerText = `Logged in as: ${myName} ${isAdmin ? '(ADMIN)' : ''}`;
         document.getElementById('setupScreen').classList.add('hidden');
         document.getElementById('appContainer').classList.remove('hidden');
 
+        if (isAdmin) {
+            document.getElementById('adminSidebarPanel').classList.remove('hidden');
+        }
+
+        loadChannels();
+        subscribeToChannels();
         loadMessagesForRoom();
         subscribeToRoom();
     }
 
-    // Switch channels (Discord style)
+    // Load channels from Supabase
+    async function loadChannels() {
+        const { data, error } = await supabaseClient.from('channels').select('*').order('id', { ascending: true });
+        if (error) {
+            console.error('Error loading channels:', error);
+            return;
+        }
+
+        renderChannels(data);
+    }
+
+    function renderChannels(channels) {
+        const list = document.getElementById('channelList');
+        list.innerHTML = '';
+
+        channels.forEach(ch => {
+            const item = document.createElement('div');
+            item.className = 'channel-item';
+
+            const btn = document.createElement('button');
+            btn.className = `channel-btn ${ch.name === currentRoom ? 'active' : ''}`;
+            btn.innerText = `# ${ch.name}`;
+            btn.onclick = () => switchChannel(ch.name, btn);
+            item.appendChild(btn);
+
+            // Admin can delete custom channels (keep general safe if you want)
+            if (isAdmin) {
+                const delBtn = document.createElement('button');
+                delBtn.className = 'del-channel-btn';
+                delBtn.innerText = '🗑️';
+                delBtn.title = 'Delete Channel';
+                delBtn.onclick = () => deleteChannel(ch.name);
+                item.appendChild(delBtn);
+            }
+
+            list.appendChild(item);
+        });
+    }
+
+    // Real-time channel updates
+    function subscribeToChannels() {
+        channelsSubscription = supabaseClient
+            .channel('public:channels')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'channels' }, () => {
+                loadChannels();
+            })
+            .subscribe();
+    }
+
+    async function createChannel() {
+        let name = document.getElementById('newChannelInput').value.trim().toLowerCase();
+        name = name.replace(/[^a-z0-9-_]/g, ''); // sanitize channel name
+        if (!name) return;
+
+        const { error } = await supabaseClient.from('channels').insert([{ name }]);
+        if (error) {
+            alert('Could not create channel (it might already exist): ' + error.message);
+        } else {
+            document.getElementById('newChannelInput').value = '';
+        }
+    }
+
+    async function deleteChannel(name) {
+        if (name === 'general') {
+            alert('You cannot delete the general channel!');
+            return;
+        }
+        if (!confirm(`Are you sure you want to delete #${name}?`)) return;
+
+        await supabaseClient.from('channels').delete().eq('name', name);
+        if (currentRoom === name) {
+            switchChannel('general', document.querySelector('.channel-btn'));
+        }
+    }
+
     function switchChannel(roomName, element) {
         currentRoom = roomName;
         document.getElementById('currentChannelTitle').innerText = `# ${roomName}`;
         document.getElementById('messageInput').placeholder = `Message #${roomName}...`;
 
-        // Update active class on buttons
         document.querySelectorAll('.channel-btn').forEach(btn => btn.classList.remove('active'));
-        element.classList.add('active');
+        if (element) element.classList.add('active');
 
-        // Unsubscribe old channel and load new room data
         if (chatSubscription) supabaseClient.removeChannel(chatSubscription);
         loadMessagesForRoom();
         subscribeToRoom();
@@ -136,10 +280,7 @@
             .eq('room', currentRoom)
             .order('created_at', { ascending: true });
 
-        if (error) {
-            console.error('Error fetching messages:', error);
-            return;
-        }
+        if (error) return;
 
         const chatBox = document.getElementById('chat-box');
         chatBox.innerHTML = '';
@@ -150,22 +291,12 @@
     function subscribeToRoom() {
         chatSubscription = supabaseClient
             .channel(`room:${currentRoom}`)
-            .on('postgres_changes', { 
-                event: 'INSERT', 
-                schema: 'public', 
-                table: 'messages',
-                filter: `room=eq.${currentRoom}`
-            }, payload => {
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `room=eq.${currentRoom}` }, payload => {
                 appendMessageToUI(payload.new);
                 const chatBox = document.getElementById('chat-box');
                 chatBox.scrollTop = chatBox.scrollHeight;
             })
-            .on('postgres_changes', {
-                event: 'DELETE',
-                schema: 'public',
-                table: 'messages'
-            }, payload => {
-                // Remove message from DOM if deleted by admin
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, payload => {
                 const el = document.getElementById(`msg-${payload.old.id}`);
                 if (el) el.remove();
             })
@@ -178,11 +309,7 @@
 
         const { error } = await supabaseClient
             .from('messages')
-            .insert([{ 
-                sender: myName, 
-                message: text, 
-                room: currentRoom 
-            }]);
+            .insert([{ sender: myName, message: text, room: currentRoom }]);
 
         if (error) {
             alert('Error: ' + error.message);
@@ -192,12 +319,7 @@
     }
 
     async function deleteMessage(id) {
-        const { error } = await supabaseClient
-            .from('messages')
-            .delete()
-            .eq('id', id);
-
-        if (error) alert('Failed to delete: ' + error.message);
+        await supabaseClient.from('messages').delete().eq('id', id);
     }
 
     function appendMessageToUI(data) {
@@ -206,13 +328,10 @@
         div.className = 'message';
         div.id = `msg-${data.id}`;
 
-        const isMessageAdmin = data.sender.toLowerCase() === 'admin';
+        const isMessageAdmin = (data.sender.toLowerCase() === 'admin');
         const adminBadgeHtml = isMessageAdmin ? `<span class="admin-badge">ADMIN</span>` : '';
         
-        let deleteBtnHtml = '';
-        if (isAdmin) {
-            deleteBtnHtml = `<button class="delete-btn" onclick="deleteMessage('${data.id}')">Delete</button>`;
-        }
+        let deleteBtnHtml = isAdmin ? `<button class="delete-btn" onclick="deleteMessage('${data.id}')">Delete</button>` : '';
 
         div.innerHTML = `
             <div style="font-size: 13px; color: #949ba4;">
