@@ -1,349 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>hello</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      background: #000;
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-
-    /* ── Overlay ── */
-    #overlay {
-      position: fixed;
-      inset: 0;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      cursor: pointer;
-    }
-    #overlay span {
-      color: #fff;
-      font-family: 'Courier New', monospace;
-      font-size: 2vw;
-      letter-spacing: 0.3em;
-      opacity: 0.4;
-    }
-
-    /* ── Center stack ── */
-    #center {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 40px;
-    }
-
-    /* ── Hello ── */
-    #hello {
-      color: #fff;
-      font-size: 10vw;
-      font-family: 'Courier New', monospace;
-      letter-spacing: 0.15em;
-      opacity: 0;
-      transform: scale(0.85);
-      /* normal transition for fade-in */
-      transition: opacity 1.2s ease, transform 1.2s ease,
-                  font-size 1.4s cubic-bezier(0.22,1,0.36,1),
-                  top 1.4s cubic-bezier(0.22,1,0.36,1),
-                  left 1.4s cubic-bezier(0.22,1,0.36,1);
-      user-select: none;
-    }
-    #hello.visible {
-      opacity: 1;
-      transform: scale(1);
-    }
-    /* when credits fire, hello detaches and moves top-left */
-    #hello.corner {
-      position: fixed;
-      top: 18px;
-      left: 22px;
-      font-size: 1.8vw;
-      letter-spacing: 0.1em;
-    }
-
-    /* ── Input box ── */
-    #input-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      transform: translateY(-120vh);
-      transition: transform 0.8s cubic-bezier(0.22,1,0.36,1);
-    }
-    #input-wrap.slide-in  { transform: translateY(0); }
-    #input-wrap.slide-out { transform: translateY(120vh); }
-
-    #input-box {
-      background: transparent;
-      border: 1px solid #fff;
-      color: #fff;
-      font-family: 'Courier New', monospace;
-      font-size: 1.1vw;
-      padding: 12px 20px;
-      width: 420px;
-      outline: none;
-      letter-spacing: 0.05em;
-    }
-    #input-box::placeholder { color: rgba(255,255,255,0.3); }
-    #input-tip {
-      color: rgba(255,255,255,0.3);
-      font-family: 'Courier New', monospace;
-      font-size: 0.75vw;
-      letter-spacing: 0.15em;
-    }
-
-    /* ── Image flash ── */
-    #flash-img {
-      position: fixed;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      object-fit: contain;
-      opacity: 0;
-      z-index: 10;
-      pointer-events: none;
-    }
-    #flash-img.pop { animation: fadeInOut 1.2s ease forwards; }
-    @keyframes fadeInOut {
-      0%   { opacity: 0; }
-      15%  { opacity: 1; }
-      70%  { opacity: 1; }
-      100% { opacity: 0; }
-    }
-
-    /* ── Credits ── */
-    #credits {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 28px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 1.6s ease;
-      z-index: 50;
-    }
-    #credits.show {
-      opacity: 1;
-      pointer-events: all;
-    }
-    #credits p {
-      color: #fff;
-      font-family: 'Courier New', monospace;
-      font-size: 1.2vw;
-      letter-spacing: 0.06em;
-      line-height: 1.9;
-      text-align: center;
-      max-width: 640px;
-      opacity: 0;
-      transform: translateY(12px);
-      animation: none;
-    }
-    #credits.show p {
-      animation: lineIn 0.9s ease forwards;
-    }
-    /* stagger each line */
-    #credits.show p:nth-child(1) { animation-delay: 0.1s; }
-    #credits.show p:nth-child(2) { animation-delay: 0.5s; }
-    #credits.show p:nth-child(3) { animation-delay: 0.9s; }
-    #credits.show p:nth-child(4) { animation-delay: 1.3s; }
-    #credits.show p:nth-child(5) { animation-delay: 1.7s; }
-    #credits.show p:nth-child(6) { animation-delay: 2.1s; }
-
-    @keyframes lineIn {
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ── Twitter / X button ── */
-    #twitter-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      color: #fff;
-      font-family: 'Courier New', monospace;
-      font-size: 1vw;
-      letter-spacing: 0.08em;
-      text-decoration: none;
-      border: 1px solid rgba(255,255,255,0.35);
-      padding: 10px 20px;
-      transition: background 0.25s, border-color 0.25s;
-      opacity: 0;
-    }
-    #credits.show #twitter-link {
-      animation: lineIn 0.9s ease 2.5s forwards;
-    }
-    #twitter-link:hover {
-      background: rgba(255,255,255,0.08);
-      border-color: #fff;
-    }
-    #twitter-link svg {
-      width: 18px;
-      height: 18px;
-      fill: #fff;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device & Network Inspector</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        h2 {
+            color: #0066cc;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 8px;
+        }
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            color: #555;
+            width: 40%;
+        }
+        td {
+            color: #111;
+            font-weight: 500;
+        }
+        .loading {
+            color: #888;
+            font-style: italic;
+        }
+    </style>
 </head>
 <body>
 
-  <div id="overlay"><span>click anywhere</span></div>
+<div class="card">
+    <h2>Device & Network Inspector</h2>
+    <table>
+        <tr>
+            <th>Public IP Address</th>
+            <td id="ip" class="loading">Fetching...</td>
+        </tr>
+        <tr>
+            <th>Location / ISP</th>
+            <td id="location" class="loading">Fetching...</td>
+        </tr>
+        <tr>
+            <th>Operating System</th>
+            <td id="os">Detecting...</td>
+        </tr>
+        <tr>
+            <th>Device Type</th>
+            <td id="device">Detecting...</td>
+        </tr>
+        <tr>
+            <th>Browser</th>
+            <td id="browser">Detecting...</td>
+        </tr>
+        <tr>
+            <th>Approx. RAM (Device Memory)</th>
+            <td id="ram">Not supported by browser</td>
+        </tr>
+        <tr>
+            <th>CPU Cores (Logical Processors)</th>
+            <td id="cpu">Unknown</td>
+        </tr>
+        <tr>
+            <th>Screen Resolution</th>
+            <td id="screen">Unknown</td>
+        </tr>
+        <tr>
+            <th>Connection Type</th>
+            <td id="connection">Unknown</td>
+        </tr>
+    </table>
+</div>
 
-  <div id="center">
-    <div id="hello">hello</div>
-    <div id="input-wrap">
-      <input id="input-box" type="text" placeholder="Do not actually write your credit card information" />
-      <span id="input-tip">to confirm press enter</span>
-    </div>
-  </div>
+<script>
+    // 1. Fetch Public IP and Location using a free API
+    fetch('https://ipapi.co/json/')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('ip').innerText = data.ip || 'Unavailable';
+            document.getElementById('location').innerText = `${data.city}, ${data.region}, ${data.country_name} (${data.org || 'Unknown ISP'})`;
+        })
+        .catch(() => {
+            document.getElementById('ip').innerText = 'Failed to load';
+            document.getElementById('location').innerText = 'Failed to load';
+        });
 
-  <img id="flash-img" src="" alt="" />
+    // 2. Hardware and Browser Information via Navigator API
+    const ua = navigator.userAgent;
 
-  <!-- Credits screen -->
-  <div id="credits">
-    <p>Hello,  if u really got here... i hope so</p>
-    <p>i wanted to tell you that i really enjoyed doing this</p>
-    <p>this took 1 hour &mdash; i mean not that long for something this simple right?</p>
-    <p>so yeah.... oh and i also enjoyed doing it</p>
-    <p>and pls idk  uhh follow me i guess somewhere  like</p>
-    <a id="twitter-link" href="https://x.com/dxd_vic21" target="_blank" rel="noopener">
-      <!-- X / Twitter logo -->
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.258 5.63 5.906-5.63Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z"/>
-      </svg>
-      follow me on X
-    </a>
-    <p>oh also.... have a nice day&nbsp; :)</p>
-  </div>
+    // Operating System Detection
+    let os = "Unknown OS";
+    if (ua.indexOf("Win") !== -1) os = "Windows";
+    if (ua.indexOf("Mac") !== -1) os = "macOS";
+    if (ua.indexOf("Linux") !== -1) os = "Linux";
+    if (ua.indexOf("Android") !== -1) os = "Android";
+    if (ua.indexOf("like Mac") !== -1) os = "iOS (iPhone/iPad)";
+    document.getElementById('os').innerText = os;
 
-  <script>
-    // ── CONFIG ──────────────────────────────────────────
-    const SOUND_FOLDER   = 'sounds/';
-    const IMAGE_FOLDER   = 'images/';
-    const SOUND_PREFIX   = 'sound';
-    const IMAGE_PREFIX   = 'image';
-    const SOUND_COUNT    = 8;     // total numbered sounds
-    const SOUND_GAP_MS   = 500;
-    const TEXT_DELAY_MS  = 2000;
-    const INPUT_AFTER    = 6;
-    const INPUT_DELAY_MS = 4000;
-    const END_DELAY_MS   = 2000;  // gap after soundend before credits
-    // ────────────────────────────────────────────────────
+    // Device Type Detection
+    let deviceType = "Desktop / Laptop";
+    if (/Mobi|Android/i.test(ua)) deviceType = "Mobile Phone";
+    if (/Tablet|iPad/i.test(ua)) deviceType = "Tablet";
+    document.getElementById('device').innerText = deviceType;
 
-    const helloEl   = document.getElementById('hello');
-    const flashImg  = document.getElementById('flash-img');
-    const overlay   = document.getElementById('overlay');
-    const inputWrap = document.getElementById('input-wrap');
-    const inputBox  = document.getElementById('input-box');
-    const credits   = document.getElementById('credits');
+    // Browser Detection
+    let browser = "Unknown Browser";
+    if (ua.indexOf("Firefox") !== -1) browser = "Mozilla Firefox";
+    else if (ua.indexOf("SamsungBrowser") !== -1) browser = "Samsung Internet";
+    else if (ua.indexOf("Opera") !== -1 || ua.indexOf("OPR") !== -1) browser = "Opera";
+    else if (ua.indexOf("Trident") !== -1) browser = "Internet Explorer";
+    else if (ua.indexOf("Edge") !== -1) browser = "Microsoft Edge";
+    else if (ua.indexOf("Chrome") !== -1) browser = "Google Chrome";
+    else if (ua.indexOf("Safari") !== -1) browser = "Apple Safari";
+    document.getElementById('browser').innerText = browser;
 
-    // Preload numbered sounds
-    const sounds = [];
-    for (let i = 1; i <= SOUND_COUNT; i++) {
-      const a = new Audio(`${SOUND_FOLDER}${SOUND_PREFIX}${i}.mp3`);
-      a.preload = 'auto';
-      sounds.push(a);
+    // RAM (Device Memory - returns rough estimates like 2, 4, 8 GB due to security)
+    if (navigator.deviceMemory) {
+        document.getElementById('ram').innerText = `~${navigator.deviceMemory} GB (Approximate)`;
     }
 
-    // Flash image — only fires if the file actually exists
-    function showImage(num) {
-      const test = new Image();
-      test.onload = () => {
-        flashImg.src = test.src;
-        flashImg.classList.remove('pop');
-        void flashImg.offsetWidth;
-        flashImg.classList.add('pop');
-      };
-      // if image doesn't exist or errors, do nothing
-      test.src = `${IMAGE_FOLDER}${IMAGE_PREFIX}${num}.png`;
+    // CPU Cores
+    if (navigator.hardwareConcurrency) {
+        document.getElementById('cpu').innerText = `${navigator.hardwareConcurrency} Cores`;
     }
 
-    // Trigger credits screen
-    function showCredits() {
-      // Move hello to top-left corner smoothly
-      helloEl.classList.add('corner');
-      // Fade in credits after hello has had a moment to move
-      setTimeout(() => credits.classList.add('show'), 600);
+    // Screen Resolution
+    document.getElementById('screen').innerText = `${window.screen.width} x ${window.screen.height} pixels`;
+
+    // Network Connection Type
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (conn) {
+        document.getElementById('connection').innerText = `${conn.effectiveType ? conn.effectiveType.toUpperCase() : 'Unknown'} (~${conn.downlink ? conn.downlink + ' Mbps' : 'N/A'})`;
     }
+</script>
 
-    // Called when all numbered sounds are done
-    function playEnding() {
-      const endAudio = new Audio(`${SOUND_FOLDER}soundend.mp3`);
-
-      endAudio.addEventListener('ended', () => {
-        setTimeout(showCredits, END_DELAY_MS);
-      }, { once: true });
-
-      endAudio.addEventListener('error', () => {
-        // sound failed to load — still show credits
-        setTimeout(showCredits, END_DELAY_MS);
-      }, { once: true });
-
-      endAudio.play().catch(() => {
-        // play() was blocked — still show credits
-        setTimeout(showCredits, END_DELAY_MS);
-      });
-    }
-
-    // Play sounds in order
-    function playSoundsInOrder(i = 0) {
-      if (i >= sounds.length) {
-        playEnding();
-        return;
-      }
-
-      const audio = sounds[i];
-      const num   = i + 1;
-
-      audio.play().catch(() => {});
-
-      audio.addEventListener('ended', () => {
-        showImage(num);
-
-        if (num === INPUT_AFTER) {
-          setTimeout(() => {
-            inputWrap.classList.add('slide-in');
-            inputBox.focus();
-
-            function onEnter(e) {
-              if (e.key === 'Enter' && inputBox.value.trim() !== '') {
-                inputBox.removeEventListener('keydown', onEnter);
-                inputWrap.classList.remove('slide-in');
-                inputWrap.classList.add('slide-out');
-                setTimeout(() => playSoundsInOrder(i + 1), 900);
-              }
-            }
-            inputBox.addEventListener('keydown', onEnter);
-          }, INPUT_DELAY_MS);
-        } else {
-          setTimeout(() => playSoundsInOrder(i + 1), SOUND_GAP_MS);
-        }
-      }, { once: true });
-
-      audio.addEventListener('error', () => {
-        setTimeout(() => playSoundsInOrder(i + 1), SOUND_GAP_MS);
-      }, { once: true });
-    }
-
-    // Start on click
-    overlay.addEventListener('click', () => {
-      overlay.remove();
-      setTimeout(() => {
-        helloEl.classList.add('visible');
-        playSoundsInOrder();
-      }, TEXT_DELAY_MS);
-    });
-  </script>
 </body>
 </html>
