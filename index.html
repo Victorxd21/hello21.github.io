@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supabase Discord-Style Chat with Admin Panel</title>
+    <title>Supabase Discord-Style Chat with Pro Features</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #313338; color: #dbdee1; margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -27,25 +27,39 @@
         /* Admin Controls in Sidebar */
         .admin-sidebar-panel { padding: 10px; border-top: 1px solid #1f2023; background: #232428; display: flex; flex-direction: column; gap: 8px; }
         .admin-sidebar-panel input { padding: 8px; font-size: 12px; }
-        .admin-sidebar-panel button { background: #248046; color: white; font-size: 12px; padding: 8px; cursor: pointer; }
+        .admin-sidebar-panel button { background: #248046; color: white; font-size: 12px; padding: 8px; cursor: pointer; border-radius: 4px; border: none;}
         .admin-sidebar-panel button:hover { background: #1a6334; }
 
         /* Chat Main Area */
         .chat-main { flex: 1; display: flex; flex-direction: column; background: #313338; }
         .chat-header { padding: 20px; font-size: 18px; font-weight: bold; border-bottom: 1px solid #1f2023; color: white; display: flex; justify-content: space-between; align-items: center; }
-        #chat-box { flex: 1; overflow-y: scroll; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        #chat-box { flex: 1; overflow-y: scroll; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
         
+        /* Members Sidebar */
+        .members-sidebar { width: 220px; background: #2b2d31; border-left: 1px solid #1f2023; padding: 15px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+        .member-item { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 4px; font-size: 14px; color: #949ba4; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #23a55a; flex-shrink: 0; }
+
         /* Messages */
-        .message { display: flex; flex-direction: column; gap: 4px; position: relative; padding-right: 50px; }
-        .message-content { background: #2b2d31; padding: 10px 14px; border-radius: 8px; word-break: break-word; max-width: 80%; }
+        .message { display: flex; gap: 12px; position: relative; padding-right: 50px; }
+        .message-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; }
+        .message-body { display: flex; flex-direction: column; gap: 4px; word-break: break-word; flex: 1; }
+        .message-content { background: #2b2d31; padding: 10px 14px; border-radius: 8px; max-width: 100%; display: inline-block; }
+        .message-image { max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 5px; cursor: pointer; display: block; }
         .admin-badge { background: #da373c; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: bold; }
         
-        .controls { padding: 20px; display: flex; gap: 10px; background: #313338; }
+        .controls { padding: 20px; display: flex; flex-direction: column; gap: 8px; background: #313338; }
+        .controls-row { display: flex; gap: 10px; }
         input, button { padding: 12px; font-size: 14px; border: none; border-radius: 4px; outline: none; }
-        input { background: #383a40; color: white; flex: 1; }
+        input[type="text"], input[type="password"] { background: #383a40; color: white; flex: 1; }
         button.send-btn { background: #5865f2; color: white; cursor: pointer; font-weight: bold; }
         button.send-btn:hover { background: #4752c4; }
         
+        .file-upload-btn { background: #4e5058; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0 16px; border-radius: 4px; font-weight: bold; }
+        .file-upload-btn:hover { background: #6d6f78; }
+
+        .typing-indicator { font-size: 12px; color: #949ba4; font-style: italic; height: 18px; }
+
         .delete-btn { position: absolute; right: 0; top: 0; background: #da373c; color: white; border: none; padding: 4px 8px; font-size: 12px; border-radius: 4px; cursor: pointer; display: none; }
         .message:hover .delete-btn { display: block; }
         
@@ -53,6 +67,7 @@
         .tab-btn { flex: 1; background: #2b2d31; color: #949ba4; border: none; padding: 8px; cursor: pointer; border-radius: 4px; font-weight: bold; }
         .tab-btn.active { background: #5865f2; color: white; }
 
+        .avatar-preview-box { display: flex; align-items: center; gap: 10px; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -71,6 +86,9 @@
             <input type="text" id="usernameInput" placeholder="Enter your username...">
             <input type="password" id="passwordInput" placeholder="Enter admin password..." class="hidden">
             
+            <div style="font-size: 13px; color: #949ba4;">Profile Picture (Optional):</div>
+            <input type="file" id="avatarFileInput" accept="image/*" style="background: #383a40; color: #dbdee1; padding: 8px; font-size: 12px;">
+
             <button class="send-btn" onclick="handleLogin()">Connect to Server</button>
         </div>
     </div>
@@ -105,9 +123,20 @@
             <div id="chat-box"></div>
 
             <div class="controls">
-                <input type="text" id="messageInput" placeholder="Type a message..." onkeypress="checkEnter(event)">
-                <button class="send-btn" onclick="sendMessage()">Send</button>
+                <div id="typingIndicator" class="typing-indicator"></div>
+                <div class="controls-row">
+                    <label class="file-upload-btn" title="Upload Image">
+                        📁 <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="sendImageMessage(event)">
+                    </label>
+                    <input type="text" id="messageInput" placeholder="Type a message..." oninput="handleTypingInput()" onkeypress="checkEnter(event)">
+                    <button class="send-btn" onclick="sendMessage()">Send</button>
+                </div>
             </div>
+        </div>
+
+        <!-- Online Members Sidebar -->
+        <div class="members-sidebar" id="membersList">
+            <h4 style="font-size: 12px; color: #949ba4; margin: 0 0 8px 0;">ONLINE — 0</h4>
         </div>
     </div>
 
@@ -118,12 +147,16 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let myName = '';
+    let myAvatarUrl = '';
     let currentRoom = 'general';
     let isAdmin = false;
     let chatSubscription = null;
     let channelsSubscription = null;
+    let presenceChannel = null;
+    let typingChannel = null;
+    let typingTimeout = null;
 
-    let loginMode = 'user'; // 'user' or 'admin'
+    let loginMode = 'user';
 
     function switchLoginMode(mode) {
         loginMode = mode;
@@ -153,7 +186,6 @@
 
         if (loginMode === 'admin') {
             const password = document.getElementById('passwordInput').value;
-            // Verify password against Supabase admins table
             const { data, error } = await supabaseClient
                 .from('admins')
                 .select('*')
@@ -171,6 +203,20 @@
         }
 
         myName = username;
+
+        // Handle Avatar Upload if selected
+        const avatarFile = document.getElementById('avatarFileInput').files[0];
+        if (avatarFile) {
+            myAvatarUrl = await uploadAvatar(avatarFile);
+        }
+
+        // Save profile metadata
+        await supabaseClient.from('profiles').upsert({
+            username: myName,
+            avatar_url: myAvatarUrl,
+            updated_at: new Date()
+        });
+
         document.getElementById('userInfo').innerText = `Logged in as: ${myName} ${isAdmin ? '(ADMIN)' : ''}`;
         document.getElementById('setupScreen').classList.add('hidden');
         document.getElementById('appContainer').classList.remove('hidden');
@@ -183,16 +229,25 @@
         subscribeToChannels();
         loadMessagesForRoom();
         subscribeToRoom();
+        setupPresence();
+        setupTypingChannel();
     }
 
-    // Load channels from Supabase
+    async function uploadAvatar(file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${myName}_${Date.now()}.${fileExt}`;
+        const { error } = await supabaseClient.storage.from('chat-files').upload(fileName, file);
+        if (error) {
+            console.error('Avatar upload failed:', error.message);
+            return '';
+        }
+        const { data } = supabaseClient.storage.from('chat-files').getPublicUrl(fileName);
+        return data.publicUrl;
+    }
+
     async function loadChannels() {
         const { data, error } = await supabaseClient.from('channels').select('*').order('id', { ascending: true });
-        if (error) {
-            console.error('Error loading channels:', error);
-            return;
-        }
-
+        if (error) return;
         renderChannels(data);
     }
 
@@ -210,7 +265,6 @@
             btn.onclick = () => switchChannel(ch.name, btn);
             item.appendChild(btn);
 
-            // Admin can delete custom channels (keep general safe if you want)
             if (isAdmin) {
                 const delBtn = document.createElement('button');
                 delBtn.className = 'del-channel-btn';
@@ -224,24 +278,21 @@
         });
     }
 
-    // Real-time channel updates
     function subscribeToChannels() {
         channelsSubscription = supabaseClient
             .channel('public:channels')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'channels' }, () => {
-                loadChannels();
-            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'channels' }, () => loadChannels())
             .subscribe();
     }
 
     async function createChannel() {
         let name = document.getElementById('newChannelInput').value.trim().toLowerCase();
-        name = name.replace(/[^a-z0-9-_]/g, ''); // sanitize channel name
+        name = name.replace(/[^a-z0-9-_]/g, '');
         if (!name) return;
 
         const { error } = await supabaseClient.from('channels').insert([{ name }]);
         if (error) {
-            alert('Could not create channel (it might already exist): ' + error.message);
+            alert('Could not create channel: ' + error.message);
         } else {
             document.getElementById('newChannelInput').value = '';
         }
@@ -269,8 +320,11 @@
         if (element) element.classList.add('active');
 
         if (chatSubscription) supabaseClient.removeChannel(chatSubscription);
+        if (typingChannel) supabaseClient.removeChannel(typingChannel);
+
         loadMessagesForRoom();
         subscribeToRoom();
+        setupTypingChannel();
     }
 
     async function loadMessagesForRoom() {
@@ -284,15 +338,24 @@
 
         const chatBox = document.getElementById('chat-box');
         chatBox.innerHTML = '';
-        data.forEach(msg => appendMessageToUI(msg));
+        
+        // Fetch profiles for avatars map lookup
+        const { data: profiles } = await supabaseClient.from('profiles').select('*');
+        const profileMap = {};
+        if (profiles) {
+            profiles.forEach(p => profileMap[p.username] = p.avatar_url);
+        }
+
+        data.forEach(msg => appendMessageToUI(msg, profileMap[msg.sender]));
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
     function subscribeToRoom() {
         chatSubscription = supabaseClient
             .channel(`room:${currentRoom}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `room=eq.${currentRoom}` }, payload => {
-                appendMessageToUI(payload.new);
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `room=eq.${currentRoom}` }, async payload => {
+                const { data: profile } = await supabaseClient.from('profiles').select('avatar_url').eq('username', payload.new.sender).single();
+                appendMessageToUI(payload.new, profile ? profile.avatar_url : '');
                 const chatBox = document.getElementById('chat-box');
                 chatBox.scrollTop = chatBox.scrollHeight;
             })
@@ -309,20 +372,42 @@
 
         const { error } = await supabaseClient
             .from('messages')
-            .insert([{ sender: myName, message: text, room: currentRoom }]);
+            .insert([{ sender: myName, message: text, room: currentRoom, is_image: false }]);
 
-        if (error) {
-            alert('Error: ' + error.message);
-        } else {
+        if (!error) {
             document.getElementById('messageInput').value = '';
         }
+    }
+
+    async function sendImageMessage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `img_${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabaseClient.storage.from('chat-files').upload(fileName, file);
+        if (uploadError) {
+            alert('Failed to upload image: ' + uploadError.message);
+            return;
+        }
+
+        const { data } = supabaseClient.storage.from('chat-files').getPublicUrl(fileName);
+
+        await supabaseClient.from('messages').insert([{
+            sender: myName,
+            message: data.publicUrl,
+            room: currentRoom,
+            is_image: true
+        }]);
+        event.target.value = '';
     }
 
     async function deleteMessage(id) {
         await supabaseClient.from('messages').delete().eq('id', id);
     }
 
-    function appendMessageToUI(data) {
+    function appendMessageToUI(data, avatarUrl) {
         const chatBox = document.getElementById('chat-box');
         const div = document.createElement('div');
         div.className = 'message';
@@ -330,19 +415,95 @@
 
         const isMessageAdmin = (data.sender.toLowerCase() === 'admin');
         const adminBadgeHtml = isMessageAdmin ? `<span class="admin-badge">ADMIN</span>` : '';
-        
-        let deleteBtnHtml = isAdmin ? `<button class="delete-btn" onclick="deleteMessage('${data.id}')">Delete</button>` : '';
+        const deleteBtnHtml = isAdmin ? `<button class="delete-btn" onclick="deleteMessage('${data.id}')">Delete</button>` : '';
+
+        const initial = data.sender.charAt(0).toUpperCase();
+        const avatarHtml = avatarUrl 
+            ? `<img src="${avatarUrl}" class="message-avatar">` 
+            : `<div class="message-avatar">${initial}</div>`;
+
+        let contentHtml = '';
+        if (data.is_image) {
+            contentHtml = `<img src="${escapeHtml(data.message)}" class="message-image" onclick="window.open(this.src)">`;
+        } else {
+            contentHtml = escapeHtml(data.message);
+        }
 
         div.innerHTML = `
-            <div style="font-size: 13px; color: #949ba4;">
-                <b>${escapeHtml(data.sender)}</b> ${adminBadgeHtml}
-            </div>
-            <div class="message-content">
-                ${escapeHtml(data.message)}
-                ${deleteBtnHtml}
+            ${avatarHtml}
+            <div class="message-body">
+                <div style="font-size: 13px; color: #949ba4;">
+                    <b>${escapeHtml(data.sender)}</b> ${adminBadgeHtml}
+                </div>
+                <div class="message-content">
+                    ${contentHtml}
+                    ${deleteBtnHtml}
+                </div>
             </div>
         `;
         chatBox.appendChild(div);
+    }
+
+    // --- TYPING INDICATORS VIA BROADCAST ---
+    function setupTypingChannel() {
+        typingChannel = supabaseClient.channel(`typing:${currentRoom}`);
+        typingChannel
+            .on('broadcast', { event: 'typing' }, payload => {
+                if (payload.user !== myName) {
+                    const typingDiv = document.getElementById('typingIndicator');
+                    typingDiv.innerText = `${payload.user} is typing...`;
+                    clearTimeout(window.typingTimer);
+                    window.typingTimer = setTimeout(() => {
+                        typingDiv.innerText = '';
+                    }, 3000);
+                }
+            })
+            .subscribe();
+    }
+
+    function handleTypingInput() {
+        if (!typingChannel) return;
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+            typingChannel.send({
+                type: 'broadcast',
+                event: 'typing',
+                payload: { user: myName }
+            });
+        }, 300);
+    }
+
+    // --- USER PRESENCE ---
+    function setupPresence() {
+        presenceChannel = supabaseClient.channel('online-users', {
+            config: { presence: { key: myName } },
+        });
+
+        presenceChannel
+            .on('presence', { event: 'sync' }, () => {
+                const state = presenceChannel.presenceState();
+                renderOnlineMembers(state);
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await presenceChannel.track({ online_at: new Date().toISOString() });
+                }
+            });
+    }
+
+    function renderOnlineMembers(presenceState) {
+        const membersList = document.getElementById('membersList');
+        if (!membersList) return;
+        
+        const usernames = Object.keys(presenceState);
+        membersList.innerHTML = `<h4 style="font-size: 12px; color: #949ba4; margin: 0 0 8px 0;">ONLINE — ${usernames.length}</h4>`;
+
+        usernames.forEach(username => {
+            const div = document.createElement('div');
+            div.className = 'member-item';
+            div.innerHTML = `<div class="status-dot"></div> <span>${escapeHtml(username)}</span>`;
+            membersList.appendChild(div);
+        });
     }
 
     function checkEnter(e) {
@@ -350,8 +511,9 @@
     }
 
     function escapeHtml(text) {
+        if (!text) return '';
         const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-        return text.replace(/[&<>"']/g, m => map[m] || m);
+        return text.toString().replace(/[&<>"']/g, m => map[m] || m);
     }
 </script>
 
