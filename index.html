@@ -3,190 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device & Network Inspector</title>
+    <title>Supabase Realtime Chat</title>
+    <!-- Include Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
-            max-width: 600px;
-            margin: 40px auto;
-            padding: 20px;
-        }
-        h2 {
-            color: #0066cc;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 8px;
-        }
-        .card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        th, td {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            text-align: left;
-            font-size: 14px;
-        }
-        th {
-            color: #555;
-            width: 40%;
-        }
-        td {
-            color: #111;
-            font-weight: 500;
-        }
-        .loading {
-            color: #888;
-            font-style: italic;
-        }
+        body { font-family: Arial, sans-serif; background: #f4f4f9; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .chat-container { width: 100%; max-width: 600px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .setup-screen, .chat-screen { display: flex; flex-direction: column; gap: 10px; }
+        .hidden { display: none !important; }
+        #chat-box { height: 350px; border: 1px solid #ccc; border-radius: 4px; overflow-y: scroll; padding: 10px; background: #fafafa; display: flex; flex-direction: column; gap: 8px; }
+        .message { padding: 8px 12px; border-radius: 6px; max-width: 80%; word-break: break-word; }
+        .public-msg { background: #e2e8f0; align-self: flex-start; }
+        .private-msg { background: #fed7aa; border-left: 4px solid #f97316; align-self: flex-start; }
+        .my-msg { background: #dbeafe; align-self: flex-end; }
+        .controls { display: flex; gap: 10px; }
+        input, select, button { padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #2563eb; color: white; border: none; cursor: pointer; }
+        button:hover { background: #1d4ed8; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>Device & Network Inspector</h2>
-    <table>
-        <tr>
-            <th>Public IP Address</th>
-            <td id="ip" class="loading">Fetching...</td>
-        </tr>
-        <tr>
-            <th>Location / ISP</th>
-            <td id="location" class="loading">Fetching...</td>
-        </tr>
-        <tr>
-            <th>Operating System</th>
-            <td id="os">Detecting...</td>
-        </tr>
-        <tr>
-            <th>Device Type</th>
-            <td id="device">Detecting...</td>
-        </tr>
-        <tr>
-            <th>Browser</th>
-            <td id="browser">Detecting...</td>
-        </tr>
-        <tr>
-            <th>Approx. RAM (Device Memory)</th>
-            <td id="ram">Not supported by browser</td>
-        </tr>
-        <tr>
-            <th>CPU Cores (Logical Processors)</th>
-            <td id="cpu">Unknown</td>
-        </tr>
-        <tr>
-            <th>Screen Resolution</th>
-            <td id="screen">Unknown</td>
-        </tr>
-        <tr>
-            <th>Connection Type</th>
-            <td id="connection">Unknown</td>
-        </tr>
-    </table>
+<div class="chat-container">
+    <h2>Supabase Chat Room</h2>
+
+    <!-- STEP 1: Login / Set Name -->
+    <div id="setupScreen" class="setup-screen">
+        <p>Enter your chat name to join:</p>
+        <input type="text" id="usernameInput" placeholder="Your Name...">
+        <button onclick="joinChat()">Join Chat</button>
+    </div>
+
+    <!-- STEP 2: The Chat Interface -->
+    <div id="chatScreen" class="chat-screen hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span id="welcomeUser" style="font-weight: bold; color: #333;"></span>
+            <span style="font-size: 12px; color: #666;">Messages stay saved!</span>
+        </div>
+
+        <div id="chat-box"></div>
+
+        <div class="controls">
+            <select id="recipientSelect">
+                <option value="public">Everyone (Public)</option>
+            </select>
+            <input type="text" id="messageInput" placeholder="Type a message..." style="flex: 1;" onkeypress="checkEnter(event)">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
 </div>
 
 <script>
-    // Replace with your actual webhook URL
-    const WEBHOOK_URL = 'https://webhook.site/7c89a6a0-225d-4dd5-9090-881977af0018';
+    // REPLACE THESE WITH YOUR ACTUAL SUPABASE CREDENTIALS
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
-    // Gather specs
-    const ua = navigator.userAgent;
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Operating System Detection
-    let os = "Unknown OS";
-    if (ua.indexOf("Win") !== -1) os = "Windows";
-    if (ua.indexOf("Mac") !== -1) os = "macOS";
-    if (ua.indexOf("Linux") !== -1) os = "Linux";
-    if (ua.indexOf("Android") !== -1) os = "Android";
-    if (ua.indexOf("like Mac") !== -1) os = "iOS (iPhone/iPad)";
-    document.getElementById('os').innerText = os;
+    let myName = '';
 
-    // Device Type Detection
-    let deviceType = "Desktop / Laptop";
-    if (/Mobi|Android/i.test(ua)) deviceType = "Mobile Phone";
-    if (/Tablet|iPad/i.test(ua)) deviceType = "Tablet";
-    document.getElementById('device').innerText = deviceType;
+    function joinChat() {
+        const input = document.getElementById('usernameInput').value.trim();
+        if (!input) {
+            alert('Please enter a name!');
+            return;
+        }
+        myName = input;
+        document.getElementById('welcomeUser').innerText = `Logged in as: ${myName}`;
+        document.getElementById('setupScreen').classList.add('hidden');
+        document.getElementById('chatScreen').classList.remove('hidden');
 
-    // Browser Detection
-    let browser = "Unknown Browser";
-    if (ua.indexOf("Firefox") !== -1) browser = "Mozilla Firefox";
-    else if (ua.indexOf("SamsungBrowser") !== -1) browser = "Samsung Internet";
-    else if (ua.indexOf("Opera") !== -1 || ua.indexOf("OPR") !== -1) browser = "Opera";
-    else if (ua.indexOf("Trident") !== -1) browser = "Internet Explorer";
-    else if (ua.indexOf("Edge") !== -1) browser = "Microsoft Edge";
-    else if (ua.indexOf("Chrome") !== -1) browser = "Google Chrome";
-    else if (ua.indexOf("Safari") !== -1) browser = "Apple Safari";
-    document.getElementById('browser').innerText = browser;
+        loadOldMessages();
+        subscribeToChat();
+        loadActiveUsers(); // Optional helper to list users
+    }
 
-    // RAM
-    let ram = navigator.deviceMemory ? `~${navigator.deviceMemory} GB` : "Unknown";
-    document.getElementById('ram').innerText = ram !== "Unknown" ? `${ram} (Approximate)` : "Not supported";
+    // Load past messages from Supabase database
+    async function loadOldMessages() {
+        const { data, error } = await supabaseClient
+            .from('messages')
+            .select('*')
+            .order('created_at', { ascending: true });
 
-    // CPU Cores
-    let cpu = navigator.hardwareConcurrency ? `${navigator.hardwareConcurrency} Cores` : "Unknown";
-    document.getElementById('cpu').innerText = cpu;
+        if (error) {
+            console.error('Error loading messages:', error);
+            return;
+        }
 
-    // Screen Resolution
-    let screenRes = `${window.screen.width} x ${window.screen.height} pixels`;
-    document.getElementById('screen').innerText = screenRes;
+        const chatBox = document.getElementById('chat-box');
+        chatBox.innerHTML = ''; // clear
+        data.forEach(msg => displayMessage(msg));
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
 
-    // Connection Type
-    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    let connectionType = conn ? `${conn.effectiveType ? conn.effectiveType.toUpperCase() : 'Unknown'} (~${conn.downlink ? conn.downlink + ' Mbps' : 'N/A'})` : "Unknown";
-    document.getElementById('connection').innerText = connectionType;
+    // Listen live for new messages coming in
+    function subscribeToChat() {
+        supabaseClient
+            .channel('public:messages')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+                displayMessage(payload.new);
+                const chatBox = document.getElementById('chat-box');
+                chatBox.scrollTop = chatBox.scrollHeight;
+            })
+            .subscribe();
+    }
 
-    // 1. Fetch Public IP and Location, then send everything to the webhook
-    fetch('https://ipapi.co/json/')
-        .then(response => response.json())
-        .then(data => {
-            const ip = data.ip || 'Unavailable';
-            const location = `${data.city || 'Unknown'}, ${data.region || 'Unknown'}, ${data.country_name || 'Unknown'} (${data.org || 'Unknown ISP'})`;
+    // Send a message (Public or Private)
+    async function sendMessage() {
+        const messageText = document.getElementById('messageInput').value.trim();
+        const recipient = document.getElementById('recipientSelect').value;
 
-            document.getElementById('ip').innerText = ip;
-            document.getElementById('location').innerText = location;
+        if (!messageText) return;
 
-            // Compile payload data
-            const payload = {
-                content: null,
-                embeds: [{
-                    title: "🚨 New Page Visit Detected!",
-                    color: 3447003,
-                    fields: [
-                        { name: "🌍 IP Address", value: ip, inline: true },
-                        { name: "📍 Location / ISP", value: location, inline: false },
-                        { name: "💻 Operating System", value: os, inline: true },
-                        { name: "📱 Device Type", value: deviceType, inline: true },
-                        { name: "🌐 Browser", value: browser, inline: true },
-                        { name: "🧠 Approx. RAM", value: ram, inline: true },
-                        { name: "⚡ CPU Cores", value: cpu, inline: true },
-                        { name: "🖥️ Screen", value: screenRes, inline: true },
-                        { name: "📶 Connection", value: connectionType, inline: true }
-                    ],
-                    timestamp: new Date().toISOString()
-                }]
-            };
+        const { error } = await supabaseClient
+            .from('messages')
+            .insert([
+                { 
+                    sender: myName, 
+                    recipient: recipient === 'public' ? null : recipient, 
+                    message: messageText 
+                }
+            ]);
 
-            // Send to webhook (Discord format structured above, modify payload structure if using a standard JSON webhook)
-            if (WEBHOOK_URL && WEBHOOK_URL !== 'YOUR_WEBHOOK_URL_HERE') {
-                fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                }).catch(err => console.error("Webhook error:", err));
+        if (error) {
+            alert('Error sending message: ' + error.message);
+        } else {
+            document.getElementById('messageInput').value = '';
+        }
+    }
+
+    function checkEnter(e) {
+        if (e.key === 'Enter') sendMessage();
+    }
+
+    // Render messages onto the screen (filtering private messages properly)
+    function displayMessage(data) {
+        // If it's a private message, only show it if I am the sender or the recipient
+        if (data.recipient && data.recipient !== myName && data.sender !== myName) {
+            return; 
+        }
+
+        const chatBox = document.getElementById('chat-box');
+        const div = document.createElement('div');
+        div.classList.add('message');
+
+        let isMine = (data.sender === myName);
+        let isPrivate = data.recipient !== null;
+
+        if (isMine) {
+            div.classList.add('my-msg');
+            div.innerHTML = `<strong>You${isPrivate ? ' (Whisper to ' + data.recipient + ')' : ''}:</strong> ${escapeHtml(data.message)}`;
+        } else {
+            if (isPrivate) {
+                div.classList.add('private-msg');
+                div.innerHTML = `<strong>[Private] ${escapeHtml(data.sender)}:</strong> ${escapeHtml(data.message)}`;
+            } else {
+                div.classList.add('public-msg');
+                div.innerHTML = `<strong>${escapeHtml(data.sender)}:</strong> ${escapeHtml(data.message)}`;
             }
-        })
-        .catch(() => {
-            document.getElementById('ip').innerText = 'Failed to load';
-            document.getElementById('location').innerText = 'Failed to load';
-        });
+        }
+
+        chatBox.appendChild(div);
+
+        // Dynamically add sender to recipient dropdown if they aren't there yet
+        updateRecipientList(data.sender);
+    }
+
+    function updateRecipientList(name) {
+        if (name === myName) return;
+        const select = document.getElementById('recipientSelect');
+        let exists = false;
+        for (let i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === name) exists = true;
+        }
+        if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = `Whisper to ${name}`;
+            select.appendChild(opt);
+        }
+    }
+
+    // Simple security helper to prevent HTML injection/XSS attacks
+    function escapeHtml(text) {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
 </script>
 
 </body>
