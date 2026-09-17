@@ -3,64 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supabase Realtime Chat</title>
-    <!-- Include Supabase JS Client -->
+    <title>Supabase Discord-Style Chat</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f9; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .chat-container { width: 100%; max-width: 600px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .setup-screen, .chat-screen { display: flex; flex-direction: column; gap: 10px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #313338; color: #dbdee1; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Layout Structure */
+        .app-container { display: flex; width: 100vw; height: 100vh; }
+        .setup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .setup-box { background: #313338; padding: 30px; border-radius: 8px; width: 350px; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        
+        /* Sidebar (Discord Style) */
+        .sidebar { width: 240px; background: #2b2d31; display: flex; flex-direction: column; border-right: 1px solid #1f2023; }
+        .sidebar-header { padding: 20px; font-weight: bold; font-size: 16px; border-bottom: 2px solid #1f2023; color: white; }
+        .channel-list { padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+        .channel-btn { background: transparent; border: none; color: #949ba4; text-align: left; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 15px; font-weight: 500; }
+        .channel-btn:hover { background: #35373c; color: #dbdee1; }
+        .channel-btn.active { background: #404249; color: white; }
+
+        /* Main Chat Area */
+        .chat-main { flex: 1; display: flex; flex-direction: column; background: #313338; }
+        .chat-header { padding: 20px; font-size: 18px; font-weight: bold; border-bottom: 1px solid #1f2023; color: white; display: flex; justify-content: space-between; align-items: center; }
+        #chat-box { flex: 1; overflow-y: scroll; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        
+        /* Messages */
+        .message { display: flex; flex-direction: column; gap: 4px; position: relative; padding-right: 50px; }
+        .message-content { background: #2b2d31; padding: 10px 14px; border-radius: 8px; word-break: break-word; max-width: 80%; }
+        .admin-badge { background: #da373c; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: bold; }
+        
+        /* Input Controls */
+        .controls { padding: 20px; display: flex; gap: 10px; background: #313338; }
+        input, button { padding: 12px; font-size: 14px; border: none; border-radius: 4px; outline: none; }
+        input { background: #383a40; color: white; flex: 1; }
+        button.send-btn { background: #5865f2; color: white; cursor: pointer; font-weight: bold; }
+        button.send-btn:hover { background: #4752c4; }
+        
+        .delete-btn { position: absolute; right: 0; top: 0; background: #da373c; color: white; border: none; padding: 4px 8px; font-size: 12px; border-radius: 4px; cursor: pointer; display: none; }
+        .message:hover .delete-btn { display: block; }
+        
         .hidden { display: none !important; }
-        #chat-box { height: 350px; border: 1px solid #ccc; border-radius: 4px; overflow-y: scroll; padding: 10px; background: #fafafa; display: flex; flex-direction: column; gap: 8px; }
-        .message { padding: 8px 12px; border-radius: 6px; max-width: 80%; word-break: break-word; }
-        .public-msg { background: #e2e8f0; align-self: flex-start; }
-        .private-msg { background: #fed7aa; border-left: 4px solid #f97316; align-self: flex-start; }
-        .my-msg { background: #dbeafe; align-self: flex-end; }
-        .controls { display: flex; gap: 10px; }
-        input, select, button { padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
-        button { background: #2563eb; color: white; border: none; cursor: pointer; }
-        button:hover { background: #1d4ed8; }
     </style>
 </head>
 <body>
 
-<div class="chat-container">
-    <h2>Supabase Chat Room</h2>
-
-    <!-- STEP 1: Login / Set Name -->
-    <div id="setupScreen" class="setup-screen">
-        <p>Enter your chat name to join:</p>
-        <input type="text" id="usernameInput" placeholder="Your Name...">
-        <button onclick="joinChat()">Join Chat</button>
-    </div>
-
-    <!-- STEP 2: The Chat Interface -->
-    <div id="chatScreen" class="chat-screen hidden">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span id="welcomeUser" style="font-weight: bold; color: #333;"></span>
-            <span style="font-size: 12px; color: #666;">Messages stay saved!</span>
-        </div>
-
-        <div id="chat-box"></div>
-
-        <div class="controls">
-            <select id="recipientSelect">
-                <option value="public">Everyone (Public)</option>
-            </select>
-            <input type="text" id="messageInput" placeholder="Type a message..." style="flex: 1;" onkeypress="checkEnter(event)">
-            <button onclick="sendMessage()">Send</button>
+    <!-- LOGIN SCREEN -->
+    <div id="setupScreen" class="setup-overlay">
+        <div class="setup-box">
+            <h2 style="color: white; margin-top: 0;">Join Chat Server</h2>
+            <p style="color: #949ba4; font-size: 14px;">Tip: Enter name as <b>Admin</b> to test admin powers.</p>
+            <input type="text" id="usernameInput" placeholder="Your username...">
+            <button class="send-btn" onclick="joinChat()">Connect</button>
         </div>
     </div>
-</div>
+
+    <!-- MAIN APP INTERFACE -->
+    <div id="appContainer" class="app-container hidden">
+        <!-- Sidebar Channels -->
+        <div class="sidebar">
+            <div class="sidebar-header">💬 My Community</div>
+            <div class="channel-list">
+                <button class="channel-btn active" onclick="switchChannel('general', this)"># general</button>
+                <button class="channel-btn" onclick="switchChannel('gaming', this)"># gaming</button>
+                <button class="channel-btn" onclick="switchChannel('coding', this)"># coding</button>
+                <button class="channel-btn" onclick="switchChannel('random', this)"># random</button>
+            </div>
+        </div>
+
+        <!-- Chat Panel -->
+        <div class="chat-main">
+            <div class="chat-header">
+                <span id="currentChannelTitle"># general</span>
+                <span id="userInfo" style="font-size: 14px; color: #949ba4;"></span>
+            </div>
+
+            <div id="chat-box"></div>
+
+            <div class="controls">
+                <input type="text" id="messageInput" placeholder="Message #general..." onkeypress="checkEnter(event)">
+                <button class="send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
 
 <script>
-    // REPLACE THESE WITH YOUR ACTUAL SUPABASE CREDENTIALS
     const SUPABASE_URL = 'https://lusowdnrdgyisxosmbyj.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1c293ZG5yZGd5aXN4b3NtYnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzgxNTYsImV4cCI6MjA5MzE1NDE1Nn0._dd4uYmcdOKk3bBcQRije1jRbKEF7B4rh3WL7d5tIKQ';
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let myName = '';
+    let currentRoom = 'general';
+    let isAdmin = false;
+    let chatSubscription = null;
 
     function joinChat() {
         const input = document.getElementById('usernameInput').value.trim();
@@ -69,125 +103,136 @@
             return;
         }
         myName = input;
-        document.getElementById('welcomeUser').innerText = `Logged in as: ${myName}`;
-        document.getElementById('setupScreen').classList.add('hidden');
-        document.getElementById('chatScreen').classList.remove('hidden');
+        isAdmin = (myName.toLowerCase() === 'admin');
 
-        loadOldMessages();
-        subscribeToChat();
-        loadActiveUsers(); // Optional helper to list users
+        document.getElementById('userInfo').innerText = `Logged in as: ${myName} ${isAdmin ? '(ADMIN)' : ''}`;
+        document.getElementById('setupScreen').classList.add('hidden');
+        document.getElementById('appContainer').classList.remove('hidden');
+
+        loadMessagesForRoom();
+        subscribeToRoom();
     }
 
-    // Load past messages from Supabase database
-    async function loadOldMessages() {
+    // Switch channels (Discord style)
+    function switchChannel(roomName, element) {
+        currentRoom = roomName;
+        document.getElementById('currentChannelTitle').innerText = `# ${roomName}`;
+        document.getElementById('messageInput').placeholder = `Message #${roomName}...`;
+
+        // Update active class on buttons
+        document.querySelectorAll('.channel-btn').forEach(btn => btn.classList.remove('active'));
+        element.classList.add('active');
+
+        // Unsubscribe old channel and load new room data
+        if (chatSubscription) supabaseClient.removeChannel(chatSubscription);
+        loadMessagesForRoom();
+        subscribeToRoom();
+    }
+
+    async function loadMessagesForRoom() {
         const { data, error } = await supabaseClient
             .from('messages')
             .select('*')
+            .eq('room', currentRoom)
             .order('created_at', { ascending: true });
 
         if (error) {
-            console.error('Error loading messages:', error);
+            console.error('Error fetching messages:', error);
             return;
         }
 
         const chatBox = document.getElementById('chat-box');
-        chatBox.innerHTML = ''; // clear
-        data.forEach(msg => displayMessage(msg));
+        chatBox.innerHTML = '';
+        data.forEach(msg => appendMessageToUI(msg));
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Listen live for new messages coming in
-    function subscribeToChat() {
-        supabaseClient
-            .channel('public:messages')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-                displayMessage(payload.new);
+    function subscribeToRoom() {
+        chatSubscription = supabaseClient
+            .channel(`room:${currentRoom}`)
+            .on('postgres_changes', { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'messages',
+                filter: `room=eq.${currentRoom}`
+            }, payload => {
+                appendMessageToUI(payload.new);
                 const chatBox = document.getElementById('chat-box');
                 chatBox.scrollTop = chatBox.scrollHeight;
+            })
+            .on('postgres_changes', {
+                event: 'DELETE',
+                schema: 'public',
+                table: 'messages'
+            }, payload => {
+                // Remove message from DOM if deleted by admin
+                const el = document.getElementById(`msg-${payload.old.id}`);
+                if (el) el.remove();
             })
             .subscribe();
     }
 
-    // Send a message (Public or Private)
     async function sendMessage() {
-        const messageText = document.getElementById('messageInput').value.trim();
-        const recipient = document.getElementById('recipientSelect').value;
-
-        if (!messageText) return;
+        const text = document.getElementById('messageInput').value.trim();
+        if (!text) return;
 
         const { error } = await supabaseClient
             .from('messages')
-            .insert([
-                { 
-                    sender: myName, 
-                    recipient: recipient === 'public' ? null : recipient, 
-                    message: messageText 
-                }
-            ]);
+            .insert([{ 
+                sender: myName, 
+                message: text, 
+                room: currentRoom 
+            }]);
 
         if (error) {
-            alert('Error sending message: ' + error.message);
+            alert('Error: ' + error.message);
         } else {
             document.getElementById('messageInput').value = '';
         }
+    }
+
+    async function deleteMessage(id) {
+        const { error } = await supabaseClient
+            .from('messages')
+            .delete()
+            .eq('id', id);
+
+        if (error) alert('Failed to delete: ' + error.message);
+    }
+
+    function appendMessageToUI(data) {
+        const chatBox = document.getElementById('chat-box');
+        const div = document.createElement('div');
+        div.className = 'message';
+        div.id = `msg-${data.id}`;
+
+        const isMessageAdmin = data.sender.toLowerCase() === 'admin';
+        const adminBadgeHtml = isMessageAdmin ? `<span class="admin-badge">ADMIN</span>` : '';
+        
+        let deleteBtnHtml = '';
+        if (isAdmin) {
+            deleteBtnHtml = `<button class="delete-btn" onclick="deleteMessage('${data.id}')">Delete</button>`;
+        }
+
+        div.innerHTML = `
+            <div style="font-size: 13px; color: #949ba4;">
+                <b>${escapeHtml(data.sender)}</b> ${adminBadgeHtml}
+            </div>
+            <div class="message-content">
+                ${escapeHtml(data.message)}
+                ${deleteBtnHtml}
+            </div>
+        `;
+        chatBox.appendChild(div);
     }
 
     function checkEnter(e) {
         if (e.key === 'Enter') sendMessage();
     }
 
-    // Render messages onto the screen (filtering private messages properly)
-    function displayMessage(data) {
-        // If it's a private message, only show it if I am the sender or the recipient
-        if (data.recipient && data.recipient !== myName && data.sender !== myName) {
-            return; 
-        }
-
-        const chatBox = document.getElementById('chat-box');
-        const div = document.createElement('div');
-        div.classList.add('message');
-
-        let isMine = (data.sender === myName);
-        let isPrivate = data.recipient !== null;
-
-        if (isMine) {
-            div.classList.add('my-msg');
-            div.innerHTML = `<strong>You${isPrivate ? ' (Whisper to ' + data.recipient + ')' : ''}:</strong> ${escapeHtml(data.message)}`;
-        } else {
-            if (isPrivate) {
-                div.classList.add('private-msg');
-                div.innerHTML = `<strong>[Private] ${escapeHtml(data.sender)}:</strong> ${escapeHtml(data.message)}`;
-            } else {
-                div.classList.add('public-msg');
-                div.innerHTML = `<strong>${escapeHtml(data.sender)}:</strong> ${escapeHtml(data.message)}`;
-            }
-        }
-
-        chatBox.appendChild(div);
-
-        // Dynamically add sender to recipient dropdown if they aren't there yet
-        updateRecipientList(data.sender);
-    }
-
-    function updateRecipientList(name) {
-        if (name === myName) return;
-        const select = document.getElementById('recipientSelect');
-        let exists = false;
-        for (let i = 0; i < select.options.length; i++) {
-            if (select.options[i].value === name) exists = true;
-        }
-        if (!exists) {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = `Whisper to ${name}`;
-            select.appendChild(opt);
-        }
-    }
-
-    // Simple security helper to prevent HTML injection/XSS attacks
     function escapeHtml(text) {
         const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-        return text.replace(/[&<>"']/g, m => map[m]);
+        return text.replace(/[&<>"']/g, m => map[m] || m);
     }
 </script>
 
