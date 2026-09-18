@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supabase Ultimate Chat with DMs, Editing & AI</title>
+    <title>Supabase Chat with Owner Role, Admins & AI</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="importmap">
       {
@@ -52,17 +52,21 @@
         #chat-box { flex: 1; overflow-y: scroll; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
         
         /* Members Sidebar */
-        .members-sidebar { width: 220px; background: #2b2d31; border-left: 1px solid #1f2023; padding: 15px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
-        .member-item { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 4px; font-size: 14px; color: #949ba4; cursor: pointer; }
-        .member-item:hover { background: #35373c; color: #dbdee1; }
+        .members-sidebar { width: 240px; background: #2b2d31; border-left: 1px solid #1f2023; padding: 15px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+        .member-item { display: flex; align-items: center; justify-content: space-between; padding: 6px; border-radius: 4px; font-size: 14px; color: #949ba4; }
+        .member-info { display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; overflow: hidden; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #23a55a; flex-shrink: 0; }
+        .promote-btn { background: #5865f2; color: white; border: none; font-size: 10px; padding: 4px 6px; border-radius: 4px; cursor: pointer; display: none; }
+        .member-item:hover .promote-btn { display: block; }
 
         /* Messages */
         .message { display: flex; gap: 12px; position: relative; padding-right: 120px; }
+        .message.announcement { background: rgba(242, 186, 51, 0.1); border-left: 4px solid #f2ba33; padding: 10px; border-radius: 4px; }
         .message-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; }
         .message-body { display: flex; flex-direction: column; gap: 4px; word-break: break-word; flex: 1; }
         .message-content { background: #2b2d31; padding: 10px 14px; border-radius: 8px; max-width: 100%; display: inline-block; }
         .message-image { max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 5px; cursor: pointer; display: block; }
+        .owner-badge { background: #f2ba33; color: #111; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: bold; }
         .admin-badge { background: #da373c; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: bold; }
         .ai-badge { background: #5865f2; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: bold; }
         .edited-tag { font-size: 10px; color: #949ba4; margin-left: 4px; }
@@ -106,7 +110,6 @@
             <div class="tab-toggles">
                 <button type="button" id="signinTabBtn" class="tab-btn active" onclick="switchAuthMode('signin')">Sign In</button>
                 <button type="button" id="signupTabBtn" class="tab-btn" onclick="switchAuthMode('signup')">Sign Up</button>
-                <button type="button" id="adminTabBtn" class="tab-btn" onclick="switchAuthMode('admin')">Admin</button>
             </div>
 
             <input type="text" id="usernameInput" placeholder="Username...">
@@ -153,9 +156,9 @@
                 <div id="dmChannelsContainer"></div>
             </div>
 
-            <!-- Admin Channel Creation Panel -->
+            <!-- Admin/Owner Channel Creation Panel -->
             <div id="adminSidebarPanel" class="admin-sidebar-panel hidden">
-                <span style="font-size: 11px; font-weight: bold; color: #f2ba33;">ADMIN CONTROLS</span>
+                <span style="font-size: 11px; font-weight: bold; color: #f2ba33;" id="panelTitleLabel">ADMIN CONTROLS</span>
                 <input type="text" id="newChannelInput" placeholder="New channel name...">
                 <button type="button" onclick="createChannel()">+ Create Channel</button>
             </div>
@@ -187,7 +190,7 @@
                     <label class="file-upload-btn" title="Upload Image">
                         📁 <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="sendImageMessage(event)">
                     </label>
-                    <input type="text" id="messageInput" placeholder="Type a message or @AI..." oninput="handleTypingInput()" onkeypress="checkEnter(event)">
+                    <input type="text" id="messageInput" placeholder="Type a message or @AI... (/announcement [text] for admin)" oninput="handleTypingInput()" onkeypress="checkEnter(event)">
                     <button type="button" class="send-btn" onclick="sendMessage()">Send</button>
                 </div>
             </div>
@@ -211,9 +214,10 @@
 
     let myName = '';
     let myAvatarUrl = '';
+    let isAdmin = false;
+    let isOwner = false;
     let currentRoom = 'general';
     let isDM = false;
-    let isAdmin = false;
     let chatSubscription = null;
     let channelsSubscription = null;
     let presenceChannel = null;
@@ -227,14 +231,12 @@
         authMode = mode;
         const signinBtn = document.getElementById('signinTabBtn');
         const signupBtn = document.getElementById('signupTabBtn');
-        const adminBtn = document.getElementById('adminTabBtn');
         const avatarSection = document.getElementById('signupAvatarSection');
         const submitBtn = document.getElementById('authSubmitBtn');
         const title = document.getElementById('authTitle');
 
         signinBtn.classList.remove('active');
         signupBtn.classList.remove('active');
-        adminBtn.classList.remove('active');
 
         if (mode === 'signin') {
             signinBtn.classList.add('active');
@@ -246,11 +248,6 @@
             avatarSection.classList.remove('hidden');
             submitBtn.innerText = 'Create Account';
             title.innerText = 'Create an Account';
-        } else if (mode === 'admin') {
-            adminBtn.classList.add('active');
-            avatarSection.classList.add('hidden');
-            submitBtn.innerText = 'Admin Login';
-            title.innerText = 'Admin Portal';
         }
     }
 
@@ -264,15 +261,7 @@
         }
 
         try {
-            if (authMode === 'admin') {
-                const { data, error } = await supabaseClient.from('admins').select('*').eq('username', username).eq('password', password).single();
-                if (error || !data) {
-                    alert('Invalid admin credentials!');
-                    return;
-                }
-                isAdmin = true;
-                myName = username;
-            } else if (authMode === 'signup') {
+            if (authMode === 'signup') {
                 const { data: existing } = await supabaseClient.from('profiles').select('*').eq('username', username).single();
                 if (existing) {
                     alert('Username already taken!');
@@ -282,12 +271,13 @@
                 if (avatarFile) {
                     myAvatarUrl = await uploadAvatar(avatarFile, username);
                 }
-                const { error } = await supabaseClient.from('profiles').insert([{ username, password, avatar_url: myAvatarUrl }]);
+                const { error } = await supabaseClient.from('profiles').insert([{ username, password, avatar_url: myAvatarUrl, is_admin: false, is_owner: false }]);
                 if (error) {
                     alert('Sign up failed: ' + error.message);
                     return;
                 }
                 isAdmin = false;
+                isOwner = false;
                 myName = username;
             } else if (authMode === 'signin') {
                 const { data, error } = await supabaseClient.from('profiles').select('*').eq('username', username).eq('password', password).single();
@@ -295,7 +285,9 @@
                     alert('Invalid username or password!');
                     return;
                 }
-                isAdmin = false;
+                isAdmin = !!data.is_admin;
+                isOwner = !!data.is_owner;
+                if (isOwner) isAdmin = true; // Owners are automatically admins
                 myName = data.username;
                 myAvatarUrl = data.avatar_url || '';
             }
@@ -303,7 +295,7 @@
             initAppInterface();
         } catch (err) {
             console.error(err);
-            alert('Authentication error occurred. Ensure your database tables and schema cache are fully up to date.');
+            alert('Authentication error occurred.');
         }
     }
 
@@ -321,7 +313,13 @@
         document.getElementById('appContainer').classList.remove('hidden');
 
         updateSidebarUserPill();
-        if (isAdmin) document.getElementById('adminSidebarPanel').classList.remove('hidden');
+        if (isAdmin || isOwner) {
+            document.getElementById('adminSidebarPanel').classList.remove('hidden');
+            if (isOwner) {
+                document.getElementById('panelTitleLabel').innerText = '👑 OWNER CONTROLS';
+                document.getElementById('panelTitleLabel').style.color = '#f2ba33';
+            }
+        }
 
         loadChannels();
         subscribeToChannels();
@@ -332,7 +330,11 @@
     }
 
     function updateSidebarUserPill() {
-        document.getElementById('sidebarUserName').innerText = myName + (isAdmin ? ' (Admin)' : '');
+        let badgeText = '';
+        if (isOwner) badgeText = ' (Owner)';
+        else if (isAdmin) badgeText = ' (Admin)';
+
+        document.getElementById('sidebarUserName').innerText = myName + badgeText;
         const avatarContainer = document.getElementById('sidebarUserAvatarContainer');
         const initial = myName.charAt(0).toUpperCase();
         avatarContainer.innerHTML = myAvatarUrl ? `<img src="${myAvatarUrl}" class="sidebar-avatar">` : `<div class="sidebar-avatar">${initial}</div>`;
@@ -356,9 +358,7 @@
         if (!newName) return alert('Username cannot be empty!');
         if (avatarFile) newAvatarUrl = await uploadAvatar(avatarFile, newName);
 
-        if (!isAdmin) {
-            await supabaseClient.from('profiles').update({ username: newName, avatar_url: newAvatarUrl }).eq('username', myName);
-        }
+        await supabaseClient.from('profiles').update({ username: newName, avatar_url: newAvatarUrl }).eq('username', myName);
 
         myName = newName;
         myAvatarUrl = newAvatarUrl;
@@ -385,7 +385,7 @@
             btn.onclick = () => switchChannel(ch.name, false, btn);
             item.appendChild(btn);
 
-            if (isAdmin) {
+            if (isAdmin || isOwner) {
                 const delBtn = document.createElement('button');
                 delBtn.type = 'button';
                 delBtn.className = 'del-channel-btn';
@@ -476,9 +476,6 @@
                 if (el) {
                     const contentEl = el.querySelector('.message-text-content');
                     if (contentEl) contentEl.innerText = payload.new.message;
-                    if (!el.querySelector('.edited-tag')) {
-                        el.querySelector('.message-body').querySelector('div').insertAdjacentHTML('beforeend', `<span class="edited-tag">(edited)</span>`);
-                    }
                 }
             })
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, payload => {
@@ -493,13 +490,28 @@
         const text = input.value.trim();
         if (!text) return;
 
+        // Admin/Owner Announcement Command
+        if ((isAdmin || isOwner) && text.startsWith('/announcement ')) {
+            const announcementText = text.replace('/announcement ', '');
+            await supabaseClient.from('messages').insert([{
+                sender: myName,
+                message: `📢 ANNOUNCEMENT: ${announcementText}`,
+                room: currentRoom,
+                is_image: false,
+                is_announcement: true
+            }]);
+            input.value = '';
+            return;
+        }
+
         const isAiCall = text.startsWith('@AI ');
         
         const { error } = await supabaseClient.from('messages').insert([{
             sender: myName,
             message: text,
             room: currentRoom,
-            is_image: false
+            is_image: false,
+            is_announcement: false
         }]);
 
         if (!error) {
@@ -523,14 +535,16 @@
                 sender: 'AI Bot',
                 message: aiReply,
                 room: currentRoom,
-                is_image: false
+                is_image: false,
+                is_announcement: false
             }]);
         } catch (err) {
             await supabaseClient.from('messages').insert([{
                 sender: 'AI Bot',
                 message: "Error processing request with Gemini AI.",
                 room: currentRoom,
-                is_image: false
+                is_image: false,
+                is_announcement: false
             }]);
         }
     }
@@ -558,18 +572,27 @@
         await supabaseClient.from('messages').update({ message: newText, is_edited: true }).eq('id', id);
     }
 
+    window.toggleUserAdmin = async function(targetUsername, makeAdmin) {
+        // Double check target isn't the owner
+        const { data: targetProfile } = await supabaseClient.from('profiles').select('is_owner').eq('username', targetUsername).single();
+        if (targetProfile && targetProfile.is_owner) {
+            return alert("Cannot modify the owner's status!");
+        }
+
+        await supabaseClient.from('profiles').update({ is_admin: makeAdmin }).eq('username', targetUsername);
+        alert(`User @${targetUsername} has been ${makeAdmin ? 'promoted to Admin' : 'demoted'}!`);
+    }
+
     function appendMessageToUI(data, avatarUrl) {
         const chatBox = document.getElementById('chat-box');
         const div = document.createElement('div');
-        div.className = 'message';
+        div.className = data.is_announcement ? 'message announcement' : 'message';
         div.id = `msg-${data.id}`;
 
-        const isMessageAdmin = (data.sender.toLowerCase() === 'admin');
         const isMessageAI = (data.sender === 'AI Bot');
-        const badgeHtml = isMessageAdmin ? `<span class="admin-badge">ADMIN</span>` : (isMessageAI ? `<span class="ai-badge">AI BOT</span>` : '');
         const editedHtml = data.is_edited ? `<span class="edited-tag">(edited)</span>` : '';
 
-        const canModify = (isAdmin || data.sender === myName) && !isMessageAI;
+        const canModify = (isAdmin || isOwner || data.sender === myName) && !isMessageAI;
         const actionsHtml = canModify ? `
             <div class="msg-actions">
                 ${!data.is_image ? `<button type="button" class="action-btn" onclick="editMessage('${data.id}', \`${escapeHtml(data.message)}\`)">Edit</button>` : ''}
@@ -588,7 +611,7 @@
             ${avatarHtml}
             <div class="message-body">
                 <div style="font-size: 13px; color: #949ba4;">
-                    <b>${escapeHtml(data.sender)}</b> ${badgeHtml} ${editedHtml}
+                    <b>${escapeHtml(data.sender)}</b> <span id="badge-${data.id}"></span> ${editedHtml}
                 </div>
                 <div class="message-content">
                     ${contentHtml}
@@ -597,6 +620,16 @@
             </div>
         `;
         chatBox.appendChild(div);
+
+        // Fetch sender badge style async
+        supabaseClient.from('profiles').select('is_admin, is_owner').eq('username', data.sender).single().then(({ data: profile }) => {
+            const badgeSpan = document.getElementById(`badge-${data.id}`);
+            if (badgeSpan) {
+                if (isMessageAI) badgeSpan.innerHTML = `<span class="ai-badge">AI BOT</span>`;
+                else if (profile && profile.is_owner) badgeSpan.innerHTML = `<span class="owner-badge">OWNER</span>`;
+                else if (profile && profile.is_admin) badgeSpan.innerHTML = `<span class="admin-badge">ADMIN</span>`;
+            }
+        });
     }
 
     function subscribeToChannels() {
@@ -627,32 +660,56 @@
 
     function setupPresence() {
         presenceChannel = supabaseClient.channel('online-users', { config: { presence: { key: myName } } });
-        presenceChannel.on('presence', { event: 'sync' }, () => {
+        presenceChannel.on('presence', { event: 'sync' }, async () => {
             const state = presenceChannel.presenceState();
             activeOnlineUsers = Object.keys(state);
-            renderOnlineMembers(state);
+            await renderOnlineMembers(state);
             renderDMList();
         }).subscribe(async (status) => {
             if (status === 'SUBSCRIBED') await presenceChannel.track({ online_at: new Date().toISOString() });
         });
     }
 
-    function renderOnlineMembers(presenceState) {
+    async function renderOnlineMembers(presenceState) {
         const membersList = document.getElementById('membersList');
         if (!membersList) return;
         const usernames = Object.keys(presenceState);
         membersList.innerHTML = `<h4 style="font-size: 12px; color: #949ba4; margin: 0 0 8px 0;">ONLINE — ${usernames.length}</h4>`;
 
+        const { data: profiles } = await supabaseClient.from('profiles').select('username, is_admin, is_owner');
+        const profileMap = {};
+        if (profiles) profiles.forEach(p => profileMap[p.username] = p);
+
         usernames.forEach(username => {
+            const userProfile = profileMap[username] || {};
+            const isUserAdmin = userProfile.is_admin;
+            const isUserOwner = userProfile.is_owner;
+
             const div = document.createElement('div');
             div.className = 'member-item';
-            div.innerHTML = `<div class="status-dot"></div> <span>${escapeHtml(username)}</span>`;
+            
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'member-info';
+            
+            let crownIcon = isUserOwner ? '👑' : (isUserAdmin ? '🛡️' : '');
+            infoDiv.innerHTML = `<div class="status-dot"></div> <span>${escapeHtml(username)}</span> ${crownIcon}`;
             if (username !== myName) {
-                div.onclick = () => {
+                infoDiv.onclick = () => {
                     const roomKey = [myName, username].sort().join('_');
                     switchChannel(`dm_${roomKey}`, true, null, username);
                 };
             }
+            div.appendChild(infoDiv);
+
+            // Only admins or the owner can promote/demote users (and nobody can touch the owner)
+            if ((isAdmin || isOwner) && username !== myName && !isUserOwner) {
+                const promoteBtn = document.createElement('button');
+                promoteBtn.className = 'promote-btn';
+                promoteBtn.innerText = isUserAdmin ? 'Demote' : 'Make Admin';
+                promoteBtn.onclick = () => toggleUserAdmin(username, !isUserAdmin);
+                div.appendChild(promoteBtn);
+            }
+
             membersList.appendChild(div);
         });
     }
