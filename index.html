@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supabase Discord-Style Chat with Pro Features</title>
+    <title>Supabase Discord-Style Chat</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #313338; color: #dbdee1; margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -23,6 +23,13 @@
         
         .del-channel-btn { background: transparent; color: #da373c; border: none; cursor: pointer; padding: 5px 8px; font-size: 14px; display: none; }
         .channel-item:hover .del-channel-btn { display: block; }
+
+        /* User Profile Pill at Bottom of Sidebar */
+        .user-panel { padding: 10px 15px; background: #232428; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #1f2023; }
+        .user-info-pill { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+        .sidebar-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; }
+        .settings-gear-btn { background: transparent; border: none; color: #949ba4; cursor: pointer; font-size: 16px; padding: 5px; }
+        .settings-gear-btn:hover { color: white; }
 
         /* Admin Controls in Sidebar */
         .admin-sidebar-panel { padding: 10px; border-top: 1px solid #1f2023; background: #232428; display: flex; flex-direction: column; gap: 8px; }
@@ -63,33 +70,56 @@
         .delete-btn { position: absolute; right: 0; top: 0; background: #da373c; color: white; border: none; padding: 4px 8px; font-size: 12px; border-radius: 4px; cursor: pointer; display: none; }
         .message:hover .delete-btn { display: block; }
         
-        .tab-toggles { display: flex; gap: 10px; margin-bottom: 10px; }
-        .tab-btn { flex: 1; background: #2b2d31; color: #949ba4; border: none; padding: 8px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        /* Modal & Tabs */
+        .tab-toggles { display: flex; gap: 5px; margin-bottom: 10px; }
+        .tab-btn { flex: 1; background: #2b2d31; color: #949ba4; border: none; padding: 8px 4px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 12px; }
         .tab-btn.active { background: #5865f2; color: white; }
 
-        .avatar-preview-box { display: flex; align-items: center; gap: 10px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-box { background: #313338; padding: 30px; border-radius: 8px; width: 350px; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <!-- LOGIN SCREEN -->
+    <!-- AUTHENTICATION SCREEN -->
     <div id="setupScreen" class="setup-overlay">
         <div class="setup-box">
-            <h2 style="color: white; margin-top: 0; text-align: center;">Welcome to Chat</h2>
+            <h2 id="authTitle" style="color: white; margin-top: 0; text-align: center;">Welcome Back</h2>
             
             <div class="tab-toggles">
-                <button id="userTabBtn" class="tab-btn active" onclick="switchLoginMode('user')">User Login</button>
-                <button id="adminTabBtn" class="tab-btn" onclick="switchLoginMode('admin')">Admin Login</button>
+                <button id="signinTabBtn" class="tab-btn active" onclick="switchAuthMode('signin')">Sign In</button>
+                <button id="signupTabBtn" class="tab-btn" onclick="switchAuthMode('signup')">Sign Up</button>
+                <button id="adminTabBtn" class="tab-btn" onclick="switchAuthMode('admin')">Admin</button>
             </div>
 
-            <input type="text" id="usernameInput" placeholder="Enter your username...">
-            <input type="password" id="passwordInput" placeholder="Enter admin password..." class="hidden">
+            <input type="text" id="usernameInput" placeholder="Username...">
+            <input type="password" id="passwordInput" placeholder="Password...">
             
-            <div style="font-size: 13px; color: #949ba4;">Profile Picture (Optional):</div>
-            <input type="file" id="avatarFileInput" accept="image/*" style="background: #383a40; color: #dbdee1; padding: 8px; font-size: 12px;">
+            <div id="signupAvatarSection" class="hidden" style="display: flex; flex-direction: column; gap: 5px;">
+                <div style="font-size: 13px; color: #949ba4;">Profile Picture (Optional):</div>
+                <input type="file" id="avatarFileInput" accept="image/*" style="background: #383a40; color: #dbdee1; padding: 8px; font-size: 12px;">
+            </div>
 
-            <button class="send-btn" onclick="handleLogin()">Connect to Server</button>
+            <button class="send-btn" id="authSubmitBtn" onclick="handleAuth()">Sign In</button>
+        </div>
+    </div>
+
+    <!-- PROFILE SETTINGS MODAL -->
+    <div id="settingsModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h2 style="color: white; margin-top: 0;">User Settings</h2>
+            <div style="font-size: 13px; color: #949ba4;">Change Display Name:</div>
+            <input type="text" id="settingsUsernameInput" placeholder="New username...">
+            
+            <div style="font-size: 13px; color: #949ba4;">Change Profile Picture:</div>
+            <input type="file" id="settingsAvatarInput" accept="image/*" style="background: #383a40; color: #dbdee1; padding: 8px; font-size: 12px;">
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="send-btn" style="flex: 1; background: #248046;" onclick="saveProfileSettings()">Save Changes</button>
+                <button class="send-btn" style="flex: 1; background: #4e5058;" onclick="toggleSettingsModal(false)">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -111,13 +141,24 @@
                 <input type="text" id="newChannelInput" placeholder="New channel name...">
                 <button onclick="createChannel()">+ Create Channel</button>
             </div>
+
+            <!-- Discord Style User Footer Pill -->
+            <div class="user-panel">
+                <div class="user-info-pill">
+                    <div id="sidebarUserAvatarContainer"></div>
+                    <div style="display: flex; flex-direction: column; overflow: hidden;">
+                        <span id="sidebarUserName" style="font-size: 13px; font-weight: bold; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></span>
+                        <span id="sidebarUserStatus" style="font-size: 11px; color: #23a55a;">Online</span>
+                    </div>
+                </div>
+                <button class="settings-gear-btn" title="User Settings" onclick="toggleSettingsModal(true)">⚙️</button>
+            </div>
         </div>
 
         <!-- Chat Panel -->
         <div class="chat-main">
             <div class="chat-header">
                 <span id="currentChannelTitle"># general</span>
-                <span id="userInfo" style="font-size: 14px; color: #949ba4;"></span>
             </div>
 
             <div id="chat-box"></div>
@@ -156,36 +197,49 @@
     let typingChannel = null;
     let typingTimeout = null;
 
-    let loginMode = 'user';
+    let authMode = 'signin'; // 'signin', 'signup', or 'admin'
 
-    function switchLoginMode(mode) {
-        loginMode = mode;
-        const passInput = document.getElementById('passwordInput');
-        const userBtn = document.getElementById('userTabBtn');
+    function switchAuthMode(mode) {
+        authMode = mode;
+        const signinBtn = document.getElementById('signinTabBtn');
+        const signupBtn = document.getElementById('signupTabBtn');
         const adminBtn = document.getElementById('adminTabBtn');
+        const avatarSection = document.getElementById('signupAvatarSection');
+        const submitBtn = document.getElementById('authSubmitBtn');
+        const title = document.getElementById('authTitle');
 
-        if (mode === 'admin') {
-            passInput.classList.remove('hidden');
+        signinBtn.classList.remove('active');
+        signupBtn.classList.remove('active');
+        adminBtn.classList.remove('active');
+
+        if (mode === 'signin') {
+            signinBtn.classList.add('active');
+            avatarSection.classList.add('hidden');
+            submitBtn.innerText = 'Sign In';
+            title.innerText = 'Welcome Back';
+        } else if (mode === 'signup') {
+            signupBtn.classList.add('active');
+            avatarSection.classList.remove('hidden');
+            submitBtn.innerText = 'Create Account';
+            title.innerText = 'Create an Account';
+        } else if (mode === 'admin') {
             adminBtn.classList.add('active');
-            userBtn.classList.remove('active');
-            document.getElementById('usernameInput').value = 'admin';
-        } else {
-            passInput.classList.add('hidden');
-            userBtn.classList.add('active');
-            adminBtn.classList.remove('active');
-            document.getElementById('usernameInput').value = '';
+            avatarSection.classList.add('hidden');
+            submitBtn.innerText = 'Admin Login';
+            title.innerText = 'Admin Portal';
         }
     }
 
-    async function handleLogin() {
+    async function handleAuth() {
         const username = document.getElementById('usernameInput').value.trim();
-        if (!username) {
-            alert('Please enter a username!');
+        const password = document.getElementById('passwordInput').value;
+
+        if (!username || !password) {
+            alert('Please fill in both username and password!');
             return;
         }
 
-        if (loginMode === 'admin') {
-            const password = document.getElementById('passwordInput').value;
+        if (authMode === 'admin') {
             const { data, error } = await supabaseClient
                 .from('admins')
                 .select('*')
@@ -194,32 +248,71 @@
                 .single();
 
             if (error || !data) {
-                alert('Invalid admin username or password!');
+                alert('Invalid admin credentials!');
                 return;
             }
             isAdmin = true;
-        } else {
+            myName = username;
+            myAvatarUrl = '';
+        } else if (authMode === 'signup') {
+            // Check if user exists
+            const { data: existing } = await supabaseClient.from('profiles').select('*').eq('username', username).single();
+            if (existing) {
+                alert('Username already taken! Choose another or Sign In.');
+                return;
+            }
+
+            const avatarFile = document.getElementById('avatarFileInput').files[0];
+            if (avatarFile) {
+                myAvatarUrl = await uploadAvatar(avatarFile, username);
+            }
+
+            const { error } = await supabaseClient.from('profiles').insert([{
+                username: username,
+                password: password,
+                avatar_url: myAvatarUrl
+            }]);
+
+            if (error) {
+                alert('Sign up failed: ' + error.message);
+                return;
+            }
             isAdmin = false;
+            myName = username;
+        } else if (authMode === 'signin') {
+            const { data, error } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('username', username)
+                .eq('password', password)
+                .single();
+
+            if (error || !data) {
+                alert('Invalid username or password!');
+                return;
+            }
+            isAdmin = false;
+            myName = data.username;
+            myAvatarUrl = data.avatar_url || '';
         }
 
-        myName = username;
+        initAppInterface();
+    }
 
-        // Handle Avatar Upload if selected
-        const avatarFile = document.getElementById('avatarFileInput').files[0];
-        if (avatarFile) {
-            myAvatarUrl = await uploadAvatar(avatarFile);
-        }
+    async function uploadAvatar(file, targetName) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${targetName}_${Date.now()}.${fileExt}`;
+        const { error } = await supabaseClient.storage.from('chat-files').upload(fileName, file);
+        if (error) return '';
+        const { data } = supabaseClient.storage.from('chat-files').getPublicUrl(fileName);
+        return data.publicUrl;
+    }
 
-        // Save profile metadata
-        await supabaseClient.from('profiles').upsert({
-            username: myName,
-            avatar_url: myAvatarUrl,
-            updated_at: new Date()
-        });
-
-        document.getElementById('userInfo').innerText = `Logged in as: ${myName} ${isAdmin ? '(ADMIN)' : ''}`;
+    function initAppInterface() {
         document.getElementById('setupScreen').classList.add('hidden');
         document.getElementById('appContainer').classList.remove('hidden');
+
+        updateSidebarUserPill();
 
         if (isAdmin) {
             document.getElementById('adminSidebarPanel').classList.remove('hidden');
@@ -233,16 +326,56 @@
         setupTypingChannel();
     }
 
-    async function uploadAvatar(file) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${myName}_${Date.now()}.${fileExt}`;
-        const { error } = await supabaseClient.storage.from('chat-files').upload(fileName, file);
-        if (error) {
-            console.error('Avatar upload failed:', error.message);
-            return '';
+    function updateSidebarUserPill() {
+        document.getElementById('sidebarUserName').innerText = myName + (isAdmin ? ' (Admin)' : '');
+        const avatarContainer = document.getElementById('sidebarUserAvatarContainer');
+        const initial = myName.charAt(0).toUpperCase();
+        avatarContainer.innerHTML = myAvatarUrl 
+            ? `<img src="${myAvatarUrl}" class="sidebar-avatar">` 
+            : `<div class="sidebar-avatar">${initial}</div>`;
+    }
+
+    function toggleSettingsModal(show) {
+        const modal = document.getElementById('settingsModal');
+        if (show) {
+            document.getElementById('settingsUsernameInput').value = myName;
+            modal.classList.remove('hidden');
+        } else {
+            modal.classList.add('hidden');
         }
-        const { data } = supabaseClient.storage.from('chat-files').getPublicUrl(fileName);
-        return data.publicUrl;
+    }
+
+    async function saveProfileSettings() {
+        const newName = document.getElementById('settingsUsernameInput').value.trim();
+        const avatarFile = document.getElementById('settingsAvatarInput').files[0];
+        let newAvatarUrl = myAvatarUrl;
+
+        if (!newName) {
+            alert('Username cannot be empty!');
+            return;
+        }
+
+        if (avatarFile) {
+            newAvatarUrl = await uploadAvatar(avatarFile, newName);
+        }
+
+        if (!isAdmin) {
+            const { error } = await supabaseClient
+                .from('profiles')
+                .update({ username: newName, avatar_url: newAvatarUrl })
+                .eq('username', myName);
+
+            if (error) {
+                alert('Failed to update profile: ' + error.message);
+                return;
+            }
+        }
+
+        myName = newName;
+        myAvatarUrl = newAvatarUrl;
+        updateSidebarUserPill();
+        toggleSettingsModal(false);
+        loadMessagesForRoom(); // Refresh chat avatars
     }
 
     async function loadChannels() {
@@ -339,7 +472,6 @@
         const chatBox = document.getElementById('chat-box');
         chatBox.innerHTML = '';
         
-        // Fetch profiles for avatars map lookup
         const { data: profiles } = await supabaseClient.from('profiles').select('*');
         const profileMap = {};
         if (profiles) {
@@ -444,7 +576,6 @@
         chatBox.appendChild(div);
     }
 
-    // --- TYPING INDICATORS VIA BROADCAST ---
     function setupTypingChannel() {
         typingChannel = supabaseClient.channel(`typing:${currentRoom}`);
         typingChannel
@@ -473,7 +604,6 @@
         }, 300);
     }
 
-    // --- USER PRESENCE ---
     function setupPresence() {
         presenceChannel = supabaseClient.channel('online-users', {
             config: { presence: { key: myName } },
