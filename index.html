@@ -3,8 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supabase Discord-Style Chat</title>
+    <title>Supabase Ultimate Chat with DMs, Editing & AI</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Gen AI SDK for Gemini AI Bot integration -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.run/@google/genai"
+        }
+      }
+    </script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #313338; color: #dbdee1; margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
@@ -16,8 +24,10 @@
         .sidebar { width: 240px; background: #2b2d31; display: flex; flex-direction: column; border-right: 1px solid #1f2023; }
         .sidebar-header { padding: 20px; font-weight: bold; font-size: 16px; border-bottom: 2px solid #1f2023; color: white; display: flex; justify-content: space-between; align-items: center; }
         .channel-list { padding: 10px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; flex: 1; }
+        .section-title { font-size: 11px; font-weight: bold; color: #949ba4; padding: 8px 10px 4px 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
         .channel-item { display: flex; justify-content: space-between; align-items: center; border-radius: 4px; }
-        .channel-btn { background: transparent; border: none; color: #949ba4; text-align: left; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 15px; font-weight: 500; flex: 1; }
+        .channel-btn { background: transparent; border: none; color: #949ba4; text-align: left; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .channel-btn:hover { background: #35373c; color: #dbdee1; }
         .channel-btn.active { background: #404249; color: white; }
         
@@ -43,17 +53,20 @@
         #chat-box { flex: 1; overflow-y: scroll; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
         
         /* Members Sidebar */
-        .members-sidebar { width: 220px; background: #2b2d31; border-left: 1px solid #1f2023; padding: 15px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
-        .member-item { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 4px; font-size: 14px; color: #949ba4; }
+        .members-sidebar { width: 220px; background: #2b2d31; border-left: 1px solid #1f2023; padding: 15px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+        .member-item { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 4px; font-size: 14px; color: #949ba4; cursor: pointer; }
+        .member-item:hover { background: #35373c; color: #dbdee1; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #23a55a; flex-shrink: 0; }
 
         /* Messages */
-        .message { display: flex; gap: 12px; position: relative; padding-right: 50px; }
+        .message { display: flex; gap: 12px; position: relative; padding-right: 120px; }
         .message-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; }
         .message-body { display: flex; flex-direction: column; gap: 4px; word-break: break-word; flex: 1; }
         .message-content { background: #2b2d31; padding: 10px 14px; border-radius: 8px; max-width: 100%; display: inline-block; }
         .message-image { max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 5px; cursor: pointer; display: block; }
         .admin-badge { background: #da373c; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: bold; }
+        .ai-badge { background: #5865f2; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: bold; }
+        .edited-tag { font-size: 10px; color: #949ba4; margin-left: 4px; }
         
         .controls { padding: 20px; display: flex; flex-direction: column; gap: 8px; background: #313338; }
         .controls-row { display: flex; gap: 10px; }
@@ -67,9 +80,12 @@
 
         .typing-indicator { font-size: 12px; color: #949ba4; font-style: italic; height: 18px; }
 
-        .delete-btn { position: absolute; right: 0; top: 0; background: #da373c; color: white; border: none; padding: 4px 8px; font-size: 12px; border-radius: 4px; cursor: pointer; display: none; }
-        .message:hover .delete-btn { display: block; }
-        
+        /* Action Buttons on Hover */
+        .msg-actions { position: absolute; right: 0; top: 0; display: none; gap: 4px; }
+        .message:hover .msg-actions { display: flex; }
+        .action-btn { background: #4e5058; color: white; border: none; padding: 4px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; }
+        .action-btn.del { background: #da373c; }
+
         /* Modal & Tabs */
         .tab-toggles { display: flex; gap: 5px; margin-bottom: 10px; }
         .tab-btn { flex: 1; background: #2b2d31; color: #949ba4; border: none; padding: 8px 4px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 12px; }
@@ -125,14 +141,17 @@
 
     <!-- MAIN APP INTERFACE -->
     <div id="appContainer" class="app-container hidden">
-        <!-- Sidebar Channels -->
+        <!-- Sidebar Channels & DMs -->
         <div class="sidebar">
             <div class="sidebar-header">
                 <span>💬 Community</span>
             </div>
             
             <div id="channelList" class="channel-list">
-                <!-- Dynamically loaded channels -->
+                <div class="section-title">Channels</div>
+                <div id="publicChannelsContainer"></div>
+                <div class="section-title" style="margin-top: 10px;">Direct Messages</div>
+                <div id="dmChannelsContainer"></div>
             </div>
 
             <!-- Admin Channel Creation Panel -->
@@ -148,7 +167,7 @@
                     <div id="sidebarUserAvatarContainer"></div>
                     <div style="display: flex; flex-direction: column; overflow: hidden;">
                         <span id="sidebarUserName" style="font-size: 13px; font-weight: bold; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></span>
-                        <span id="sidebarUserStatus" style="font-size: 11px; color: #23a55a;">Online</span>
+                        <span style="font-size: 11px; color: #23a55a;">Online</span>
                     </div>
                 </div>
                 <button class="settings-gear-btn" title="User Settings" onclick="toggleSettingsModal(true)">⚙️</button>
@@ -169,7 +188,7 @@
                     <label class="file-upload-btn" title="Upload Image">
                         📁 <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="sendImageMessage(event)">
                     </label>
-                    <input type="text" id="messageInput" placeholder="Type a message..." oninput="handleTypingInput()" onkeypress="checkEnter(event)">
+                    <input type="text" id="messageInput" placeholder="Type a message or @AI..." oninput="handleTypingInput()" onkeypress="checkEnter(event)">
                     <button class="send-btn" onclick="sendMessage()">Send</button>
                 </div>
             </div>
@@ -181,7 +200,12 @@
         </div>
     </div>
 
-<script>
+<script type="module">
+    import { GoogleGenAI } from "@google/genai";
+
+    // Initialize Gemini AI (Put your Gemini API key here)
+    const ai = new GoogleGenAI({ apiKey: "YOUR_GEMINI_API_KEY_HERE" });
+
     const SUPABASE_URL = 'https://lusowdnrdgyisxosmbyj.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1c293ZG5yZGd5aXN4b3NtYnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzgxNTYsImV4cCI6MjA5MzE1NDE1Nn0._dd4uYmcdOKk3bBcQRije1jRbKEF7B4rh3WL7d5tIKQ';
 
@@ -190,16 +214,18 @@
     let myName = '';
     let myAvatarUrl = '';
     let currentRoom = 'general';
+    let isDM = false;
     let isAdmin = false;
     let chatSubscription = null;
     let channelsSubscription = null;
     let presenceChannel = null;
     let typingChannel = null;
     let typingTimeout = null;
+    let activeOnlineUsers = [];
 
-    let authMode = 'signin'; // 'signin', 'signup', or 'admin'
+    let authMode = 'signin';
 
-    function switchAuthMode(mode) {
+    window.switchAuthMode = function(mode) {
         authMode = mode;
         const signinBtn = document.getElementById('signinTabBtn');
         const signupBtn = document.getElementById('signupTabBtn');
@@ -230,7 +256,7 @@
         }
     }
 
-    async function handleAuth() {
+    window.handleAuth = async function() {
         const username = document.getElementById('usernameInput').value.trim();
         const password = document.getElementById('passwordInput').value;
 
@@ -240,39 +266,24 @@
         }
 
         if (authMode === 'admin') {
-            const { data, error } = await supabaseClient
-                .from('admins')
-                .select('*')
-                .eq('username', username)
-                .eq('password', password)
-                .single();
-
+            const { data, error } = await supabaseClient.from('admins').select('*').eq('username', username).eq('password', password).single();
             if (error || !data) {
                 alert('Invalid admin credentials!');
                 return;
             }
             isAdmin = true;
             myName = username;
-            myAvatarUrl = '';
         } else if (authMode === 'signup') {
-            // Check if user exists
             const { data: existing } = await supabaseClient.from('profiles').select('*').eq('username', username).single();
             if (existing) {
-                alert('Username already taken! Choose another or Sign In.');
+                alert('Username already taken!');
                 return;
             }
-
             const avatarFile = document.getElementById('avatarFileInput').files[0];
             if (avatarFile) {
                 myAvatarUrl = await uploadAvatar(avatarFile, username);
             }
-
-            const { error } = await supabaseClient.from('profiles').insert([{
-                username: username,
-                password: password,
-                avatar_url: myAvatarUrl
-            }]);
-
+            const { error } = await supabaseClient.from('profiles').insert([{ username, password, avatar_url: myAvatarUrl }]);
             if (error) {
                 alert('Sign up failed: ' + error.message);
                 return;
@@ -280,13 +291,7 @@
             isAdmin = false;
             myName = username;
         } else if (authMode === 'signin') {
-            const { data, error } = await supabaseClient
-                .from('profiles')
-                .select('*')
-                .eq('username', username)
-                .eq('password', password)
-                .single();
-
+            const { data, error } = await supabaseClient.from('profiles').select('*').eq('username', username).eq('password', password).single();
             if (error || !data) {
                 alert('Invalid username or password!');
                 return;
@@ -313,10 +318,7 @@
         document.getElementById('appContainer').classList.remove('hidden');
 
         updateSidebarUserPill();
-
-        if (isAdmin) {
-            document.getElementById('adminSidebarPanel').classList.remove('hidden');
-        }
+        if (isAdmin) document.getElementById('adminSidebarPanel').classList.remove('hidden');
 
         loadChannels();
         subscribeToChannels();
@@ -330,12 +332,10 @@
         document.getElementById('sidebarUserName').innerText = myName + (isAdmin ? ' (Admin)' : '');
         const avatarContainer = document.getElementById('sidebarUserAvatarContainer');
         const initial = myName.charAt(0).toUpperCase();
-        avatarContainer.innerHTML = myAvatarUrl 
-            ? `<img src="${myAvatarUrl}" class="sidebar-avatar">` 
-            : `<div class="sidebar-avatar">${initial}</div>`;
+        avatarContainer.innerHTML = myAvatarUrl ? `<img src="${myAvatarUrl}" class="sidebar-avatar">` : `<div class="sidebar-avatar">${initial}</div>`;
     }
 
-    function toggleSettingsModal(show) {
+    window.toggleSettingsModal = function(show) {
         const modal = document.getElementById('settingsModal');
         if (show) {
             document.getElementById('settingsUsernameInput').value = myName;
@@ -345,111 +345,94 @@
         }
     }
 
-    async function saveProfileSettings() {
+    window.saveProfileSettings = async function() {
         const newName = document.getElementById('settingsUsernameInput').value.trim();
         const avatarFile = document.getElementById('settingsAvatarInput').files[0];
         let newAvatarUrl = myAvatarUrl;
 
-        if (!newName) {
-            alert('Username cannot be empty!');
-            return;
-        }
-
-        if (avatarFile) {
-            newAvatarUrl = await uploadAvatar(avatarFile, newName);
-        }
+        if (!newName) return alert('Username cannot be empty!');
+        if (avatarFile) newAvatarUrl = await uploadAvatar(avatarFile, newName);
 
         if (!isAdmin) {
-            const { error } = await supabaseClient
-                .from('profiles')
-                .update({ username: newName, avatar_url: newAvatarUrl })
-                .eq('username', myName);
-
-            if (error) {
-                alert('Failed to update profile: ' + error.message);
-                return;
-            }
+            await supabaseClient.from('profiles').update({ username: newName, avatar_url: newAvatarUrl }).eq('username', myName);
         }
 
         myName = newName;
         myAvatarUrl = newAvatarUrl;
         updateSidebarUserPill();
         toggleSettingsModal(false);
-        loadMessagesForRoom(); // Refresh chat avatars
+        loadMessagesForRoom();
     }
 
     async function loadChannels() {
-        const { data, error } = await supabaseClient.from('channels').select('*').order('id', { ascending: true });
-        if (error) return;
-        renderChannels(data);
+        const { data } = await supabaseClient.from('channels').select('*').order('id', { ascending: true });
+        if (data) renderPublicChannels(data);
     }
 
-    function renderChannels(channels) {
-        const list = document.getElementById('channelList');
-        list.innerHTML = '';
-
+    function renderPublicChannels(channels) {
+        const container = document.getElementById('publicChannelsContainer');
+        container.innerHTML = '';
         channels.forEach(ch => {
             const item = document.createElement('div');
             item.className = 'channel-item';
-
             const btn = document.createElement('button');
-            btn.className = `channel-btn ${ch.name === currentRoom ? 'active' : ''}`;
+            btn.className = `channel-btn ${!isDM && ch.name === currentRoom ? 'active' : ''}`;
             btn.innerText = `# ${ch.name}`;
-            btn.onclick = () => switchChannel(ch.name, btn);
+            btn.onclick = () => switchChannel(ch.name, false, btn);
             item.appendChild(btn);
 
             if (isAdmin) {
                 const delBtn = document.createElement('button');
                 delBtn.className = 'del-channel-btn';
                 delBtn.innerText = '🗑️';
-                delBtn.title = 'Delete Channel';
                 delBtn.onclick = () => deleteChannel(ch.name);
                 item.appendChild(delBtn);
             }
-
-            list.appendChild(item);
+            container.appendChild(item);
         });
     }
 
-    function subscribeToChannels() {
-        channelsSubscription = supabaseClient
-            .channel('public:channels')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'channels' }, () => loadChannels())
-            .subscribe();
+    function renderDMList() {
+        const container = document.getElementById('dmChannelsContainer');
+        container.innerHTML = '';
+        const others = activeOnlineUsers.filter(u => u !== myName);
+        
+        others.forEach(user => {
+            const roomKey = [myName, user].sort().join('_');
+            const dmRoomName = `dm_${roomKey}`;
+            const item = document.createElement('div');
+            item.className = 'channel-item';
+            const btn = document.createElement('button');
+            btn.className = `channel-btn ${isDM && currentRoom === dmRoomName ? 'active' : ''}`;
+            btn.innerText = `@ ${user}`;
+            btn.onclick = () => switchChannel(dmRoomName, true, btn, user);
+            item.appendChild(btn);
+            container.appendChild(item);
+        });
     }
 
-    async function createChannel() {
-        let name = document.getElementById('newChannelInput').value.trim().toLowerCase();
-        name = name.replace(/[^a-z0-9-_]/g, '');
+    window.createChannel = async function() {
+        let name = document.getElementById('newChannelInput').value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
         if (!name) return;
-
-        const { error } = await supabaseClient.from('channels').insert([{ name }]);
-        if (error) {
-            alert('Could not create channel: ' + error.message);
-        } else {
-            document.getElementById('newChannelInput').value = '';
-        }
+        await supabaseClient.from('channels').insert([{ name }]);
+        document.getElementById('newChannelInput').value = '';
     }
 
-    async function deleteChannel(name) {
-        if (name === 'general') {
-            alert('You cannot delete the general channel!');
-            return;
-        }
-        if (!confirm(`Are you sure you want to delete #${name}?`)) return;
-
+    window.deleteChannel = async function(name) {
+        if (name === 'general') return alert('Cannot delete general channel!');
+        if (!confirm(`Delete #${name}?`)) return;
         await supabaseClient.from('channels').delete().eq('name', name);
-        if (currentRoom === name) {
-            switchChannel('general', document.querySelector('.channel-btn'));
-        }
+        if (currentRoom === name) switchChannel('general', false, document.querySelector('.channel-btn'));
     }
 
-    function switchChannel(roomName, element) {
+    function switchChannel(roomName, dmFlag, element, targetUser = '') {
         currentRoom = roomName;
-        document.getElementById('currentChannelTitle').innerText = `# ${roomName}`;
-        document.getElementById('messageInput').placeholder = `Message #${roomName}...`;
+        isDM = dmFlag;
+        
+        document.getElementById('currentChannelTitle'].innerText = isDM ? `Direct Message with @${targetUser}` : `# ${roomName}`;
+        document.getElementById('messageInput').placeholder = isDM ? `Message @${targetUser}...` : `Message #${roomName}...`;
 
-        document.querySelectorAll('.channel-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
         if (element) element.classList.add('active');
 
         if (chatSubscription) supabaseClient.removeChannel(chatSubscription);
@@ -461,24 +444,15 @@
     }
 
     async function loadMessagesForRoom() {
-        const { data, error } = await supabaseClient
-            .from('messages')
-            .select('*')
-            .eq('room', currentRoom)
-            .order('created_at', { ascending: true });
-
-        if (error) return;
-
+        const { data } = await supabaseClient.from('messages').select('*').eq('room', currentRoom).order('created_at', { ascending: true });
         const chatBox = document.getElementById('chat-box');
         chatBox.innerHTML = '';
         
         const { data: profiles } = await supabaseClient.from('profiles').select('*');
         const profileMap = {};
-        if (profiles) {
-            profiles.forEach(p => profileMap[p.username] = p.avatar_url);
-        }
+        if (profiles) profiles.forEach(p => profileMap[p.username] = p.avatar_url);
 
-        data.forEach(msg => appendMessageToUI(msg, profileMap[msg.sender]));
+        if (data) data.forEach(msg => appendMessageToUI(msg, profileMap[msg.sender]));
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
@@ -491,6 +465,16 @@
                 const chatBox = document.getElementById('chat-box');
                 chatBox.scrollTop = chatBox.scrollHeight;
             })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, payload => {
+                const el = document.getElementById(`msg-${payload.new.id}`);
+                if (el) {
+                    const contentEl = el.querySelector('.message-text-content');
+                    if (contentEl) contentEl.innerText = payload.new.message;
+                    if (!el.querySelector('.edited-tag')) {
+                        el.querySelector('.message-body').querySelector('div').insertAdjacentHTML('beforeend', `<span class="edited-tag">(edited)</span>`);
+                    }
+                }
+            })
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, payload => {
                 const el = document.getElementById(`msg-${payload.old.id}`);
                 if (el) el.remove();
@@ -498,45 +482,78 @@
             .subscribe();
     }
 
-    async function sendMessage() {
-        const text = document.getElementById('messageInput').value.trim();
+    window.sendMessage = async function() {
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
         if (!text) return;
 
-        const { error } = await supabaseClient
-            .from('messages')
-            .insert([{ sender: myName, message: text, room: currentRoom, is_image: false }]);
+        // Check if user called AI Bot
+        const isAiCall = text.startsWith('@AI ');
+        
+        const { error } = await supabaseClient.from('messages').insert([{
+            sender: myName,
+            message: text,
+            room: currentRoom,
+            is_image: false
+        }]);
 
         if (!error) {
-            document.getElementById('messageInput').value = '';
+            input.value = '';
+            
+            // Handle Gemini AI Trigger
+            if (isAiCall) {
+                const prompt = text.replace('@AI ', '');
+                triggerAIBotResponse(prompt);
+            }
         }
     }
 
-    async function sendImageMessage(event) {
+    async function triggerAIBotResponse(prompt) {
+        try {
+            // Call Gemini API using google-genai SDK
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: prompt,
+            });
+            const aiReply = response.text || "I couldn't generate a response.";
+
+            await supabaseClient.from('messages').insert([{
+                sender: 'AI Bot',
+                message: aiReply,
+                room: currentRoom,
+                is_image: false
+            }]);
+        } catch (err) {
+            await supabaseClient.from('messages').insert([{
+                sender: 'AI Bot',
+                message: "Error processing request with Gemini AI.",
+                room: currentRoom,
+                is_image: false
+            }]);
+        }
+    }
+
+    window.sendImageMessage = async function(event) {
         const file = event.target.files[0];
         if (!file) return;
-
-        const fileExt = file.name.split('.').pop();
-        const fileName = `img_${Date.now()}.${fileExt}`;
-
-        const { error: uploadError } = await supabaseClient.storage.from('chat-files').upload(fileName, file);
-        if (uploadError) {
-            alert('Failed to upload image: ' + uploadError.message);
-            return;
-        }
-
+        const fileName = `img_${Date.now()}.${file.name.split('.').pop()}`;
+        const { error } = await supabaseClient.storage.from('chat-files').upload(fileName, file);
+        if (error) return alert('Upload failed');
         const { data } = supabaseClient.storage.from('chat-files').getPublicUrl(fileName);
 
-        await supabaseClient.from('messages').insert([{
-            sender: myName,
-            message: data.publicUrl,
-            room: currentRoom,
-            is_image: true
-        }]);
+        await supabaseClient.from('messages').insert([{ sender: myName, message: data.publicUrl, room: currentRoom, is_image: true }]);
         event.target.value = '';
     }
 
-    async function deleteMessage(id) {
+    window.deleteMessage = async function(id) {
         await supabaseClient.from('messages').delete().eq('id', id);
+    }
+
+    window.editMessage = async function(id, oldText) {
+        const newText = prompt("Edit your message:", oldText);
+        if (newText === null || newText.trim() === "" || newText === oldText) return;
+
+        await supabaseClient.from('messages').update({ message: newText, is_edited: true }).eq('id', id);
     }
 
     function appendMessageToUI(data, avatarUrl) {
@@ -546,85 +563,81 @@
         div.id = `msg-${data.id}`;
 
         const isMessageAdmin = (data.sender.toLowerCase() === 'admin');
-        const adminBadgeHtml = isMessageAdmin ? `<span class="admin-badge">ADMIN</span>` : '';
-        const deleteBtnHtml = isAdmin ? `<button class="delete-btn" onclick="deleteMessage('${data.id}')">Delete</button>` : '';
+        const isMessageAI = (data.sender === 'AI Bot');
+        const badgeHtml = isMessageAdmin ? `<span class="admin-badge">ADMIN</span>` : (isMessageAI ? `<span class="ai-badge">AI BOT</span>` : '');
+        const editedHtml = data.is_edited ? `<span class="edited-tag">(edited)</span>` : '';
+
+        const canModify = (isAdmin || data.sender === myName) && !isMessageAI;
+        const actionsHtml = canModify ? `
+            <div class="msg-actions">
+                ${!data.is_image ? `<button class="action-btn" onclick="editMessage('${data.id}', \`${escapeHtml(data.message)}\`)">Edit</button>` : ''}
+                <button class="action-btn del" onclick="deleteMessage('${data.id}')">Delete</button>
+            </div>
+        ` : '';
 
         const initial = data.sender.charAt(0).toUpperCase();
-        const avatarHtml = avatarUrl 
-            ? `<img src="${avatarUrl}" class="message-avatar">` 
-            : `<div class="message-avatar">${initial}</div>`;
+        const avatarHtml = avatarUrl ? `<img src="${avatarUrl}" class="message-avatar">` : `<div class="message-avatar">${initial}</div>`;
 
-        let contentHtml = '';
-        if (data.is_image) {
-            contentHtml = `<img src="${escapeHtml(data.message)}" class="message-image" onclick="window.open(this.src)">`;
-        } else {
-            contentHtml = escapeHtml(data.message);
-        }
+        let contentHtml = data.is_image 
+            ? `<img src="${escapeHtml(data.message)}" class="message-image" onclick="window.open(this.src)">` 
+            : `<span class="message-text-content">${escapeHtml(data.message)}</span>`;
 
         div.innerHTML = `
             ${avatarHtml}
             <div class="message-body">
                 <div style="font-size: 13px; color: #949ba4;">
-                    <b>${escapeHtml(data.sender)}</b> ${adminBadgeHtml}
+                    <b>${escapeHtml(data.sender)}</b> ${badgeHtml} ${editedHtml}
                 </div>
                 <div class="message-content">
                     ${contentHtml}
-                    ${deleteBtnHtml}
+                    ${actionsHtml}
                 </div>
             </div>
         `;
         chatBox.appendChild(div);
     }
 
-    function setupTypingChannel() {
-        typingChannel = supabaseClient.channel(`typing:${currentRoom}`);
-        typingChannel
-            .on('broadcast', { event: 'typing' }, payload => {
-                if (payload.user !== myName) {
-                    const typingDiv = document.getElementById('typingIndicator');
-                    typingDiv.innerText = `${payload.user} is typing...`;
-                    clearTimeout(window.typingTimer);
-                    window.typingTimer = setTimeout(() => {
-                        typingDiv.innerText = '';
-                    }, 3000);
-                }
-            })
+    function subscribeToChannels() {
+        channelsSubscription = supabaseClient.channel('public:channels')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'channels' }, () => loadChannels())
             .subscribe();
     }
 
-    function handleTypingInput() {
+    function setupTypingChannel() {
+        typingChannel = supabaseClient.channel(`typing:${currentRoom}`);
+        typingChannel.on('broadcast', { event: 'typing' }, payload => {
+            if (payload.user !== myName) {
+                const typingDiv = document.getElementById('typingIndicator');
+                typingDiv.innerText = `${payload.user} is typing...`;
+                clearTimeout(window.typingTimer);
+                window.typingTimer = setTimeout(() => { typingDiv.innerText = ''; }, 3000);
+            }
+        }).subscribe();
+    }
+
+    window.handleTypingInput = function() {
         if (!typingChannel) return;
         clearTimeout(typingTimeout);
         typingTimeout = setTimeout(() => {
-            typingChannel.send({
-                type: 'broadcast',
-                event: 'typing',
-                payload: { user: myName }
-            });
+            typingChannel.send({ type: 'broadcast', event: 'typing', payload: { user: myName } });
         }, 300);
     }
 
     function setupPresence() {
-        presenceChannel = supabaseClient.channel('online-users', {
-            config: { presence: { key: myName } },
+        presenceChannel = supabaseClient.channel('online-users', { config: { presence: { key: myName } } });
+        presenceChannel.on('presence', { event: 'sync' }, () => {
+            const state = presenceChannel.presenceState();
+            activeOnlineUsers = Object.keys(state);
+            renderOnlineMembers(state);
+            renderDMList();
+        }).subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') await presenceChannel.track({ online_at: new Date().toISOString() });
         });
-
-        presenceChannel
-            .on('presence', { event: 'sync' }, () => {
-                const state = presenceChannel.presenceState();
-                renderOnlineMembers(state);
-            })
-            .subscribe(async (status) => {
-                if (status === 'SUBSCRIBED') {
-                    await presenceChannel.track({ online_at: new Date().toISOString() });
-                }
-            });
     }
 
     function renderOnlineMembers(presenceState) {
         const membersList = document.getElementById('membersList');
         if (!membersList) return;
-        
         const usernames = Object.keys(presenceState);
         membersList.innerHTML = `<h4 style="font-size: 12px; color: #949ba4; margin: 0 0 8px 0;">ONLINE — ${usernames.length}</h4>`;
 
@@ -632,13 +645,17 @@
             const div = document.createElement('div');
             div.className = 'member-item';
             div.innerHTML = `<div class="status-dot"></div> <span>${escapeHtml(username)}</span>`;
+            if (username !== myName) {
+                div.onclick = () => {
+                    const roomKey = [myName, username].sort().join('_');
+                    switchChannel(`dm_${roomKey}`, true, null, username);
+                };
+            }
             membersList.appendChild(div);
         });
     }
 
-    function checkEnter(e) {
-        if (e.key === 'Enter') sendMessage();
-    }
+    window.checkEnter = function(e) { if (e.key === 'Enter') sendMessage(); }
 
     function escapeHtml(text) {
         if (!text) return '';
