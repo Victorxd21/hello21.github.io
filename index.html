@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supabase Ultimate Chat with DMs, Editing & AI</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Google Gen AI SDK for Gemini AI Bot integration -->
     <script type="importmap">
       {
         "imports": {
@@ -105,9 +104,9 @@
             <h2 id="authTitle" style="color: white; margin-top: 0; text-align: center;">Welcome Back</h2>
             
             <div class="tab-toggles">
-                <button id="signinTabBtn" class="tab-btn active" onclick="switchAuthMode('signin')">Sign In</button>
-                <button id="signupTabBtn" class="tab-btn" onclick="switchAuthMode('signup')">Sign Up</button>
-                <button id="adminTabBtn" class="tab-btn" onclick="switchAuthMode('admin')">Admin</button>
+                <button type="button" id="signinTabBtn" class="tab-btn active" onclick="switchAuthMode('signin')">Sign In</button>
+                <button type="button" id="signupTabBtn" class="tab-btn" onclick="switchAuthMode('signup')">Sign Up</button>
+                <button type="button" id="adminTabBtn" class="tab-btn" onclick="switchAuthMode('admin')">Admin</button>
             </div>
 
             <input type="text" id="usernameInput" placeholder="Username...">
@@ -118,7 +117,7 @@
                 <input type="file" id="avatarFileInput" accept="image/*" style="background: #383a40; color: #dbdee1; padding: 8px; font-size: 12px;">
             </div>
 
-            <button class="send-btn" id="authSubmitBtn" onclick="handleAuth()">Sign In</button>
+            <button type="button" class="send-btn" id="authSubmitBtn" onclick="handleAuth()">Sign In</button>
         </div>
     </div>
 
@@ -133,8 +132,8 @@
             <input type="file" id="settingsAvatarInput" accept="image/*" style="background: #383a40; color: #dbdee1; padding: 8px; font-size: 12px;">
 
             <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="send-btn" style="flex: 1; background: #248046;" onclick="saveProfileSettings()">Save Changes</button>
-                <button class="send-btn" style="flex: 1; background: #4e5058;" onclick="toggleSettingsModal(false)">Cancel</button>
+                <button type="button" class="send-btn" style="flex: 1; background: #248046;" onclick="saveProfileSettings()">Save Changes</button>
+                <button type="button" class="send-btn" style="flex: 1; background: #4e5058;" onclick="toggleSettingsModal(false)">Cancel</button>
             </div>
         </div>
     </div>
@@ -158,7 +157,7 @@
             <div id="adminSidebarPanel" class="admin-sidebar-panel hidden">
                 <span style="font-size: 11px; font-weight: bold; color: #f2ba33;">ADMIN CONTROLS</span>
                 <input type="text" id="newChannelInput" placeholder="New channel name...">
-                <button onclick="createChannel()">+ Create Channel</button>
+                <button type="button" onclick="createChannel()">+ Create Channel</button>
             </div>
 
             <!-- Discord Style User Footer Pill -->
@@ -170,7 +169,7 @@
                         <span style="font-size: 11px; color: #23a55a;">Online</span>
                     </div>
                 </div>
-                <button class="settings-gear-btn" title="User Settings" onclick="toggleSettingsModal(true)">⚙️</button>
+                <button type="button" class="settings-gear-btn" title="User Settings" onclick="toggleSettingsModal(true)">⚙️</button>
             </div>
         </div>
 
@@ -189,7 +188,7 @@
                         📁 <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="sendImageMessage(event)">
                     </label>
                     <input type="text" id="messageInput" placeholder="Type a message or @AI..." oninput="handleTypingInput()" onkeypress="checkEnter(event)">
-                    <button class="send-btn" onclick="sendMessage()">Send</button>
+                    <button type="button" class="send-btn" onclick="sendMessage()">Send</button>
                 </div>
             </div>
         </div>
@@ -203,7 +202,6 @@
 <script type="module">
     import { GoogleGenAI } from "@google/genai";
 
-    // Initialize Gemini AI (Put your Gemini API key here)
     const ai = new GoogleGenAI({ apiKey: "YOUR_GEMINI_API_KEY_HERE" });
 
     const SUPABASE_URL = 'https://lusowdnrdgyisxosmbyj.supabase.co';
@@ -265,43 +263,48 @@
             return;
         }
 
-        if (authMode === 'admin') {
-            const { data, error } = await supabaseClient.from('admins').select('*').eq('username', username).eq('password', password).single();
-            if (error || !data) {
-                alert('Invalid admin credentials!');
-                return;
+        try {
+            if (authMode === 'admin') {
+                const { data, error } = await supabaseClient.from('admins').select('*').eq('username', username).eq('password', password).single();
+                if (error || !data) {
+                    alert('Invalid admin credentials!');
+                    return;
+                }
+                isAdmin = true;
+                myName = username;
+            } else if (authMode === 'signup') {
+                const { data: existing } = await supabaseClient.from('profiles').select('*').eq('username', username).single();
+                if (existing) {
+                    alert('Username already taken!');
+                    return;
+                }
+                const avatarFile = document.getElementById('avatarFileInput').files[0];
+                if (avatarFile) {
+                    myAvatarUrl = await uploadAvatar(avatarFile, username);
+                }
+                const { error } = await supabaseClient.from('profiles').insert([{ username, password, avatar_url: myAvatarUrl }]);
+                if (error) {
+                    alert('Sign up failed: ' + error.message);
+                    return;
+                }
+                isAdmin = false;
+                myName = username;
+            } else if (authMode === 'signin') {
+                const { data, error } = await supabaseClient.from('profiles').select('*').eq('username', username).eq('password', password).single();
+                if (error || !data) {
+                    alert('Invalid username or password!');
+                    return;
+                }
+                isAdmin = false;
+                myName = data.username;
+                myAvatarUrl = data.avatar_url || '';
             }
-            isAdmin = true;
-            myName = username;
-        } else if (authMode === 'signup') {
-            const { data: existing } = await supabaseClient.from('profiles').select('*').eq('username', username).single();
-            if (existing) {
-                alert('Username already taken!');
-                return;
-            }
-            const avatarFile = document.getElementById('avatarFileInput').files[0];
-            if (avatarFile) {
-                myAvatarUrl = await uploadAvatar(avatarFile, username);
-            }
-            const { error } = await supabaseClient.from('profiles').insert([{ username, password, avatar_url: myAvatarUrl }]);
-            if (error) {
-                alert('Sign up failed: ' + error.message);
-                return;
-            }
-            isAdmin = false;
-            myName = username;
-        } else if (authMode === 'signin') {
-            const { data, error } = await supabaseClient.from('profiles').select('*').eq('username', username).eq('password', password).single();
-            if (error || !data) {
-                alert('Invalid username or password!');
-                return;
-            }
-            isAdmin = false;
-            myName = data.username;
-            myAvatarUrl = data.avatar_url || '';
-        }
 
-        initAppInterface();
+            initAppInterface();
+        } catch (err) {
+            console.error(err);
+            alert('Authentication error occurred. Ensure your database tables and schema cache are fully up to date.');
+        }
     }
 
     async function uploadAvatar(file, targetName) {
@@ -376,6 +379,7 @@
             const item = document.createElement('div');
             item.className = 'channel-item';
             const btn = document.createElement('button');
+            btn.type = 'button';
             btn.className = `channel-btn ${!isDM && ch.name === currentRoom ? 'active' : ''}`;
             btn.innerText = `# ${ch.name}`;
             btn.onclick = () => switchChannel(ch.name, false, btn);
@@ -383,6 +387,7 @@
 
             if (isAdmin) {
                 const delBtn = document.createElement('button');
+                delBtn.type = 'button';
                 delBtn.className = 'del-channel-btn';
                 delBtn.innerText = '🗑️';
                 delBtn.onclick = () => deleteChannel(ch.name);
@@ -403,6 +408,7 @@
             const item = document.createElement('div');
             item.className = 'channel-item';
             const btn = document.createElement('button');
+            btn.type = 'button';
             btn.className = `channel-btn ${isDM && currentRoom === dmRoomName ? 'active' : ''}`;
             btn.innerText = `@ ${user}`;
             btn.onclick = () => switchChannel(dmRoomName, true, btn, user);
@@ -429,7 +435,7 @@
         currentRoom = roomName;
         isDM = dmFlag;
         
-        document.getElementById('currentChannelTitle'].innerText = isDM ? `Direct Message with @${targetUser}` : `# ${roomName}`;
+        document.getElementById('currentChannelTitle').innerText = isDM ? `Direct Message with @${targetUser}` : `# ${roomName}`;
         document.getElementById('messageInput').placeholder = isDM ? `Message @${targetUser}...` : `Message #${roomName}...`;
 
         document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
@@ -487,7 +493,6 @@
         const text = input.value.trim();
         if (!text) return;
 
-        // Check if user called AI Bot
         const isAiCall = text.startsWith('@AI ');
         
         const { error } = await supabaseClient.from('messages').insert([{
@@ -499,8 +504,6 @@
 
         if (!error) {
             input.value = '';
-            
-            // Handle Gemini AI Trigger
             if (isAiCall) {
                 const prompt = text.replace('@AI ', '');
                 triggerAIBotResponse(prompt);
@@ -510,7 +513,6 @@
 
     async function triggerAIBotResponse(prompt) {
         try {
-            // Call Gemini API using google-genai SDK
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
                 contents: prompt,
@@ -570,8 +572,8 @@
         const canModify = (isAdmin || data.sender === myName) && !isMessageAI;
         const actionsHtml = canModify ? `
             <div class="msg-actions">
-                ${!data.is_image ? `<button class="action-btn" onclick="editMessage('${data.id}', \`${escapeHtml(data.message)}\`)">Edit</button>` : ''}
-                <button class="action-btn del" onclick="deleteMessage('${data.id}')">Delete</button>
+                ${!data.is_image ? `<button type="button" class="action-btn" onclick="editMessage('${data.id}', \`${escapeHtml(data.message)}\`)">Edit</button>` : ''}
+                <button type="button" class="action-btn del" onclick="deleteMessage('${data.id}')">Delete</button>
             </div>
         ` : '';
 
