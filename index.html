@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supabase Pro Chat with AI, Voice & Reactions</title>
+    <title>Supabase Pro Chat with Voice & Reactions</title>
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Marked.js for Markdown parsing & Highlight.js for code blocks -->
@@ -12,13 +12,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
     
     <link rel="stylesheet" href="style.css">
-    <script type="importmap">
-      {
-        "imports": {
-          "@google/genai": "https://esm.run/@google/genai"
-        }
-      }
-    </script>
 </head>
 <body>
 
@@ -131,7 +124,7 @@
                         📁 <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="sendImageMessage(event)">
                     </label>
                     <button type="button" id="recordVoiceBtn" class="file-upload-btn" title="Record Voice Note" onclick="toggleVoiceRecording()">🎤</button>
-                    <input type="text" id="messageInput" placeholder="Type Markdown, paste image link, or @AI... (/announcement [text])" oninput="handleTypingInput()" onkeypress="checkMessageEnter(event)">
+                    <input type="text" id="messageInput" placeholder="Type Markdown, paste image link, or /announcement..." oninput="handleTypingInput()" onkeypress="checkMessageEnter(event)">
                     <button type="button" class="send-btn" onclick="sendMessage()">Send</button>
                 </div>
             </div>
@@ -143,6 +136,23 @@
         </div>
     </div>
 
-    <script type="module" src="app.js"></script>
+    <!-- User Profile Popout Modal -->
+    <div id="user-popout-overlay" class="hidden" onclick="closeUserPopout(event)">
+        <div id="user-popout-card">
+            <div id="popout-banner"></div>
+            <img id="popout-avatar" src="" alt="Avatar">
+            <div id="popout-info">
+                <h3 id="popout-username">Username</h3>
+                <div id="popout-badges" style="margin-bottom: 12px;"></div>
+                <div class="popout-section">
+                    <h4>MEMBER SINCE</h4>
+                    <p id="popout-joined-date">Oct 10, 2023</p>
+                </div>
+                <button id="popout-dm-btn" onclick="startDM()">Send Message</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
