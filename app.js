@@ -733,4 +733,5 @@ function appendMessageToUI(data, profileInfo) {
 
     chatBox.appendChild(div);
     hljs.highlightAll();
+    window.handleAuth = handleAuth;
 }
