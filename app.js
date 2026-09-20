@@ -1,7 +1,3 @@
-import { GoogleGenAI } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: "YOUR_GEMINI_API_KEY_HERE" });
-
 const SUPABASE_URL = 'https://lusowdnrdgyisxosmbyj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1c293ZG5yZGd5aXN4b3NtYnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzgxNTYsImV4cCI6MjA5MzE1NDE1Nn0._dd4uYmcdOKk3bBcQRije1jRbKEF7B4rh3WL7d5tIKQ';
 
@@ -23,6 +19,16 @@ let authMode = 'signin';
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
+
+// --- Formatting & UI Helpers ---
+function formatTimestamp(isoString) {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const today = new Date();
+    const isToday = date.toDateString() === today.toDateString();
+    const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return isToday ? `Today at ${timeStr}` : `${date.toLocaleDateString()} ${timeStr}`;
+}
 
 function showAuthError(message) {
     const banner = document.getElementById('authErrorBanner');
@@ -48,6 +54,7 @@ function clearSettingsError() {
     banner.classList.remove('visible');
 }
 
+// --- Auth & Setup ---
 window.switchAuthMode = function(mode) {
     authMode = mode;
     clearAuthError();
@@ -164,6 +171,7 @@ function updateSidebarUserPill() {
     avatarContainer.innerHTML = myAvatarUrl ? `<img src="${myAvatarUrl}" class="sidebar-avatar">` : `<div class="sidebar-avatar">${initial}</div>`;
 }
 
+// --- Modals (Settings & Admin) ---
 window.toggleSettingsModal = function(show) {
     clearSettingsError();
     const modal = document.getElementById('settingsModal');
@@ -260,6 +268,7 @@ window.saveProfileSettings = async function() {
     loadMessagesForRoom();
 }
 
+// --- Channels & Realtime ---
 async function loadChannels() {
     const { data } = await supabaseClient.from('channels').select('*').order('id', { ascending: true });
     if (data) renderPublicChannels(data);
@@ -370,7 +379,7 @@ function subscribeToRoom() {
             chatBox.scrollTop = chatBox.scrollHeight;
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, payload => {
-            loadMessagesForRoom(); // Refresh for reactions/edits updates
+            loadMessagesForRoom(); 
         })
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, payload => {
             const el = document.getElementById(`msg-${payload.old.id}`);
@@ -379,6 +388,7 @@ function subscribeToRoom() {
         .subscribe();
 }
 
+// --- Sending Logic ---
 window.sendMessage = async function() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
@@ -399,7 +409,6 @@ window.sendMessage = async function() {
     }
 
     const isImageUrl = /\.(jpeg|jpg|gif|png|webp|svg)(\?.*)?$/i.test(text) || text.startsWith('data:image/');
-    const isAiCall = text.startsWith('@AI ');
     
     const { error } = await supabaseClient.from('messages').insert([{
         sender: myName,
@@ -417,38 +426,6 @@ window.sendMessage = async function() {
     }
 
     input.value = '';
-    if (isAiCall) {
-        const prompt = text.replace('@AI ', '');
-        triggerAIBotResponse(prompt);
-    }
-}
-
-async function triggerAIBotResponse(prompt) {
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        });
-        const aiReply = response.text || "I couldn't generate a response.";
-
-        await supabaseClient.from('messages').insert([{
-            sender: 'AI Bot',
-            message: aiReply,
-            room: currentRoom,
-            is_image: false,
-            is_announcement: false,
-            reactions: {}
-        }]);
-    } catch (err) {
-        await supabaseClient.from('messages').insert([{
-            sender: 'AI Bot',
-            message: "Error processing request with Gemini AI.",
-            room: currentRoom,
-            is_image: false,
-            is_announcement: false,
-            reactions: {}
-        }]);
-    }
 }
 
 window.sendImageMessage = async function(event) {
@@ -466,7 +443,6 @@ window.sendImageMessage = async function(event) {
     event.target.value = '';
 }
 
-// Voice Note Recording
 window.toggleVoiceRecording = async function() {
     const btn = document.getElementById('recordVoiceBtn');
     if (!isRecording) {
@@ -497,6 +473,7 @@ window.toggleVoiceRecording = async function() {
     }
 }
 
+// --- Interaction Actions (React, Search, Delete, Edit) ---
 window.toggleReaction = async function(msgId, emoji) {
     const { data } = await supabaseClient.from('messages').select('reactions').eq('id', msgId).single();
     let reactions = data && data.reactions ? data.reactions : {};
@@ -530,12 +507,54 @@ window.deleteMessage = async function(id) {
     await supabaseClient.from('messages').delete().eq('id', id);
 }
 
-window.editMessage = async function(id, oldText) {
-    const newText = prompt("Edit your message:", oldText);
-    if (newText === null || newText.trim() === "" || newText === oldText) return;
-    await supabaseClient.from('messages').update({ message: newText, is_edited: true }).eq('id', id);
+window.startEditMessage = function(id, rawText) {
+    const msgDiv = document.getElementById(`msg-${id}`);
+    if (!msgDiv) return;
+    const contentDiv = msgDiv.querySelector('.message-text-content');
+    if (!contentDiv) return;
+
+    const safeText = rawText.replace(/"/g, '&quot;');
+    const safeOriginal = rawText.replace(/'/g, "\\'");
+    
+    contentDiv.innerHTML = `
+        <input type="text" id="edit-input-${id}" class="inline-edit-input" value="${safeText}" onkeydown="handleEditKey(event, ${id}, '${safeOriginal}')">
+        <div style="font-size: 10px; color: #949ba4; margin-top: 6px;">
+            escape to <span style="color: #00a8fc; cursor: pointer;" onclick="cancelEdit(${id}, '${safeOriginal}')">cancel</span> • 
+            enter to <span style="color: #00a8fc; cursor: pointer;" onclick="saveEdit(${id})">save</span>
+        </div>
+    `;
+    
+    const input = document.getElementById(`edit-input-${id}`);
+    if (input) {
+        input.focus();
+        input.selectionStart = input.selectionEnd = input.value.length;
+    }
 }
 
+window.handleEditKey = function(e, id, originalText) {
+    if (e.key === 'Enter') saveEdit(id);
+    if (e.key === 'Escape') cancelEdit(id, originalText);
+}
+
+window.cancelEdit = function(id, originalText) {
+    const msgDiv = document.getElementById(`msg-${id}`);
+    if (msgDiv) {
+        const contentDiv = msgDiv.querySelector('.message-text-content');
+        contentDiv.innerHTML = marked.parse(originalText);
+    }
+}
+
+window.saveEdit = async function(id) {
+    const input = document.getElementById(`edit-input-${id}`);
+    if (!input) return;
+    const newText = input.value.trim();
+    
+    if (newText) {
+        await supabaseClient.from('messages').update({ message: newText, is_edited: true }).eq('id', id);
+    }
+}
+
+// --- Presence & Typing ---
 function setupPresence() {
     presenceChannel = supabaseClient.channel('online-users');
     presenceChannel
@@ -591,23 +610,68 @@ window.handleTypingInput = function() {
     }
 }
 
+// --- User Profile Popouts ---
+window.showUserPopout = function(username, avatarUrl, joinedDateStr, role) {
+    document.getElementById('popout-username').innerText = username;
+    
+    const popoutAvatar = document.getElementById('popout-avatar');
+    if (avatarUrl) {
+        popoutAvatar.src = avatarUrl;
+    } else {
+        // Fallback UI-Avatar generated from their username
+        popoutAvatar.src = `https://ui-avatars.com/api/?name=${username}&background=5865f2&color=fff`;
+    }
+    
+    const joinedDate = new Date(joinedDateStr).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    document.getElementById('popout-joined-date').innerText = joinedDate;
+    
+    const badgesContainer = document.getElementById('popout-badges');
+    if (role === 'admin' || role === 'moderator' || role === 'Developer') {
+        badgesContainer.innerHTML = `<span style="background: #ed4245; padding: 2px 6px; border-radius: 4px; font-size: 10px; color: white; font-weight: bold;">${role.toUpperCase()}</span>`;
+    } else if (role) {
+        badgesContainer.innerHTML = `<span style="background: #2b2d31; border: 1px solid #5865f2; color: #5865f2; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">${role.toUpperCase()}</span>`;
+    } else {
+        badgesContainer.innerHTML = '';
+    }
+
+    document.getElementById('user-popout-overlay').classList.remove('hidden');
+}
+
+window.closeUserPopout = function(e) {
+    if (e.target.id === 'user-popout-overlay') {
+        document.getElementById('user-popout-overlay').classList.add('hidden');
+    }
+}
+
+window.startDM = function() {
+    const targetUser = document.getElementById('popout-username').innerText;
+    document.getElementById('user-popout-overlay').classList.add('hidden');
+    
+    // Switch to DM channel logic
+    if (targetUser === myName) return; 
+    const roomKey = [myName, targetUser].sort().join('_');
+    const dmRoomName = `dm_${roomKey}`;
+    switchChannel(dmRoomName, true, null, targetUser);
+}
+
 window.checkMessageEnter = function(e) { if (e.key === 'Enter') sendMessage(); }
 window.checkAuthEnter = function(e) { if (e.key === 'Enter') handleAuth(); }
 window.checkChannelEnter = function(e) { if (e.key === 'Enter') createChannel(); }
 
+// --- UI Rendering ---
 function appendMessageToUI(data, profileInfo) {
     const chatBox = document.getElementById('chat-box');
     const div = document.createElement('div');
     div.className = data.is_announcement ? 'message announcement' : 'message';
     div.id = `msg-${data.id}`;
 
-    const isMessageAI = (data.sender === 'AI Bot');
     const editedHtml = data.is_edited ? `<span class="edited-tag">(edited)</span>` : '';
-    const canModify = (isAdmin || isOwner || data.sender === myName) && !isMessageAI;
+    const canModify = (isAdmin || isOwner || data.sender === myName);
+    const timestampText = formatTimestamp(data.created_at);
     
     const actionsHtml = canModify ? `
         <div class="msg-actions">
-            ${!data.is_image && !data.is_audio ? `<button type="button" class="action-btn" onclick="editMessage(${data.id}, '${data.message.replace(/'/g, "\\'")}')">Edit</button>` : ''}
+            ${!data.is_image && !data.is_audio ? `<button type="button" class="action-btn" onclick="startEditMessage(${data.id}, '${data.message.replace(/'/g, "\\'")}')">Edit</button>` : ''}
             <button type="button" class="action-btn" onclick="toggleReaction(${data.id}, '👍')">👍</button>
             <button type="button" class="action-btn" onclick="toggleReaction(${data.id}, '❤️')">❤️</button>
             <button type="button" class="action-btn" onclick="toggleReaction(${data.id}, '🔥')">🔥</button>
@@ -621,14 +685,18 @@ function appendMessageToUI(data, profileInfo) {
         </div>
     `;
 
-    const avatarUrl = profileInfo ? profileInfo.avatar : '';
-    const userRole = profileInfo ? profileInfo.role : '';
+    const avatarUrl = profileInfo && profileInfo.avatar ? profileInfo.avatar : '';
+    const userRole = profileInfo && profileInfo.role ? profileInfo.role : '';
     const initial = data.sender.charAt(0).toUpperCase();
-    const avatarHtml = avatarUrl ? `<img src="${avatarUrl}" class="message-avatar">` : `<div class="message-avatar">${initial}</div>`;
+    
+    const safeAvatar = avatarUrl || '';
+    const safeDate = data.created_at || new Date().toISOString();
+    const avatarHtml = avatarUrl 
+        ? `<img src="${avatarUrl}" class="message-avatar" style="cursor: pointer;" onclick="showUserPopout('${data.sender}', '${safeAvatar}', '${safeDate}', '${userRole}')">` 
+        : `<div class="message-avatar" style="cursor: pointer;" onclick="showUserPopout('${data.sender}', '', '${safeDate}', '${userRole}')">${initial}</div>`;
     
     let badge = '';
-    if (data.sender === 'AI Bot') badge = '<span class="ai-badge">AI</span>';
-    else if (userRole) badge = `<span class="custom-badge">${userRole}</span>`;
+    if (userRole) badge = `<span class="custom-badge">${userRole}</span>`;
 
     let contentHtml = '';
     if (data.is_image) {
@@ -640,7 +708,6 @@ function appendMessageToUI(data, profileInfo) {
         contentHtml = `<div class="message-content"><div class="message-text-content">${parsedMarkdown}</div>${editedHtml}</div>`;
     }
 
-    // Reactions HTML
     let reactionsHtml = '';
     if (data.reactions && Object.keys(data.reactions).length > 0) {
         reactionsHtml = '<div class="reactions-container">';
@@ -654,8 +721,9 @@ function appendMessageToUI(data, profileInfo) {
     div.innerHTML = `
         ${avatarHtml}
         <div class="message-body">
-            <div style="font-size: 14px; font-weight: bold; color: white; display: flex; align-items: center;">
+            <div style="font-size: 14px; font-weight: bold; color: white; display: flex; align-items: baseline; gap: 8px;">
                 ${data.sender} ${badge}
+                <span style="font-size: 11px; color: #949ba4; font-weight: normal;">${timestampText}</span>
             </div>
             ${contentHtml}
             ${reactionsHtml}
