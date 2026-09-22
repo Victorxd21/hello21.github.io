@@ -1,1952 +1,695 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Slendystubies — Werewolf</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    :root {
-      --bg: #06100d;
-      --panel: rgba(8, 18, 15, 0.94);
-      --panel-soft: rgba(14, 26, 21, 0.78);
-      --line: rgba(255,255,255,.09);
-      --text: #effff6;
-      --muted: #8da69a;
-      --green: #4ade80;
-      --red: #ef4444;
-      --yellow: #facc15;
-      --cyan: #67e8f9;
-      --shadow: 0 20px 60px rgba(0,0,0,.42);
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slendytubbies: Secret Custard Hunt</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+  }
+  body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #050b08;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #e2e8f0;
+  }
+  #game-canvas, #flashlight-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  #flashlight-canvas {
+    pointer-events: none;
+  }
 
-    * { box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }
-    body {
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      user-select: none;
-      -webkit-user-select: none;
-    }
+  /* Screens & Modals */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    background: rgba(5, 11, 8, 0.88);
+    backdrop-filter: blur(8px);
+  }
+  .hidden { display: none !important; }
 
-    button, input { font: inherit; }
-    button { cursor: pointer; }
+  .panel {
+    background: #0f1a15;
+    border: 1px solid #1c3327;
+    border-radius: 12px;
+    padding: 32px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.5);
+    text-align: center;
+  }
+  h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #4ade80;
+    letter-spacing: -0.025em;
+    margin-bottom: 8px;
+    text-shadow: 0 0 12px rgba(74, 222, 128, 0.2);
+  }
+  p {
+    color: #94a3b8;
+    font-size: 0.95rem;
+    margin-bottom: 24px;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #274d39;
+    background: #08100c;
+    color: #f8fafc;
+    font-size: 1rem;
+    outline: none;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus {
+    border-color: #4ade80;
+  }
+  button {
+    width: 100%;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: none;
+    background: #22c55e;
+    color: #052e16;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+  }
+  button:hover {
+    background: #4ade80;
+  }
+  button:active {
+    transform: scale(0.98);
+  }
 
-    #gameCanvas {
-      position: fixed;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      display: block;
-      background: #08130f;
-      image-rendering: auto;
-    }
+  /* HUD UI */
+  #game-ui {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .hud-panel {
+    position: absolute;
+    background: rgba(15, 26, 21, 0.75);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(28, 51, 39, 0.6);
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: #f8fafc;
+  }
+  #hud-top-left { top: 20px; left: 20px; }
+  #hud-top-right { top: 20px; right: 20px; text-align: right; }
+  #hud-controls { bottom: 20px; left: 20px; font-size: 0.85rem; }
 
-    #ui { position: fixed; inset: 0; pointer-events: none; }
-    .interactive { pointer-events: auto; }
+  .stat-label { font-size: 0.75rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; }
+  .stat-value { font-size: 1.25rem; font-weight: 700; color: #4ade80; }
 
-    .screen {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background:
-        radial-gradient(circle at 50% 35%, rgba(50, 110, 73, .15), transparent 36%),
-        linear-gradient(180deg, rgba(2,8,6,.76), rgba(2,6,4,.96));
-      backdrop-filter: blur(10px);
-      transition: opacity .35s ease;
-    }
-    .hidden { display: none !important; }
+  /* Map Overlay */
+  #map-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 8;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  #map-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #big-map-canvas {
+    border: 2px solid #274d39;
+    border-radius: 8px;
+    background: #08130f;
+  }
 
-    .panel {
-      width: min(680px, calc(100vw - 34px));
-      padding: 34px;
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      background: linear-gradient(180deg, rgba(15,28,23,.95), rgba(7,17,13,.95));
-      box-shadow: var(--shadow);
-    }
+  .control-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 4px;
+    color: #cbd5e1;
+  }
+  .key {
+    background: #1c3327;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: #4ade80;
+  }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 8px;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      font-size: 13px;
-      color: #a7f3d0;
-      font-weight: 800;
-    }
-    .brand-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); box-shadow: 0 0 22px rgba(74,222,128,.55); }
-    h1 { margin: 0; font-size: clamp(35px, 7vw, 66px); line-height: .95; letter-spacing: -.045em; }
-    .subtitle { margin: 18px 0 26px; color: var(--muted); line-height: 1.6; max-width: 560px; }
-
-    .field-label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 12px;
-      font-weight: 800;
-      color: #a7f3d0;
-      text-transform: uppercase;
-      letter-spacing: .09em;
-    }
-    .name-input {
-      width: 100%;
-      padding: 15px 17px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      outline: none;
-      color: var(--text);
-      background: rgba(0,0,0,.24);
-      transition: border-color .2s, box-shadow .2s;
-    }
-    .name-input:focus { border-color: rgba(74,222,128,.55); box-shadow: 0 0 0 4px rgba(74,222,128,.08); }
-
-    .primary {
-      margin-top: 15px;
-      width: 100%;
-      padding: 16px 18px;
-      border: 0;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #36c96c, #70ef9a);
-      color: #06100d;
-      font-weight: 950;
-      letter-spacing: .03em;
-      box-shadow: 0 10px 35px rgba(74,222,128,.18);
-      transition: transform .15s, filter .15s;
-    }
-    .primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
-    .primary:active { transform: translateY(1px); }
-
-    .mini-info {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 9px;
-      margin-top: 18px;
-    }
-    .info-card {
-      padding: 13px 12px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: rgba(255,255,255,.025);
-    }
-    .info-card b { display: block; font-size: 14px; }
-    .info-card span { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); }
-
-    #lobbyScreen { align-items: center; }
-    .lobby-grid {
-      display: grid;
-      grid-template-columns: 1.15fr .85fr;
-      gap: 18px;
-    }
-    .lobby-list, .lobby-side {
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: rgba(255,255,255,.025);
-      padding: 17px;
-    }
-    .lobby-title { font-weight: 900; letter-spacing: .02em; }
-    .lobby-count { font-size: 30px; font-weight: 950; margin-top: 6px; }
-    .lobby-sub { color: var(--muted); font-size: 12px; }
-    #playerList { margin-top: 14px; display: grid; gap: 8px; max-height: 270px; overflow: auto; }
-    .player-row {
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      padding: 10px 12px; border: 1px solid rgba(255,255,255,.06); border-radius: 12px; background: rgba(0,0,0,.12);
-    }
-    .player-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .host-pill {
-      font-size: 10px; color: #05210f; background: #86efac; padding: 4px 6px; border-radius: 7px; font-weight: 950;
-    }
-    .needed { margin-top: 22px; font-size: 13px; color: #c7d9cf; line-height: 1.55; }
-    .needed strong { color: #fff; }
-    .loader {
-      width: 42px; height: 42px; border-radius: 50%; border: 4px solid rgba(255,255,255,.08); border-top-color: var(--green); animation: spin .8s linear infinite; margin: 18px auto 12px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    #topHud {
-      position: absolute; left: 18px; right: 18px; top: 17px;
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-    }
-    .hud-card {
-      border: 1px solid rgba(255,255,255,.09);
-      background: rgba(4, 11, 8, .72);
-      box-shadow: 0 12px 40px rgba(0,0,0,.28);
-      backdrop-filter: blur(10px);
-      border-radius: 15px;
-      padding: 10px 13px;
-    }
-    .stat-label { font-size: 9px; text-transform: uppercase; letter-spacing: .11em; color: #8ba398; font-weight: 900; }
-    .stat-value { margin-top: 2px; font-weight: 950; font-size: 22px; }
-    #custardValue { color: #fde68a; }
-    #aliveValue { color: #bbf7d0; }
-    #timerValue { color: #dbeafe; }
-
-    #roleNotice {
-      position: absolute;
-      left: 50%; top: 50%;
-      transform: translate(-50%, -50%) scale(.96);
-      width: min(560px, calc(100vw - 34px));
-      text-align: center;
-      opacity: 0;
-      transition: opacity .4s ease, transform .4s ease;
-    }
-    #roleNotice.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    .role-kicker { font-size: 12px; font-weight: 950; text-transform: uppercase; letter-spacing: .18em; color: #bbf7d0; }
-    #roleTitle { margin: 7px 0 9px; font-size: clamp(54px, 10vw, 94px); font-weight: 1000; line-height: .9; letter-spacing: -.055em; text-shadow: 0 8px 50px rgba(0,0,0,.55); }
-    #roleDesc { margin: 0; color: rgba(255,255,255,.83); font-size: 15px; line-height: 1.55; }
-
-    #controls {
-      position: absolute;
-      right: 18px;
-      bottom: 18px;
-      width: min(320px, calc(100vw - 36px));
-      padding: 13px;
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 16px;
-      background: rgba(3, 8, 6, .72);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 14px 45px rgba(0,0,0,.28);
-    }
-    .control-title { display: flex; justify-content: space-between; gap: 10px; color: #eefcf4; font-size: 11px; text-transform: uppercase; letter-spacing: .12em; font-weight: 900; }
-    .control-title span:last-child { color: #8da69a; }
-    .control-list { margin-top: 9px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
-    .control-row { display: flex; justify-content: space-between; gap: 8px; color: #a9beb4; font-size: 11px; }
-    .key { color: #fff; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.09); border-radius: 7px; padding: 2px 6px; font-weight: 900; }
-
-    #centerMessage {
-      position: absolute; left: 50%; top: 24%; transform: translateX(-50%);
-      padding: 10px 15px; border-radius: 999px;
-      background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.08); backdrop-filter: blur(8px);
-      opacity: 0; transition: opacity .25s ease, transform .25s ease; font-size: 12px; white-space: nowrap;
-    }
-    #centerMessage.show { opacity: 1; transform: translate(-50%, -4px); }
-
-    #crosshair {
-      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-      width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.5); box-shadow: 0 0 0 1px rgba(0,0,0,.5);
-      opacity: .35;
-    }
-
-    #flashlightOverlay { position: absolute; inset: 0; pointer-events: none; }
-
-    #fade {
-      position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .6s ease;
-    }
-    #fade.active { opacity: 1; }
-
-    #mapOverlay {
-      position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
-      background: rgba(0,0,0,.72); backdrop-filter: blur(5px);
-      pointer-events: auto;
-    }
-    #mapOverlay.show { display: flex; }
-    #bigMap {
-      width: min(84vmin, 920px); aspect-ratio: 1;
-      border-radius: 24px; border: 1px solid rgba(255,255,255,.12); overflow: hidden; box-shadow: 0 30px 100px rgba(0,0,0,.5);
-      background: #0d1e15;
-    }
-    .map-caption { position: absolute; bottom: 24px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #b3c7bc; }
-
-    #disconnectBtn {
-      position: absolute; left: 18px; bottom: 18px; pointer-events: auto;
-      border: 1px solid rgba(255,255,255,.08); background: rgba(3,8,6,.72); color: #c3d4cb;
-      border-radius: 11px; padding: 9px 11px; font-size: 11px; font-weight: 800; backdrop-filter: blur(9px);
-    }
-    #disconnectBtn:hover { color: #fff; }
-
-    #statusDot {
-      width: 8px; height: 8px; display: inline-block; border-radius: 50%; margin-right: 5px; background: #f59e0b;
-      box-shadow: 0 0 10px rgba(245,158,11,.5);
-    }
-    #statusDot.ok { background: #4ade80; box-shadow: 0 0 10px rgba(74,222,128,.5); }
-    #statusDot.bad { background: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,.5); }
-
-    #gameOver {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      background: radial-gradient(circle at 50% 40%, rgba(33, 52, 42, .55), rgba(2, 7, 5, .96) 65%);
-      opacity: 0; pointer-events: none; transition: opacity .35s ease;
-    }
-    #gameOver.show { opacity: 1; pointer-events: auto; }
-    .game-over-panel { text-align: center; width: min(560px, calc(100vw - 34px)); padding: 34px; border: 1px solid rgba(255,255,255,.09); border-radius: 24px; background: rgba(7,17,13,.88); box-shadow: var(--shadow); }
-    #gameOverTitle { font-size: clamp(42px, 8vw, 78px); line-height: .9; letter-spacing: -.05em; margin: 0; }
-    #gameOverDesc { color: #a6b9af; line-height: 1.6; margin: 14px 0 24px; }
-
-    /* ADMIN CONSOLE */
-    #adminAuth, #adminConsole {
-      position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
-      background: rgba(0,0,0,.76); backdrop-filter: blur(12px); z-index: 80; pointer-events: auto;
-    }
-    #adminAuth.show, #adminConsole.show { display: flex; }
-    .admin-panel {
-      width: min(820px, calc(100vw - 28px)); max-height: min(780px, calc(100vh - 28px)); overflow: auto;
-      padding: 22px; border-radius: 20px; border: 1px solid rgba(239,68,68,.20);
-      background: linear-gradient(180deg, rgba(16,20,18,.98), rgba(6,10,8,.98));
-      box-shadow: 0 30px 100px rgba(0,0,0,.65);
-    }
-    .admin-panel.small { width: min(430px, calc(100vw - 28px)); }
-    .admin-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    .admin-title { font-size: 24px; font-weight: 1000; letter-spacing: -.03em; }
-    .admin-kicker { color:#fca5a5; font-size:10px; font-weight:950; letter-spacing:.16em; text-transform:uppercase; }
-    .admin-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:16px; }
-    .admin-card { border:1px solid rgba(255,255,255,.08); border-radius:15px; padding:13px; background:rgba(255,255,255,.025); }
-    .admin-card h3 { margin:0 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.11em; color:#d1d5db; }
-    .admin-stat { font-size:24px; font-weight:1000; }
-    .admin-muted { color:#819087; font-size:11px; line-height:1.45; }
-    .admin-buttons { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:9px; }
-    .admin-btn { padding:11px 12px; border-radius:11px; border:1px solid rgba(255,255,255,.09); background:rgba(255,255,255,.055); color:#ecfdf5; font-weight:900; text-align:left; }
-    .admin-btn:hover { background:rgba(255,255,255,.09); }
-    .admin-btn.danger { border-color:rgba(239,68,68,.20); color:#fecaca; }
-    .admin-btn.good { border-color:rgba(74,222,128,.18); color:#bbf7d0; }
-    .admin-btn:disabled { opacity:.4; cursor:not-allowed; }
-    .admin-row { display:flex; gap:8px; margin-top:9px; }
-    .admin-row input, .admin-row select { flex:1; min-width:0; padding:10px 11px; border-radius:10px; border:1px solid rgba(255,255,255,.09); outline:none; background:rgba(0,0,0,.25); color:#fff; }
-    .admin-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 7px; border-radius:999px; background:rgba(255,255,255,.06); color:#9fb1a8; font-size:10px; font-weight:900; }
-    #adminToast { position:absolute; left:50%; top:18px; transform:translateX(-50%) translateY(-12px); z-index:90; opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease; padding:10px 14px; border-radius:12px; background:rgba(5,10,8,.94); border:1px solid rgba(239,68,68,.22); color:#fff; font-size:12px; font-weight:850; box-shadow:0 16px 55px rgba(0,0,0,.35); }
-    #adminToast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-    @media (max-width:760px) { .admin-grid { grid-template-columns:1fr; } .admin-buttons { grid-template-columns:1fr; } }
-    #debugToggleBtn {
-      position:absolute; left:18px; top:18px; z-index:70; pointer-events:auto;
-      border:1px solid rgba(103,232,249,.20); background:rgba(3,10,12,.82); color:#a5f3fc;
-      border-radius:10px; padding:8px 10px; font-size:10px; font-weight:900; letter-spacing:.08em;
-      text-transform:uppercase; backdrop-filter:blur(9px); box-shadow:0 12px 35px rgba(0,0,0,.25);
-    }
-    #debugPanel {
-      position:absolute; left:18px; top:58px; width:min(560px,calc(100vw - 36px)); height:min(360px,calc(100vh - 90px));
-      z-index:75; display:none; flex-direction:column; pointer-events:auto;
-      border:1px solid rgba(103,232,249,.18); border-radius:15px; background:rgba(3,10,12,.96);
-      box-shadow:0 25px 80px rgba(0,0,0,.55); backdrop-filter:blur(12px); overflow:hidden;
-    }
-    #debugPanel.show { display:flex; }
-    .debug-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 12px; border-bottom:1px solid rgba(255,255,255,.07); }
-    .debug-title { font-size:11px; font-weight:950; letter-spacing:.12em; text-transform:uppercase; color:#a5f3fc; }
-    .debug-actions { display:flex; gap:6px; }
-    .debug-actions button { border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:5px 8px; background:rgba(255,255,255,.05); color:#d8f8fb; font-size:9px; font-weight:900; }
-    #debugLog { flex:1; overflow:auto; padding:10px; font:10px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace; user-select:text; -webkit-user-select:text; white-space:pre-wrap; word-break:break-word; }
-    .debug-line { padding:3px 0; border-bottom:1px solid rgba(255,255,255,.025); }
-    .debug-time { color:#647b82; }
-    .debug-info { color:#c7dfe3; }
-    .debug-ok { color:#86efac; }
-    .debug-warn { color:#fde68a; }
-    .debug-error { color:#fca5a5; }
-    .debug-net { color:#67e8f9; }
-
-    @media (max-width: 760px) {
-      .panel { padding: 24px; }
-      .lobby-grid { grid-template-columns: 1fr; }
-      .mini-info { grid-template-columns: 1fr; }
-      #controls { width: calc(100vw - 36px); }
-      .control-list { grid-template-columns: 1fr 1fr; }
-      #topHud { left: 10px; right: 10px; top: 10px; }
-      .hud-card { padding: 8px 10px; }
-      .stat-value { font-size: 18px; }
-    }
-  </style>
+  #center-message {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #ef4444;
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 6;
+  }
+  #center-message.show { opacity: 1; }
+</style>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
-  <canvas id="flashlightOverlay"></canvas>
 
-  <div id="ui">
-    <div id="menuScreen" class="screen">
-      <div class="panel">
-        <div class="brand"><span class="brand-dot"></span> Slendystubies • Multiplayer</div>
-        <h1>WEREWOLF</h1>
-        <p class="subtitle">
-          One killer hides inside the forest. Everyone else has one job: find the custards, stay alive, and escape before the killer finds you.
-        </p>
+<canvas id="game-canvas"></canvas>
+<canvas id="flashlight-canvas"></canvas>
 
-        <label class="field-label" for="nameInput">Your name</label>
-        <input id="nameInput" class="name-input interactive" maxlength="18" placeholder="Enter a name" autocomplete="off" />
-        <button id="playBtn" class="primary interactive">PLAY • JOIN GLOBAL LOBBY</button>
-
-        <div class="mini-info">
-          <div class="info-card"><b>5 players</b><span>Normal launch minimum</span></div>
-          <div class="info-card"><b>15 custards</b><span>Hidden around the forest</span></div>
-          <div class="info-card"><b>1 killer</b><span>Everyone else is a survivor</span></div>
-        </div>
-
-        <div id="connectionText" style="margin-top:18px;color:#83988f;font-size:11px;text-align:center;">
-          <span id="statusDot"></span><span id="statusLabel">Not connected</span>
-        </div>
-      </div>
-    </div>
-
-    <div id="lobbyScreen" class="screen hidden">
-      <div class="panel">
-        <div class="brand"><span class="brand-dot"></span> Global Lobby</div>
-        <h1 style="font-size:clamp(32px,6vw,54px);">THE FOREST IS WAITING</h1>
-        <p class="subtitle" style="margin-bottom:18px;">
-          Everyone joins this same lobby. At 5 players the host starts the ten-second countdown automatically. An admin can bypass the 5-player requirement.
-        </p>
-
-        <div class="lobby-grid">
-          <div class="lobby-list">
-            <div class="lobby-title">Players online</div>
-            <div class="lobby-count"><span id="lobbyCount">0</span> / 15</div>
-            <div class="lobby-sub">Global Slendystubies lobby</div>
-            <div id="playerList"></div>
-          </div>
-          <div class="lobby-side">
-            <div class="lobby-title">Launch status</div>
-            <div id="launchStatus" style="font-size:27px;font-weight:950;margin-top:7px;">Waiting...</div>
-            <div id="launchSub" class="lobby-sub" style="line-height:1.5;margin-top:6px;">Need 5 players before the normal countdown starts.</div>
-            <div class="loader"></div>
-            <div class="needed">Do not close this tab during the launch. Your role and spawn are assigned by the lobby host when the round starts.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="gameUi" class="hidden">
-      <div id="topHud">
-        <div style="display:flex;gap:8px;">
-          <div class="hud-card"><div class="stat-label">Custards remaining</div><div class="stat-value" id="custardValue">15</div></div>
-          <div class="hud-card"><div class="stat-label">Survivors alive</div><div class="stat-value" id="aliveValue">0</div></div>
-        </div>
-        <div class="hud-card"><div class="stat-label">Round</div><div class="stat-value" id="timerValue">08:00</div></div>
-      </div>
-
-      <div id="roleNotice">
-        <div class="role-kicker">Your role</div>
-        <div id="roleTitle">SURVIVOR</div>
-        <p id="roleDesc">Find the custards and survive.</p>
-      </div>
-
-      <div id="centerMessage"></div>
-      <div id="crosshair"></div>
-      <div id="controls">
-        <div class="control-title"><span id="controlRole">SURVIVOR CONTROLS</span><span id="flashlightState">FLASHLIGHT OFF</span></div>
-        <div class="control-list" id="controlList"></div>
-      </div>
-      <button id="disconnectBtn">Leave round</button>
-
-      <div id="mapOverlay">
-        <canvas id="bigMap"></canvas>
-        <div class="map-caption">Press M to close • Only your location is shown</div>
-      </div>
-    </div>
-
-    <button id="debugToggleBtn" class="interactive">DEBUG LOG</button>
-    <div id="debugPanel">
-      <div class="debug-head">
-        <div>
-          <div class="debug-title">Global Lobby Debug</div>
-          <div id="debugConnectionText" class="admin-muted">Waiting for Supabase...</div>
-        </div>
-        <div class="debug-actions">
-          <button id="debugClearBtn">CLEAR</button>
-          <button id="debugCloseBtn">CLOSE</button>
-        </div>
-      </div>
-      <div id="debugLog"></div>
-    </div>
-
-    <div id="adminToast"></div>
-
-    <div id="adminAuth">
-      <div class="admin-panel small">
-        <div class="admin-head">
-          <div>
-            <div class="admin-kicker">Restricted Access</div>
-            <div class="admin-title">ADMIN LOGIN</div>
-          </div>
-          <button id="adminAuthClose" class="admin-btn" style="width:auto;padding:8px 10px;">ESC</button>
-        </div>
-        <div class="admin-muted" style="margin-top:10px;">Press ` from the menu or lobby to open this console. Enter the admin password to unlock game controls.</div>
-        <div style="margin-top:16px;">
-          <input id="adminPassword" class="name-input interactive" type="password" maxlength="64" placeholder="Admin password" autocomplete="off" />
-          <button id="adminLoginBtn" class="primary interactive">UNLOCK ADMIN CONSOLE</button>
-          <div id="adminLoginStatus" class="admin-muted" style="margin-top:9px;text-align:center;"></div>
-        </div>
-      </div>
-    </div>
-
-    <div id="adminConsole">
-      <div class="admin-panel">
-        <div class="admin-head">
-          <div>
-            <div class="admin-kicker">Slendystubies • Server Control</div>
-            <div class="admin-title">ADMIN CONSOLE</div>
-          </div>
-          <button id="adminCloseBtn" class="admin-btn" style="width:auto;padding:8px 10px;">CLOSE</button>
-        </div>
-
-        <div class="admin-grid">
-          <div class="admin-card">
-            <h3>Server Status</h3>
-            <div style="display:flex;gap:7px;flex-wrap:wrap;">
-              <span id="adminConnectionChip" class="admin-chip">OFFLINE</span>
-              <span id="adminHostChip" class="admin-chip">HOST: —</span>
-              <span id="adminRoundChip" class="admin-chip">ROUND: LOBBY</span>
-            </div>
-            <div class="admin-stat" id="adminPlayerStat" style="margin-top:10px;">0 / 15</div>
-            <div class="admin-muted">Players in the shared global lobby / current presence roster.</div>
-          </div>
-
-          <div class="admin-card">
-            <h3>Round Controls</h3>
-            <div class="admin-buttons">
-              <button id="adminStartTimerBtn" class="admin-btn good">▶ Start 10s Timer</button>
-              <button id="adminForceStartBtn" class="admin-btn good">⚡ Force Start Now</button>
-              <button id="adminCancelTimerBtn" class="admin-btn">■ Cancel Countdown</button>
-              <button id="adminEndRoundBtn" class="admin-btn danger">☠ End Current Round</button>
-            </div>
-          </div>
-
-          <div class="admin-card">
-            <h3>Next Round Length</h3>
-            <div class="admin-row">
-              <select id="adminRoundLength" class="interactive">
-                <option value="180">3 minutes</option>
-                <option value="300">5 minutes</option>
-                <option value="480" selected>8 minutes</option>
-                <option value="600">10 minutes</option>
-                <option value="900">15 minutes</option>
-              </select>
-              <button id="adminSetLengthBtn" class="admin-btn good" style="flex:0 0 auto;">Set</button>
-            </div>
-            <div class="admin-muted" style="margin-top:8px;">Applies to the next round started through this console.</div>
-          </div>
-
-          <div class="admin-card">
-            <h3>Global Announcement</h3>
-            <div class="admin-row">
-              <input id="adminAnnouncementInput" class="interactive" maxlength="90" placeholder="Type a message for everyone..." />
-              <button id="adminAnnounceBtn" class="admin-btn">Send</button>
-            </div>
-            <div class="admin-muted" style="margin-top:8px;">Shows a message to every connected player without changing the round.</div>
-          </div>
-
-          <div class="admin-card">
-            <h3>Round Tools</h3>
-            <div class="admin-buttons">
-              <button id="adminRevealTimerBtn" class="admin-btn">⏱ Announce Round Time</button>
-              <button id="adminLobbyResetBtn" class="admin-btn danger">↩ Reset Everyone To Lobby</button>
-            </div>
-            <div class="admin-muted" style="margin-top:8px;">Reset sends every connected client back to the shared lobby without closing their connection.</div>
-          </div>
-
-          <div class="admin-card">
-            <h3>Admin Notes</h3>
-            <div class="admin-muted">Backtick opens this menu. Start Timer bypasses the normal 5-player minimum. Force Start bypasses both the minimum and the 10-second countdown. The lobby itself is capped at 15 players.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="fade"></div>
-
-    <div id="gameOver">
-      <div class="game-over-panel">
-        <h2 id="gameOverTitle">ROUND OVER</h2>
-        <p id="gameOverDesc">The forest has gone quiet.</p>
-        <button id="returnLobbyBtn" class="primary interactive">RETURN TO GLOBAL LOBBY</button>
-      </div>
-    </div>
+<!-- Main Menu Screen -->
+<div id="menu-screen" class="screen">
+  <div class="panel">
+    <h1>Slendytubbies</h1>
+    <p>Secret Custard Hunt</p>
+    <input type="text" id="name-input" placeholder="Enter your nickname..." maxlength="12" value="Tubby">
+    <button id="play-btn">ENTER FOREST</button>
   </div>
+</div>
+
+<!-- Lobby Screen -->
+<div id="lobby-screen" class="screen hidden">
+  <div class="panel">
+    <h2>LOBBY</h2>
+    <p style="margin-bottom:12px;">Waiting for forest match start...</p>
+    <div id="player-list" style="margin-bottom: 20px; color: #a7f3d0; font-size: 0.9rem;">Connecting to network...</div>
+    <button id="disconnect-btn" style="background:#dc2626; color:#fff;">LEAVE LOBBY</button>
+  </div>
+</div>
+
+<!-- Game HUD -->
+<div id="game-ui" class="hidden">
+  <div id="hud-top-left" class="hud-panel">
+    <div class="stat-label">Custards Remaining</div>
+    <div id="custard-value" class="stat-value">10</div>
+  </div>
+
+  <div id="hud-top-right" class="hud-panel">
+    <div class="stat-label">Survivors Alive</div>
+    <div id="alive-value" class="stat-value">1</div>
+    <div class="stat-label" style="margin-top:4px;">Time Left</div>
+    <div id="timer-value" style="font-weight:700; color:#cbd5e1;">05:00</div>
+  </div>
+
+  <div id="hud-controls" class="hud-panel">
+    <div id="control-role" class="stat-label" style="margin-bottom: 4px; color:#4ade80;">SURVIVOR CONTROLS</div>
+    <div id="control-list"></div>
+    <div id="flashlight-state" style="margin-top: 6px; font-size: 0.75rem; color:#94a3b8;">FLASHLIGHT ON</div>
+  </div>
+
+  <div id="center-message"></div>
+</div>
+
+<!-- Big Map Overlay -->
+<div id="map-overlay">
+  <canvas id="big-map-canvas" width="500" height="500"></canvas>
+</div>
+
+<!-- Game Over Modal -->
+<div id="game-over-screen" class="screen hidden">
+  <div class="panel">
+    <h1 id="game-over-title">MATCH OVER</h1>
+    <p id="game-over-desc">The fog clears...</p>
+    <button id="return-lobby-btn">RETURN TO LOBBY</button>
+  </div>
+</div>
 
 <script>
 (() => {
-  'use strict';
-
-  // ------------------------------------------------------------
-  // SUPABASE CONFIG
-  // Reuses the publishable Supabase project from the uploaded
-  // Slither multiplayer file.
-  // ------------------------------------------------------------
-  const SUPABASE_URL = 'https://degilckgjfdnekszsbry.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_ym_oqKIyxwk7ixxCvwNCmA_w2VtnpdP';
-
-  if (!window.supabase || typeof window.supabase.createClient !== 'function') {
-    throw new Error('Supabase client failed to load. Check the CDN request or browser extensions.');
-  }
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  // ------------------------------------------------------------
-  // GAME SETTINGS
-  // ------------------------------------------------------------
   const GAME = {
-    channelName: 'slendystubies_werewolf_global_v1',
-    minPlayers: 5,
-    maxLobbyPlayers: 15,
-    worldSize: 8000,
-    roundSeconds: 8 * 60,
-    startCountdown: 10,
-    custardCount: 15,
-    playerRadius: 18,
-    walkSpeed: 220,
-    runSpeed: 340,
-    killerSpeed: 265,
-    killerRunSpeed: 400,
-    stealthSpeedMultiplier: 1.45,
-    stealthDuration: 10,
-    stealthCooldown: 20,
-    killRange: 68,
-    killCooldown: 3.0,
-    playerSyncMs: 90,
-    roleCardMs: 3300,
-    custardPickupRange: 29,
-    treeCollisionPadding: 7,
-    adminPassword: 'papivictor'
+    worldSize: 2400,
+    playerRadius: 16,
+    baseSpeed: 180,
+    sprintSpeed: 270,
+    custardCount: 10,
+    mapTreesCount: 120,
+    mapRocksCount: 40
   };
 
-  // ------------------------------------------------------------
-  // DOM
-  // ------------------------------------------------------------
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d');
-  const flashlightCanvas = document.getElementById('flashlightOverlay');
-  const flashlightCtx = flashlightCanvas.getContext('2d');
-  const bigMap = document.getElementById('bigMap');
-  const bigMapCtx = bigMap.getContext('2d');
-
-  const menuScreen = document.getElementById('menuScreen');
-  const lobbyScreen = document.getElementById('lobbyScreen');
-  const gameUi = document.getElementById('gameUi');
-  const gameOver = document.getElementById('gameOver');
-  const fade = document.getElementById('fade');
-  const roleNotice = document.getElementById('roleNotice');
-  const roleTitle = document.getElementById('roleTitle');
-  const roleDesc = document.getElementById('roleDesc');
-  const playBtn = document.getElementById('playBtn');
-  const nameInput = document.getElementById('nameInput');
-  const statusDot = document.getElementById('statusDot');
-  const statusLabel = document.getElementById('statusLabel');
-  const lobbyCount = document.getElementById('lobbyCount');
-  const playerList = document.getElementById('playerList');
-  const launchStatus = document.getElementById('launchStatus');
-  const launchSub = document.getElementById('launchSub');
-  const custardValue = document.getElementById('custardValue');
-  const aliveValue = document.getElementById('aliveValue');
-  const timerValue = document.getElementById('timerValue');
-  const controlRole = document.getElementById('controlRole');
-  const controlList = document.getElementById('controlList');
-  const flashlightState = document.getElementById('flashlightState');
-  const centerMessage = document.getElementById('centerMessage');
-  const disconnectBtn = document.getElementById('disconnectBtn');
-  const returnLobbyBtn = document.getElementById('returnLobbyBtn');
-  const gameOverTitle = document.getElementById('gameOverTitle');
-  const gameOverDesc = document.getElementById('gameOverDesc');
-  const mapOverlay = document.getElementById('mapOverlay');
-  const debugToggleBtn = document.getElementById('debugToggleBtn');
-  const debugPanel = document.getElementById('debugPanel');
-  const debugLog = document.getElementById('debugLog');
-  const debugConnectionText = document.getElementById('debugConnectionText');
-  const debugClearBtn = document.getElementById('debugClearBtn');
-  const debugCloseBtn = document.getElementById('debugCloseBtn');
-
-  const adminToast = document.getElementById('adminToast');
-  const adminAuth = document.getElementById('adminAuth');
-  const adminConsole = document.getElementById('adminConsole');
-  const adminPassword = document.getElementById('adminPassword');
-  const adminLoginBtn = document.getElementById('adminLoginBtn');
-  const adminLoginStatus = document.getElementById('adminLoginStatus');
-  const adminAuthClose = document.getElementById('adminAuthClose');
-  const adminCloseBtn = document.getElementById('adminCloseBtn');
-  const adminConnectionChip = document.getElementById('adminConnectionChip');
-  const adminHostChip = document.getElementById('adminHostChip');
-  const adminRoundChip = document.getElementById('adminRoundChip');
-  const adminPlayerStat = document.getElementById('adminPlayerStat');
-  const adminStartTimerBtn = document.getElementById('adminStartTimerBtn');
-  const adminForceStartBtn = document.getElementById('adminForceStartBtn');
-  const adminCancelTimerBtn = document.getElementById('adminCancelTimerBtn');
-  const adminEndRoundBtn = document.getElementById('adminEndRoundBtn');
-  const adminRoundLength = document.getElementById('adminRoundLength');
-  const adminSetLengthBtn = document.getElementById('adminSetLengthBtn');
-  const adminAnnouncementInput = document.getElementById('adminAnnouncementInput');
-  const adminAnnounceBtn = document.getElementById('adminAnnounceBtn');
-  const adminRevealTimerBtn = document.getElementById('adminRevealTimerBtn');
-  const adminLobbyResetBtn = document.getElementById('adminLobbyResetBtn');
-
-  // ------------------------------------------------------------
-  // STATE
-  // ------------------------------------------------------------
   const state = {
-    connected: false,
-    inLobby: false,
-    inGame: false,
-    playerId: crypto.randomUUID(),
     playerName: '',
+    playerId: 'p_' + Math.random().toString(36).substring(2, 9),
+    inGame: false,
+    inLobby: false,
     role: 'survivor',
     alive: true,
-    killerTrueForm: false,
-    stealthUntil: 0,
-    stealthCooldownUntil: 0,
-    lastKillAt: 0,
-    roundId: null,
-    roundSeed: 0,
-    roundEndsAt: 0,
-    startCountdownEndsAt: 0,
-    roundStarting: false,
-    hostId: null,
-    joinedAt: Date.now(),
-    x: GAME.worldSize / 2,
-    y: GAME.worldSize / 2,
+    x: 1200,
+    y: 1200,
     vx: 0,
     vy: 0,
-    cameraX: GAME.worldSize / 2,
-    cameraY: GAME.worldSize / 2,
-    sprintToggle: false,
-    flashlightOn: false,
-    minimapLarge: false,
+    flashlightOn: true,
+    killerTrueForm: false,
+    stealth: false,
+    stealthEndsAt: 0,
     map: null,
-    players: new Map(),
     custards: [],
     collectedCustards: new Set(),
-    lastPresenceTrack: 0,
-    lastPresenceData: null,
-    centerMessageUntil: 0,
-    roleCardUntil: 0,
-    lastFrame: performance.now(),
-    keys: new Set(),
-    touch: { x: 0, y: 0, active: false },
-    roundResult: null,
-    localMessageId: 0,
-    connectionRetryCount: 0,
-    seedRng: null,
-    adminAuthenticated: false,
-    adminNextRoundSeconds: null
+    players: new Map(),
+    roundEndsAt: Date.now() + 300000,
+    lastFrame: performance.now()
   };
 
-  // ------------------------------------------------------------
-  // NETWORK / DEBUG HELPERS
-  // ------------------------------------------------------------
-  let channel = null;
-  let connectPromise = null;
+  // Canvas context setup
+  const gameCanvas = document.getElementById('game-canvas');
+  const ctx = gameCanvas.getContext('2d');
+  const flashlightCanvas = document.getElementById('flashlight-canvas');
+  const flashlightCtx = flashlightCanvas.getContext('2d');
+  const bigMap = document.getElementById('big-map-canvas');
+  const bigMapCtx = bigMap.getContext('2d');
 
-  function setConnectionStatus(kind, text) {
-    statusDot.classList.remove('ok', 'bad');
-    if (kind === 'ok') statusDot.classList.add('ok');
-    if (kind === 'bad') statusDot.classList.add('bad');
-    statusLabel.textContent = text;
+  // DOM Elements
+  const menuScreen = document.getElementById('menu-screen');
+  const lobbyScreen = document.getElementById('lobby-screen');
+  const gameUi = document.getElementById('game-ui');
+  const nameInput = document.getElementById('name-input');
+  const playBtn = document.getElementById('play-btn');
+  const disconnectBtn = document.getElementById('disconnect-btn');
+  const returnLobbyBtn = document.getElementById('return-lobby-btn');
+  const gameOver = document.getElementById('game-over-screen');
+  const custardValue = document.getElementById('custard-value');
+  const aliveValue = document.getElementById('alive-value');
+  const timerValue = document.getElementById('timer-value');
+  const controlRole = document.getElementById('control-role');
+  const controlList = document.getElementById('control-list');
+  const flashlightState = document.getElementById('flashlight-state');
+  const centerMessage = document.getElementById('center-message');
+  const mapOverlay = document.getElementById('map-overlay');
+
+  const keys = {};
+
+  function resize() {
+    gameCanvas.width = flashlightCanvas.width = window.innerWidth;
+    gameCanvas.height = flashlightCanvas.height = window.innerHeight;
   }
 
-  async function connectGlobal() {
-    if (state.connected && channel) return true;
-    if (connectPromise) return connectPromise;
-
-    connectPromise = new Promise(async (resolve) => {
-      setConnectionStatus('busy', 'Connecting to global lobby...');
-      debugLogMessage('Opening shared Supabase Realtime channel...', 'net');
-
-      if (!window.supabase) {
-        debugLogMessage('Supabase JavaScript library is not loaded.', 'error');
-        setConnectionStatus('bad', 'Supabase library failed to load');
-        resolve(false);
-        return;
-      }
-
-      if (channel && !state.connected) {
-        try { await supabase.removeChannel(channel); } catch {}
-        channel = null;
-      }
-
-      channel = supabase.channel(GAME.channelName, {
-        config: {
-          presence: { key: state.playerId },
-          broadcast: { ack: false }
-        }
-      });
-
-      let settled = false;
-      const finish = (ok) => {
-        if (settled) return;
-        settled = true;
-        resolve(ok);
-      };
-
-      channel
-        .on('presence', { event: 'sync' }, handlePresenceSync)
-        .on('presence', { event: 'join' }, handlePresenceSync)
-        .on('presence', { event: 'leave' }, handlePresenceSync)
-        .on('broadcast', { event: 'lobby_countdown' }, onLobbyCountdown)
-        .on('broadcast', { event: 'round_start' }, onRoundStart)
-        .on('broadcast', { event: 'player_move' }, onPlayerMove)
-        .on('broadcast', { event: 'custard_collect' }, onCustardCollect)
-        .on('broadcast', { event: 'player_killed' }, onPlayerKilled)
-        .on('broadcast', { event: 'round_end' }, onRoundEnd)
-        .on('broadcast', { event: 'request_state' }, onStateRequest)
-        .on('broadcast', { event: 'state_snapshot' }, onStateSnapshot)
-        .on('broadcast', { event: 'admin_command' }, onAdminCommand)
-        .on('broadcast', { event: 'admin_announcement' }, onAdminAnnouncement)
-        .subscribe(async (status) => {
-          debugLogMessage(`Realtime channel status: ${status}`, status === 'SUBSCRIBED' ? 'net' : (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' ? 'error' : 'info'));
-
-          if (status === 'SUBSCRIBED') {
-            state.connected = true;
-            state.inLobby = true;
-            setConnectionStatus('ok', 'Connected to global lobby');
-
-            try {
-              await trackPresence('lobby');
-              const currentRoster = getPresencePlayers();
-              debugLogMessage(`Initial global roster: ${currentRoster.length} player(s).`, 'net');
-
-              if (currentRoster.length > GAME.maxLobbyPlayers) {
-                try { await channel.untrack(); } catch {}
-                await supabase.removeChannel(channel);
-                channel = null;
-                state.connected = false;
-                state.inLobby = false;
-                setConnectionStatus('bad', `Global lobby is full (${GAME.maxLobbyPlayers}/${GAME.maxLobbyPlayers})`);
-                playBtn.disabled = false;
-                playBtn.textContent = 'PLAY • JOIN GLOBAL LOBBY';
-                showAdminToast(`The global lobby is full — ${GAME.maxLobbyPlayers}/${GAME.maxLobbyPlayers} players.`);
-                finish(false);
-                return;
-              }
-
-              handlePresenceSync();
-              showScreen('lobby');
-              requestStateSync();
-              finish(true);
-            } catch (err) {
-              debugLogMessage(`Global lobby setup failed: ${err?.message || err}`, 'error');
-              state.connected = false;
-              state.inLobby = false;
-              setConnectionStatus('bad', 'Lobby setup failed');
-              try { await supabase.removeChannel(channel); } catch {}
-              channel = null;
-              finish(false);
-            }
-            return;
-          }
-
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            state.connected = false;
-            state.inLobby = false;
-            setConnectionStatus('bad', `Realtime ${status.toLowerCase().replace('_', ' ')}`);
-            debugLogMessage(`Supabase Realtime connection problem: ${status}`, 'error');
-            try { await supabase.removeChannel(channel); } catch {}
-            channel = null;
-            finish(false);
-          }
-        });
-
-      setTimeout(async () => {
-        if (settled) return;
-        debugLogMessage('Supabase connection timed out after 15 seconds.', 'error');
-        state.connected = false;
-        state.inLobby = false;
-        setConnectionStatus('bad', 'Connection timed out');
-        try { await supabase.removeChannel(channel); } catch {}
-        channel = null;
-        finish(false);
-      }, 15000);
-    });
-
-    try {
-      return await connectPromise;
-    } finally {
-      connectPromise = null;
-    }
-  }
-
-  debugLogMessage('Global lobby page loaded.');
-  debugLogMessage(`Configured for ${GAME.minPlayers} minimum / ${GAME.maxLobbyPlayers} maximum players.`);
-
-  function debugLogMessage(message, level = 'info') {
-    const now = new Date();
-    const time = now.toLocaleTimeString([], { hour12: false });
-    const line = document.createElement('div');
-    line.className = `debug-line debug-${level}`;
-    line.innerHTML = `<span class="debug-time">[${time}]</span>${escapeHtml(String(message))}`;
-    debugLog.appendChild(line);
-    while (debugLog.children.length > 300) debugLog.removeChild(debugLog.firstChild);
-    debugLog.scrollTop = debugLog.scrollHeight;
-    debugConnectionText.textContent = state.connected ? `Supabase: CONNECTED • Players: ${state.players.size}` : `Supabase: ${statusLabel.textContent}`;
-    console.log(`[GlobalLobby:${level}]${message}`);
-  }
-
-  function escapeHtml(value) {
-    return value.replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-  }
-
-  debugToggleBtn.addEventListener('click', () => debugPanel.classList.toggle('show'));
-  debugCloseBtn.addEventListener('click', () => debugPanel.classList.remove('show'));
-  debugClearBtn.addEventListener('click', () => { debugLog.innerHTML = ''; debugLogMessage('Debug log cleared.'); });
-
-  window.addEventListener('error', e => debugLogMessage(`JS ERROR: ${e.message} @ ${e.filename \vert{}\vert{} 'page'}:${e.lineno || '?'}`, 'error'));
-  window.addEventListener('unhandledrejection', e => debugLogMessage(`PROMISE ERROR: ${e.reason?.message || e.reason || 'unknown rejection'}`, 'error'));
-
-  async function trackPresence(mode = state.inGame ? 'game' : 'lobby') {
-    if (!channel) return;
-    const payload = {
-      id: state.playerId,
-      name: state.playerName,
-      mode,
-      role: state.role,
-      alive: state.alive,
-      killerTrueForm: state.killerTrueForm,
-      invisible: isStealthed(),
-      x: Math.round(state.x),
-      y: Math.round(state.y),
-      roundId: state.roundId,
-      joinedAt: state.joinedAt
-    };
-    state.lastPresenceData = payload;
-    try { await channel.track(payload); debugLogMessage(`Presence updated: mode=${mode}, name=${payload.name}, role=${payload.role}`, 'net'); } catch (err) { debugLogMessage(`Presence track failed: ${err?.message || err}`, 'error'); throw err; }
-  }
-
-  function requestStateSync() {
-    if (!channel) return;
-    channel.send({ type: 'broadcast', event: 'request_state', payload: { from: state.playerId } }).then(() => debugLogMessage('Broadcast sent: request_state', 'net')).catch(err => debugLogMessage(`Broadcast request_state failed: ${err?.message || err}`, 'error'));
-  }
-
-  function broadcast(event, payload) {
-    if (!channel) return;
-    channel.send({ type: 'broadcast', event, payload }).then(() => debugLogMessage(`Broadcast sent: ${event}`, 'net')).catch(err => debugLogMessage(`Broadcast ${event} failed:${err?.message || err}`, 'error'));
-  }
-
-  // ------------------------------------------------------------
-  // PRESENCE / LOBBY
-  // ------------------------------------------------------------
-  function getPresencePlayers() {
-    if (!channel) return [];
-    const raw = channel.presenceState();
-    const rows = [];
-    for (const key in raw) {
-      const list = Array.isArray(raw[key]) ? raw[key] : [];
-      const latest = list[list.length - 1];
-      if (latest && latest.id) rows.push(latest);
-    }
-    return rows;
-  }
-
-  function handlePresenceSync() {
-    const rows = getPresencePlayers();
-    debugLogMessage(`Presence roster sync: ${rows.length} player(s).`, 'net');
-    state.players.clear();
-    for (const p of rows) state.players.set(p.id, p);
-
-    const sorted = [...state.players.values()].sort((a, b) => String(a.id).localeCompare(String(b.id)));
-    state.hostId = sorted[0]?.id || null;
-    updateLobbyUI();
-    updateAliveHud();
-
-    maybeHostLaunch();
-  }
-
-  function updateLobbyUI() {
-    const count = state.players.size;
-    lobbyCount.textContent = count;
-    playerList.innerHTML = '';
-
-    const sorted = [...state.players.values()].sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
-    for (const p of sorted.slice(0, GAME.maxLobbyPlayers)) {
-      const row = document.createElement('div');
-      row.className = 'player-row';
-      const left = document.createElement('div');
-      left.className = 'player-name';
-      left.textContent = p.name || 'Unknown player';
-      const badge = document.createElement('div');
-      if (p.id === state.hostId) {
-        badge.className = 'host-pill';
-        badge.textContent = 'HOST';
-      } else {
-        badge.style.color = '#738a80';
-        badge.style.fontSize = '10px';
-        badge.textContent = p.id === state.playerId ? 'YOU' : '';
-      }
-      row.append(left, badge);
-      playerList.appendChild(row);
-    }
-
-    if (state.startCountdownEndsAt > Date.now()) {
-      launchStatus.textContent = 'Starting...';
-      const seconds = Math.max(0, Math.ceil((state.startCountdownEndsAt - Date.now()) / 1000));
-      launchSub.textContent = seconds + 's until the forest opens' + (count < GAME.minPlayers ? ' • ADMIN BYPASS ACTIVE' : '');
-    } else if (count >= GAME.minPlayers) {
-      launchStatus.textContent = 'Ready!';
-      launchSub.textContent = 'A host can launch the round. The normal minimum is 5 players.';
-    } else {
-      launchStatus.textContent = 'Waiting...';
-      launchSub.textContent = `Need ${GAME.minPlayers - count} more player${GAME.minPlayers - count === 1 ? '' : 's'} before the normal countdown starts.`;
-    }
-    updateAdminUI();
-  }
-
-  function maybeHostLaunch(forceMinimum = false) {
-    if (!state.inLobby || state.inGame || state.roundStarting) return false;
-    if (state.hostId !== state.playerId) return false;
-    const count = Math.min(state.players.size, GAME.maxLobbyPlayers);
-    if (count < GAME.minPlayers && !forceMinimum) return false;
-    if (count <= 0) return false;
-    if (state.startCountdownEndsAt > Date.now()) return false;
-
-    state.startCountdownEndsAt = Date.now() + GAME.startCountdown * 1000;
-    state.roundStarting = true;
-    broadcast('lobby_countdown', { endsAt: state.startCountdownEndsAt, startedBy: state.playerId });
-    updateLobbyUI();
-
-    setTimeout(() => {
-      if (state.hostId === state.playerId && state.inLobby && state.startCountdownEndsAt <= Date.now() + 100) startRoundAsHost();
-    }, GAME.startCountdown * 1000 + 80);
-    updateAdminUI();
-    return true;
-  }
-
-  function onLobbyCountdown({ payload }) {
-    if (!payload || !payload.endsAt) return;
-    state.startCountdownEndsAt = Number(payload.endsAt);
-    state.roundStarting = true;
-    updateLobbyUI();
-  }
-
-  // ------------------------------------------------------------
-  // DETERMINISTIC WORLD GENERATION
-  // ------------------------------------------------------------
-  function mulberry32(seed) {
-    let t = seed >>> 0;
-    return function() {
-      t += 0x6D2B79F5;
-      let r = Math.imul(t ^ (t >>> 15), 1 | t);
-      r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
-      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-    };
-  }
-
-  function dist(ax, ay, bx, by) {
-    const dx = ax - bx, dy = ay - by;
-    return Math.hypot(dx, dy);
-  }
-
-  function makeRoundWorld(seed) {
-    const rng = mulberry32(seed);
+  // Generate Map Procedurally
+  function generateMap() {
     const trees = [];
     const rocks = [];
-    const paths = [];
+    const custards = [];
 
-    for (let i = 0; i < 7; i++) {
-      paths.push({
-        x: rng() * GAME.worldSize,
-        y: rng() * GAME.worldSize,
-        w: 90 + rng() * 190,
-        h: 30 + rng() * 80,
-        angle: rng() * Math.PI * 2,
-        curve: rng() * Math.PI * 2
+    // Simple pseudo-random map generation
+    for (let i = 0; i < GAME.mapTreesCount; i++) {
+      trees.push({
+        x: Math.random() * (GAME.worldSize - 200) + 100,
+        y: Math.random() * (GAME.worldSize - 200) + 100,
+        size: Math.random() * 20 + 25,
+        type: Math.random() > 0.85 ? 'dead' : 'normal'
       });
     }
 
-    for (let i = 0; i < 680; i++) {
-      const x = 100 + rng() * (GAME.worldSize - 200);
-      const y = 100 + rng() * (GAME.worldSize - 200);
-      const size = 28 + rng() * 34;
-      const type = rng() > .12 ? 'tree' : 'dead';
-      trees.push({ x, y, size, type, hue: rng() });
-    }
-    for (let i = 0; i < 210; i++) {
-      rocks.push({ x: 80 + rng() * (GAME.worldSize - 160), y: 80 + rng() * (GAME.worldSize - 160), r: 7 + rng() * 18 });
+    for (let i = 0; i < GAME.mapRocksCount; i++) {
+      rocks.push({
+        x: Math.random() * (GAME.worldSize - 200) + 100,
+        y: Math.random() * (GAME.worldSize - 200) + 100,
+        r: Math.random() * 12 + 10
+      });
     }
 
-    const custards = [];
     for (let i = 0; i < GAME.custardCount; i++) {
-      let tries = 0;
-      let point;
-      do {
-        const angle = rng() * Math.PI * 2;
-        const radius = 500 + rng() * 3300;
-        point = {
-          id: `c_${seed}_${i}`,
-          x: GAME.worldSize / 2 + Math.cos(angle) * radius,
-          y: GAME.worldSize / 2 + Math.sin(angle) * radius,
-          glow: rng() * Math.PI * 2,
-          hidden: rng() > .55
-        };
-        tries++;
-      } while ((point.x < 150 || point.x > GAME.worldSize - 150 || point.y < 150 || point.y > GAME.worldSize - 150) && tries < 100);
-      custards.push(point);
+      custards.push({
+        id: i,
+        x: Math.random() * (GAME.worldSize - 300) + 150,
+        y: Math.random() * (GAME.worldSize - 300) + 150,
+        glow: Math.random() * Math.PI * 2
+      });
     }
 
-    return { seed, trees, rocks, paths, custards };
+    return { trees, rocks, custards };
   }
 
-  function pointBlocked(x, y, world, radius = GAME.playerRadius) {
-    if (!world) return false;
-    if (x < radius || y < radius || x > GAME.worldSize - radius || y > GAME.worldSize - radius) return true;
-    for (const t of world.trees) {
-      if (dist(x, y, t.x, t.y) < t.size + radius + GAME.treeCollisionPadding) return true;
-    }
-    for (const r of world.rocks) {
-      if (dist(x, y, r.x, r.y) < r.r + radius + 5) return true;
-    }
-    return false;
-  }
-
-  function findSpawn(world, rng) {
-    for (let i = 0; i < 500; i++) {
-      const x = 250 + rng() * (GAME.worldSize - 500);
-      const y = 250 + rng() * (GAME.worldSize - 500);
-      if (!pointBlocked(x, y, world, 32)) return { x, y };
-    }
-    return { x: GAME.worldSize / 2, y: GAME.worldSize / 2 };
-  }
-
-  function buildRoundAssignments() {
-    const active = [...state.players.values()]
-      .filter(p => p.mode === 'lobby' || p.roundId === state.roundId)
-      .sort((a, b) => String(a.id).localeCompare(String(b.id)));
-
-    const rng = mulberry32(state.roundSeed ^ 0xBADC0FFE);
-    const killerIndex = Math.floor(rng() * active.length);
-    const assignments = {};
-    const spawns = {};
-
-    for (let i = 0; i < active.length; i++) {
-      const p = active[i];
-      assignments[p.id] = i === killerIndex ? 'killer' : 'survivor';
-      spawns[p.id] = findSpawn(state.map, rng);
-    }
-
-    return { assignments, spawns };
-  }
-
-  // ------------------------------------------------------------
-  // ROUND START / STATE SYNC
-  // ------------------------------------------------------------
-  async function startRoundAsHost(bypassMinimum = false, bypassCountdown = false) {
-    if (!state.inLobby || state.hostId !== state.playerId) return false;
-    const roster = [...state.players.values()]
-      .filter(p => p.mode === 'lobby' || !p.mode)
-      .sort((a, b) => String(a.joinedAt || 0).localeCompare(String(b.joinedAt || 0)));
-    if (roster.length < GAME.minPlayers && !bypassMinimum) {
-      state.roundStarting = false;
-      state.startCountdownEndsAt = 0;
-      updateLobbyUI();
-      return false;
-    }
-    if (roster.length > GAME.maxLobbyPlayers) roster.splice(GAME.maxLobbyPlayers);
-    if (!roster.length) return false;
-
-    state.roundId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    state.roundSeed = Math.floor(Math.random() * 0xFFFFFFFF);
-    state.map = makeRoundWorld(state.roundSeed);
-    state.custards = state.map.custards.map(c => ({ ...c }));
-    state.collectedCustards.clear();
-    const { assignments, spawns } = buildRoundAssignments();
-    const roundSeconds = Number(state.adminNextRoundSeconds) || GAME.roundSeconds;
-    state.adminNextRoundSeconds = null;
-    const payload = {
-      roundId: state.roundId,
-      seed: state.roundSeed,
-      assignments,
-      spawns,
-      roundSeconds,
-      roundEndsAt: Date.now() + roundSeconds * 1000
-    };
-
-    state.roundStarting = false;
-    state.startCountdownEndsAt = 0;
-    onRoundStart({ payload });
-    broadcast('round_start', payload);
-    updateAdminUI();
-    return true;
-  }
-
-  function onRoundStart({ payload }) {
-    if (!payload?.roundId || state.inGame && state.roundId === payload.roundId) return;
-
-    state.roundId = payload.roundId;
-    state.roundSeed = Number(payload.seed);
-    state.roundResult = null;
-    state.map = makeRoundWorld(state.roundSeed);
-    state.custards = state.map.custards.map(c => ({ ...c }));
-    state.collectedCustards.clear();
-    state.roundEndsAt = Number(payload.roundEndsAt) || (Date.now() + GAME.roundSeconds * 1000);
-    state.roundStarting = false;
-    state.startCountdownEndsAt = 0;
-
-    const assignment = payload.assignments?.[state.playerId];
-    const spawn = payload.spawns?.[state.playerId];
-    if (!assignment || !spawn) return;
-
-    state.role = assignment;
-    state.alive = true;
-    state.killerTrueForm = false;
-    state.stealthUntil = 0;
-    state.stealthCooldownUntil = 0;
-    state.lastKillAt = 0;
-    state.x = spawn.x;
-    state.y = spawn.y;
-    state.cameraX = state.x;
-    state.cameraY = state.y;
-    state.vx = state.vy = 0;
+  function connectGlobal() {
+    // Generate map locally for offline/standalone execution
+    state.map = generateMap();
+    state.custards = state.map.custards;
     state.inGame = true;
-    state.inLobby = false;
-    state.sprintToggle = false;
-    state.flashlightOn = state.role === 'survivor';
-
+    state.roundEndsAt = Date.now() + 300000; // 5 minutes
     showScreen('game');
     updateControlsUI();
-    updateHud();
-    animateRoundEntrance();
-    trackPresence('game');
-
-    setTimeout(() => {
-      broadcast('request_state', { from: state.playerId, roundId: state.roundId });
-    }, 500);
+    return Promise.resolve(true);
   }
 
-  function animateRoundEntrance() {
-    fade.classList.add('active');
-    roleNotice.classList.remove('show');
-    setTimeout(() => {
-      showRoleCard();
-      setTimeout(() => fade.classList.remove('active'), 850);
-    }, 720);
-  }
-
-  function showRoleCard() {
-    roleTitle.textContent = state.role === 'killer' ? 'KILLER' : 'SURVIVOR';
-    roleTitle.style.color = state.role === 'killer' ? '#ef4444' : '#4ade80';
-    roleDesc.textContent = state.role === 'killer'
-      ? 'Hunt the survivors. You can only kill while your true form is revealed. Press T to transform.'
-      : 'Find all 15 custards hidden across the forest and stay alive long enough to escape.';
-    roleNotice.classList.add('show');
-    state.roleCardUntil = performance.now() + GAME.roleCardMs;
-    setTimeout(() => roleNotice.classList.remove('show'), GAME.roleCardMs);
-  }
-
-  function onStateRequest({ payload }) {
-    if (!payload) return;
-    if (!state.inGame || state.hostId !== state.playerId || !state.roundId) return;
-    broadcast('state_snapshot', {
-      to: payload.from,
-      roundId: state.roundId,
-      seed: state.roundSeed,
-      role: payload.from === state.playerId ? state.role : undefined,
-      map: state.map,
-      collected: [...state.collectedCustards],
-      roundEndsAt: state.roundEndsAt
-    });
-  }
-
-  function onStateSnapshot({ payload }) {
-    if (!payload || payload.to !== state.playerId || payload.roundId !== state.roundId) return;
-    if (payload.collected) {
-      for (const id of payload.collected) state.collectedCustards.add(id);
-    }
-    if (payload.roundEndsAt) state.roundEndsAt = payload.roundEndsAt;
-    updateHud();
-  }
-
-  // ------------------------------------------------------------
-  // ADMIN COMMANDS
-  // ------------------------------------------------------------
-  function onAdminCommand({ payload }) {
-    if (!payload?.action) return;
-
-    if (payload.action === 'start_timer') {
-      if (state.hostId !== state.playerId || !state.inLobby) return;
-      maybeHostLaunch(true);
-      showAdminToast('Admin: 10-second timer started.');
-      return;
-    }
-
-    if (payload.action === 'force_start') {
-      if (state.hostId !== state.playerId || !state.inLobby) return;
-      state.roundStarting = false;
-      state.startCountdownEndsAt = 0;
-      startRoundAsHost(true, true);
-      showAdminToast('Admin: round forced to start.');
-      return;
-    }
-
-    if (payload.action === 'cancel_timer') {
-      if (state.hostId !== state.playerId || !state.inLobby) return;
-      state.roundStarting = false;
-      state.startCountdownEndsAt = 0;
-      updateLobbyUI();
-      broadcast('admin_announcement', { text: 'The launch countdown was cancelled by an admin.' });
-      return;
-    }
-
-    if (payload.action === 'end_round') {
-      if (!state.inGame || !state.roundId) return;
-      const endPayload = { roundId: state.roundId, winner: 'survivors', reason: 'An admin ended the round.' };
-      broadcast('round_end', endPayload);
-      onRoundEnd({ payload: endPayload });
-      return;
-    }
-
-    if (payload.action === 'announce') {
-      const text = String(payload.text || '').trim().slice(0, 90);
-      if (text) onAdminAnnouncement({ payload: { text } });
-      return;
-    }
-
-    if (payload.action === 'set_length') {
-      if (state.hostId !== state.playerId || !state.inLobby) return;
-      const seconds = Math.max(60, Math.min(1800, Number(payload.seconds) || GAME.roundSeconds));
-      state.adminNextRoundSeconds = seconds;
-      showAdminToast(`Next round length set to ${Math.round(seconds / 60)}m.`);
-      return;
-    }
-
-    if (payload.action === 'reset_lobby') {
-      state.roundResult = null;
-      state.inGame = false;
-      state.inLobby = true;
-      state.roundId = null;
-      state.startCountdownEndsAt = 0;
-      state.roundStarting = false;
-      state.alive = true;
-      state.killerTrueForm = false;
-      state.sprintToggle = false;
-      state.flashlightOn = false;
-      state.collectedCustards.clear();
-      state.map = null;
-      gameOver.classList.remove('show');
-      fade.classList.remove('active');
-      showScreen('lobby');
-      trackPresence('lobby');
-      handlePresenceSync();
-      showAdminToast('Everyone has been returned to the lobby.');
-    }
-  }
-
-  function onAdminAnnouncement({ payload }) {
-    if (!payload?.text) return;
-    showCenterMessage(String(payload.text).slice(0, 90));
-    showAdminToast(String(payload.text).slice(0, 90));
-  }
-
-  function showAdminToast(text) {
-    adminToast.textContent = text;
-    adminToast.classList.add('show');
-    clearTimeout(showAdminToast._timer);
-    showAdminToast._timer = setTimeout(() => adminToast.classList.remove('show'), 2600);
-  }
-
-  function openAdminAuth() {
-    if (state.adminAuthenticated) {
-      adminConsole.classList.add('show');
-      updateAdminUI();
-      return;
-    }
-    adminPassword.value = '';
-    adminLoginStatus.textContent = '';
-    adminAuth.classList.add('show');
-    setTimeout(() => adminPassword.focus(), 30);
-  }
-
-  function closeAdminModals() {
-    adminAuth.classList.remove('show');
-    adminConsole.classList.remove('show');
-  }
-
-  function loginAdmin() {
-    if (adminPassword.value === GAME.adminPassword) {
-      state.adminAuthenticated = true;
-      adminLoginStatus.textContent = 'Access granted.';
-      adminLoginStatus.style.color = '#86efac';
-      adminAuth.classList.remove('show');
-      adminConsole.classList.add('show');
-      updateAdminUI();
-      showAdminToast('Admin console unlocked.');
-    } else {
-      adminLoginStatus.textContent = 'Wrong password.';
-      adminLoginStatus.style.color = '#fca5a5';
-      adminPassword.select();
-    }
-  }
-
-  function adminNeedsConnection() {
-    if (!channel || !state.connected) {
-      showAdminToast('Join the global lobby first.');
-      return false;
-    }
-    return true;
-  }
-
-  function sendAdminCommand(action, extra = {}) {
-    if (!state.adminAuthenticated || !adminNeedsConnection()) return;
-    broadcast('admin_command', { action, ...extra, from: state.playerId });
-    if (state.hostId === state.playerId) onAdminCommand({ payload: { action, ...extra, from: state.playerId } });
-  }
-
-  function updateAdminUI() {
-    if (!adminConsole.classList.contains('show')) return;
-    const count = state.players.size;
-    adminConnectionChip.textContent = state.connected ? 'ONLINE' : 'OFFLINE';
-    adminConnectionChip.style.color = state.connected ? '#86efac' : '#fca5a5';
-    adminHostChip.textContent = `HOST: ${state.hostId === state.playerId ? 'YOU' : (state.hostId ? 'OTHER' : '—')}`;
-    adminRoundChip.textContent = state.inGame ? `ROUND: ${state.roundId ? state.roundId.slice(0, 10) : 'ACTIVE'}` : (state.inLobby ? 'ROUND: LOBBY' : 'ROUND: MENU');
-    adminPlayerStat.textContent = `${Math.min(count, GAME.maxLobbyPlayers)} /${GAME.maxLobbyPlayers}`;
-    const lobbyMode = state.inLobby && !state.inGame;
-    adminStartTimerBtn.disabled = !state.connected || !lobbyMode || !!state.startCountdownEndsAt;
-    adminForceStartBtn.disabled = !state.connected || !lobbyMode;
-    adminCancelTimerBtn.disabled = !state.connected || !lobbyMode || !state.startCountdownEndsAt;
-    adminEndRoundBtn.disabled = !state.connected || !state.inGame;
-    adminSetLengthBtn.disabled = !state.connected || !lobbyMode;
-    adminLobbyResetBtn.disabled = !state.connected;
-    adminRevealTimerBtn.disabled = !state.connected;
-  }
-
-  adminLoginBtn.addEventListener('click', loginAdmin);
-  adminPassword.addEventListener('keydown', e => { if (e.key === 'Enter') loginAdmin(); });
-  adminAuthClose.addEventListener('click', closeAdminModals);
-  adminCloseBtn.addEventListener('click', closeAdminModals);
-  adminStartTimerBtn.addEventListener('click', () => sendAdminCommand('start_timer'));
-  adminForceStartBtn.addEventListener('click', () => sendAdminCommand('force_start'));
-  adminCancelTimerBtn.addEventListener('click', () => sendAdminCommand('cancel_timer'));
-  adminEndRoundBtn.addEventListener('click', () => sendAdminCommand('end_round'));
-  adminSetLengthBtn.addEventListener('click', () => sendAdminCommand('set_length', { seconds: Number(adminRoundLength.value) }));
-  adminAnnounceBtn.addEventListener('click', () => {
-    const text = adminAnnouncementInput.value.trim();
-    if (!text) return;
-    sendAdminCommand('announce', { text });
-    adminAnnouncementInput.value = '';
-  });
-  adminAnnouncementInput.addEventListener('keydown', e => { if (e.key === 'Enter') adminAnnounceBtn.click(); });
-  adminRevealTimerBtn.addEventListener('click', () => {
-    const seconds = state.roundEndsAt ? Math.max(0, Math.ceil((state.roundEndsAt - Date.now()) / 1000)) : 0;
-    const msg = seconds ? `ROUND TIMER: ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}` : 'No active round timer.';
-    sendAdminCommand('announce', { text: msg });
-  });
-  adminLobbyResetBtn.addEventListener('click', () => sendAdminCommand('reset_lobby'));
-
-  // ------------------------------------------------------------
-  // REMOTE PLAYER UPDATES
-  // ------------------------------------------------------------
-  function onPlayerMove({ payload }) {
-    if (!payload?.id || payload.id === state.playerId || payload.roundId !== state.roundId) return;
-    const current = state.players.get(payload.id);
-    if (!current) return;
-    Object.assign(current, payload);
-    state.players.set(payload.id, current);
-    updateAliveHud();
-  }
+  function trackPresence(loc) {}
+  function handlePresenceSync() {}
 
   function isStealthed() {
-    return Date.now() < state.stealthUntil;
-  }
-
-  function onPlayerKilled({ payload }) {
-    if (!payload?.targetId) return;
-    const target = state.players.get(payload.targetId);
-    if (target) {
-      target.alive = false;
-      target.mode = 'game';
-      state.players.set(payload.targetId, target);
-    }
-
-    if (payload.targetId === state.playerId) {
-      state.alive = false;
-      state.flashlightOn = false;
-      state.sprintToggle = false;
-      centerMessage.textContent = 'YOU WERE FOUND';
-      centerMessage.classList.add('show');
-      state.centerMessageUntil = performance.now() + 2200;
-    } else if (payload.killerId === state.playerId) {
-      showCenterMessage('SURVIVOR ELIMINATED');
-    }
-
-    updateAliveHud();
-    checkForRoundEnd();
-  }
-
-  function onCustardCollect({ payload }) {
-    if (!payload?.custardId) return;
-    if (state.collectedCustards.has(payload.custardId)) return;
-    state.collectedCustards.add(payload.custardId);
-    updateHud();
-    const remain = GAME.custardCount - state.collectedCustards.size;
-    showCenterMessage(remain > 0 ? `${remain} custard${remain === 1 ? '' : 's'} remaining` : 'ALL CUSTARDS FOUND');
-    if (remain <= 0) {
-      broadcast('round_end', { roundId: state.roundId, winner: 'survivors', reason: 'All 15 custards were found.' });
-      onRoundEnd({ payload: { roundId: state.roundId, winner: 'survivors', reason: 'All 15 custards were found.' } });
-    }
-  }
-
-  function onRoundEnd({ payload }) {
-    if (!payload || payload.roundId !== state.roundId || state.roundResult) return;
-    state.roundResult = payload.winner;
-    state.inGame = false;
-    state.roundStarting = false;
-    const survivorsWin = payload.winner === 'survivors';
-    const localWon = (state.role === 'survivor' && survivorsWin) || (state.role === 'killer' && !survivorsWin);
-    gameOverTitle.textContent = survivorsWin ? 'SURVIVORS ESCAPED' : 'THE KILLER WON';
-    gameOverTitle.style.color = survivorsWin ? '#4ade80' : '#ef4444';
-    gameOverDesc.textContent = survivorsWin
-      ? `The forest has been cleared. ${payload.reason || 'The survivors found enough custards to escape.'}`
-      : `The killer cleared the forest. ${payload.reason || 'Every survivor was eliminated.'}`;
-    if (localWon) gameOverDesc.textContent += ' You survived your role.';
-    gameOver.classList.add('show');
-  }
-
-  function checkForRoundEnd() {
-    if (!state.inGame || state.roundResult) return;
-    const survivors = [...state.players.values()].filter(p => p.role === 'survivor');
-    if (survivors.length && survivors.every(p => p.alive === false)) {
-      const payload = { roundId: state.roundId, winner: 'killer', reason: 'Every survivor was eliminated.' };
-      broadcast('round_end', payload);
-      onRoundEnd({ payload });
-    }
+    return state.stealth && Date.now() < state.stealthEndsAt;
   }
 
   // ------------------------------------------------------------
-  // INPUT
+  // INPUT HANDLING
   // ------------------------------------------------------------
   window.addEventListener('keydown', (e) => {
-    const key = e.key.toLowerCase();
-    const target = e.target;
-    const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target?.isContentEditable;
+    keys[e.key.toLowerCase()] = true;
 
-    if (isTyping) {
-      if (e.key === 'Escape' && (adminAuth.classList.contains('show') || adminConsole.classList.contains('show'))) {
-        closeAdminModals();
+    if (state.inGame && state.alive) {
+      if (e.key.toLowerCase() === 'f' && state.role === 'survivor') {
+        state.flashlightOn = !state.flashlightOn;
+        updateControlsUI();
       }
-      return;
+      if (e.key.toLowerCase() === 't' && state.role === 'killer') {
+        state.killerTrueForm = !state.killerTrueForm;
+        showCenterMessage(state.killerTrueForm ? 'TRANSFORMED TO TRUE FORM' : 'RETURNED TO DISGUISE');
+        updateControlsUI();
+      }
+      if (e.key.toLowerCase() === 'q' && state.role === 'killer') {
+        state.stealth = true;
+        state.stealthEndsAt = Date.now() + 5000;
+        showCenterMessage('INVISIBILITY ACTIVE (5s)');
+      }
+      if (e.key.toLowerCase() === 'm') {
+        toggleBigMap();
+      }
     }
-
-    if (e.key === 'F8') {
-      e.preventDefault();
-      debugPanel.classList.toggle('show');
-      return;
-    }
-
-    if (e.key === '`') {
-      e.preventDefault();
-      if (!state.inGame && (state.inLobby || !state.connected)) openAdminAuth();
-      else if (state.inGame && state.adminAuthenticated) adminConsole.classList.toggle('show');
-      else if (state.inGame && !state.adminAuthenticated) openAdminAuth();
-      return;
-    }
-    if (e.key === 'Escape' && (adminAuth.classList.contains('show') || adminConsole.classList.contains('show'))) {
-      closeAdminModals();
-      return;
-    }
-
-    if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift','f','m','t','e','q'].includes(key)) e.preventDefault();
-
-    if (key === 'm' && state.inGame) {
-      toggleBigMap();
-      return;
-    }
-    if (key === 'shift' && state.inGame) {
-      state.sprintToggle = !state.sprintToggle;
-      showCenterMessage(state.sprintToggle ? 'RUNNING' : 'WALKING');
-      return;
-    }
-    if (key === 'f' && state.inGame && state.role === 'survivor' && state.alive) {
-      state.flashlightOn = !state.flashlightOn;
-      updateControlsUI();
-      return;
-    }
-    if (key === 't' && state.inGame && state.role === 'killer' && state.alive) {
-      state.killerTrueForm = !state.killerTrueForm;
-      showCenterMessage(state.killerTrueForm ? 'TRUE FORM REVEALED — YOU CAN KILL' : 'SURVIVOR FORM — HIDDEN');
-      updateControlsUI();
-      trackPresence('game');
-      return;
-    }
-    if (key === 'q' && state.inGame && state.role === 'killer' && state.alive) {
-      activateStealth();
-      return;
-    }
-    if (key === 'e' && state.inGame && state.role === 'killer' && state.alive) {
-      attemptKill();
-      return;
-    }
-
-    state.keys.add(key);
   });
 
   window.addEventListener('keyup', (e) => {
-    const target = e.target;
-    const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target?.isContentEditable;
-    if (!isTyping) state.keys.delete(e.key.toLowerCase());
+    keys[e.key.toLowerCase()] = false;
   });
-  window.addEventListener('blur', () => state.keys.clear());
 
   // ------------------------------------------------------------
-  // KILLER ABILITIES
+  // UPDATE LOOP
   // ------------------------------------------------------------
-  function activateStealth() {
-    const now = Date.now();
-    if (now < state.stealthCooldownUntil) {
-      const secs = Math.ceil((state.stealthCooldownUntil - now) / 1000);
-      showCenterMessage(`POWER RECHARGING • ${secs}s`);
-      return;
-    }
-    state.stealthUntil = now + GAME.stealthDuration * 1000;
-    state.stealthCooldownUntil = now + GAME.stealthCooldown * 1000;
-    showCenterMessage('INVISIBLE • SPEED BOOST');
-    trackPresence('game');
-  }
+  function update(dt) {
+    if (!state.inGame || !state.alive) return;
 
-  function attemptKill() {
-    if (!state.killerTrueForm) {
-      showCenterMessage('TRUE FORM REQUIRED • PRESS T');
-      return;
-    }
-    if (Date.now() - state.lastKillAt < GAME.killCooldown * 1000) {
-      const secs = Math.max(0, GAME.killCooldown - (Date.now() - state.lastKillAt) / 1000);
-      showCenterMessage(`ATTACK COOLDOWN • ${secs.toFixed(1)}s`);
-      return;
+    let moveX = 0;
+    let moveY = 0;
+
+    if (keys['w'] || keys['arrowup']) moveY -= 1;
+    if (keys['s'] || keys['arrowdown']) moveY += 1;
+    if (keys['a'] || keys['arrowleft']) moveX -= 1;
+    if (keys['d'] || keys['arrowright']) moveX += 1;
+
+    // Normalize diagonal movement
+    if (moveX !== 0 && moveY !== 0) {
+      moveX *= 0.7071;
+      moveY *= 0.7071;
     }
 
-    let target = null;
-    let closest = Infinity;
-    for (const p of state.players.values()) {
-      if (!p || p.id === state.playerId || p.role !== 'survivor' || p.alive === false || p.roundId !== state.roundId) continue;
-      const d = dist(state.x, state.y, Number(p.x) || 0, Number(p.y) || 0);
-      if (d <= GAME.killRange && d < closest) {
-        closest = d;
-        target = p;
+    const currentSpeed = keys['shift'] ? GAME.sprintSpeed : GAME.baseSpeed;
+    state.x += moveX * currentSpeed * dt;
+    state.y += moveY * currentSpeed * dt;
+
+    // World Boundary Constraints
+    state.x = Math.max(GAME.playerRadius, Math.min(GAME.worldSize - GAME.playerRadius, state.x));
+    state.y = Math.max(GAME.playerRadius, Math.min(GAME.worldSize - GAME.playerRadius, state.y));
+
+    // Custard Collection Collision Check
+    if (state.role === 'survivor') {
+      for (const c of state.custards) {
+        if (!state.collectedCustards.has(c.id)) {
+          const dist = Math.hypot(state.x - c.x, state.y - c.y);
+          if (dist < GAME.playerRadius + 12) {
+            state.collectedCustards.add(c.id);
+            showCenterMessage('CUSTARD COLLECTED');
+            updateHud();
+            if (state.collectedCustards.size >= GAME.custardCount) {
+              triggerWin();
+            }
+          }
+        }
       }
     }
 
-    if (!target) {
-      showCenterMessage('NO SURVIVOR IN RANGE');
-      return;
-    }
-
-    state.lastKillAt = Date.now();
-    const payload = { roundId: state.roundId, killerId: state.playerId, targetId: target.id };
-    broadcast('player_killed', payload);
-    onPlayerKilled({ payload });
-  }
-
-  // ------------------------------------------------------------
-  // MOVEMENT / GAMEPLAY
-  // ------------------------------------------------------------
-  function update(dt) {
-    if (!state.inGame || !state.alive || mapOverlay.classList.contains('show')) return;
-
-    let mx = 0, my = 0;
-    if (state.keys.has('w') || state.keys.has('arrowup')) my -= 1;
-    if (state.keys.has('s') || state.keys.has('arrowdown')) my += 1;
-    if (state.keys.has('a') || state.keys.has('arrowleft')) mx -= 1;
-    if (state.keys.has('d') || state.keys.has('arrowright')) mx += 1;
-
-    if (state.touch.active) {
-      mx += state.touch.x;
-      my += state.touch.y;
-    }
-
-    const mag = Math.hypot(mx, my);
-    if (mag > 0) { mx /= mag; my /= mag; }
-
-    const running = state.sprintToggle;
-    let speed = state.role === 'killer' ? (running ? GAME.killerRunSpeed : GAME.killerSpeed) : (running ? GAME.runSpeed : GAME.walkSpeed);
-    if (state.role === 'killer' && isStealthed()) speed *= GAME.stealthSpeedMultiplier;
-
-    const nx = state.x + mx * speed * dt;
-    const ny = state.y + my * speed * dt;
-
-    if (!pointBlocked(nx, state.y, state.map)) state.x = nx;
-    if (!pointBlocked(state.x, ny, state.map)) state.y = ny;
-
-    state.cameraX += (state.x - state.cameraX) * Math.min(1, dt * 8);
-    state.cameraY += (state.y - state.cameraY) * Math.min(1, dt * 8);
-
-    checkCustardPickup();
-    syncMyPresence();
-    checkRoundClock();
     updateHud();
   }
 
-  function checkCustardPickup() {
-    if (state.role !== 'survivor') return;
-    for (const c of state.custards) {
-      if (state.collectedCustards.has(c.id)) continue;
-      if (dist(state.x, state.y, c.x, c.y) <= GAME.custardPickupRange) {
-        state.collectedCustards.add(c.id);
-        broadcast('custard_collect', { roundId: state.roundId, custardId: c.id, by: state.playerId });
-        const remain = GAME.custardCount - state.collectedCustards.size;
-        showCenterMessage(remain > 0 ? `${remain} custard${remain === 1 ? '' : 's'} remaining` : 'ALL CUSTARDS FOUND');
-        updateHud();
-        if (remain <= 0) {
-          const payload = { roundId: state.roundId, winner: 'survivors', reason: 'All 15 custards were found.' };
-          broadcast('round_end', payload);
-          onRoundEnd({ payload });
-        }
-        break;
-      }
-    }
+  function triggerWin() {
+    state.inGame = false;
+    document.getElementById('game-over-title').textContent = 'SURVIVORS ESCAPED';
+    document.getElementById('game-over-desc').textContent = 'All secret custards were collected!';
+    gameOver.classList.add('show');
   }
 
-  function syncMyPresence() {
-    if (!channel) return;
-    const now = performance.now();
-    if (now - state.lastPresenceTrack < GAME.playerSyncMs) return;
-    state.lastPresenceTrack = now;
-
-    const movementPayload = {
-      id: state.playerId,
-      name: state.playerName,
-      roundId: state.roundId,
-      mode: 'game',
-      role: state.role,
-      alive: state.alive,
-      x: Math.round(state.x),
-      y: Math.round(state.y),
-      killerTrueForm: state.killerTrueForm,
-      invisible: isStealthed()
+  function cameraOffset() {
+    return {
+      x: state.x - innerWidth / 2,
+      y: state.y - innerHeight / 2
     };
-
-    state.lastPresenceData = movementPayload;
-    channel.track(movementPayload).catch(() => {});
-    broadcast('player_move', movementPayload);
-  }
-
-  function checkRoundClock() {
-    if (Date.now() >= state.roundEndsAt) {
-      const survivors = [...state.players.values()].filter(p => p.role === 'survivor' && p.alive !== false).length + (state.role === 'survivor' && state.alive ? 1 : 0);
-      const payload = {
-        roundId: state.roundId,
-        winner: survivors > 0 ? 'survivors' : 'killer',
-        reason: 'The round timer expired.'
-      };
-      broadcast('round_end', payload);
-      onRoundEnd({ payload });
-    }
   }
 
   // ------------------------------------------------------------
   // RENDERING
   // ------------------------------------------------------------
-  function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.floor(innerWidth * dpr);
-    canvas.height = Math.floor(innerHeight * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    flashlightCanvas.width = Math.floor(innerWidth * dpr);
-    flashlightCanvas.height = Math.floor(innerHeight * dpr);
-    flashlightCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    resizeBigMap();
-  }
-
-  function resizeBigMap() {
-    const size = Math.floor(Math.min(window.innerWidth * .84, window.innerHeight * .84, 920));
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    bigMap.width = Math.floor(size * dpr);
-    bigMap.height = Math.floor(size * dpr);
-    bigMap.style.width = size + 'px';
-    bigMap.style.height = size + 'px';
-    bigMapCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-
-  function cameraOffset() {
-    return { x: state.cameraX - innerWidth / 2, y: state.cameraY - innerHeight / 2 };
-  }
-
   function drawBackground(cam) {
-    ctx.fillStyle = '#0c1c13';
+    ctx.fillStyle = '#0a1610';
     ctx.fillRect(0, 0, innerWidth, innerHeight);
 
-    const grid = 180;
-    const startX = Math.floor(cam.x / grid) * grid;
-    const startY = Math.floor(cam.y / grid) * grid;
-    ctx.globalAlpha = .06;
-    ctx.strokeStyle = '#b6d4bd';
+    // Draw Grid Lines
+    ctx.strokeStyle = 'rgba(20, 45, 30, 0.4)';
     ctx.lineWidth = 1;
-    for (let x = startX; x < cam.x + innerWidth + grid; x += grid) {
-      ctx.beginPath(); ctx.moveTo(x - cam.x, 0); ctx.lineTo(x - cam.x, innerHeight); ctx.stroke();
+    const gridSize = 100;
+
+    const startX = Math.floor(cam.x / gridSize) * gridSize;
+    const startY = Math.floor(cam.y / gridSize) * gridSize;
+
+    for (let x = startX; x < cam.x + innerWidth + gridSize; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x - cam.x, 0);
+      ctx.lineTo(x - cam.x, innerHeight);
+      ctx.stroke();
     }
-    for (let y = startY; y < cam.y + innerHeight + grid; y += grid) {
-      ctx.beginPath(); ctx.moveTo(0, y - cam.y); ctx.lineTo(innerWidth, y - cam.y); ctx.stroke();
+
+    for (let y = startY; y < cam.y + innerHeight + gridSize; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y - cam.y);
+      ctx.lineTo(innerWidth, y - cam.y);
+      ctx.stroke();
     }
-    ctx.globalAlpha = 1;
   }
 
-  function drawPaths(cam) {
-    if (!state.map) return;
-    for (const p of state.map.paths) {
-      ctx.save();
-      ctx.translate(p.x - cam.x, p.y - cam.y);
-      ctx.rotate(p.angle);
-      const grad = ctx.createLinearGradient(-p.w, 0, p.w, 0);
-      grad.addColorStop(0, 'rgba(88,74,51,.07)');
-      grad.addColorStop(.5, 'rgba(110,93,59,.17)');
-      grad.addColorStop(1, 'rgba(88,74,51,.07)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(-p.w, -p.h, p.w * 2, p.h * 2);
-      ctx.restore();
-    }
-  }
+  function drawPaths(cam) {}
 
   function drawRocks(cam) {
-    for (const r of state.map?.rocks || []) {
-      const sx = r.x - cam.x, sy = r.y - cam.y;
-      if (sx < -50 || sy < -50 || sx > innerWidth + 50 || sy > innerHeight + 50) continue;
-      ctx.fillStyle = '#27332d';
-      ctx.beginPath(); ctx.ellipse(sx, sy + 3, r.r * 1.2, r.r * .85, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#34453d';
-      ctx.beginPath(); ctx.ellipse(sx - 2, sy, r.r, r.r * .65, -.18, 0, Math.PI * 2); ctx.fill();
+    if (!state.map) return;
+    for (const r of state.map.rocks) {
+      if (r.x < cam.x - 100 || r.x > cam.x + innerWidth + 100 || r.y < cam.y - 100 || r.y > cam.y + innerHeight + 100) continue;
+      ctx.fillStyle = '#22332a';
+      ctx.beginPath();
+      ctx.arc(r.x - cam.x, r.y - cam.y, r.r, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
   function drawTrees(cam) {
-    for (const t of state.map?.trees || []) {
-      const sx = t.x - cam.x, sy = t.y - cam.y;
-      if (sx < -100 || sy < -100 || sx > innerWidth + 100 || sy > innerHeight + 100) continue;
+    if (!state.map) return;
+    for (const t of state.map.trees) {
+      if (t.x < cam.x - 120 || t.x > cam.x + innerWidth + 120 || t.y < cam.y - 120 || t.y > cam.y + innerHeight + 120) continue;
+      
+      const screenX = t.x - cam.x;
+      const screenY = t.y - cam.y;
 
-      const trunk = Math.max(7, t.size * .28);
-      ctx.fillStyle = t.type === 'dead' ? '#3c2d24' : '#2d2018';
-      ctx.fillRect(sx - trunk / 2, sy, trunk, t.size * 1.05);
+      // Tree Trunk / Ground Base Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.arc(screenX + 5, screenY + 5, t.size, 0, Math.PI * 2);
+      ctx.fill();
 
-      if (t.type === 'dead') {
-        ctx.strokeStyle = '#4a392e'; ctx.lineWidth = 5;
-        ctx.beginPath(); ctx.moveTo(sx, sy + 7); ctx.lineTo(sx - 15, sy - 13); ctx.moveTo(sx + 1, sy + 12); ctx.lineTo(sx + 16, sy - 9); ctx.stroke();
-      } else {
-        ctx.fillStyle = '#102d1e';
-        ctx.beginPath(); ctx.arc(sx, sy - t.size * .2, t.size * .88, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#174c2c';
-        ctx.beginPath(); ctx.arc(sx - t.size * .23, sy - t.size * .35, t.size * .6, 0, Math.PI * 2); ctx.fill();
-      }
+      // Canopy
+      ctx.fillStyle = t.type === 'dead' ? '#1c261e' : '#143322';
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, t.size, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner Foliage Details
+      ctx.fillStyle = t.type === 'dead' ? '#131c15' : '#1d4830';
+      ctx.beginPath();
+      ctx.arc(screenX - t.size * 0.2, screenY - t.size * 0.2, t.size * 0.6, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
   function drawCustards(cam) {
-    if (!state.map) return;
     const time = performance.now() * 0.003;
     for (const c of state.custards) {
       if (state.collectedCustards.has(c.id)) continue;
-      const sx = c.x - cam.x, sy = c.y - cam.y;
-      if (sx < -50 || sy < -50 || sx > innerWidth + 50 || sy > innerHeight + 50) continue;
+      if (c.x < cam.x - 80 || c.x > cam.x + innerWidth + 80 || c.y < cam.y - 80 || c.y > cam.y + innerHeight + 80) continue;
 
-      const pulse = Math.sin(time + c.glow) * 3;
-      ctx.fillStyle = 'rgba(250, 204, 21, 0.25)';
-      ctx.beginPath(); ctx.arc(sx, sy, 18 + pulse, 0, Math.PI * 2); ctx.fill();
+      const sx = c.x - cam.x;
+      const sy = c.y - cam.y + Math.sin(time + c.glow) * 3;
 
+      // Glow
+      ctx.fillStyle = 'rgba(250, 204, 21, 0.22)';
+      ctx.beginPath();
+      ctx.arc(sx, sy, 18, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Custard Bowl / Tub
       ctx.fillStyle = '#facc15';
-      ctx.beginPath(); ctx.arc(sx, sy, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(sx, sy, 10, 0, Math.PI * 2);
+      ctx.fill();
+
       ctx.fillStyle = '#fef08a';
-      ctx.beginPath(); ctx.arc(sx - 2, sy - 2, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(sx - 2, sy - 2, 4, 0, Math.PI * 2);
+      ctx.fill();
     }
-  }
-
-  function drawPlayerEntity(sx, sy, name, isMe, isKiller, isTrueForm, alive, invisible) {
-    if (invisible && !isMe) return;
-
-    ctx.save();
-    if (invisible) ctx.globalAlpha = 0.45;
-
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.beginPath(); ctx.ellipse(sx, sy + 14, 16, 7, 0, 0, Math.PI * 2); ctx.fill();
-
-    // Body
-    if (!alive) {
-      ctx.fillStyle = '#475569';
-      ctx.beginPath(); ctx.arc(sx, sy, GAME.playerRadius, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 3; ctx.stroke();
-    } else if (isKiller && isTrueForm) {
-      ctx.fillStyle = '#dc2626';
-      ctx.beginPath(); ctx.arc(sx, sy, GAME.playerRadius + 2, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#7f1d1d'; ctx.lineWidth = 4; ctx.stroke();
-    } else {
-      ctx.fillStyle = isMe ? '#22c55e' : '#38bdf8';
-      ctx.beginPath(); ctx.arc(sx, sy, GAME.playerRadius, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 3; ctx.stroke();
-    }
-
-    // Name tag
-    ctx.font = 'bold 11px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = alive ? '#ffffff' : '#94a3b8';
-    ctx.fillText(name || 'Player', sx, sy - GAME.playerRadius - 8);
-
-    ctx.restore();
   }
 
   function drawPlayers(cam) {
-    for (const p of state.players.values()) {
-      if (!p || p.mode !== 'game' || p.roundId !== state.roundId) continue;
-      const isMe = p.id === state.playerId;
-      const px = isMe ? state.x : Number(p.x) || 0;
-      const py = isMe ? state.y : Number(p.y) || 0;
-      const sx = px - cam.x, sy = py - cam.y;
+    const all = [...state.players.values()];
 
-      drawPlayerEntity(
-        sx, sy, p.name, isMe,
-        p.role === 'killer' || (isMe && state.role === 'killer'),
-        p.killerTrueForm || (isMe && state.killerTrueForm),
-        p.alive !== false,
-        p.invisible || (isMe && isStealthed())
-      );
+    // Make sure local player is included in rendering pipeline
+    if (!state.players.has(state.playerId)) {
+      all.push({
+        id: state.playerId,
+        name: state.playerName,
+        role: state.role,
+        alive: state.alive,
+        x: state.x,
+        y: state.y,
+        killerTrueForm: state.killerTrueForm,
+        invisible: isStealthed()
+      });
+    }
+
+    for (const p of all) {
+      if (!p.alive) continue;
+      if (p.id !== state.playerId && p.invisible) continue; // Stealth check
+
+      const sx = p.x - cam.x;
+      const sy = p.y - cam.y;
+
+      if (sx < -60 || sx > innerWidth + 60 || sy < -60 || sy > innerHeight + 60) continue;
+
+      const isLocal = p.id === state.playerId;
+      const isKiller = p.role === 'killer';
+
+      // Player Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.beginPath();
+      ctx.arc(sx + 3, sy + 3, GAME.playerRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Player Body
+      if (isKiller && p.killerTrueForm) {
+        ctx.fillStyle = '#ef4444'; // Red Monster Form
+      } else {
+        ctx.fillStyle = isLocal ? '#4ade80' : '#67e8f9'; // Local Survivor vs Other Survivor
+      }
+
+      ctx.beginPath();
+      ctx.arc(sx, sy, GAME.playerRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner Core Accent
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.beginPath();
+      ctx.arc(sx - 3, sy - 3, GAME.playerRadius * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Name Indicator
+      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#effff6';
+      ctx.fillText(p.name || 'Survivor', sx, sy - GAME.playerRadius - 8);
     }
   }
 
   function drawFlashlightOverlay() {
     flashlightCtx.clearRect(0, 0, innerWidth, innerHeight);
 
-    // Dark environment vignette
-    flashlightCtx.fillStyle = 'rgba(2, 6, 4, 0.88)';
+    if (!state.inGame || !state.alive) return;
+
+    const opacity = state.flashlightOn ? 0.82 : 0.96;
+    flashlightCtx.fillStyle = `rgba(3, 8, 6, ${opacity})`;
     flashlightCtx.fillRect(0, 0, innerWidth, innerHeight);
 
-    flashlightCtx.globalCompositeOperation = 'destination-out';
+    if (state.flashlightOn) {
+      flashlightCtx.save();
+      flashlightCtx.globalCompositeOperation = 'destination-out';
 
-    // Player base vision radius
-    const sx = innerWidth / 2;
-    const sy = innerHeight / 2;
-    const rad = flashlightCtx.createRadialGradient(sx, sy, 20, sx, sy, 140);
-    rad.addColorStop(0, 'rgba(0,0,0,1)');
-    rad.addColorStop(1, 'rgba(0,0,0,0)');
-    flashlightCtx.fillStyle = rad;
-    flashlightCtx.beginPath(); flashlightCtx.arc(sx, sy, 140, 0, Math.PI * 2); flashlightCtx.fill();
+      const cx = innerWidth / 2;
+      const cy = innerHeight / 2;
 
-    // Active flashlight cone
-    if (state.flashlightOn && state.alive) {
-      const cone = flashlightCtx.createRadialGradient(sx, sy, 30, sx, sy, 380);
-      cone.addColorStop(0, 'rgba(0,0,0,1)');
-      cone.addColorStop(1, 'rgba(0,0,0,0)');
-      flashlightCtx.fillStyle = cone;
-      flashlightCtx.beginPath(); flashlightCtx.arc(sx, sy, 380, 0, Math.PI * 2); flashlightCtx.fill();
+      // Primary Vision Beam Cone / Circle
+      const grad = flashlightCtx.createRadialGradient(cx, cy, 20, cx, cy, 260);
+      grad.addColorStop(0, 'rgba(0,0,0,1)');
+      grad.addColorStop(0.7, 'rgba(0,0,0,0.8)');
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+      flashlightCtx.fillStyle = grad;
+      flashlightCtx.beginPath();
+      flashlightCtx.arc(cx, cy, 260, 0, Math.PI * 2);
+      flashlightCtx.fill();
+
+      flashlightCtx.restore();
     }
-
-    flashlightCtx.globalCompositeOperation = 'source-over';
   }
 
-  function renderMapOverlay() {
-    if (!mapOverlay.classList.contains('show') || !state.map) return;
-    const w = bigMap.width, h = bigMap.height;
-    const scale = w / GAME.worldSize;
+  function renderBigMap() {
+    if (!state.map) return;
+    bigMapCtx.fillStyle = '#08130f';
+    bigMapCtx.fillRect(0, 0, bigMap.width, bigMap.height);
 
-    bigMapCtx.fillStyle = '#0a150f';
-    bigMapCtx.fillRect(0, 0, w, h);
+    const scale = bigMap.width / GAME.worldSize;
 
-    // Trees on map
-    bigMapCtx.fillStyle = '#143823';
+    // Draw Trees
+    bigMapCtx.fillStyle = '#143322';
     for (const t of state.map.trees) {
-      bigMapCtx.beginPath(); bigMapCtx.arc(t.x * scale, t.y * scale, Math.max(2, t.size * scale * 0.5), 0, Math.PI * 2); bigMapCtx.fill();
+      bigMapCtx.beginPath();
+      bigMapCtx.arc(t.x * scale, t.y * scale, Math.max(1, t.size * scale), 0, Math.PI * 2);
+      bigMapCtx.fill();
     }
 
-    // Player position dot
+    // Draw Custards
+    bigMapCtx.fillStyle = '#facc15';
+    for (const c of state.custards) {
+      if (state.collectedCustards.has(c.id)) continue;
+      bigMapCtx.beginPath();
+      bigMapCtx.arc(c.x * scale, c.y * scale, 3, 0, Math.PI * 2);
+      bigMapCtx.fill();
+    }
+
+    // Draw Self Location
     bigMapCtx.fillStyle = '#4ade80';
-    bigMapCtx.beginPath(); bigMapCtx.arc(state.x * scale, state.y * scale, 6, 0, Math.PI * 2); bigMapCtx.fill();
-    bigMapCtx.strokeStyle = '#ffffff'; bigMapCtx.lineWidth = 2; bigMapCtx.stroke();
+    bigMapCtx.strokeStyle = '#ffffff';
+    bigMapCtx.lineWidth = 2;
+    bigMapCtx.beginPath();
+    bigMapCtx.arc(state.x * scale, state.y * scale, 6, 0, Math.PI * 2);
+    bigMapCtx.fill();
+    bigMapCtx.stroke();
   }
 
-  function render() {
-    const now = performance.now();
-    const dt = Math.min(0.1, (now - state.lastFrame) / 1000);
-    state.lastFrame = now;
-
-    if (state.inGame) {
-      update(dt);
-      const cam = cameraOffset();
-      drawBackground(cam);
-      drawPaths(cam);
-      drawCustards(cam);
-      drawRocks(cam);
-      drawPlayers(cam);
-      drawTrees(cam);
-      drawFlashlightOverlay();
-      renderMapOverlay();
+  function toggleBigMap() {
+    mapOverlay.classList.toggle('show');
+    if (mapOverlay.classList.contains('show')) {
+      renderBigMap();
     }
-
-    requestAnimationFrame(render);
   }
 
   // ------------------------------------------------------------
-  // UI MANAGEMENT
+  // UI & HUD UPDATES
   // ------------------------------------------------------------
   function showScreen(name) {
     menuScreen.classList.add('hidden');
@@ -1958,62 +701,60 @@
     if (name === 'game') gameUi.classList.remove('hidden');
   }
 
-  function toggleBigMap() {
-    mapOverlay.classList.toggle('show');
-    if (mapOverlay.classList.contains('show')) resizeBigMap();
+  function updateHud() {
+    if (!state.inGame) return;
+    const remaining = GAME.custardCount - state.collectedCustards.size;
+    custardValue.textContent = remaining;
+
+    const aliveCount = [...state.players.values()].filter(p => p.role === 'survivor' && p.alive !== false).length + (state.role === 'survivor' && state.alive ? 1 : 0);
+    aliveValue.textContent = aliveCount;
+
+    const secondsLeft = Math.max(0, Math.ceil((state.roundEndsAt - Date.now()) / 1000));
+    const mins = Math.floor(secondsLeft / 60);
+    const secs = secondsLeft % 60;
+    timerValue.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   }
 
-  function showCenterMessage(text) {
-    centerMessage.textContent = text;
+  function updateControlsUI() {
+    controlRole.textContent = state.role === 'killer' ? 'KILLER CONTROLS' : 'SURVIVOR CONTROLS';
+    flashlightState.textContent = state.role === 'killer' ? (state.killerTrueForm ? 'TRUE FORM ACTIVE' : 'DISGUISED FORM') : (state.flashlightOn ? 'FLASHLIGHT ON' : 'FLASHLIGHT OFF');
+
+    if (state.role === 'killer') {
+      controlList.innerHTML = `
+        <div class="control-row"><span>Move</span><span class="key">W A S D</span></div>
+        <div class="control-row"><span>Run</span><span class="key">SHIFT</span></div>
+        <div class="control-row"><span>Transform</span><span class="key">T</span></div>
+        <div class="control-row"><span>Kill</span><span class="key">E</span></div>
+        <div class="control-row"><span>Invisibility</span><span class="key">Q</span></div>
+        <div class="control-row"><span>Map</span><span class="key">M</span></div>
+      `;
+    } else {
+      controlList.innerHTML = `
+        <div class="control-row"><span>Move</span><span class="key">W A S D</span></div>
+        <div class="control-row"><span>Run</span><span class="key">SHIFT</span></div>
+        <div class="control-row"><span>Flashlight</span><span class="key">F</span></div>
+        <div class="control-row"><span>Map</span><span class="key">M</span></div>
+      `;
+    }
+  }
+
+  function showCenterMessage(msg) {
+    centerMessage.textContent = msg;
     centerMessage.classList.add('show');
     clearTimeout(showCenterMessage._timer);
     showCenterMessage._timer = setTimeout(() => centerMessage.classList.remove('show'), 2200);
   }
 
-  function updateHud() {
-    custardValue.textContent = `${state.collectedCustards.size} / ${GAME.custardCount}`;
-    updateAliveHud();
-
-    if (state.roundEndsAt) {
-      const remaining = Math.max(0, Math.ceil((state.roundEndsAt - Date.now()) / 1000));
-      const m = Math.floor(remaining / 60);
-      const s = remaining % 60;
-      timerValue.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    }
-  }
-
-  function updateAliveHud() {
-    const aliveCount = [...state.players.values()].filter(p => p.role === 'survivor' && p.alive !== false).length;
-    aliveValue.textContent = aliveCount;
-  }
-
-  function updateControlsUI() {
-    controlRole.textContent = state.role === 'killer' ? 'KILLER CONTROLS' : 'SURVIVOR CONTROLS';
-    flashlightState.textContent = state.role === 'survivor' ? (state.flashlightOn ? 'FLASHLIGHT ON' : 'FLASHLIGHT OFF') : 'KILLER ACTIVE';
-
-    if (state.role === 'survivor') {
-      controlList.innerHTML = `
-        <div class="control-row"><span>Move</span> <span class="key">WASD</span></div>
-        <div class="control-row"><span>Sprint</span> <span class="key">SHIFT</span></div>
-        <div class="control-row"><span>Flashlight</span> <span class="key">F</span></div>
-        <div class="control-row"><span>Map</span> <span class="key">M</span></div>
-      `;
-    } else {
-      controlList.innerHTML = `
-        <div class="control-row"><span>Move</span> <span class="key">WASD</span></div>
-        <div class="control-row"><span>Transform</span> <span class="key">T</span></div>
-        <div class="control-row"><span>Kill</span> <span class="key">E</span></div>
-        <div class="control-row"><span>Stealth</span> <span class="key">Q</span></div>
-      `;
-    }
-  }
-
   // ------------------------------------------------------------
-  // EVENT LISTENERS
+  // INITIALIZATION & MAIN LOOP
   // ------------------------------------------------------------
   playBtn.addEventListener('click', async () => {
-    const name = nameInput.value.trim() || 'Player';
-    state.playerName = name;
+    const val = nameInput.value.trim();
+    if (!val) {
+      nameInput.focus();
+      return;
+    }
+    state.playerName = val;
     playBtn.disabled = true;
     playBtn.textContent = 'CONNECTING...';
 
@@ -2028,7 +769,6 @@
     state.inGame = false;
     state.inLobby = true;
     showScreen('lobby');
-    trackPresence('lobby');
   });
 
   returnLobbyBtn.addEventListener('click', () => {
@@ -2036,14 +776,34 @@
     state.inGame = false;
     state.inLobby = true;
     showScreen('lobby');
-    trackPresence('lobby');
   });
 
-  // Init sizing and render loop
   window.addEventListener('resize', resize);
   resize();
-  requestAnimationFrame(render);
 
+  function loop(now) {
+    const dt = Math.min((now - state.lastFrame) / 1000, 0.1);
+    state.lastFrame = now;
+
+    if (state.inGame) {
+      update(dt);
+      const cam = cameraOffset();
+      drawBackground(cam);
+      drawPaths(cam);
+      drawRocks(cam);
+      drawCustards(cam);
+      drawPlayers(cam);
+      drawTrees(cam);
+      drawFlashlightOverlay();
+    } else {
+      ctx.fillStyle = '#08130f';
+      ctx.fillRect(0, 0, innerWidth, innerHeight);
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  requestAnimationFrame(loop);
 })();
 </script>
 </body>
