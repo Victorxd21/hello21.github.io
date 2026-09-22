@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slither.io: Global Server</title>
+    <title>Slither.io: Global Server with Skins & Minimap</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Fredoka -->
@@ -26,26 +26,69 @@
             box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
             transform: translateY(4px);
         }
+        /* Custom scrollbar for skin grid */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body class="text-white h-screen w-screen flex flex-col items-center justify-center bg-slate-950">
 
-    <!-- START MENU SCREEN -->
-    <div id="menuScreen" class="absolute z-20 max-w-sm w-full bg-slate-900/90 backdrop-blur-md border-4 border-emerald-500 rounded-3xl p-6 shadow-2xl text-center space-y-5">
+    <!-- START & CUSTOMIZATION MENU SCREEN -->
+    <div id="menuScreen" class="absolute z-20 max-w-md w-full bg-slate-900/95 backdrop-blur-md border-4 border-emerald-500 rounded-3xl p-6 shadow-2xl text-center space-y-4 max-h-[90vh] overflow-y-auto">
         <div class="inline-block bg-emerald-600/30 p-3 rounded-full border-2 border-emerald-400 animate-bounce">
-            <i class="fa-solid fa-worm text-5xl text-emerald-400"></i>
+            <i class="fa-solid fa-worm text-4xl text-emerald-400"></i>
         </div>
         <div>
-            <h1 class="text-3xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-400">SLITHER GLOBAL</h1>
-            <p class="text-xs text-slate-300 mt-1">Collide into other worms to destroy them! Grow thick and long.</p>
+            <h1 class="text-2xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-400">SLITHER GLOBAL</h1>
+            <p class="text-[11px] text-slate-300 mt-0.5">Customize your worm, pick a skin, and battle online!</p>
+        </div>
+
+        <!-- LIVE PREVIEW CONTAINER -->
+        <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-3 flex flex-col items-center justify-center relative overflow-hidden h-28">
+            <div class="absolute top-2 left-3 text-[10px] uppercase font-bold text-slate-400 tracking-wider">Live Preview</div>
+            <canvas id="previewCanvas" width="200" height="70" class="mt-4"></canvas>
         </div>
 
         <div class="space-y-3 bg-slate-800/60 p-4 rounded-2xl border border-slate-700 text-left">
-            <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Your Worm Name</label>
-            <input type="text" id="playerNameInput" maxlength="12" value="SlitherPro" class="w-full bg-slate-900 border-2 border-slate-600 rounded-xl px-4 py-2.5 text-center text-lg font-bold text-emerald-300 focus:outline-none focus:border-emerald-500 transition">
+            <div>
+                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Your Worm Name</label>
+                <input type="text" id="playerNameInput" maxlength="12" value="SlitherPro" class="w-full bg-slate-900 border-2 border-slate-600 rounded-xl px-4 py-2 text-center text-md font-bold text-emerald-300 focus:outline-none focus:border-emerald-500 transition">
+            </div>
+
+            <!-- Color Picker & Presets -->
+            <div>
+                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Body Color</label>
+                <div class="flex items-center space-x-2">
+                    <input type="color" id="playerColorPicker" value="#10b981" class="w-10 h-10 rounded-xl bg-slate-900 border-2 border-slate-600 cursor-pointer p-1">
+                    <div class="flex space-x-1.5 flex-1 justify-around">
+                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-emerald-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#10b981"></button>
+                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-blue-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#3b82f6"></button>
+                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-purple-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#a855f7"></button>
+                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-amber-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#f59e0b"></button>
+                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-rose-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#f43f5e"></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skin Selector -->
+            <div>
+                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Select Head Skin</label>
+                <div id="skinSelectorGrid" class="grid grid-cols-4 gap-2 max-h-28 overflow-y-auto pr-1">
+                    <!-- Dynamic skin items rendered via JS -->
+                </div>
+            </div>
         </div>
 
-        <button id="playBtn" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3.5 px-6 rounded-2xl text-lg retro-shadow transition transform active:scale-95">
+        <button id="playBtn" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-2xl text-lg retro-shadow transition transform active:scale-95">
             <i class="fa-solid fa-play mr-2"></i> Play Live
         </button>
     </div>
@@ -65,9 +108,14 @@
                 <div id="finalScoreDisplay" class="text-xl font-extrabold text-emerald-400 font-mono">0</div>
             </div>
         </div>
-        <button id="respawnBtn" class="w-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold py-3 px-6 rounded-xl text-md retro-shadow transition transform active:scale-95">
-            <i class="fa-solid fa-rotate-right mr-2"></i> Play Again
-        </button>
+        <div class="space-y-2">
+            <button id="respawnBtn" class="w-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold py-3 px-6 rounded-xl text-md retro-shadow transition transform active:scale-95">
+                <i class="fa-solid fa-rotate-right mr-2"></i> Play Again
+            </button>
+            <button id="menuBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 px-6 rounded-xl text-sm transition">
+                <i class="fa-solid fa-gear mr-1"></i> Change Customization
+            </button>
+        </div>
     </div>
 
     <!-- HUD OVERLAY -->
@@ -82,6 +130,11 @@
     <div id="leaderboard" class="hidden absolute top-4 right-4 z-10 pointer-events-none bg-slate-900/80 backdrop-blur border border-slate-700 p-3 rounded-2xl shadow-lg w-48">
         <div class="text-xs font-bold text-teal-400 border-b border-slate-700 pb-1 mb-2"><i class="fa-solid fa-trophy mr-1"></i> Top Worms</div>
         <div id="leaderboardList" class="space-y-1 text-xs text-slate-300 font-mono"></div>
+    </div>
+
+    <!-- MINIMAP CONTAINER -->
+    <div id="minimapContainer" class="hidden absolute bottom-4 left-4 z-10 bg-slate-900/90 backdrop-blur border-2 border-slate-700 p-2 rounded-2xl shadow-xl pointer-events-none w-36 h-36 flex items-center justify-center">
+        <canvas id="minimapCanvas" width="120" height="120" class="rounded-xl bg-slate-950"></canvas>
     </div>
 
     <!-- GAME CANVAS -->
@@ -101,6 +154,12 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
+        const previewCanvas = document.getElementById('previewCanvas');
+        const previewCtx = previewCanvas.getContext('2d');
+
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
+
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -113,6 +172,28 @@
         let playerName = 'SlitherPro';
         let globalChannel = null;
 
+        // Available Skins configuration loading from heads/ folder on GitHub
+        const AVAILABLE_SKINS = [
+            { id: 'none', name: 'Default Head', url: '' },
+            { id: 'skin1', name: 'Classic Green', url: 'heads/skin1.png' },
+            { id: 'skin2', name: 'Neon Cyber', url: 'heads/skin2.png' },
+            { id: 'skin3', name: 'Golden Crown', url: 'heads/skin3.png' },
+            { id: 'skin4', name: 'Fire Demon', url: 'heads/skin4.png' },
+            { id: 'skin5', name: 'Galaxy Star', url: 'heads/skin5.png' },
+            { id: 'skin6', name: 'Royal Diamond', url: 'heads/skin6.png' },
+            { id: 'skin7', name: 'Toxic Skull', url: 'heads/skin7.png' }
+        ];
+
+        let loadedSkinImages = {};
+        AVAILABLE_SKINS.forEach(skin => {
+            if (skin.url) {
+                let img = new Image();
+                img.src = skin.url;
+                img.onload = () => { loadedSkinImages[skin.id] = img; };
+                img.onerror = () => { loadedSkinImages[skin.id] = null; }; // Fallback handled gracefully
+            }
+        });
+
         let me = {
             x: WORLD_SIZE / 2,
             y: WORLD_SIZE / 2,
@@ -120,9 +201,10 @@
             speed: 3.5,
             trail: [],
             score: 10,
-            color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0'),
+            color: '#10b981',
+            skin: 'none',
             isDead: false,
-            deathAnimProgress: 1 // 1 = fully alive, 0 = fully faded out
+            deathAnimProgress: 1
         };
 
         let remotePlayers = {}; 
@@ -131,6 +213,89 @@
         let mouseY = window.innerHeight / 2;
         let gameActive = false;
 
+        // Build Customization UI Skin selector grid
+        function buildSkinSelector() {
+            const grid = document.getElementById('skinSelectorGrid');
+            grid.innerHTML = '';
+            AVAILABLE_SKINS.forEach(skin => {
+                let btn = document.createElement('div');
+                btn.className = `cursor-pointer border-2 rounded-xl p-1.5 flex flex-col items-center justify-center transition bg-slate-900 ${me.skin === skin.id ? 'border-emerald-400 bg-emerald-950/40' : 'border-slate-700 hover:border-slate-500'}`;
+                btn.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-600 mb-1">
+                        ${skin.url && loadedSkinImages[skin.id] ? `<img src="${skin.url}" class="w-full h-full object-cover" onerror="this.style.display='none'">` : '<i class="fa-solid fa-worm text-emerald-400 text-xs"></i>'}
+                    </div>
+                    <span class="text-[9px] text-slate-300 font-semibold truncate w-full text-center">${skin.name.split(' ')[0]}</span>
+                `;
+                btn.onclick = () => {
+                    me.skin = skin.id;
+                    buildSkinSelector();
+                };
+                grid.appendChild(btn);
+            });
+        }
+
+        buildSkinSelector();
+
+        // Color Picker & Presets listeners
+        const colorPicker = document.getElementById('playerColorPicker');
+        colorPicker.addEventListener('input', (e) => {
+            me.color = e.target.value;
+        });
+
+        document.querySelectorAll('.color-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                me.color = btn.getAttribute('data-color');
+                colorPicker.value = me.color;
+            });
+        });
+
+        // Live Preview Render Loop
+        function renderPreview() {
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            // Draw body segments
+            for(let i=3; i>=0; i--) {
+                let px = 40 + i * 25;
+                let py = 35 + Math.sin(Date.now() * 0.005 + i * 0.5) * 6;
+                previewCtx.fillStyle = me.color;
+                previewCtx.beginPath();
+                previewCtx.arc(px, py, 12, 0, Math.PI * 2);
+                previewCtx.fill();
+            }
+            // Draw head
+            let hx = 140;
+            let hy = 35 + Math.sin(Date.now() * 0.005) * 6;
+            
+            if (me.skin !== 'none' && loadedSkinImages[me.skin]) {
+                previewCtx.save();
+                previewCtx.translate(hx, hy);
+                previewCtx.beginPath();
+                previewCtx.arc(0, 0, 16, 0, Math.PI * 2);
+                previewCtx.clip();
+                previewCtx.drawImage(loadedSkinImages[me.skin], -16, -16, 32, 32);
+                previewCtx.restore();
+                previewCtx.strokeStyle = me.color;
+                previewCtx.lineWidth = 2;
+                previewCtx.beginPath();
+                previewCtx.arc(hx, hy, 16, 0, Math.PI * 2);
+                previewCtx.stroke();
+            } else {
+                previewCtx.fillStyle = me.color;
+                previewCtx.beginPath();
+                previewCtx.arc(hx, hy, 15, 0, Math.PI * 2);
+                previewCtx.fill();
+                // Eyes
+                previewCtx.fillStyle = '#ffffff';
+                previewCtx.beginPath();
+                previewCtx.arc(hx + 6, hy - 5, 4, 0, Math.PI * 2);
+                previewCtx.arc(hx + 6, hy + 5, 4, 0, Math.PI * 2);
+                previewCtx.fill();
+            }
+
+            requestAnimationFrame(renderPreview);
+        }
+        renderPreview();
+
+        // Seeded random for map food
         function seededRandom(seed) {
             let x = Math.sin(seed++) * 10000;
             return x - Math.floor(x);
@@ -150,7 +315,15 @@
             mouseY = e.clientY;
         });
 
-        document.getElementById('playBtn').addEventListener('click', () => {
+        document.getElementById('playBtn').addEventListener('click', startGame);
+        document.getElementById('respawnBtn').addEventListener('click', startGame);
+
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('deathScreen').classList.add('hidden');
+            document.getElementById('menuScreen').classList.remove('hidden');
+        });
+
+        function startGame() {
             const val = document.getElementById('playerNameInput').value.trim();
             if(val) playerName = val;
 
@@ -158,20 +331,13 @@
             document.getElementById('deathScreen').classList.add('hidden');
             document.getElementById('hud').classList.remove('hidden');
             document.getElementById('leaderboard').classList.remove('hidden');
+            document.getElementById('minimapContainer').classList.remove('hidden');
 
             respawnPlayer();
             initGlobalMultiplayer();
             gameActive = true;
             requestAnimationFrame(gameLoop);
-        });
-
-        document.getElementById('respawnBtn').addEventListener('click', () => {
-            document.getElementById('deathScreen').classList.add('hidden');
-            document.getElementById('hud').classList.remove('hidden');
-            document.getElementById('leaderboard').classList.remove('hidden');
-            respawnPlayer();
-            gameActive = true;
-        });
+        }
 
         function respawnPlayer() {
             me.x = 500 + Math.random() * (WORLD_SIZE - 1000);
@@ -191,11 +357,11 @@
             me.isDead = true;
             me.deathAnimProgress = 1;
 
-            // Drop food pellets along our body trail
+            // Drop food pellets along body trail
             me.trail.forEach((segment, idx) => {
-                if (idx % 3 === 0) { // Drop food every few segments
+                if (idx % 3 === 0) {
                     let droppedFood = {
-                        id: 'drop_' + Math.random().toString(36.substring(2, 9)),
+                        id: 'drop_' + Math.random().toString(36).substring(2, 9),
                         x: segment.x + (Math.random() * 20 - 10),
                         y: segment.y + (Math.random() * 20 - 10),
                         color: me.color
@@ -211,11 +377,11 @@
                 }
             });
 
-            // Show UI Death Screen after fade animation finishes
             setTimeout(() => {
                 gameActive = false;
                 document.getElementById('hud').classList.add('hidden');
                 document.getElementById('leaderboard').classList.add('hidden');
+                document.getElementById('minimapContainer').classList.add('hidden');
                 document.getElementById('finalScoreDisplay').innerText = me.score;
                 document.getElementById('deathReasonText').innerText = "You crashed into " + killerName + "'s body!";
                 document.getElementById('deathScreen').classList.remove('hidden');
@@ -224,9 +390,9 @@
 
         function initGlobalMultiplayer() {
             if (!supabaseClient) return;
-            if (globalChannel) return; // Already initialized
+            if (globalChannel) return;
 
-            globalChannel = supabaseClient.channel('global_slither_room_v2', {
+            globalChannel = supabaseClient.channel('global_slither_room_v3', {
                 config: { broadcast: { self: false } }
             });
 
@@ -260,12 +426,46 @@
                                 y: me.y,
                                 trail: me.trail,
                                 score: me.score,
-                                color: me.color
+                                color: me.color,
+                                skin: me.skin,
+                                angle: me.angle
                             }
                         });
                     }, 50);
                 }
             });
+        }
+
+        // Render snake head helper function with skin support
+        function drawSnakeHead(context, x, y, angle, radius, color, skinId) {
+            let img = skinId !== 'none' ? loadedSkinImages[skinId] : null;
+            if (img) {
+                context.save();
+                context.translate(x, y);
+                context.rotate(angle);
+                context.beginPath();
+                context.arc(0, 0, radius + 2, 0, Math.PI * 2);
+                context.clip();
+                context.drawImage(img, -(radius + 2), -(radius + 2), (radius + 2) * 2, (radius + 2) * 2);
+                context.restore();
+                context.strokeStyle = color;
+                context.lineWidth = 2.5;
+                context.beginPath();
+                context.arc(x, y, radius + 2, 0, Math.PI * 2);
+                context.stroke();
+            } else {
+                context.fillStyle = color;
+                context.beginPath();
+                context.arc(x, y, radius + 2, 0, Math.PI * 2);
+                context.fill();
+
+                // Eyes
+                context.fillStyle = '#ffffff';
+                context.beginPath();
+                context.arc(x + Math.cos(angle - 0.4) * (radius*0.6), y + Math.sin(angle - 0.4) * (radius*0.6), 4, 0, Math.PI * 2);
+                context.arc(x + Math.cos(angle + 0.4) * (radius*0.6), y + Math.sin(angle + 0.4) * (radius*0.6), 4, 0, Math.PI * 2);
+                context.fill();
+            }
         }
 
         function gameLoop() {
@@ -293,7 +493,6 @@
                     me.trail.pop();
                 }
             } else {
-                // Fade out animation progression
                 me.deathAnimProgress = Math.max(0, me.deathAnimProgress - 0.05);
             }
 
@@ -323,7 +522,7 @@
                     }
                 }
 
-                // Combat Check: Check if local snake head collides with any remote player's body trail
+                // Combat Check: Check collision with remote player trails
                 for (let id in remotePlayers) {
                     let p = remotePlayers[id];
                     if (p.trail && p.trail.length > 5) {
@@ -363,7 +562,7 @@
             ctx.lineWidth = 8;
             ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
 
-            // Draw Shared Food Pellets
+            // Draw Food Pellets
             foodPellets.forEach(f => {
                 ctx.fillStyle = f.color;
                 ctx.beginPath();
@@ -371,7 +570,7 @@
                 ctx.fill();
             });
 
-            // Draw Remote Players
+            // Draw Remote Players (Bodies & Skins)
             for (let id in remotePlayers) {
                 let p = remotePlayers[id];
                 if (p.trail && p.trail.length > 0) {
@@ -382,14 +581,17 @@
                         ctx.arc(t.x, t.y, rWidth, 0, Math.PI * 2);
                         ctx.fill();
                     });
+                    
+                    drawSnakeHead(ctx, p.x, p.y, p.angle || 0, rWidth, p.color || '#3b82f6', p.skin);
+
                     ctx.fillStyle = '#ffffff';
                     ctx.font = 'bold 12px Fredoka';
                     ctx.textAlign = 'center';
-                    ctx.fillText(p.name + ` (${p.score})`, p.x, p.y - (rWidth + 8));
+                    ctx.fillText(p.name + ` (${p.score})`, p.x, p.y - (rWidth + 12));
                 }
             }
 
-            // Draw Local Player Body Trail & Head with fade effect
+            // Draw Local Player Body & Head
             ctx.globalAlpha = me.deathAnimProgress;
             me.trail.forEach((t) => {
                 ctx.fillStyle = me.color;
@@ -398,25 +600,42 @@
                 ctx.fill();
             });
 
-            // Draw Local Head
-            ctx.fillStyle = me.color;
-            ctx.beginPath();
-            ctx.arc(me.x, me.y, currentWidth + 2, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Eyes
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(me.x + Math.cos(me.angle - 0.4) * (currentWidth*0.6), me.y + Math.sin(me.angle - 0.4) * (currentWidth*0.6), 4, 0, Math.PI * 2);
-            ctx.arc(me.x + Math.cos(me.angle + 0.4) * (currentWidth*0.6), me.y + Math.sin(me.angle + 0.4) * (currentWidth*0.6), 4, 0, Math.PI * 2);
-            ctx.fill();
+            drawSnakeHead(ctx, me.x, me.y, me.angle, currentWidth, me.color, me.skin);
 
             ctx.restore();
 
+            renderMinimap();
             updateLeaderboardUI();
+
             if (gameActive) {
                 requestAnimationFrame(gameLoop);
             }
+        }
+
+        // Render Mini-Map
+        function renderMinimap() {
+            minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+            let scale = minimapCanvas.width / WORLD_SIZE;
+
+            // Draw world boundary
+            minimapCtx.strokeStyle = '#334155';
+            minimapCtx.lineWidth = 1;
+            minimapCtx.strokeRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+
+            // Draw remote players on minimap
+            for (let id in remotePlayers) {
+                let p = remotePlayers[id];
+                minimapCtx.fillStyle = p.color || '#3b82f6';
+                minimapCtx.beginPath();
+                minimapCtx.arc(p.x * scale, p.y * scale, 2.5, 0, Math.PI * 2);
+                minimapCtx.fill();
+            }
+
+            // Draw local player on minimap
+            minimapCtx.fillStyle = '#10b981';
+            minimapCtx.beginPath();
+            minimapCtx.arc(me.x * scale, me.y * scale, 3.5, 0, Math.PI * 2);
+            minimapCtx.fill();
         }
 
         function updateLeaderboardUI() {
