@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slither.io: Global Server with Skins & Minimap</title>
+    <title>Slither.io: Global Server with Skins, Minimap, Smooth Steering & Admin Panel</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Fredoka -->
@@ -26,7 +26,6 @@
             box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
             transform: translateY(4px);
         }
-        /* Custom scrollbar for skin grid */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -81,16 +80,46 @@
 
             <!-- Skin Selector -->
             <div>
-                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Select Head Skin</label>
-                <div id="skinSelectorGrid" class="grid grid-cols-4 gap-2 max-h-28 overflow-y-auto pr-1">
-                    <!-- Dynamic skin items rendered via JS -->
-                </div>
+                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Select Head Skin (Ensure /heads/ folder exists)</label>
+                <div id="skinSelectorGrid" class="grid grid-cols-4 gap-2 max-h-28 overflow-y-auto pr-1"></div>
             </div>
         </div>
 
         <button id="playBtn" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-2xl text-lg retro-shadow transition transform active:scale-95">
             <i class="fa-solid fa-play mr-2"></i> Play Live
         </button>
+        <div class="text-[10px] text-slate-500">Press `~` (tilde) in-game to open Admin Console</div>
+    </div>
+
+    <!-- ADMIN LOGIN MODAL -->
+    <div id="adminLoginModal" class="hidden absolute z-50 max-w-xs w-full bg-slate-900 border-2 border-amber-500 rounded-2xl p-5 shadow-2xl text-center space-y-3">
+        <h3 class="text-md font-bold text-amber-400"><i class="fa-solid fa-lock mr-1"></i> Admin Login</h3>
+        <p class="text-[11px] text-slate-400">Enter admin password to access server controls.</p>
+        <input type="password" id="adminPasswordInput" placeholder="Password" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-center text-sm text-white focus:outline-none focus:border-amber-500">
+        <div class="flex space-x-2">
+            <button id="adminLoginSubmit" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition">Login</button>
+            <button id="adminLoginClose" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs transition">Cancel</button>
+        </div>
+    </div>
+
+    <!-- ADMIN CONSOLE OVERLAY -->
+    <div id="adminConsole" class="hidden absolute z-40 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 rounded-2xl p-5 shadow-2xl text-left space-y-3">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+            <h3 class="text-sm font-bold text-amber-400"><i class="fa-solid fa-shield-halved mr-1"></i> Server Admin Console</h3>
+            <button id="closeAdminBtn" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="space-y-2 text-xs text-slate-300">
+            <div>Online Players: <span id="adminPlayerCount" class="font-mono font-bold text-emerald-400">1</span></div>
+            <div>Your Score: <span id="adminScoreVal" class="font-mono font-bold text-emerald-400">10</span></div>
+        </div>
+        <div class="space-y-2 pt-2 border-t border-slate-800">
+            <button id="adminSpawnFoodBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
+                <i class="fa-solid fa-cookie-bite mr-2"></i> Spawn +50 Food Pellets
+            </button>
+            <button id="adminGodModeBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
+                <i class="fa-solid fa-bolt mr-2"></i> Toggle God Mode (Invincible)
+            </button>
+        </div>
     </div>
 
     <!-- IN-UI DEATH SCREEN OVERLAY -->
@@ -124,6 +153,7 @@
             <div class="text-[10px] uppercase font-bold text-slate-400">Length / Score</div>
             <div id="scoreDisplay" class="text-2xl font-extrabold text-emerald-400 font-mono">10</div>
         </div>
+        <div class="text-[10px] text-slate-400 bg-slate-900/60 px-3 py-1 rounded-xl">Hold <b class="text-amber-400">SPACE</b> to Boost</div>
     </div>
 
     <!-- LEADERBOARD -->
@@ -171,8 +201,10 @@
         let playerId = 'worm_' + Math.random().toString(36).substring(2, 9);
         let playerName = 'SlitherPro';
         let globalChannel = null;
+        let isAdmin = false;
+        let godMode = false;
 
-        // Available Skins configuration loading from heads/ folder on GitHub
+        // Available Skins configuration loading from heads/ folder
         const AVAILABLE_SKINS = [
             { id: 'none', name: 'Default Head', url: '' },
             { id: 'skin1', name: 'Classic Green', url: 'heads/skin1.png' },
@@ -190,7 +222,7 @@
                 let img = new Image();
                 img.src = skin.url;
                 img.onload = () => { loadedSkinImages[skin.id] = img; };
-                img.onerror = () => { loadedSkinImages[skin.id] = null; }; // Fallback handled gracefully
+                img.onerror = () => { loadedSkinImages[skin.id] = null; }; 
             }
         });
 
@@ -208,21 +240,22 @@
         };
 
         let remotePlayers = {}; 
-        let foodPellets = [];   
+        let foodPellets = [];    
         let mouseX = window.innerWidth / 2;
         let mouseY = window.innerHeight / 2;
         let gameActive = false;
+        let isBoosting = false;
 
-        // Build Customization UI Skin selector grid
         function buildSkinSelector() {
             const grid = document.getElementById('skinSelectorGrid');
             grid.innerHTML = '';
             AVAILABLE_SKINS.forEach(skin => {
                 let btn = document.createElement('div');
                 btn.className = `cursor-pointer border-2 rounded-xl p-1.5 flex flex-col items-center justify-center transition bg-slate-900 ${me.skin === skin.id ? 'border-emerald-400 bg-emerald-950/40' : 'border-slate-700 hover:border-slate-500'}`;
+                let hasImg = skin.url && loadedSkinImages[skin.id];
                 btn.innerHTML = `
                     <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-600 mb-1">
-                        ${skin.url && loadedSkinImages[skin.id] ? `<img src="${skin.url}" class="w-full h-full object-cover" onerror="this.style.display='none'">` : '<i class="fa-solid fa-worm text-emerald-400 text-xs"></i>'}
+                        ${hasImg ? `<img src="${skin.url}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-worm text-emerald-400 text-xs"></i>'}
                     </div>
                     <span class="text-[9px] text-slate-300 font-semibold truncate w-full text-center">${skin.name.split(' ')[0]}</span>
                 `;
@@ -236,11 +269,8 @@
 
         buildSkinSelector();
 
-        // Color Picker & Presets listeners
         const colorPicker = document.getElementById('playerColorPicker');
-        colorPicker.addEventListener('input', (e) => {
-            me.color = e.target.value;
-        });
+        colorPicker.addEventListener('input', (e) => { me.color = e.target.value; });
 
         document.querySelectorAll('.color-preset').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -249,10 +279,8 @@
             });
         });
 
-        // Live Preview Render Loop
         function renderPreview() {
             previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-            // Draw body segments
             for(let i=3; i>=0; i--) {
                 let px = 40 + i * 25;
                 let py = 35 + Math.sin(Date.now() * 0.005 + i * 0.5) * 6;
@@ -261,7 +289,6 @@
                 previewCtx.arc(px, py, 12, 0, Math.PI * 2);
                 previewCtx.fill();
             }
-            // Draw head
             let hx = 140;
             let hy = 35 + Math.sin(Date.now() * 0.005) * 6;
             
@@ -283,19 +310,11 @@
                 previewCtx.beginPath();
                 previewCtx.arc(hx, hy, 15, 0, Math.PI * 2);
                 previewCtx.fill();
-                // Eyes
-                previewCtx.fillStyle = '#ffffff';
-                previewCtx.beginPath();
-                previewCtx.arc(hx + 6, hy - 5, 4, 0, Math.PI * 2);
-                previewCtx.arc(hx + 6, hy + 5, 4, 0, Math.PI * 2);
-                previewCtx.fill();
             }
-
             requestAnimationFrame(renderPreview);
         }
         renderPreview();
 
-        // Seeded random for map food
         function seededRandom(seed) {
             let x = Math.sin(seed++) * 10000;
             return x - Math.floor(x);
@@ -313,6 +332,60 @@
         document.addEventListener('mousemove', (e) => {
             mouseX = e.clientX;
             mouseY = e.clientY;
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') isBoosting = true;
+            if (e.key === '`' || e.key === '~') {
+                e.preventDefault();
+                if (isAdmin) {
+                    document.getElementById('adminConsole').classList.toggle('hidden');
+                } else {
+                    document.getElementById('adminLoginModal').classList.remove('hidden');
+                    document.getElementById('adminPasswordInput').focus();
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') isBoosting = false;
+        });
+
+        document.getElementById('adminLoginSubmit').addEventListener('click', () => {
+            let pass = document.getElementById('adminPasswordInput').value;
+            if (pass === 'papivictor') {
+                isAdmin = true;
+                document.getElementById('adminLoginModal').classList.add('hidden');
+                document.getElementById('adminConsole').classList.remove('hidden');
+            } else {
+                alert('Incorrect password!');
+            }
+        });
+
+        document.getElementById('adminLoginClose').addEventListener('click', () => {
+            document.getElementById('adminLoginModal').classList.add('hidden');
+        });
+
+        document.getElementById('closeAdminBtn').addEventListener('click', () => {
+            document.getElementById('adminConsole').classList.add('hidden');
+        });
+
+        document.getElementById('adminSpawnFoodBtn').addEventListener('click', () => {
+            for(let i=0; i<50; i++) {
+                let f = {
+                    id: 'admin_drop_' + Math.random().toString(36).substring(2, 9),
+                    x: me.x + (Math.random() * 400 - 200),
+                    y: me.y + (Math.random() * 400 - 200),
+                    color: '#f59e0b'
+                };
+                foodPellets.push(f);
+                if(globalChannel) globalChannel.send({ type: 'broadcast', event: 'food_spawn', payload: f });
+            }
+        });
+
+        document.getElementById('adminGodModeBtn').addEventListener('click', () => {
+            godMode = !godMode;
+            document.getElementById('adminGodModeBtn').classList.toggle('bg-emerald-900', godMode);
         });
 
         document.getElementById('playBtn').addEventListener('click', startGame);
@@ -353,11 +426,10 @@
         }
 
         function triggerDeath(killerName) {
-            if (me.isDead) return;
+            if (me.isDead || godMode) return;
             me.isDead = true;
             me.deathAnimProgress = 1;
 
-            // Drop food pellets along body trail
             me.trail.forEach((segment, idx) => {
                 if (idx % 3 === 0) {
                     let droppedFood = {
@@ -368,11 +440,7 @@
                     };
                     foodPellets.push(droppedFood);
                     if(globalChannel) {
-                        globalChannel.send({
-                            type: 'broadcast',
-                            event: 'food_spawn',
-                            payload: droppedFood
-                        });
+                        globalChannel.send({ type: 'broadcast', event: 'food_spawn', payload: droppedFood });
                     }
                 }
             });
@@ -389,10 +457,9 @@
         }
 
         function initGlobalMultiplayer() {
-            if (!supabaseClient) return;
-            if (globalChannel) return;
+            if (!supabaseClient || globalChannel) return;
 
-            globalChannel = supabaseClient.channel('global_slither_room_v3', {
+            globalChannel = supabaseClient.channel('global_slither_room_v4', {
                 config: { broadcast: { self: false } }
             });
 
@@ -436,10 +503,9 @@
             });
         }
 
-        // Render snake head helper function with skin support
         function drawSnakeHead(context, x, y, angle, radius, color, skinId) {
             let img = skinId !== 'none' ? loadedSkinImages[skinId] : null;
-            if (img) {
+            if (img && img.complete && img.naturalWidth !== 0) {
                 context.save();
                 context.translate(x, y);
                 context.rotate(angle);
@@ -459,13 +525,20 @@
                 context.arc(x, y, radius + 2, 0, Math.PI * 2);
                 context.fill();
 
-                // Eyes
                 context.fillStyle = '#ffffff';
                 context.beginPath();
                 context.arc(x + Math.cos(angle - 0.4) * (radius*0.6), y + Math.sin(angle - 0.4) * (radius*0.6), 4, 0, Math.PI * 2);
                 context.arc(x + Math.cos(angle + 0.4) * (radius*0.6), y + Math.sin(angle + 0.4) * (radius*0.6), 4, 0, Math.PI * 2);
                 context.fill();
             }
+        }
+
+        // Helper function for smoothly interpolating angles without snapping artifacts
+        function lerpAngle(current, target, amount) {
+            let diff = target - current;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            return current + diff * amount;
         }
 
         function gameLoop() {
@@ -478,11 +551,22 @@
                 let dx = mouseX - centerX;
                 let dy = mouseY - centerY;
                 if (Math.hypot(dx, dy) > 5) {
-                    me.angle = Math.atan2(dy, dx);
+                    let targetAngle = Math.atan2(dy, dx);
+                    // Smoothly rotate towards target angle (adjust 0.12 for faster/slower turning speed)
+                    me.angle = lerpAngle(me.angle, targetAngle, 0.12);
                 }
 
-                me.x += Math.cos(me.angle) * me.speed;
-                me.y += Math.sin(me.angle) * me.speed;
+                let currentSpeed = me.speed;
+                if (isBoosting && me.score > 15) {
+                    currentSpeed = 6.5;
+                    if (Math.random() < 0.2) {
+                        me.score -= 1;
+                        document.getElementById('scoreDisplay').innerText = me.score;
+                    }
+                }
+
+                me.x += Math.cos(me.angle) * currentSpeed;
+                me.y += Math.sin(me.angle) * currentSpeed;
 
                 me.x = Math.max(20, Math.min(WORLD_SIZE - 20, me.x));
                 me.y = Math.max(20, Math.min(WORLD_SIZE - 20, me.y));
@@ -498,7 +582,6 @@
 
             let currentWidth = Math.min(22, 10 + Math.floor(me.score / 15));
 
-            // Food collision check
             if (!me.isDead) {
                 for (let i = 0; i < foodPellets.length; i++) {
                     let f = foodPellets[i];
@@ -522,7 +605,6 @@
                     }
                 }
 
-                // Combat Check: Check collision with remote player trails
                 for (let id in remotePlayers) {
                     let p = remotePlayers[id];
                     if (p.trail && p.trail.length > 5) {
@@ -540,12 +622,10 @@
                 }
             }
 
-            // Render Frame
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
             ctx.translate(centerX - me.x, centerY - me.y);
 
-            // Grid background
             ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 1;
             let gridSize = 80;
@@ -562,7 +642,6 @@
             ctx.lineWidth = 8;
             ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
 
-            // Draw Food Pellets
             foodPellets.forEach(f => {
                 ctx.fillStyle = f.color;
                 ctx.beginPath();
@@ -570,7 +649,6 @@
                 ctx.fill();
             });
 
-            // Draw Remote Players (Bodies & Skins)
             for (let id in remotePlayers) {
                 let p = remotePlayers[id];
                 if (p.trail && p.trail.length > 0) {
@@ -591,7 +669,6 @@
                 }
             }
 
-            // Draw Local Player Body & Head
             ctx.globalAlpha = me.deathAnimProgress;
             me.trail.forEach((t) => {
                 ctx.fillStyle = me.color;
@@ -607,22 +684,24 @@
             renderMinimap();
             updateLeaderboardUI();
 
+            if (isAdmin) {
+                document.getElementById('adminPlayerCount').innerText = Object.keys(remotePlayers).length + 1;
+                document.getElementById('adminScoreVal').innerText = me.score;
+            }
+
             if (gameActive) {
                 requestAnimationFrame(gameLoop);
             }
         }
 
-        // Render Mini-Map
         function renderMinimap() {
             minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
             let scale = minimapCanvas.width / WORLD_SIZE;
 
-            // Draw world boundary
             minimapCtx.strokeStyle = '#334155';
             minimapCtx.lineWidth = 1;
             minimapCtx.strokeRect(0, 0, minimapCanvas.width, minimapCanvas.height);
 
-            // Draw remote players on minimap
             for (let id in remotePlayers) {
                 let p = remotePlayers[id];
                 minimapCtx.fillStyle = p.color || '#3b82f6';
@@ -631,7 +710,6 @@
                 minimapCtx.fill();
             }
 
-            // Draw local player on minimap
             minimapCtx.fillStyle = '#10b981';
             minimapCtx.beginPath();
             minimapCtx.arc(me.x * scale, me.y * scale, 3.5, 0, Math.PI * 2);
