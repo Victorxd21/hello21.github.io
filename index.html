@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gartic Phone: Cat Edition</title>
+    <title>Gartic Phone: Code Edition</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Fredoka -->
@@ -36,37 +36,46 @@
 </head>
 <body class="text-white h-screen w-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-900 overflow-hidden">
 
-    <!-- LOBBY SCREEN -->
-    <div id="lobbyScreen" class="max-w-md w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-5">
-        <div class="inline-block bg-indigo-600/30 p-3 rounded-full border-2 border-indigo-400 animate-float">
-            <i class="fa-solid fa-paintbrush text-5xl text-yellow-400"></i>
+    <!-- LOBBY / HOME SCREEN -->
+    <div id="lobbyScreen" class="max-w-md w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
+        <div class="inline-block bg-indigo-600/30 p-2.5 rounded-full border-2 border-indigo-400 animate-float">
+            <i class="fa-solid fa-paintbrush text-4xl text-yellow-400"></i>
         </div>
         <div>
-            <h1 class="text-3xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-400">GARTIC PHONE</h1>
-            <p class="text-sm text-slate-300 mt-1">The game of hilarious telephone drawings!</p>
+            <h1 class="text-2xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-400">GARTIC PHONE</h1>
+            <p class="text-xs text-slate-300 mt-1">Draw, guess, and laugh together!</p>
         </div>
 
         <!-- Setup Panel -->
-        <div class="space-y-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-700">
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Your Nickname</label>
-            <input type="text" id="playerNameInput" maxlength="12" placeholder="Doodler" class="w-full bg-slate-800 border-2 border-slate-600 rounded-xl px-4 py-2 text-center text-lg font-bold text-yellow-300 focus:outline-none focus:border-indigo-500 transition">
+        <div class="space-y-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-700 text-left">
+            <div>
+                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Your Nickname</label>
+                <input type="text" id="playerNameInput" maxlength="12" placeholder="Doodler" class="w-full bg-slate-800 border-2 border-slate-600 rounded-xl px-4 py-2 text-center text-base font-bold text-yellow-300 focus:outline-none focus:border-indigo-500 transition">
+            </div>
+
+            <div class="pt-2 border-t border-slate-800">
+                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Join with 4-Digit Code</label>
+                <div class="flex space-x-2">
+                    <input type="text" id="roomCodeInput" maxlength="4" placeholder="e.g. 4829" class="w-2/3 bg-slate-800 border-2 border-slate-600 rounded-xl px-3 py-2 text-center text-lg font-mono font-bold text-yellow-300 tracking-widest focus:outline-none focus:border-indigo-500 transition">
+                    <button id="joinCodeBtn" class="w-1/3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl text-xs retro-shadow transition">
+                        Join Room
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <div class="space-y-3">
-            <button id="quickJoinBtn" class="w-full bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-2xl text-lg retro-shadow transition transform active:scale-95">
-                <i class="fa-solid fa-right-to-bracket mr-2"></i> Quick Join / Create Lobby
-            </button>
-            <button id="openBrowserBtn" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-2.5 px-6 rounded-2xl text-sm border border-slate-600 transition">
-                <i class="fa-solid fa-list mr-2"></i> Browse Active Lobbies
+        <div>
+            <button id="createRoomBtn" class="w-full bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-2xl text-base retro-shadow transition transform active:scale-95">
+                <i class="fa-solid fa-plus mr-2"></i> Create New Private Lobby
             </button>
         </div>
     </div>
 
     <!-- WAITING ROOM SCREEN -->
-    <div id="waitingScreen" class="hidden max-w-md w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-5">
+    <div id="waitingScreen" class="hidden max-w-md w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
         <div class="flex justify-between items-center bg-slate-900/80 px-4 py-3 rounded-2xl border border-slate-700">
-            <span class="text-xs text-slate-400">Room Code: <span id="displayRoomId" class="font-mono text-yellow-300 font-bold">---</span></span>
-            <span class="text-xs bg-yellow-500/20 text-yellow-300 px-3 py-1 rounded-full font-bold animate-pulse">Lobby</span>
+            <span class="text-xs text-slate-400">Room Code: <span id="displayRoomId" class="font-mono text-yellow-300 font-bold text-base tracking-widest">----</span></span>
+            <span class="text-xs bg-yellow-500/20 text-yellow-300 px-3 py-1 rounded-full font-bold animate-pulse">Waiting...</span>
         </div>
 
         <div class="bg-slate-900/80 rounded-2xl p-4 border border-slate-700 text-left">
@@ -79,22 +88,6 @@
         <button id="startMatchBtn" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-2xl text-base retro-shadow transition transform active:scale-95">
             <i class="fa-solid fa-play mr-2"></i> Start Game Now
         </button>
-    </div>
-
-    <!-- LOBBY BROWSER MODAL -->
-    <div id="browserModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border-4 border-indigo-500 rounded-3xl p-5 max-w-md w-full space-y-4 shadow-2xl">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold text-yellow-300"><i class="fa-solid fa-earth-americas mr-2"></i> Public Lobbies</h2>
-                <button id="closeBrowserBtn" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div id="lobbiesListContainer" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                <div class="text-center text-slate-400 text-xs py-6">Searching for public lobbies...</div>
-            </div>
-            <button id="refreshLobbiesBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl text-sm retro-shadow transition">
-                <i class="fa-solid fa-rotate mr-1"></i> Refresh List
-            </button>
-        </div>
     </div>
 
     <!-- GAME PHASE 1: WRITE PROMPT -->
@@ -182,94 +175,50 @@
             document.getElementById(screenId).classList.remove('hidden');
         }
 
-        document.getElementById('quickJoinBtn').addEventListener('click', async () => {
+        function getUserName() {
             const nameInput = document.getElementById('playerNameInput').value.trim();
             if (nameInput) playerName = nameInput;
+        }
+
+        // Create a new room with a random 4-digit code
+        document.getElementById('createRoomBtn').addEventListener('click', async () => {
+            getUserName();
+            roomId = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit code e.g. "5821"
+
+            if (supabaseClient) {
+                await supabaseClient.from('rooms').insert([{ id: roomId, status: 'waiting', players_count: 1 }]);
+            }
 
             showScreen('waitingScreen');
-            if (supabaseClient) {
-                await joinMatchmaking();
-            } else {
-                alert("Supabase credentials missing or invalid.");
+            document.getElementById('displayRoomId').innerText = roomId;
+            setupRealtimeChannel();
+        });
+
+        // Join a room using the 4-digit code input
+        document.getElementById('joinCodeBtn').addEventListener('click', async () => {
+            getUserName();
+            const codeInput = document.getElementById('roomCodeInput').value.trim();
+            
+            if (codeInput.length !== 4) {
+                alert("Please enter a valid 4-digit room code.");
+                return;
             }
-        });
 
-        document.getElementById('openBrowserBtn').addEventListener('click', async () => {
-            const nameInput = document.getElementById('playerNameInput').value.trim();
-            if (nameInput) playerName = nameInput;
-            document.getElementById('browserModal').classList.remove('hidden');
-            await fetchPublicLobbies();
-        });
+            roomId = codeInput;
 
-        document.getElementById('closeBrowserBtn').addEventListener('click', () => {
-            document.getElementById('browserModal').classList.add('hidden');
-        });
-
-        document.getElementById('refreshLobbiesBtn').addEventListener('click', async () => {
-            await fetchPublicLobbies();
-        });
-
-        async function fetchPublicLobbies() {
-            const container = document.getElementById('lobbiesListContainer');
-            container.innerHTML = '<div class="text-center text-slate-400 text-xs py-4">Fetching active rooms...</div>';
-            try {
-                let { data: rooms, error } = await supabaseClient
-                    .from('rooms')
-                    .select('*')
-                    .eq('status', 'waiting')
-                    .limit(10);
-
-                if (error || !rooms || rooms.length === 0) {
-                    container.innerHTML = '<div class="text-center text-slate-400 text-xs py-4">No active rooms found. Create one using Quick Join!</div>';
+            if (supabaseClient) {
+                let { data, error } = await supabaseClient.from('rooms').select('*').eq('id', roomId).single();
+                if (error || !data) {
+                    alert("Room not found! Check the code or create a new room.");
                     return;
                 }
-
-                let html = '';
-                rooms.forEach(r => {
-                    html += `<div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
-                        <div>
-                            <div class="text-xs font-mono text-yellow-300 font-bold">Room: ${r.id}</div>
-                            <div class="text-[10px] text-slate-400">Players: ${r.players_count}/8</div>
-                        </div>
-                        <button onclick="joinSpecificRoom('${r.id}', ${r.players_count})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs retro-shadow transition">
-                            Join
-                        </button>
-                    </div>`;
-                });
-                container.innerHTML = html;
-            } catch (err) {
-                console.error(err);
-                container.innerHTML = '<div class="text-center text-red-400 text-xs py-4">Error loading public lobbies.</div>';
+                await supabaseClient.from('rooms').update({ players_count: data.players_count + 1 }).eq('id', roomId);
             }
-        }
 
-        async function joinSpecificRoom(targetRoomId, currentCount) {
-            document.getElementById('browserModal').classList.add('hidden');
             showScreen('waitingScreen');
-            roomId = targetRoomId;
-            document.getElementById('displayRoomId').innerText = roomId;
-            await supabaseClient.from('rooms').update({ players_count: currentCount + 1 }).eq('id', roomId);
-            setupRealtimeChannel();
-        }
-
-        async function joinMatchmaking() {
-            let { data: rooms, error } = await supabaseClient
-                .from('rooms')
-                .select('*')
-                .eq('status', 'waiting')
-                .limit(1);
-
-            if (error || !rooms || rooms.length === 0) {
-                roomId = 'gartic_' + Math.floor(Math.random() * 10000);
-                await supabaseClient.from('rooms').insert([{ id: roomId, status: 'waiting', players_count: 1 }]);
-            } else {
-                roomId = rooms[0].id;
-                await supabaseClient.from('rooms').update({ players_count: rooms[0].players_count + 1 }).eq('id', roomId);
-            }
-
             document.getElementById('displayRoomId').innerText = roomId;
             setupRealtimeChannel();
-        }
+        });
 
         function setupRealtimeChannel() {
             channel = supabaseClient.channel('room_' + roomId, {
