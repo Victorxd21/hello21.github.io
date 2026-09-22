@@ -54,7 +54,7 @@
 
         <div class="space-y-3">
             <button id="quickJoinBtn" class="w-full bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-2xl text-lg retro-shadow transition transform active:scale-95">
-                <i class="fa-solid fa-right-to-bracket mr-2"></i> Join / Create Lobby
+                <i class="fa-solid fa-right-to-bracket mr-2"></i> Quick Join / Create Lobby
             </button>
             <button id="openBrowserBtn" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-2.5 px-6 rounded-2xl text-sm border border-slate-600 transition">
                 <i class="fa-solid fa-list mr-2"></i> Browse Active Lobbies
@@ -148,7 +148,7 @@
     <!-- GAME PHASE 4: ALBUM / REEL REVEAL -->
     <div id="revealPhaseScreen" class="hidden max-w-lg w-full bg-slate-800/90 backdrop-blur-md border-4 border-yellow-500 rounded-3xl p-6 shadow-2xl text-center space-y-5">
         <div class="text-sm font-semibold text-yellow-400 uppercase tracking-wider">🎉 Story Reveal Reel 🎉</div>
-        <div id="storyReelContainer" class="bg-slate-900/80 p-4 rounded-2xl border border-slate-700 space-y-3 min-h-[200px] flex flex-col items-center justify-center">
+        <div id="storyReelContainer" class="bg-slate-900/80 p-4 rounded-2xl border border-slate-700 space-y-3 min-h-[200px] flex flex-col items-center justify-center max-h-72 overflow-y-auto">
             <!-- Dynamically populated step cards -->
         </div>
         <button onclick="location.reload()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl text-base retro-shadow transition">
@@ -172,10 +172,9 @@
         let roomId = null;
         let channel = null;
         let players = {};
-        let gameDeck = []; // Holds items passed around in telephone chain
+        let gameDeck = []; 
         let currentStepIndex = 0;
 
-        // UI navigation helpers
         function showScreen(screenId) {
             ['lobbyScreen', 'waitingScreen', 'writePhaseScreen', 'drawPhaseScreen', 'guessPhaseScreen', 'revealPhaseScreen'].forEach(id => {
                 document.getElementById(id).classList.add('hidden');
@@ -183,7 +182,6 @@
             document.getElementById(screenId).classList.remove('hidden');
         }
 
-        // --- LOBBY & ROOM MANAGEMENT ---
         document.getElementById('quickJoinBtn').addEventListener('click', async () => {
             const nameInput = document.getElementById('playerNameInput').value.trim();
             if (nameInput) playerName = nameInput;
@@ -315,11 +313,14 @@
             document.getElementById('waitingPlayersList').innerHTML = html;
         }
 
-        document.getElementById('startMatchBtn').addEventListener('click', () => {
-            // Build initial deck for players
+        document.getElementById('startMatchBtn').addEventListener('click', async () => {
             let playerList = Object.values(players);
             let deck = playerList.map(p => ({ ownerId: p.id, ownerName: p.name, type: 'prompt', content: '' }));
             
+            if (supabaseClient) {
+                await supabaseClient.from('rooms').update({ status: 'playing' }).eq('id', roomId);
+            }
+
             if (channel) {
                 channel.send({ type: 'broadcast', event: 'start_game', payload: { deck } });
             }
@@ -327,27 +328,22 @@
             beginGameSequence();
         });
 
-        // --- GAMEPLAY TELEPHONE LOGIC ---
         function beginGameSequence() {
             currentStepIndex = 0;
             showScreen('writePhaseScreen');
         }
 
-        // Step 1: Submit Initial Prompt
         document.getElementById('submitPromptBtn').addEventListener('click', () => {
             const val = document.getElementById('promptInput').value.trim();
             if (!val) return alert("Please type a prompt first!");
             
-            // Store own prompt in deck
             let myItem = gameDeck.find(item => item.ownerId === playerId);
             if (myItem) myItem.content = val;
 
             document.getElementById('writePhaseScreen').classList.add('hidden');
-            // Advance to drawing phase for the next item in rotation
             setupDrawingPhase();
         });
 
-        // Step 2: Drawing Setup & Canvas
         const paintCanvas = document.getElementById('paintCanvas');
         const pCtx = paintCanvas.getContext('2d');
         let isDrawing = false;
@@ -375,7 +371,6 @@
         function setupDrawingPhase() {
             showScreen('drawPhaseScreen');
             clearCanvas();
-            // Find prompt assigned to us based on rotation
             let playerIds = Object.keys(players);
             let myIdx = playerIds.indexOf(playerId);
             let targetIdx = (myIdx + currentStepIndex) % playerIds.length;
@@ -397,7 +392,6 @@
             setupGuessingPhase();
         });
 
-        // Step 3: Guessing Setup
         function setupGuessingPhase() {
             showScreen('guessPhaseScreen');
             let playerIds = Object.keys(players);
@@ -430,7 +424,6 @@
             }
         });
 
-        // Step 4: Reveal Reel
         function showRevealPhase() {
             showScreen('revealPhaseScreen');
             let container = document.getElementById('storyReelContainer');
