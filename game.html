@@ -1,1 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chained Cats: Only Up! Multiplayer</title>
+    <!-- Tailwind CSS for modern UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka for playful cat game vibe -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            user-select: none;
+            overflow: hidden;
+            background: #0f172a;
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+        .retro-shadow {
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.3);
+        }
+        .retro-shadow:active {
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+            transform: translateY(4px);
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="text-white h-screen w-screen flex flex-col justify-between relative">
 
+    <!-- LOBBY SCREEN -->
+    <div id="lobbyScreen" class="absolute inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 p-4">
+        <div class="max-w-md w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-6">
+            <div class="inline-block bg-indigo-600/30 p-3 rounded-full border-2 border-indigo-400 animate-float">
+                <i class="fa-solid fa-cat text-5xl text-yellow-400"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-400">CHAINED CATS: ONLY UP!</h1>
+                <p class="text-sm text-slate-300 mt-1">Climb together, fail together! 4 players max.</p>
+            </div>
+
+            <!-- Player Setup -->
+            <div class="space-y-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-700">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Enter Your Cat Name</label>
+                <input type="text" id="playerNameInput" maxlength="12" placeholder="Meowster" class="w-full bg-slate-800 border-2 border-slate-600 rounded-xl px-4 py-2 text-center text-lg font-bold text-yellow-300 focus:outline-none focus:border-indigo-500 transition">
+                
+                <div class="pt-2">
+                    <span class="text-xs text-slate-400 block mb-1">Your Assigned Color:</span>
+                    <div id="assignedColorPreview" class="w-12 h-12 rounded-full mx-auto border-4 border-white shadow-md transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <!-- Lobby Status Box -->
+            <div class="bg-slate-900/80 rounded-2xl p-4 border border-slate-700 text-left">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-semibold text-slate-300">Lobby Players (<span id="playerCount">0</span>/4)</span>
+                    <span id="matchStatus" class="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded-full font-bold animate-pulse">Waiting...</span>
+                </div>
+                <div id="playerListContainer" class="space-y-2 max-h-32 overflow-y-auto pr-1">
+                    <!-- Dynamically populated players -->
+                </div>
+            </div>
+
+            <button id="joinBtn" class="w-full bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-bold py-3.5 px-6 rounded-2xl text-lg retro-shadow transition transform active:scale-95">
+                <i class="fa-solid fa-right-to-bracket mr-2"></i> Find & Join Lobby
+            </button>
+        </div>
+    </div>
+
+    <!-- IN-GAME HUD -->
+    <div id="gameHud" class="hidden absolute top-0 left-0 w-full p-4 z-30 flex justify-between items-start pointer-events-none">
+        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-2xl p-4 shadow-xl pointer-events-auto">
+            <div class="text-xs text-slate-400 uppercase tracking-wider">Height Climbed</div>
+            <div class="text-2xl font-black text-yellow-400"><span id="hudHeight">0</span>m</div>
+            <div class="text-xs text-indigo-300 mt-1">Room: <span id="hudRoomCode" class="font-mono">---</span></div>
+        </div>
+
+        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-2xl p-4 shadow-xl text-right pointer-events-auto">
+            <div class="text-xs text-slate-400 uppercase tracking-wider">Controls</div>
+            <div class="text-sm text-slate-200 mt-1">A/D or Arrows to Move</div>
+            <div class="text-sm text-slate-200">Space or W to Jump / Climb</div>
+        </div>
+    </div>
+
+    <!-- GAME OVER / WIN MODAL -->
+    <div id="modalOverlay" class="hidden absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border-4 border-yellow-500 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl animate-float">
+            <div id="modalIcon" class="text-5xl text-yellow-400"><i class="fa-solid fa-trophy"></i></div>
+            <h2 id="modalTitle" class="text-2xl font-bold text-white">Victory!</h2>
+            <p id="modalDesc" class="text-slate-300 text-sm">You reached the top of the tower!</p>
+            <button onclick="location.reload()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl retro-shadow transition">Play Again</button>
+        </div>
+    </div>
+
+    <!-- GAME CANVAS -->
+    <canvas id="gameCanvas" class="w-full h-full bg-gradient-to-t from-slate-900 via-indigo-950 to-blue-950"></canvas>
+
+    <script>
+        // Supabase Configuration provided
+        const SUPABASE_URL = 'https://degilckgjfdnekszsbry.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_ym_oqKIyxwk7ixxCvwNCmA_w2VtnpdP';
+        let supabaseClient = null;
+        try {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch(e) {
+            console.error("Supabase init error:", e);
+        }
+
+        // Unique color pool for 4 players
+        const PLAYER_COLORS = [
+            { name: "Sunny Orange", hex: "#f97316", tail: "#c2410c" },
+            { name: "Royal Blue", hex: "#3b82f6", tail: "#1d4ed8" },
+            { name: "Neon Pink", hex: "#ec4899", tail: "#be185d" },
+            { name: "Emerald Green", hex: "#10b981", tail: "#047857" }
+        ];
+
+        let assignedColorObj = PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
+        document.getElementById('assignedColorPreview').style.backgroundColor = assignedColorObj.hex;
+
+        // Game State Variables
+        let gameState = 'LOBBY'; // LOBBY, WAITING, PLAYING, END
+        let roomId = null;
+        let playerId = 'cat_' + Math.random().toString(36.substring(2, 9));
+        let playerName = 'Meowster';
+        let players = {}; // map of playerId -> player state
+        let platforms = [];
+        let cameraY = 0;
+        let maxWorldHeight = 8000; // Tower height in pixels
+
+        // Physics constants
+        const GRAVITY = 0.5;
+        const FRICTION = 0.82;
+        const JUMP_FORCE = -12;
+        const MOVE_SPEED = 0.8;
+        const MAX_SPEED = 6;
+        const ROPE_LENGTH = 120; // Maximum distance between linked cats
+
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Keyboard tracking
+        const keys = {};
+        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        // Generate procedural Only Up platforms
+        function generatePlatforms() {
+            platforms = [];
+            // Starting ground
+            platforms.push({ x: canvas.width / 2 - 150, y: maxWorldHeight - 100, w: 300, h: 40, type: 'normal' });
+
+            let currentY = maxWorldHeight - 250;
+            let currentX = canvas.width / 2;
+
+            while (currentY > 200) {
+                let w = Math.max(80, 180 - (maxWorldHeight - currentY) / 100);
+                let offset = (Math.random() - 0.5) * Math.min(canvas.width * 0.7, 600);
+                currentX = Math.max(50, Math.min(canvas.width - w - 50, canvas.width / 2 + offset));
+                
+                let type = 'normal';
+                let rand = Math.random();
+                if (rand < 0.15) type = 'bouncy';
+                else if (rand < 0.25) type = 'moving';
+
+                platforms.push({
+                    x: currentX,
+                    y: currentY,
+                    w: w,
+                    h: 22,
+                    type: type,
+                    dir: Math.random() > 0.5 ? 1 : -1,
+                    speed: 1.5
+                });
+
+                currentY -= Math.floor(Math.random() * 90) + 75;
+            }
+
+            // Summit platform
+            platforms.push({ x: canvas.width / 2 - 120, y: 100, w: 240, h: 40, type: 'win' });
+        }
+        generatePlatforms();
+
+        // Local player object
+        let myCat = {
+            id: playerId,
+            name: 'Cat',
+            x: canvas.width / 2,
+            y: maxWorldHeight - 150,
+            vx: 0,
+            vy: 0,
+            radius: 18,
+            grounded: false,
+            color: assignedColorObj.hex,
+            tailColor: assignedColorObj.tail,
+            height: 0
+        };
+
+        // Lobby Join Action
+        document.getElementById('joinBtn').addEventListener('click', async () => {
+            const nameInput = document.getElementById('playerNameInput').value.trim();
+            if (nameInput) playerName = nameInput;
+            myCat.name = playerName;
+
+            document.getElementById('joinBtn').disabled = true;
+            document.getElementById('joinBtn').innerHTML = '<i class="fa-solid fa-spinner animate-spin mr-2"></i> Connecting to Lobby...';
+
+            if (supabaseClient) {
+                await joinMatchmaking();
+            } else {
+                // Fallback singleplayer with simulated bots if Supabase is offline
+                startLocalGameMode();
+            }
+        });
+
+        // Supabase Matchmaking & Rooms Logic
+        let channel = null;
+        async function joinMatchmaking() {
+            try {
+                // Find or create an open room
+                let { data: rooms, error } = await supabaseClient
+                    .from('rooms')
+                    .select('*')
+                    .eq('status', 'waiting')
+                    .limit(1);
+
+                if (error || !rooms || rooms.length === 0) {
+                    // Create new room
+                    roomId = 'room_' + Math.floor(Math.random() * 10000);
+                    let { error: createErr } = await supabaseClient.from('rooms').insert([{
+                        id: roomId,
+                        status: 'waiting',
+                        players_count: 1
+                    }]);
+                    if (createErr) console.error(createErr);
+                } else {
+                    roomId = rooms[0].id;
+                    await supabaseClient.from('rooms').update({ players_count: rooms[0].players_count + 1 }).eq('id', roomId);
+                }
+
+                document.getElementById('hudRoomCode').innerText = roomId;
+
+                // Subscribe to Realtime channel
+                channel = supabaseClient.channel('room_' + roomId, {
+                    config: { broadcast: { self: false } }
+                });
+
+                channel.on('broadcast', { event: 'player_sync' }, payload => {
+                    players[payload.payload.id] = payload.payload;
+                    updateLobbyUI();
+                });
+
+                channel.on('broadcast', { event: 'start_game' }, () => {
+                    if (gameState === 'WAITING') {
+                        startGameSession();
+                    }
+                });
+
+                await channel.subscribe(async (status) => {
+                    if (status === 'SUBSCRIBED') {
+                        gameState = 'WAITING';
+                        document.getElementById('matchStatus').innerText = "Waiting for players...";
+                        
+                        // Add self to players
+                        players[playerId] = myCat;
+                        
+                        // Periodically broadcast presence
+                        setInterval(() => {
+                            if (channel && gameState !== 'LOBBY') {
+                                channel.send({
+                                    type: 'broadcast',
+                                    event: 'player_sync',
+                                    payload: myCat
+                                });
+                            }
+                        }, 100);
+
+                        checkLobbyReady();
+                    }
+                });
+
+            } catch (err) {
+                console.error("Matchmaking error, falling back to local mode:", err);
+                startLocalGameMode();
+            }
+        }
+
+        function checkLobbyReady() {
+            let activeCount = Object.keys(players).length;
+            document.getElementById('playerCount').innerText = activeCount;
+            
+            // Render player list in lobby
+            let listHtml = '';
+            for (let id in players) {
+                let p = players[id];
+                listHtml += `<div class="flex items-center justify-between bg-slate-800 p-2 rounded-xl border border-slate-700">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-4 h-4 rounded-full" style="background-color: ${p.color}"></div>
+                        <span class="font-bold text-sm text-white">${p.name}</span>
+                    </div>
+                    <span class="text-xs text-green-400">Ready</span>
+                </div>`;
+            }
+            document.getElementById('playerListContainer').innerHTML = listHtml;
+
+            // If 4 players or after 5 seconds waiting with at least 1 player, start game
+            if (activeCount >= 4 || window.matchForceStarted) {
+                triggerGameStart();
+            } else {
+                setTimeout(checkLobbyReady, 1000);
+            }
+        }
+
+        // Force start timer after 6 seconds if waiting
+        setTimeout(() => {
+            if (gameState === 'WAITING') {
+                window.matchForceStarted = true;
+            }
+        }, 6000);
+
+        function triggerGameStart() {
+            if (gameState === 'PLAYING') return;
+            if (channel) {
+                channel.send({ type: 'broadcast', event: 'start_game', payload: {} });
+            }
+            startGameSession();
+        }
+
+        function startLocalGameMode() {
+            roomId = 'SOLO_ROOM';
+            document.getElementById('hudRoomCode').innerText = roomId;
+            players[playerId] = myCat;
+            
+            // Add 2 cute AI bot cats with other colors
+            let botColors = PLAYER_COLORS.filter(c => c.hex !== assignedColorObj.hex);
+            for (let i = 0; i < 2; i++) {
+                let botId = 'bot_' + i;
+                players[botId] = {
+                    id: botId,
+                    name: ['Whiskers', 'Shadow', 'Paws'][i],
+                    x: canvas.width / 2 + (i === 0 ? -40 : 40),
+                    y: maxWorldHeight - 150,
+                    vx: 0,
+                    vy: 0,
+                    radius: 18,
+                    grounded: false,
+                    color: botColors[i].hex,
+                    tailColor: botColors[i].tail,
+                    height: 0,
+                    isBot: true
+                };
+            }
+            startGameSession();
+        }
+
+        function startGameSession() {
+            gameState = 'PLAYING';
+            document.getElementById('lobbyScreen').classList.add('hidden');
+            document.getElementById('gameHud').classList.remove('hidden');
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updatePhysics() {
+            // Player movement controls
+            if (keys['ArrowLeft'] || keys['KeyA']) {
+                myCat.vx = Math.max(-MAX_SPEED, myCat.vx - MOVE_SPEED);
+            } else if (keys['ArrowRight'] || keys['KeyD']) {
+                myCat.vx = Math.min(MAX_SPEED, myCat.vx + MOVE_SPEED);
+            } else {
+                myCat.vx *= FRICTION;
+            }
+
+            // Jumping / Climbing
+            if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW']) && myCat.grounded) {
+                myCat.vy = JUMP_FORCE;
+                myCat.grounded = false;
+            }
+
+            // Apply gravity
+            myCat.vy += GRAVITY;
+
+            // Update position
+            myCat.x += myCat.vx;
+            myCat.y += myCat.vy;
+
+            // Screen boundaries
+            if (myCat.x < myCat.radius) { myCat.x = myCat.radius; myCat.vx *= -0.5; }
+            if (myCat.x > canvas.width - myCat.radius) { myCat.x = canvas.width - myCat.radius; myCat.vx *= -0.5; }
+
+            // Platform collision
+            myCat.grounded = false;
+            for (let p of platforms) {
+                // Moving platform update
+                if (p.type === 'moving') {
+                    p.x += p.dir * p.speed;
+                    if (p.x < 30 || p.x + p.w > canvas.width - 30) p.dir *= -1;
+                }
+
+                // AABB Collision with top of platform
+                if (
+                    myCat.x + myCat.radius > p.x &&
+                    myCat.x - myCat.radius < p.x + p.w &&
+                    myCat.y + myCat.radius >= p.y &&
+                    myCat.y - myCat.radius <= p.y + p.h &&
+                    myCat.vy > 0
+                ) {
+                    myCat.y = p.y - myCat.radius;
+                    if (p.type === 'bouncy') {
+                        myCat.vy = JUMP_FORCE * 1.5;
+                    } else {
+                        myCat.vy = 0;
+                        myCat.grounded = true;
+                    }
+                    if (p.type === 'win') {
+                        showVictoryModal();
+                    }
+                }
+            }
+
+            // Calculate height climbed (0m at bottom, higher as y decreases)
+            myCat.height = Math.max(0, Math.floor((maxWorldHeight - 150 - myCat.y) / 10));
+            document.getElementById('hudHeight').innerText = myCat.height;
+
+            // Camera follow local player smoothly
+            let targetCameraY = myCat.y - canvas.height * 0.6;
+            cameraY += (targetCameraY - cameraY) * 0.1;
+            cameraY = Math.max(0, Math.min(maxWorldHeight - canvas.height, cameraY));
+
+            // Bot behavior in solo mode
+            for (let id in players) {
+                let p = players[id];
+                if (p.isBot) {
+                    p.vy += GRAVITY;
+                    p.x += Math.sin(Date.now() / 400) * 2;
+                    p.y += p.vy;
+                    // Platform collision for bots
+                    for (let plat of platforms) {
+                        if (p.x > plat.x && p.x < plat.x + plat.w && p.y + p.radius >= plat.y && p.y - p.radius <= plat.y + plat.h && p.vy > 0) {
+                            p.y = plat.y - p.radius;
+                            p.vy = JUMP_FORCE * (0.8 + Math.random() * 0.4);
+                        }
+                    }
+                }
+            }
+
+            // Chained Physics: Rope tension connecting cats together in sequence
+            let playerList = Object.values(players);
+            for (let i = 0; i < playerList.length - 1; i++) {
+                let p1 = playerList[i];
+                let p2 = playerList[i+1];
+
+                let dx = p2.x - p1.x;
+                let dy = p2.y - p1.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist > ROPE_LENGTH) {
+                    let angle = Math.atan2(dy, dx);
+                    let pullForce = (dist - ROPE_LENGTH) * 0.1;
+                    
+                    if (p1.id === playerId) {
+                        myCat.vx += Math.cos(angle) * pullForce * 0.5;
+                        myCat.vy += Math.sin(angle) * pullForce * 0.5;
+                    } else if (p2.id === playerId) {
+                        myCat.vx -= Math.cos(angle) * pullForce * 0.5;
+                        myCat.vy -= Math.sin(angle) * pullForce * 0.5;
+                    }
+                }
+            }
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(0, -cameraY);
+
+            // Draw Background atmospheric clouds / stars
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            for (let i = 0; i < 15; i++) {
+                let cy = (i * 600) % maxWorldHeight;
+                ctx.beginPath();
+                ctx.arc(canvas.width * (0.2 + (i % 3) * 0.3), cy, 120, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw Platforms
+            for (let p of platforms) {
+                if (p.type === 'win') {
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.shadowColor = '#fbbf24';
+                    ctx.shadowBlur = 20;
+                } else if (p.type === 'bouncy') {
+                    ctx.fillStyle = '#ec4899';
+                    ctx.shadowColor = '#f472b6';
+                    ctx.shadowBlur = 10;
+                } else if (p.type === 'moving') {
+                    ctx.fillStyle = '#6366f1';
+                    ctx.shadowBlur = 0;
+                } else {
+                    ctx.fillStyle = '#334155';
+                    ctx.shadowBlur = 0;
+                }
+
+                ctx.beginPath();
+                ctx.roundRect(p.x, p.y, p.w, p.h, 10);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Platform top lip
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.fillRect(p.x, p.y, p.w, 4);
+            }
+
+            // Draw Ropes connecting players
+            let playerList = Object.values(players);
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            for (let i = 0; i < playerList.length; i++) {
+                let p = playerList[i];
+                if (i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            }
+            ctx.stroke();
+
+            // Draw Players (Cats)
+            for (let id in players) {
+                let p = (id === playerId) ? myCat : players[id];
+                
+                ctx.save();
+                ctx.translate(p.x, p.y);
+
+                // Cat Body
+                ctx.fillStyle = p.color || '#f97316';
+                ctx.beginPath();
+                ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Cat Ears
+                ctx.beginPath();
+                ctx.moveTo(-14, -10);
+                ctx.lineTo(-22, -26);
+                ctx.lineTo(-6, -18);
+                ctx.closePath();
+                ctx.moveTo(14, -10);
+                ctx.lineTo(22, -26);
+                ctx.lineTo(6, -18);
+                ctx.closePath();
+                ctx.fillStyle = p.color || '#f97316';
+                ctx.fill();
+
+                // Cat Eyes
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(-6, -3, 3, 0, Math.PI * 2);
+                ctx.arc(6, -3, 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Cat Whiskers & Mouth
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-12, 3); ctx.lineTo(-4, 2);
+                ctx.moveTo(12, 3); ctx.lineTo(4, 2);
+                ctx.stroke();
+
+                // Name Tag above cat
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+                ctx.fillRect(-35, -46, 70, 20);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 11px Fredoka';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.name || 'Cat', 0, -32);
+
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        function showVictoryModal() {
+            gameState = 'END';
+            document.getElementById('modalOverlay').classList.remove('hidden');
+        }
+
+        // Main Game Loop
+        function gameLoop() {
+            if (gameState === 'PLAYING') {
+                updatePhysics();
+                drawGame();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+    </script>
+</body>
+</html>
