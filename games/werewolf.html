@@ -307,6 +307,31 @@
     #adminToast { position:absolute; left:50%; top:18px; transform:translateX(-50%) translateY(-12px); z-index:90; opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease; padding:10px 14px; border-radius:12px; background:rgba(5,10,8,.94); border:1px solid rgba(239,68,68,.22); color:#fff; font-size:12px; font-weight:850; box-shadow:0 16px 55px rgba(0,0,0,.35); }
     #adminToast.show { opacity:1; transform:translateX(-50%) translateY(0); }
     @media (max-width:760px) { .admin-grid { grid-template-columns:1fr; } .admin-buttons { grid-template-columns:1fr; } }
+    #debugToggleBtn {
+      position:absolute; left:18px; top:18px; z-index:70; pointer-events:auto;
+      border:1px solid rgba(103,232,249,.20); background:rgba(3,10,12,.82); color:#a5f3fc;
+      border-radius:10px; padding:8px 10px; font-size:10px; font-weight:900; letter-spacing:.08em;
+      text-transform:uppercase; backdrop-filter:blur(9px); box-shadow:0 12px 35px rgba(0,0,0,.25);
+    }
+    #debugPanel {
+      position:absolute; left:18px; top:58px; width:min(560px,calc(100vw - 36px)); height:min(360px,calc(100vh - 90px));
+      z-index:75; display:none; flex-direction:column; pointer-events:auto;
+      border:1px solid rgba(103,232,249,.18); border-radius:15px; background:rgba(3,10,12,.96);
+      box-shadow:0 25px 80px rgba(0,0,0,.55); backdrop-filter:blur(12px); overflow:hidden;
+    }
+    #debugPanel.show { display:flex; }
+    .debug-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 12px; border-bottom:1px solid rgba(255,255,255,.07); }
+    .debug-title { font-size:11px; font-weight:950; letter-spacing:.12em; text-transform:uppercase; color:#a5f3fc; }
+    .debug-actions { display:flex; gap:6px; }
+    .debug-actions button { border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:5px 8px; background:rgba(255,255,255,.05); color:#d8f8fb; font-size:9px; font-weight:900; }
+    #debugLog { flex:1; overflow:auto; padding:10px; font:10px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace; user-select:text; -webkit-user-select:text; white-space:pre-wrap; word-break:break-word; }
+    .debug-line { padding:3px 0; border-bottom:1px solid rgba(255,255,255,.025); }
+    .debug-time { color:#647b82; }
+    .debug-info { color:#c7dfe3; }
+    .debug-ok { color:#86efac; }
+    .debug-warn { color:#fde68a; }
+    .debug-error { color:#fca5a5; }
+    .debug-net { color:#67e8f9; }
 
     @media (max-width: 760px) {
       .panel { padding: 24px; }
@@ -402,6 +427,21 @@
         <canvas id="bigMap"></canvas>
         <div class="map-caption">Press M to close • Only your location is shown</div>
       </div>
+    </div>
+
+    <button id="debugToggleBtn" class="interactive">DEBUG LOG</button>
+    <div id="debugPanel">
+      <div class="debug-head">
+        <div>
+          <div class="debug-title">Global Lobby Debug</div>
+          <div id="debugConnectionText" class="admin-muted">Waiting for Supabase...</div>
+        </div>
+        <div class="debug-actions">
+          <button id="debugClearBtn">CLEAR</button>
+          <button id="debugCloseBtn">CLOSE</button>
+        </div>
+      </div>
+      <div id="debugLog"></div>
     </div>
 
     <div id="adminToast"></div>
@@ -587,6 +627,12 @@
   const gameOverTitle = document.getElementById('gameOverTitle');
   const gameOverDesc = document.getElementById('gameOverDesc');
   const mapOverlay = document.getElementById('mapOverlay');
+  const debugToggleBtn = document.getElementById('debugToggleBtn');
+  const debugPanel = document.getElementById('debugPanel');
+  const debugLog = document.getElementById('debugLog');
+  const debugConnectionText = document.getElementById('debugConnectionText');
+  const debugClearBtn = document.getElementById('debugClearBtn');
+  const debugCloseBtn = document.getElementById('debugCloseBtn');
 
   const adminToast = document.getElementById('adminToast');
   const adminAuth = document.getElementById('adminAuth');
@@ -610,6 +656,9 @@
   const adminAnnounceBtn = document.getElementById('adminAnnounceBtn');
   const adminRevealTimerBtn = document.getElementById('adminRevealTimerBtn');
   const adminLobbyResetBtn = document.getElementById('adminLobbyResetBtn');
+
+  debugLogMessage('Global lobby page loaded.');
+  debugLogMessage(`Configured for ${GAME.minPlayers} minimum / ${GAME.maxLobbyPlayers} maximum players.`);
 
   // ------------------------------------------------------------
   // STATE
@@ -662,71 +711,35 @@
   };
 
   // ------------------------------------------------------------
-  // NETWORK HELPERS
+  // NETWORK / DEBUG HELPERS
   // ------------------------------------------------------------
   let channel = null;
+  let connectPromise = null;
 
-  function setConnectionStatus(kind, text) {
-    statusDot.classList.remove('ok', 'bad');
-    if (kind === 'ok') statusDot.classList.add('ok');
-    if (kind === 'bad') statusDot.classList.add('bad');
-    statusLabel.textContent = text;
+  function debugLogMessage(message, level = 'info') {
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour12: false });
+    const line = document.createElement('div');
+    line.className = `debug-line debug-${level}`;
+    line.innerHTML = `<span class="debug-time">[${time}]</span> ${escapeHtml(String(message))}`;
+    debugLog.appendChild(line);
+    while (debugLog.children.length > 300) debugLog.removeChild(debugLog.firstChild);
+    debugLog.scrollTop = debugLog.scrollHeight;
+    debugConnectionText.textContent = state.connected ? `Supabase: CONNECTED • Players: ${state.players.size}` : `Supabase: ${statusLabel.textContent}`;
+    console.log(`[GlobalLobby:${level}] ${message}`);
   }
 
-  async function connectGlobal() {
-    if (channel) return;
-    setConnectionStatus('busy', 'Connecting to global lobby...');
-
-    channel = supabase.channel(GAME.channelName, {
-      config: {
-        presence: { key: state.playerId },
-        broadcast: { ack: false }
-      }
-    });
-
-    channel
-      .on('presence', { event: 'sync' }, handlePresenceSync)
-      .on('presence', { event: 'join' }, handlePresenceSync)
-      .on('presence', { event: 'leave' }, handlePresenceSync)
-      .on('broadcast', { event: 'lobby_countdown' }, onLobbyCountdown)
-      .on('broadcast', { event: 'round_start' }, onRoundStart)
-      .on('broadcast', { event: 'player_move' }, onPlayerMove)
-      .on('broadcast', { event: 'custard_collect' }, onCustardCollect)
-      .on('broadcast', { event: 'player_killed' }, onPlayerKilled)
-      .on('broadcast', { event: 'round_end' }, onRoundEnd)
-      .on('broadcast', { event: 'request_state' }, onStateRequest)
-      .on('broadcast', { event: 'state_snapshot' }, onStateSnapshot)
-      .on('broadcast', { event: 'admin_command' }, onAdminCommand)
-      .on('broadcast', { event: 'admin_announcement' }, onAdminAnnouncement)
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          state.connected = true;
-          setConnectionStatus('ok', 'Connected to global lobby');
-          await trackPresence('lobby');
-          const currentRoster = getPresencePlayers();
-          if (currentRoster.length > GAME.maxLobbyPlayers) {
-            try { await channel.untrack(); } catch {}
-            await supabase.removeChannel(channel);
-            channel = null;
-            state.connected = false;
-            state.inLobby = false;
-            setConnectionStatus('bad', 'Global lobby is full (15/15)');
-            playBtn.disabled = false;
-            playBtn.textContent = 'PLAY • JOIN GLOBAL LOBBY';
-            showAdminToast('The global lobby is full — 15/15 players.');
-            return;
-          }
-          state.inLobby = true;
-          showScreen('lobby');
-          requestStateSync();
-          return;
-        }
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          state.connected = false;
-          setConnectionStatus('bad', 'Connection lost — retrying...');
-        }
-      });
+  function escapeHtml(value) {
+    return value.replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
   }
+
+  debugToggleBtn.addEventListener('click', () => debugPanel.classList.toggle('show'));
+  debugCloseBtn.addEventListener('click', () => debugPanel.classList.remove('show'));
+  debugClearBtn.addEventListener('click', () => { debugLog.innerHTML = ''; debugLogMessage('Debug log cleared.'); });
+
+  // Keep browser-level errors visible inside the debug panel.
+  window.addEventListener('error', e => debugLogMessage(`JS ERROR: ${e.message} @ ${e.filename || 'page'}:${e.lineno || '?'}`, 'error'));
+  window.addEventListener('unhandledrejection', e => debugLogMessage(`PROMISE ERROR: ${e.reason?.message || e.reason || 'unknown rejection'}`, 'error'));
 
   async function trackPresence(mode = state.inGame ? 'game' : 'lobby') {
     if (!channel) return;
@@ -744,17 +757,17 @@
       joinedAt: state.joinedAt
     };
     state.lastPresenceData = payload;
-    try { await channel.track(payload); } catch (err) { console.warn('Presence track failed:', err); }
+    try { await channel.track(payload); debugLogMessage(`Presence updated: mode=${mode}, name=${payload.name}, role=${payload.role}`, 'net'); } catch (err) { debugLogMessage(`Presence track failed: ${err?.message || err}`, 'error'); throw err; }
   }
 
   function requestStateSync() {
     if (!channel) return;
-    channel.send({ type: 'broadcast', event: 'request_state', payload: { from: state.playerId } }).catch(() => {});
+    channel.send({ type: 'broadcast', event: 'request_state', payload: { from: state.playerId } }).then(() => debugLogMessage('Broadcast sent: request_state', 'net')).catch(err => debugLogMessage(`Broadcast request_state failed: ${err?.message || err}`, 'error'));
   }
 
   function broadcast(event, payload) {
     if (!channel) return;
-    channel.send({ type: 'broadcast', event, payload }).catch(err => console.warn('Broadcast failed:', err));
+    channel.send({ type: 'broadcast', event, payload }).then(() => debugLogMessage(`Broadcast sent: ${event}`, 'net')).catch(err => debugLogMessage(`Broadcast ${event} failed: ${err?.message || err}`, 'error'));
   }
 
   // ------------------------------------------------------------
@@ -774,6 +787,7 @@
 
   function handlePresenceSync() {
     const rows = getPresencePlayers();
+    debugLogMessage(`Presence roster sync: ${rows.length} player(s).`, 'net');
     state.players.clear();
     for (const p of rows) state.players.set(p.id, p);
 
@@ -1354,6 +1368,22 @@
   // ------------------------------------------------------------
   window.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
+    const target = e.target;
+    const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target?.isContentEditable;
+
+    // Never let game shortcuts steal letters from text/password inputs.
+    if (isTyping) {
+      if (e.key === 'Escape' && (adminAuth.classList.contains('show') || adminConsole.classList.contains('show'))) {
+        closeAdminModals();
+      }
+      return;
+    }
+
+    if (e.key === 'F8') {
+      e.preventDefault();
+      debugPanel.classList.toggle('show');
+      return;
+    }
 
     if (e.key === '`') {
       e.preventDefault();
@@ -1402,7 +1432,11 @@
     state.keys.add(key);
   });
 
-  window.addEventListener('keyup', (e) => state.keys.delete(e.key.toLowerCase()));
+  window.addEventListener('keyup', (e) => {
+    const target = e.target;
+    const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target?.isContentEditable;
+    if (!isTyping) state.keys.delete(e.key.toLowerCase());
+  });
   window.addEventListener('blur', () => state.keys.clear());
 
   // ------------------------------------------------------------
@@ -1933,9 +1967,17 @@
   playBtn.addEventListener('click', async () => {
     const safeName = nameInput.value.trim().replace(/[^a-zA-Z0-9 _\-]/g, '').slice(0, 18);
     state.playerName = safeName || `Player_${Math.floor(Math.random() * 9999)}`;
+    debugLogMessage(`Join requested for player: ${state.playerName}`);
     playBtn.disabled = true;
     playBtn.textContent = 'CONNECTING...';
-    await connectGlobal();
+    const ok = await connectGlobal();
+    if (!ok) {
+      debugLogMessage('Join failed. You can press PLAY again to retry.', 'error');
+      playBtn.disabled = false;
+      playBtn.textContent = 'RETRY GLOBAL LOBBY';
+      showScreen('menu');
+      return;
+    }
     playBtn.disabled = false;
     playBtn.textContent = 'PLAY • JOIN GLOBAL LOBBY';
   });
