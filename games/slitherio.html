@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slither.io: Global Server with Skins, Minimap, Smooth Steering & Admin Panel</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            user-select: none;
+            background: #0f172a;
+            overflow: hidden;
+        }
+        .retro-shadow {
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.3);
+        }
+        .retro-shadow:active {
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+            transform: translateY(4px);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="text-white h-screen w-screen flex flex-col items-center justify-center bg-slate-950">
+
+    <!-- START & CUSTOMIZATION MENU SCREEN -->
+    <div id="menuScreen" class="absolute z-20 max-w-md w-full bg-slate-900/95 backdrop-blur-md border-4 border-emerald-500 rounded-3xl p-6 shadow-2xl text-center space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="inline-block bg-emerald-600/30 p-3 rounded-full border-2 border-emerald-400 animate-bounce">
+            <i class="fa-solid fa-worm text-4xl text-emerald-400"></i>
+        </div>
+        <div>
+            <h1 class="text-2xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-400">SLITHER GLOBAL</h1>
+            <p class="text-[11px] text-slate-300 mt-0.5">Customize your worm, pick a skin, and battle online!</p>
+        </div>
+
+        <!-- LIVE PREVIEW CONTAINER -->
+        <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-3 flex flex-col items-center justify-center relative overflow-hidden h-28">
+            <div class="absolute top-2 left-3 text-[10px] uppercase font-bold text-slate-400 tracking-wider">Live Preview</div>
+            <canvas id="previewCanvas" width="200" height="70" class="mt-4"></canvas>
+        </div>
+
+        <div class="space-y-3 bg-slate-800/60 p-4 rounded-2xl border border-slate-700 text-left">
+            <div>
+                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Your Worm Name</label>
+                <input type="text" id="playerNameInput" maxlength="12" value="SlitherPro" class="w-full bg-slate-900 border-2 border-slate-600 rounded-xl px-4 py-2 text-center text-md font-bold text-emerald-300 focus:outline-none focus:border-emerald-500 transition">
+            </div>
+
+            <!-- Color Picker & Presets -->
+            <div>
+                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Body Color</label>
+                <div class="flex items-center space-x-2">
+                    <input type="color" id="playerColorPicker" value="#10b981" class="w-10 h-10 rounded-xl bg-slate-900 border-2 border-slate-600 cursor-pointer p-1">
+                    <div class="flex space-x-1.5 flex-1 justify-around">
+                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-emerald-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#10b981"></button>
+                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-blue-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#3b82f6"></button>
+                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-purple-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#a855f7"></button>
+                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-amber-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#f59e0b"></button>
+                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-rose-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#f43f5e"></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skin Selector -->
+            <div>
+                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Select Head Skin (Ensure /heads/ folder exists)</label>
+                <div id="skinSelectorGrid" class="grid grid-cols-4 gap-2 max-h-28 overflow-y-auto pr-1"></div>
+            </div>
+        </div>
+
+        <button id="playBtn" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-2xl text-lg retro-shadow transition transform active:scale-95">
+            <i class="fa-solid fa-play mr-2"></i> Play Live
+        </button>
+        <div class="text-[10px] text-slate-500">Press `~` (tilde) in-game to open Admin Console</div>
+    </div>
+
+    <!-- ADMIN LOGIN MODAL -->
+    <div id="adminLoginModal" class="hidden absolute z-50 max-w-xs w-full bg-slate-900 border-2 border-amber-500 rounded-2xl p-5 shadow-2xl text-center space-y-3">
+        <h3 class="text-md font-bold text-amber-400"><i class="fa-solid fa-lock mr-1"></i> Admin Login</h3>
+        <p class="text-[11px] text-slate-400">Enter admin password to access server controls.</p>
+        <input type="password" id="adminPasswordInput" placeholder="Password" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-center text-sm text-white focus:outline-none focus:border-amber-500">
+        <div class="flex space-x-2">
+            <button id="adminLoginSubmit" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition">Login</button>
+            <button id="adminLoginClose" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs transition">Cancel</button>
+        </div>
+    </div>
+
+    <!-- ADMIN CONSOLE OVERLAY -->
+    <div id="adminConsole" class="hidden absolute z-40 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 rounded-2xl p-5 shadow-2xl text-left space-y-3">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+            <h3 class="text-sm font-bold text-amber-400"><i class="fa-solid fa-shield-halved mr-1"></i> Server Admin Console</h3>
+            <button id="closeAdminBtn" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="space-y-2 text-xs text-slate-300">
+            <div>Online Players: <span id="adminPlayerCount" class="font-mono font-bold text-emerald-400">1</span></div>
+            <div>Your Score: <span id="adminScoreVal" class="font-mono font-bold text-emerald-400">10</span></div>
+        </div>
+        <div class="space-y-2 pt-2 border-t border-slate-800">
+            <button id="adminSpawnFoodBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
+                <i class="fa-solid fa-cookie-bite mr-2"></i> Spawn +50 Food Pellets
+            </button>
+            <button id="adminGodModeBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
+                <i class="fa-solid fa-bolt mr-2"></i> Toggle God Mode (Invincible)
+            </button>
+        </div>
+    </div>
+
+    <!-- IN-UI DEATH SCREEN OVERLAY -->
+    <div id="deathScreen" class="hidden absolute z-30 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-4 border-red-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
+        <div class="inline-block bg-red-600/30 p-3 rounded-full border-2 border-red-400">
+            <i class="fa-solid fa-skull-crossbones text-4xl text-red-400"></i>
+        </div>
+        <div>
+            <h2 class="text-2xl font-bold text-red-400">YOU DIED</h2>
+            <p class="text-xs text-slate-300 mt-1" id="deathReasonText">You crashed into another worm's body!</p>
+        </div>
+        <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700 flex justify-around items-center">
+            <div>
+                <div class="text-[10px] uppercase text-slate-400 font-bold">Final Score</div>
+                <div id="finalScoreDisplay" class="text-xl font-extrabold text-emerald-400 font-mono">0</div>
+            </div>
+        </div>
+        <div class="space-y-2">
+            <button id="respawnBtn" class="w-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold py-3 px-6 rounded-xl text-md retro-shadow transition transform active:scale-95">
+                <i class="fa-solid fa-rotate-right mr-2"></i> Play Again
+            </button>
+            <button id="menuBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 px-6 rounded-xl text-sm transition">
+                <i class="fa-solid fa-gear mr-1"></i> Change Customization
+            </button>
+        </div>
+    </div>
+
+    <!-- HUD OVERLAY -->
+    <div id="hud" class="hidden absolute top-4 left-4 z-10 pointer-events-none flex flex-col space-y-2">
+        <div class="bg-slate-900/80 backdrop-blur border border-slate-700 px-4 py-2 rounded-2xl shadow-lg">
+            <div class="text-[10px] uppercase font-bold text-slate-400">Length / Score</div>
+            <div id="scoreDisplay" class="text-2xl font-extrabold text-emerald-400 font-mono">10</div>
+        </div>
+        <div class="text-[10px] text-slate-400 bg-slate-900/60 px-3 py-1 rounded-xl">Hold <b class="text-amber-400">SPACE</b> to Boost</div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div id="leaderboard" class="hidden absolute top-4 right-4 z-10 pointer-events-none bg-slate-900/80 backdrop-blur border border-slate-700 p-3 rounded-2xl shadow-lg w-48">
+        <div class="text-xs font-bold text-teal-400 border-b border-slate-700 pb-1 mb-2"><i class="fa-solid fa-trophy mr-1"></i> Top Worms</div>
+        <div id="leaderboardList" class="space-y-1 text-xs text-slate-300 font-mono"></div>
+    </div>
+
+    <!-- MINIMAP CONTAINER -->
+    <div id="minimapContainer" class="hidden absolute bottom-4 left-4 z-10 bg-slate-900/90 backdrop-blur border-2 border-slate-700 p-2 rounded-2xl shadow-xl pointer-events-none w-36 h-36 flex items-center justify-center">
+        <canvas id="minimapCanvas" width="120" height="120" class="rounded-xl bg-slate-950"></canvas>
+    </div>
+
+    <!-- GAME CANVAS -->
+    <canvas id="gameCanvas" class="block w-full h-full cursor-crosshair"></canvas>
+
+    <!-- GAME SCRIPT LOGIC -->
+    <script>
+        const SUPABASE_URL = 'https://degilckgjfdnekszsbry.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_ym_oqKIyxwk7ixxCvwNCmA_w2VtnpdP';
+        let supabaseClient = null;
+        try {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch(e) {
+            console.error("Supabase init error:", e);
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const previewCanvas = document.getElementById('previewCanvas');
+        const previewCtx = previewCanvas.getContext('2d');
+
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const WORLD_SIZE = 3000; 
+        let playerId = 'worm_' + Math.random().toString(36).substring(2, 9);
+        let playerName = 'SlitherPro';
+        let globalChannel = null;
+        let isAdmin = false;
+        let godMode = false;
+
+        // Available Skins configuration loading from heads/ folder
+        const AVAILABLE_SKINS = [
+            { id: 'none', name: 'Default Head', url: '' },
+            { id: 'skin1', name: 'Classic Green', url: 'heads/skin1.png' },
+            { id: 'skin2', name: 'Neon Cyber', url: 'heads/skin2.png' },
+            { id: 'skin3', name: 'Golden Crown', url: 'heads/skin3.png' },
+            { id: 'skin4', name: 'Fire Demon', url: 'heads/skin4.png' },
+            { id: 'skin5', name: 'Galaxy Star', url: 'heads/skin5.png' },
+            { id: 'skin6', name: 'Royal Diamond', url: 'heads/skin6.png' },
+            { id: 'skin7', name: 'Toxic Skull', url: 'heads/skin7.png' }
+        ];
+
+        let loadedSkinImages = {};
+        AVAILABLE_SKINS.forEach(skin => {
+            if (skin.url) {
+                let img = new Image();
+                img.src = skin.url;
+                img.onload = () => { loadedSkinImages[skin.id] = img; };
+                img.onerror = () => { loadedSkinImages[skin.id] = null; }; 
+            }
+        });
+
+        let me = {
+            x: WORLD_SIZE / 2,
+            y: WORLD_SIZE / 2,
+            angle: 0,
+            speed: 3.5,
+            trail: [],
+            score: 10,
+            color: '#10b981',
+            skin: 'none',
+            isDead: false,
+            deathAnimProgress: 1
+        };
+
+        let remotePlayers = {}; 
+        let foodPellets = [];    
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let gameActive = false;
+        let isBoosting = false;
+
+        function buildSkinSelector() {
+            const grid = document.getElementById('skinSelectorGrid');
+            grid.innerHTML = '';
+            AVAILABLE_SKINS.forEach(skin => {
+                let btn = document.createElement('div');
+                btn.className = `cursor-pointer border-2 rounded-xl p-1.5 flex flex-col items-center justify-center transition bg-slate-900 ${me.skin === skin.id ? 'border-emerald-400 bg-emerald-950/40' : 'border-slate-700 hover:border-slate-500'}`;
+                let hasImg = skin.url && loadedSkinImages[skin.id];
+                btn.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-600 mb-1">
+                        ${hasImg ? `<img src="${skin.url}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-worm text-emerald-400 text-xs"></i>'}
+                    </div>
+                    <span class="text-[9px] text-slate-300 font-semibold truncate w-full text-center">${skin.name.split(' ')[0]}</span>
+                `;
+                btn.onclick = () => {
+                    me.skin = skin.id;
+                    buildSkinSelector();
+                };
+                grid.appendChild(btn);
+            });
+        }
+
+        buildSkinSelector();
+
+        const colorPicker = document.getElementById('playerColorPicker');
+        colorPicker.addEventListener('input', (e) => { me.color = e.target.value; });
+
+        document.querySelectorAll('.color-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                me.color = btn.getAttribute('data-color');
+                colorPicker.value = me.color;
+            });
+        });
+
+        function renderPreview() {
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            for(let i=3; i>=0; i--) {
+                let px = 40 + i * 25;
+                let py = 35 + Math.sin(Date.now() * 0.005 + i * 0.5) * 6;
+                previewCtx.fillStyle = me.color;
+                previewCtx.beginPath();
+                previewCtx.arc(px, py, 12, 0, Math.PI * 2);
+                previewCtx.fill();
+            }
+            let hx = 140;
+            let hy = 35 + Math.sin(Date.now() * 0.005) * 6;
+            
+            if (me.skin !== 'none' && loadedSkinImages[me.skin]) {
+                previewCtx.save();
+                previewCtx.translate(hx, hy);
+                previewCtx.beginPath();
+                previewCtx.arc(0, 0, 16, 0, Math.PI * 2);
+                previewCtx.clip();
+                previewCtx.drawImage(loadedSkinImages[me.skin], -16, -16, 32, 32);
+                previewCtx.restore();
+                previewCtx.strokeStyle = me.color;
+                previewCtx.lineWidth = 2;
+                previewCtx.beginPath();
+                previewCtx.arc(hx, hy, 16, 0, Math.PI * 2);
+                previewCtx.stroke();
+            } else {
+                previewCtx.fillStyle = me.color;
+                previewCtx.beginPath();
+                previewCtx.arc(hx, hy, 15, 0, Math.PI * 2);
+                previewCtx.fill();
+            }
+            requestAnimationFrame(renderPreview);
+        }
+        renderPreview();
+
+        function seededRandom(seed) {
+            let x = Math.sin(seed++) * 10000;
+            return x - Math.floor(x);
+        }
+
+        for(let i=0; i<400; i++) {
+            foodPellets.push({
+                id: 'food_' + i,
+                x: seededRandom(i * 3 + 1) * WORLD_SIZE,
+                y: seededRandom(i * 3 + 2) * WORLD_SIZE,
+                color: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'][Math.floor(seededRandom(i * 3 + 3) * 5)]
+            });
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') isBoosting = true;
+            if (e.key === '`' || e.key === '~') {
+                e.preventDefault();
+                if (isAdmin) {
+                    document.getElementById('adminConsole').classList.toggle('hidden');
+                } else {
+                    document.getElementById('adminLoginModal').classList.remove('hidden');
+                    document.getElementById('adminPasswordInput').focus();
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') isBoosting = false;
+        });
+
+        document.getElementById('adminLoginSubmit').addEventListener('click', () => {
+            let pass = document.getElementById('adminPasswordInput').value;
+            if (pass === 'papivictor') {
+                isAdmin = true;
+                document.getElementById('adminLoginModal').classList.add('hidden');
+                document.getElementById('adminConsole').classList.remove('hidden');
+            } else {
+                alert('Incorrect password!');
+            }
+        });
+
+        document.getElementById('adminLoginClose').addEventListener('click', () => {
+            document.getElementById('adminLoginModal').classList.add('hidden');
+        });
+
+        document.getElementById('closeAdminBtn').addEventListener('click', () => {
+            document.getElementById('adminConsole').classList.add('hidden');
+        });
+
+        document.getElementById('adminSpawnFoodBtn').addEventListener('click', () => {
+            for(let i=0; i<50; i++) {
+                let f = {
+                    id: 'admin_drop_' + Math.random().toString(36).substring(2, 9),
+                    x: me.x + (Math.random() * 400 - 200),
+                    y: me.y + (Math.random() * 400 - 200),
+                    color: '#f59e0b'
+                };
+                foodPellets.push(f);
+                if(globalChannel) globalChannel.send({ type: 'broadcast', event: 'food_spawn', payload: f });
+            }
+        });
+
+        document.getElementById('adminGodModeBtn').addEventListener('click', () => {
+            godMode = !godMode;
+            document.getElementById('adminGodModeBtn').classList.toggle('bg-emerald-900', godMode);
+        });
+
+        document.getElementById('playBtn').addEventListener('click', startGame);
+        document.getElementById('respawnBtn').addEventListener('click', startGame);
+
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('deathScreen').classList.add('hidden');
+            document.getElementById('menuScreen').classList.remove('hidden');
+        });
+
+        function startGame() {
+            const val = document.getElementById('playerNameInput').value.trim();
+            if(val) playerName = val;
+
+            document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('deathScreen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('leaderboard').classList.remove('hidden');
+            document.getElementById('minimapContainer').classList.remove('hidden');
+
+            respawnPlayer();
+            initGlobalMultiplayer();
+            gameActive = true;
+            requestAnimationFrame(gameLoop);
+        }
+
+        function respawnPlayer() {
+            me.x = 500 + Math.random() * (WORLD_SIZE - 1000);
+            me.y = 500 + Math.random() * (WORLD_SIZE - 1000);
+            me.score = 10;
+            me.trail = [];
+            me.isDead = false;
+            me.deathAnimProgress = 1;
+            for(let i=0; i<me.score*4; i++) {
+                me.trail.push({ x: me.x, y: me.y });
+            }
+            document.getElementById('scoreDisplay').innerText = me.score;
+        }
+
+        function triggerDeath(killerName) {
+            if (me.isDead || godMode) return;
+            me.isDead = true;
+            me.deathAnimProgress = 1;
+
+            me.trail.forEach((segment, idx) => {
+                if (idx % 3 === 0) {
+                    let droppedFood = {
+                        id: 'drop_' + Math.random().toString(36).substring(2, 9),
+                        x: segment.x + (Math.random() * 20 - 10),
+                        y: segment.y + (Math.random() * 20 - 10),
+                        color: me.color
+                    };
+                    foodPellets.push(droppedFood);
+                    if(globalChannel) {
+                        globalChannel.send({ type: 'broadcast', event: 'food_spawn', payload: droppedFood });
+                    }
+                }
+            });
+
+            setTimeout(() => {
+                gameActive = false;
+                document.getElementById('hud').classList.add('hidden');
+                document.getElementById('leaderboard').classList.add('hidden');
+                document.getElementById('minimapContainer').classList.add('hidden');
+                document.getElementById('finalScoreDisplay').innerText = me.score;
+                document.getElementById('deathReasonText').innerText = "You crashed into " + killerName + "'s body!";
+                document.getElementById('deathScreen').classList.remove('hidden');
+            }, 600);
+        }
+
+        function initGlobalMultiplayer() {
+            if (!supabaseClient || globalChannel) return;
+
+            globalChannel = supabaseClient.channel('global_slither_room_v4', {
+                config: { broadcast: { self: false } }
+            });
+
+            globalChannel.on('broadcast', { event: 'worm_sync' }, payload => {
+                remotePlayers[payload.payload.id] = payload.payload;
+            });
+
+            globalChannel.on('broadcast', { event: 'food_eaten' }, payload => {
+                let idx = foodPellets.findIndex(f => f.id === payload.payload.foodId);
+                if(idx !== -1) {
+                    foodPellets[idx].x = payload.payload.newX;
+                    foodPellets[idx].y = payload.payload.newY;
+                }
+            });
+
+            globalChannel.on('broadcast', { event: 'food_spawn' }, payload => {
+                foodPellets.push(payload.payload);
+            });
+
+            globalChannel.subscribe(status => {
+                if(status === 'SUBSCRIBED') {
+                    setInterval(() => {
+                        if(!gameActive || me.isDead) return;
+                        globalChannel.send({
+                            type: 'broadcast',
+                            event: 'worm_sync',
+                            payload: {
+                                id: playerId,
+                                name: playerName,
+                                x: me.x,
+                                y: me.y,
+                                trail: me.trail,
+                                score: me.score,
+                                color: me.color,
+                                skin: me.skin,
+                                angle: me.angle
+                            }
+                        });
+                    }, 50);
+                }
+            });
+        }
+
+        function drawSnakeHead(context, x, y, angle, radius, color, skinId) {
+            let img = skinId !== 'none' ? loadedSkinImages[skinId] : null;
+            if (img && img.complete && img.naturalWidth !== 0) {
+                context.save();
+                context.translate(x, y);
+                context.rotate(angle);
+                context.beginPath();
+                context.arc(0, 0, radius + 2, 0, Math.PI * 2);
+                context.clip();
+                context.drawImage(img, -(radius + 2), -(radius + 2), (radius + 2) * 2, (radius + 2) * 2);
+                context.restore();
+                context.strokeStyle = color;
+                context.lineWidth = 2.5;
+                context.beginPath();
+                context.arc(x, y, radius + 2, 0, Math.PI * 2);
+                context.stroke();
+            } else {
+                context.fillStyle = color;
+                context.beginPath();
+                context.arc(x, y, radius + 2, 0, Math.PI * 2);
+                context.fill();
+
+                context.fillStyle = '#ffffff';
+                context.beginPath();
+                context.arc(x + Math.cos(angle - 0.4) * (radius*0.6), y + Math.sin(angle - 0.4) * (radius*0.6), 4, 0, Math.PI * 2);
+                context.arc(x + Math.cos(angle + 0.4) * (radius*0.6), y + Math.sin(angle + 0.4) * (radius*0.6), 4, 0, Math.PI * 2);
+                context.fill();
+            }
+        }
+
+        // Helper function for smoothly interpolating angles without snapping artifacts
+        function lerpAngle(current, target, amount) {
+            let diff = target - current;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            return current + diff * amount;
+        }
+
+        function gameLoop() {
+            if (!gameActive) return;
+
+            let centerX = canvas.width / 2;
+            let centerY = canvas.height / 2;
+
+            if (!me.isDead) {
+                let dx = mouseX - centerX;
+                let dy = mouseY - centerY;
+                if (Math.hypot(dx, dy) > 5) {
+                    let targetAngle = Math.atan2(dy, dx);
+                    // Smoothly rotate towards target angle (adjust 0.12 for faster/slower turning speed)
+                    me.angle = lerpAngle(me.angle, targetAngle, 0.12);
+                }
+
+                let currentSpeed = me.speed;
+                if (isBoosting && me.score > 15) {
+                    currentSpeed = 6.5;
+                    if (Math.random() < 0.2) {
+                        me.score -= 1;
+                        document.getElementById('scoreDisplay').innerText = me.score;
+                    }
+                }
+
+                me.x += Math.cos(me.angle) * currentSpeed;
+                me.y += Math.sin(me.angle) * currentSpeed;
+
+                me.x = Math.max(20, Math.min(WORLD_SIZE - 20, me.x));
+                me.y = Math.max(20, Math.min(WORLD_SIZE - 20, me.y));
+
+                me.trail.unshift({ x: me.x, y: me.y });
+                let maxTrailLength = me.score * 4;
+                while(me.trail.length > maxTrailLength) {
+                    me.trail.pop();
+                }
+            } else {
+                me.deathAnimProgress = Math.max(0, me.deathAnimProgress - 0.05);
+            }
+
+            let currentWidth = Math.min(22, 10 + Math.floor(me.score / 15));
+
+            if (!me.isDead) {
+                for (let i = 0; i < foodPellets.length; i++) {
+                    let f = foodPellets[i];
+                    let dist = Math.hypot(me.x - f.x, me.y - f.y);
+                    if (dist < currentWidth + 6) {
+                        me.score += 1;
+                        document.getElementById('scoreDisplay').innerText = me.score;
+                        
+                        let newX = Math.random() * WORLD_SIZE;
+                        let newY = Math.random() * WORLD_SIZE;
+                        f.x = newX;
+                        f.y = newY;
+
+                        if(globalChannel) {
+                            globalChannel.send({
+                                type: 'broadcast',
+                                event: 'food_eaten',
+                                payload: { foodId: f.id, newX: newX, newY: newY }
+                            });
+                        }
+                    }
+                }
+
+                for (let id in remotePlayers) {
+                    let p = remotePlayers[id];
+                    if (p.trail && p.trail.length > 5) {
+                        let remoteWidth = Math.min(22, 10 + Math.floor(p.score / 15));
+                        for (let tIdx = 4; tIdx < p.trail.length; tIdx += 2) {
+                            let segment = p.trail[tIdx];
+                            let hitDist = Math.hypot(me.x - segment.x, me.y - segment.y);
+                            if (hitDist < currentWidth + remoteWidth - 4) {
+                                triggerDeath(p.name);
+                                break;
+                            }
+                        }
+                    }
+                    if (me.isDead) break;
+                }
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(centerX - me.x, centerY - me.y);
+
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            let gridSize = 80;
+            let startX = Math.floor((me.x - centerX) / gridSize) * gridSize;
+            let startY = Math.floor((me.y - centerY) / gridSize) * gridSize;
+            for (let x = startX; x < startX + canvas.width + gridSize * 2; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, me.y - centerY - 100); ctx.lineTo(x, me.y + centerY + canvas.height); ctx.stroke();
+            }
+            for (let y = startY; y < startY + canvas.height + gridSize * 2; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(me.x - centerX - 100, y); ctx.lineTo(me.x + centerX + canvas.width, y); ctx.stroke();
+            }
+
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 8;
+            ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+
+            foodPellets.forEach(f => {
+                ctx.fillStyle = f.color;
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            for (let id in remotePlayers) {
+                let p = remotePlayers[id];
+                if (p.trail && p.trail.length > 0) {
+                    let rWidth = Math.min(22, 10 + Math.floor(p.score / 15));
+                    p.trail.forEach((t) => {
+                        ctx.fillStyle = p.color || '#3b82f6';
+                        ctx.beginPath();
+                        ctx.arc(t.x, t.y, rWidth, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                    
+                    drawSnakeHead(ctx, p.x, p.y, p.angle || 0, rWidth, p.color || '#3b82f6', p.skin);
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 12px Fredoka';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(p.name + ` (${p.score})`, p.x, p.y - (rWidth + 12));
+                }
+            }
+
+            ctx.globalAlpha = me.deathAnimProgress;
+            me.trail.forEach((t) => {
+                ctx.fillStyle = me.color;
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, currentWidth, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            drawSnakeHead(ctx, me.x, me.y, me.angle, currentWidth, me.color, me.skin);
+
+            ctx.restore();
+
+            renderMinimap();
+            updateLeaderboardUI();
+
+            if (isAdmin) {
+                document.getElementById('adminPlayerCount').innerText = Object.keys(remotePlayers).length + 1;
+                document.getElementById('adminScoreVal').innerText = me.score;
+            }
+
+            if (gameActive) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function renderMinimap() {
+            minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+            let scale = minimapCanvas.width / WORLD_SIZE;
+
+            minimapCtx.strokeStyle = '#334155';
+            minimapCtx.lineWidth = 1;
+            minimapCtx.strokeRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+
+            for (let id in remotePlayers) {
+                let p = remotePlayers[id];
+                minimapCtx.fillStyle = p.color || '#3b82f6';
+                minimapCtx.beginPath();
+                minimapCtx.arc(p.x * scale, p.y * scale, 2.5, 0, Math.PI * 2);
+                minimapCtx.fill();
+            }
+
+            minimapCtx.fillStyle = '#10b981';
+            minimapCtx.beginPath();
+            minimapCtx.arc(me.x * scale, me.y * scale, 3.5, 0, Math.PI * 2);
+            minimapCtx.fill();
+        }
+
+        function updateLeaderboardUI() {
+            let allWorms = [{ name: playerName, score: me.score }];
+            for(let id in remotePlayers) {
+                allWorms.push({ name: remotePlayers[id].name, score: remotePlayers[id].score || 10 });
+            }
+            allWorms.sort((a,b) => b.score - a.score);
+
+            let html = '';
+            allWorms.slice(0, 5).forEach((w, idx) => {
+                html += `<div class="flex justify-between"><span>#${idx+1} ${w.name}</span><span class="font-bold text-emerald-400">${w.score}</span></div>`;
+            });
+            document.getElementById('leaderboardList').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
