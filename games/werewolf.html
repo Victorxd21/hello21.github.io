@@ -727,18 +727,29 @@
   }
 
   async function connectGlobal() {
+    // Reuse an already-connected channel, but NEVER treat a merely-created
+    // channel as connected. The old version returned after 1.2s even when
+    // Supabase had not finished subscribing yet, which made the lobby look
+    // like it simply did nothing.
+    if (state.connected && channel) return true;
     if (connectPromise) return connectPromise;
-    if (channel && state.connected) return true;
 
-    // A previous failed channel must never block a later retry.
-    if (channel && !state.connected) {
-      try { await supabase.removeChannel(channel); } catch {}
-      channel = null;
-    }
-
-    connectPromise = (async () => {
+    connectPromise = new Promise(async (resolve) => {
       setConnectionStatus('busy', 'Connecting to global lobby...');
       debugLogMessage('Opening shared Supabase Realtime channel...', 'net');
+
+      if (!window.supabase) {
+        debugLogMessage('Supabase JavaScript library is not loaded.', 'error');
+        setConnectionStatus('bad', 'Supabase library failed to load');
+        resolve(false);
+        return;
+      }
+
+      // Clean up any half-open channel left by a previous failed attempt.
+      if (channel && !state.connected) {
+        try { await supabase.removeChannel(channel); } catch {}
+        channel = null;
+      }
 
       channel = supabase.channel(GAME.channelName, {
         config: {
@@ -746,6 +757,13 @@
           broadcast: { ack: false }
         }
       });
+
+      let settled = false;
+      const finish = (ok) => {
+        if (settled) return;
+        settled = true;
+        resolve(ok);
+      };
 
       channel
         .on('presence', { event: 'sync' }, handlePresenceSync)
@@ -762,10 +780,11 @@
         .on('broadcast', { event: 'admin_command' }, onAdminCommand)
         .on('broadcast', { event: 'admin_announcement' }, onAdminAnnouncement)
         .subscribe(async (status) => {
-          debugLogMessage(`Realtime channel status: ${status}`, status === 'SUBSCRIBED' ? 'net' : 'error');
+          debugLogMessage(`Realtime channel status: ${status}`, status === 'SUBSCRIBED' ? 'net' : (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' ? 'error' : 'info'));
 
           if (status === 'SUBSCRIBED') {
             state.connected = true;
+            state.inLobby = true;
             setConnectionStatus('ok', 'Connected to global lobby');
 
             try {
@@ -783,18 +802,22 @@
                 playBtn.disabled = false;
                 playBtn.textContent = 'PLAY • JOIN GLOBAL LOBBY';
                 showAdminToast(`The global lobby is full — ${GAME.maxLobbyPlayers}/${GAME.maxLobbyPlayers} players.`);
+                finish(false);
                 return;
               }
 
-              state.inLobby = true;
               handlePresenceSync();
               showScreen('lobby');
               requestStateSync();
+              finish(true);
             } catch (err) {
               debugLogMessage(`Global lobby setup failed: ${err?.message || err}`, 'error');
               state.connected = false;
               state.inLobby = false;
               setConnectionStatus('bad', 'Lobby setup failed');
+              try { await supabase.removeChannel(channel); } catch {}
+              channel = null;
+              finish(false);
             }
             return;
           }
@@ -804,21 +827,25 @@
             state.inLobby = false;
             setConnectionStatus('bad', `Realtime ${status.toLowerCase().replace('_', ' ')}`);
             debugLogMessage(`Supabase Realtime connection problem: ${status}`, 'error');
-
-            // Release the dead channel so PLAY can reconnect cleanly.
-            const deadChannel = channel;
+            try { await supabase.removeChannel(channel); } catch {}
             channel = null;
-            try { await supabase.removeChannel(deadChannel); } catch {}
+            finish(false);
           }
         });
 
-      // Wait for Realtime to report a real status instead of guessing after 1.2s.
-      const deadline = Date.now() + 8000;
-      while (!state.connected && channel && Date.now() < deadline) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      return !!state.connected;
-    })();
+      // Do not return early after an arbitrary 1.2 seconds. Give Realtime
+      // enough time to connect, but still fail cleanly after 15 seconds.
+      setTimeout(async () => {
+        if (settled) return;
+        debugLogMessage('Supabase connection timed out after 15 seconds.', 'error');
+        state.connected = false;
+        state.inLobby = false;
+        setConnectionStatus('bad', 'Connection timed out');
+        try { await supabase.removeChannel(channel); } catch {}
+        channel = null;
+        finish(false);
+      }, 15000);
+    });
 
     try {
       return await connectPromise;
