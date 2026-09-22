@@ -50,6 +50,26 @@
         </button>
     </div>
 
+    <!-- IN-UI DEATH SCREEN OVERLAY -->
+    <div id="deathScreen" class="hidden absolute z-30 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-4 border-red-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
+        <div class="inline-block bg-red-600/30 p-3 rounded-full border-2 border-red-400">
+            <i class="fa-solid fa-skull-crossbones text-4xl text-red-400"></i>
+        </div>
+        <div>
+            <h2 class="text-2xl font-bold text-red-400">YOU DIED</h2>
+            <p class="text-xs text-slate-300 mt-1" id="deathReasonText">You crashed into another worm's body!</p>
+        </div>
+        <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700 flex justify-around items-center">
+            <div>
+                <div class="text-[10px] uppercase text-slate-400 font-bold">Final Score</div>
+                <div id="finalScoreDisplay" class="text-xl font-extrabold text-emerald-400 font-mono">0</div>
+            </div>
+        </div>
+        <button id="respawnBtn" class="w-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold py-3 px-6 rounded-xl text-md retro-shadow transition transform active:scale-95">
+            <i class="fa-solid fa-rotate-right mr-2"></i> Play Again
+        </button>
+    </div>
+
     <!-- HUD OVERLAY -->
     <div id="hud" class="hidden absolute top-4 left-4 z-10 pointer-events-none flex flex-col space-y-2">
         <div class="bg-slate-900/80 backdrop-blur border border-slate-700 px-4 py-2 rounded-2xl shadow-lg">
@@ -100,7 +120,9 @@
             speed: 3.5,
             trail: [],
             score: 10,
-            color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')
+            color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0'),
+            isDead: false,
+            deathAnimProgress: 1 // 1 = fully alive, 0 = fully faded out
         };
 
         let remotePlayers = {}; 
@@ -109,7 +131,6 @@
         let mouseY = window.innerHeight / 2;
         let gameActive = false;
 
-        // Synchronized deterministic food generation using a fixed PRNG seed so all players have identical food positions
         function seededRandom(seed) {
             let x = Math.sin(seed++) * 10000;
             return x - Math.floor(x);
@@ -134,6 +155,7 @@
             if(val) playerName = val;
 
             document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('deathScreen').classList.add('hidden');
             document.getElementById('hud').classList.remove('hidden');
             document.getElementById('leaderboard').classList.remove('hidden');
 
@@ -143,19 +165,66 @@
             requestAnimationFrame(gameLoop);
         });
 
+        document.getElementById('respawnBtn').addEventListener('click', () => {
+            document.getElementById('deathScreen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('leaderboard').classList.remove('hidden');
+            respawnPlayer();
+            gameActive = true;
+        });
+
         function respawnPlayer() {
             me.x = 500 + Math.random() * (WORLD_SIZE - 1000);
             me.y = 500 + Math.random() * (WORLD_SIZE - 1000);
             me.score = 10;
             me.trail = [];
+            me.isDead = false;
+            me.deathAnimProgress = 1;
             for(let i=0; i<me.score*4; i++) {
                 me.trail.push({ x: me.x, y: me.y });
             }
             document.getElementById('scoreDisplay').innerText = me.score;
         }
 
+        function triggerDeath(killerName) {
+            if (me.isDead) return;
+            me.isDead = true;
+            me.deathAnimProgress = 1;
+
+            // Drop food pellets along our body trail
+            me.trail.forEach((segment, idx) => {
+                if (idx % 3 === 0) { // Drop food every few segments
+                    let droppedFood = {
+                        id: 'drop_' + Math.random().toString(36.substring(2, 9)),
+                        x: segment.x + (Math.random() * 20 - 10),
+                        y: segment.y + (Math.random() * 20 - 10),
+                        color: me.color
+                    };
+                    foodPellets.push(droppedFood);
+                    if(globalChannel) {
+                        globalChannel.send({
+                            type: 'broadcast',
+                            event: 'food_spawn',
+                            payload: droppedFood
+                        });
+                    }
+                }
+            });
+
+            // Show UI Death Screen after fade animation finishes
+            setTimeout(() => {
+                gameActive = false;
+                document.getElementById('hud').classList.add('hidden');
+                document.getElementById('leaderboard').classList.add('hidden');
+                document.getElementById('finalScoreDisplay').innerText = me.score;
+                document.getElementById('deathReasonText').innerText = "You crashed into " + killerName + "'s body!";
+                document.getElementById('deathScreen').classList.remove('hidden');
+            }, 600);
+        }
+
         function initGlobalMultiplayer() {
             if (!supabaseClient) return;
+            if (globalChannel) return; // Already initialized
 
             globalChannel = supabaseClient.channel('global_slither_room_v2', {
                 config: { broadcast: { self: false } }
@@ -166,7 +235,6 @@
             });
 
             globalChannel.on('broadcast', { event: 'food_eaten' }, payload => {
-                // Remove eaten food pellet globally if someone else ate it
                 let idx = foodPellets.findIndex(f => f.id === payload.payload.foodId);
                 if(idx !== -1) {
                     foodPellets[idx].x = payload.payload.newX;
@@ -174,10 +242,14 @@
                 }
             });
 
+            globalChannel.on('broadcast', { event: 'food_spawn' }, payload => {
+                foodPellets.push(payload.payload);
+            });
+
             globalChannel.subscribe(status => {
                 if(status === 'SUBSCRIBED') {
                     setInterval(() => {
-                        if(!gameActive) return;
+                        if(!gameActive || me.isDead) return;
                         globalChannel.send({
                             type: 'broadcast',
                             event: 'worm_sync',
@@ -201,66 +273,71 @@
 
             let centerX = canvas.width / 2;
             let centerY = canvas.height / 2;
-            let dx = mouseX - centerX;
-            let dy = mouseY - centerY;
-            if (Math.hypot(dx, dy) > 5) {
-                me.angle = Math.atan2(dy, dx);
+
+            if (!me.isDead) {
+                let dx = mouseX - centerX;
+                let dy = mouseY - centerY;
+                if (Math.hypot(dx, dy) > 5) {
+                    me.angle = Math.atan2(dy, dx);
+                }
+
+                me.x += Math.cos(me.angle) * me.speed;
+                me.y += Math.sin(me.angle) * me.speed;
+
+                me.x = Math.max(20, Math.min(WORLD_SIZE - 20, me.x));
+                me.y = Math.max(20, Math.min(WORLD_SIZE - 20, me.y));
+
+                me.trail.unshift({ x: me.x, y: me.y });
+                let maxTrailLength = me.score * 4;
+                while(me.trail.length > maxTrailLength) {
+                    me.trail.pop();
+                }
+            } else {
+                // Fade out animation progression
+                me.deathAnimProgress = Math.max(0, me.deathAnimProgress - 0.05);
             }
 
-            me.x += Math.cos(me.angle) * me.speed;
-            me.y += Math.sin(me.angle) * me.speed;
-
-            me.x = Math.max(20, Math.min(WORLD_SIZE - 20, me.x));
-            me.y = Math.max(20, Math.min(WORLD_SIZE - 20, me.y));
-
-            // Width scales with score up to a maximum limit
             let currentWidth = Math.min(22, 10 + Math.floor(me.score / 15));
 
-            me.trail.unshift({ x: me.x, y: me.y });
-            let maxTrailLength = me.score * 4;
-            while(me.trail.length > maxTrailLength) {
-                me.trail.pop();
-            }
-
             // Food collision check
-            for (let i = 0; i < foodPellets.length; i++) {
-                let f = foodPellets[i];
-                let dist = Math.hypot(me.x - f.x, me.y - f.y);
-                if (dist < currentWidth + 6) {
-                    me.score += 1;
-                    document.getElementById('scoreDisplay').innerText = me.score;
-                    
-                    // Reposition food and broadcast to others
-                    let newX = Math.random() * WORLD_SIZE;
-                    let newY = Math.random() * WORLD_SIZE;
-                    f.x = newX;
-                    f.y = newY;
+            if (!me.isDead) {
+                for (let i = 0; i < foodPellets.length; i++) {
+                    let f = foodPellets[i];
+                    let dist = Math.hypot(me.x - f.x, me.y - f.y);
+                    if (dist < currentWidth + 6) {
+                        me.score += 1;
+                        document.getElementById('scoreDisplay').innerText = me.score;
+                        
+                        let newX = Math.random() * WORLD_SIZE;
+                        let newY = Math.random() * WORLD_SIZE;
+                        f.x = newX;
+                        f.y = newY;
 
-                    if(globalChannel) {
-                        globalChannel.send({
-                            type: 'broadcast',
-                            event: 'food_eaten',
-                            payload: { foodId: f.id, newX: newX, newY: newY }
-                        });
-                    }
-                }
-            }
-
-            // Combat Check: Check if local snake head collides with any remote player's body trail
-            for (let id in remotePlayers) {
-                let p = remotePlayers[id];
-                if (p.trail && p.trail.length > 5) {
-                    let remoteWidth = Math.min(22, 10 + Math.floor(p.score / 15));
-                    for (let tIdx = 4; tIdx < p.trail.length; tIdx += 2) {
-                        let segment = p.trail[tIdx];
-                        let hitDist = Math.hypot(me.x - segment.x, me.y - segment.y);
-                        if (hitDist < currentWidth + remoteWidth - 4) {
-                            // Crash detected! You died.
-                            alert("Oops! You crashed into " + p.name + "'s body!");
-                            respawnPlayer();
-                            break;
+                        if(globalChannel) {
+                            globalChannel.send({
+                                type: 'broadcast',
+                                event: 'food_eaten',
+                                payload: { foodId: f.id, newX: newX, newY: newY }
+                            });
                         }
                     }
+                }
+
+                // Combat Check: Check if local snake head collides with any remote player's body trail
+                for (let id in remotePlayers) {
+                    let p = remotePlayers[id];
+                    if (p.trail && p.trail.length > 5) {
+                        let remoteWidth = Math.min(22, 10 + Math.floor(p.score / 15));
+                        for (let tIdx = 4; tIdx < p.trail.length; tIdx += 2) {
+                            let segment = p.trail[tIdx];
+                            let hitDist = Math.hypot(me.x - segment.x, me.y - segment.y);
+                            if (hitDist < currentWidth + remoteWidth - 4) {
+                                triggerDeath(p.name);
+                                break;
+                            }
+                        }
+                    }
+                    if (me.isDead) break;
                 }
             }
 
@@ -294,7 +371,7 @@
                 ctx.fill();
             });
 
-            // Draw Remote Players (With synchronized width & color)
+            // Draw Remote Players
             for (let id in remotePlayers) {
                 let p = remotePlayers[id];
                 if (p.trail && p.trail.length > 0) {
@@ -312,7 +389,8 @@
                 }
             }
 
-            // Draw Local Player Body Trail
+            // Draw Local Player Body Trail & Head with fade effect
+            ctx.globalAlpha = me.deathAnimProgress;
             me.trail.forEach((t) => {
                 ctx.fillStyle = me.color;
                 ctx.beginPath();
@@ -336,7 +414,9 @@
             ctx.restore();
 
             updateLeaderboardUI();
-            requestAnimationFrame(gameLoop);
+            if (gameActive) {
+                requestAnimationFrame(gameLoop);
+            }
         }
 
         function updateLeaderboardUI() {
