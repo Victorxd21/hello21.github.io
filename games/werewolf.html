@@ -559,6 +559,12 @@
   // ------------------------------------------------------------
   const SUPABASE_URL = 'https://degilckgjfdnekszsbry.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_ym_oqKIyxwk7ixxCvwNCmA_w2VtnpdP';
+
+  // GitHub Pages serves this file over HTTPS. The Supabase UMD build is loaded
+  // above; fail clearly if a browser extension/privacy setting blocks it.
+  if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+    throw new Error('Supabase client failed to load. Check the CDN request or browser extensions.');
+  }
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // ------------------------------------------------------------
@@ -722,7 +728,13 @@
 
   async function connectGlobal() {
     if (connectPromise) return connectPromise;
-    if (channel) return true;
+    if (channel && state.connected) return true;
+
+    // A previous failed channel must never block a later retry.
+    if (channel && !state.connected) {
+      try { await supabase.removeChannel(channel); } catch {}
+      channel = null;
+    }
 
     connectPromise = (async () => {
       setConnectionStatus('busy', 'Connecting to global lobby...');
@@ -792,12 +804,19 @@
             state.inLobby = false;
             setConnectionStatus('bad', `Realtime ${status.toLowerCase().replace('_', ' ')}`);
             debugLogMessage(`Supabase Realtime connection problem: ${status}`, 'error');
+
+            // Release the dead channel so PLAY can reconnect cleanly.
+            const deadChannel = channel;
+            channel = null;
+            try { await supabase.removeChannel(deadChannel); } catch {}
           }
         });
 
-      // The subscribe callback handles the actual success/failure state.
-      // Give the channel a moment to establish before returning control.
-      await new Promise(resolve => setTimeout(resolve, 1200));
+      // Wait for Realtime to report a real status instead of guessing after 1.2s.
+      const deadline = Date.now() + 8000;
+      while (!state.connected && channel && Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
       return !!state.connected;
     })();
 
