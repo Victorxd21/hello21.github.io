@@ -274,6 +274,40 @@
     #gameOverTitle { font-size: clamp(42px, 8vw, 78px); line-height: .9; letter-spacing: -.05em; margin: 0; }
     #gameOverDesc { color: #a6b9af; line-height: 1.6; margin: 14px 0 24px; }
 
+    /* ADMIN CONSOLE */
+    #adminAuth, #adminConsole {
+      position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.76); backdrop-filter: blur(12px); z-index: 80; pointer-events: auto;
+    }
+    #adminAuth.show, #adminConsole.show { display: flex; }
+    .admin-panel {
+      width: min(820px, calc(100vw - 28px)); max-height: min(780px, calc(100vh - 28px)); overflow: auto;
+      padding: 22px; border-radius: 20px; border: 1px solid rgba(239,68,68,.20);
+      background: linear-gradient(180deg, rgba(16,20,18,.98), rgba(6,10,8,.98));
+      box-shadow: 0 30px 100px rgba(0,0,0,.65);
+    }
+    .admin-panel.small { width: min(430px, calc(100vw - 28px)); }
+    .admin-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .admin-title { font-size: 24px; font-weight: 1000; letter-spacing: -.03em; }
+    .admin-kicker { color:#fca5a5; font-size:10px; font-weight:950; letter-spacing:.16em; text-transform:uppercase; }
+    .admin-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:16px; }
+    .admin-card { border:1px solid rgba(255,255,255,.08); border-radius:15px; padding:13px; background:rgba(255,255,255,.025); }
+    .admin-card h3 { margin:0 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.11em; color:#d1d5db; }
+    .admin-stat { font-size:24px; font-weight:1000; }
+    .admin-muted { color:#819087; font-size:11px; line-height:1.45; }
+    .admin-buttons { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:9px; }
+    .admin-btn { padding:11px 12px; border-radius:11px; border:1px solid rgba(255,255,255,.09); background:rgba(255,255,255,.055); color:#ecfdf5; font-weight:900; text-align:left; }
+    .admin-btn:hover { background:rgba(255,255,255,.09); }
+    .admin-btn.danger { border-color:rgba(239,68,68,.20); color:#fecaca; }
+    .admin-btn.good { border-color:rgba(74,222,128,.18); color:#bbf7d0; }
+    .admin-btn:disabled { opacity:.4; cursor:not-allowed; }
+    .admin-row { display:flex; gap:8px; margin-top:9px; }
+    .admin-row input, .admin-row select { flex:1; min-width:0; padding:10px 11px; border-radius:10px; border:1px solid rgba(255,255,255,.09); outline:none; background:rgba(0,0,0,.25); color:#fff; }
+    .admin-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 7px; border-radius:999px; background:rgba(255,255,255,.06); color:#9fb1a8; font-size:10px; font-weight:900; }
+    #adminToast { position:absolute; left:50%; top:18px; transform:translateX(-50%) translateY(-12px); z-index:90; opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease; padding:10px 14px; border-radius:12px; background:rgba(5,10,8,.94); border:1px solid rgba(239,68,68,.22); color:#fff; font-size:12px; font-weight:850; box-shadow:0 16px 55px rgba(0,0,0,.35); }
+    #adminToast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    @media (max-width:760px) { .admin-grid { grid-template-columns:1fr; } .admin-buttons { grid-template-columns:1fr; } }
+
     @media (max-width: 760px) {
       .panel { padding: 24px; }
       .lobby-grid { grid-template-columns: 1fr; }
@@ -304,7 +338,7 @@
         <button id="playBtn" class="primary interactive">PLAY • JOIN GLOBAL LOBBY</button>
 
         <div class="mini-info">
-          <div class="info-card"><b>5 players</b><span>Minimum to launch</span></div>
+          <div class="info-card"><b>5 players</b><span>Normal launch minimum</span></div>
           <div class="info-card"><b>15 custards</b><span>Hidden around the forest</span></div>
           <div class="info-card"><b>1 killer</b><span>Everyone else is a survivor</span></div>
         </div>
@@ -320,20 +354,20 @@
         <div class="brand"><span class="brand-dot"></span> Global Lobby</div>
         <h1 style="font-size:clamp(32px,6vw,54px);">THE FOREST IS WAITING</h1>
         <p class="subtitle" style="margin-bottom:18px;">
-          Everyone joins this same lobby. When at least five players are here, the host starts the ten-second launch countdown automatically.
+          Everyone joins this same lobby. At 5 players the host starts the ten-second countdown automatically. An admin can bypass the 5-player requirement.
         </p>
 
         <div class="lobby-grid">
           <div class="lobby-list">
             <div class="lobby-title">Players online</div>
-            <div class="lobby-count"><span id="lobbyCount">0</span> / 5+</div>
+            <div class="lobby-count"><span id="lobbyCount">0</span> / 15</div>
             <div class="lobby-sub">Global Slendystubies lobby</div>
             <div id="playerList"></div>
           </div>
           <div class="lobby-side">
             <div class="lobby-title">Launch status</div>
             <div id="launchStatus" style="font-size:27px;font-weight:950;margin-top:7px;">Waiting...</div>
-            <div id="launchSub" class="lobby-sub" style="line-height:1.5;margin-top:6px;">Need 5 players before the countdown starts.</div>
+            <div id="launchSub" class="lobby-sub" style="line-height:1.5;margin-top:6px;">Need 5 players before the normal countdown starts.</div>
             <div class="loader"></div>
             <div class="needed">Do not close this tab during the launch. Your role and spawn are assigned by the lobby host when the round starts.</div>
           </div>
@@ -370,6 +404,99 @@
       </div>
     </div>
 
+    <div id="adminToast"></div>
+
+    <div id="adminAuth">
+      <div class="admin-panel small">
+        <div class="admin-head">
+          <div>
+            <div class="admin-kicker">Restricted Access</div>
+            <div class="admin-title">ADMIN LOGIN</div>
+          </div>
+          <button id="adminAuthClose" class="admin-btn" style="width:auto;padding:8px 10px;">ESC</button>
+        </div>
+        <div class="admin-muted" style="margin-top:10px;">Press ` from the menu or lobby to open this console. Enter the admin password to unlock game controls.</div>
+        <div style="margin-top:16px;">
+          <input id="adminPassword" class="name-input interactive" type="password" maxlength="64" placeholder="Admin password" autocomplete="off" />
+          <button id="adminLoginBtn" class="primary interactive">UNLOCK ADMIN CONSOLE</button>
+          <div id="adminLoginStatus" class="admin-muted" style="margin-top:9px;text-align:center;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="adminConsole">
+      <div class="admin-panel">
+        <div class="admin-head">
+          <div>
+            <div class="admin-kicker">Slendystubies • Server Control</div>
+            <div class="admin-title">ADMIN CONSOLE</div>
+          </div>
+          <button id="adminCloseBtn" class="admin-btn" style="width:auto;padding:8px 10px;">CLOSE</button>
+        </div>
+
+        <div class="admin-grid">
+          <div class="admin-card">
+            <h3>Server Status</h3>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;">
+              <span id="adminConnectionChip" class="admin-chip">OFFLINE</span>
+              <span id="adminHostChip" class="admin-chip">HOST: —</span>
+              <span id="adminRoundChip" class="admin-chip">ROUND: LOBBY</span>
+            </div>
+            <div class="admin-stat" id="adminPlayerStat" style="margin-top:10px;">0 / 15</div>
+            <div class="admin-muted">Players in the shared global lobby / current presence roster.</div>
+          </div>
+
+          <div class="admin-card">
+            <h3>Round Controls</h3>
+            <div class="admin-buttons">
+              <button id="adminStartTimerBtn" class="admin-btn good">▶ Start 10s Timer</button>
+              <button id="adminForceStartBtn" class="admin-btn good">⚡ Force Start Now</button>
+              <button id="adminCancelTimerBtn" class="admin-btn">■ Cancel Countdown</button>
+              <button id="adminEndRoundBtn" class="admin-btn danger">☠ End Current Round</button>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <h3>Next Round Length</h3>
+            <div class="admin-row">
+              <select id="adminRoundLength" class="interactive">
+                <option value="180">3 minutes</option>
+                <option value="300">5 minutes</option>
+                <option value="480" selected>8 minutes</option>
+                <option value="600">10 minutes</option>
+                <option value="900">15 minutes</option>
+              </select>
+              <button id="adminSetLengthBtn" class="admin-btn good" style="flex:0 0 auto;">Set</button>
+            </div>
+            <div class="admin-muted" style="margin-top:8px;">Applies to the next round started through this console.</div>
+          </div>
+
+          <div class="admin-card">
+            <h3>Global Announcement</h3>
+            <div class="admin-row">
+              <input id="adminAnnouncementInput" class="interactive" maxlength="90" placeholder="Type a message for everyone..." />
+              <button id="adminAnnounceBtn" class="admin-btn">Send</button>
+            </div>
+            <div class="admin-muted" style="margin-top:8px;">Shows a message to every connected player without changing the round.</div>
+          </div>
+
+          <div class="admin-card">
+            <h3>Round Tools</h3>
+            <div class="admin-buttons">
+              <button id="adminRevealTimerBtn" class="admin-btn">⏱ Announce Round Time</button>
+              <button id="adminLobbyResetBtn" class="admin-btn danger">↩ Reset Everyone To Lobby</button>
+            </div>
+            <div class="admin-muted" style="margin-top:8px;">Reset sends every connected client back to the shared lobby without closing their connection.</div>
+          </div>
+
+          <div class="admin-card">
+            <h3>Admin Notes</h3>
+            <div class="admin-muted">Backtick opens this menu. Start Timer bypasses the normal 5-player minimum. Force Start bypasses both the minimum and the 10-second countdown. The lobby itself is capped at 15 players.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="fade"></div>
 
     <div id="gameOver">
@@ -400,7 +527,7 @@
   const GAME = {
     channelName: 'slendystubies_werewolf_global_v1',
     minPlayers: 5,
-    maxLobbyPlayers: 32,
+    maxLobbyPlayers: 15,
     worldSize: 8000,
     roundSeconds: 8 * 60,
     startCountdown: 10,
@@ -418,7 +545,8 @@
     playerSyncMs: 90,
     roleCardMs: 3300,
     custardPickupRange: 29,
-    treeCollisionPadding: 7
+    treeCollisionPadding: 7,
+    adminPassword: 'papivictor'
   };
 
   // ------------------------------------------------------------
@@ -459,6 +587,29 @@
   const gameOverTitle = document.getElementById('gameOverTitle');
   const gameOverDesc = document.getElementById('gameOverDesc');
   const mapOverlay = document.getElementById('mapOverlay');
+
+  const adminToast = document.getElementById('adminToast');
+  const adminAuth = document.getElementById('adminAuth');
+  const adminConsole = document.getElementById('adminConsole');
+  const adminPassword = document.getElementById('adminPassword');
+  const adminLoginBtn = document.getElementById('adminLoginBtn');
+  const adminLoginStatus = document.getElementById('adminLoginStatus');
+  const adminAuthClose = document.getElementById('adminAuthClose');
+  const adminCloseBtn = document.getElementById('adminCloseBtn');
+  const adminConnectionChip = document.getElementById('adminConnectionChip');
+  const adminHostChip = document.getElementById('adminHostChip');
+  const adminRoundChip = document.getElementById('adminRoundChip');
+  const adminPlayerStat = document.getElementById('adminPlayerStat');
+  const adminStartTimerBtn = document.getElementById('adminStartTimerBtn');
+  const adminForceStartBtn = document.getElementById('adminForceStartBtn');
+  const adminCancelTimerBtn = document.getElementById('adminCancelTimerBtn');
+  const adminEndRoundBtn = document.getElementById('adminEndRoundBtn');
+  const adminRoundLength = document.getElementById('adminRoundLength');
+  const adminSetLengthBtn = document.getElementById('adminSetLengthBtn');
+  const adminAnnouncementInput = document.getElementById('adminAnnouncementInput');
+  const adminAnnounceBtn = document.getElementById('adminAnnounceBtn');
+  const adminRevealTimerBtn = document.getElementById('adminRevealTimerBtn');
+  const adminLobbyResetBtn = document.getElementById('adminLobbyResetBtn');
 
   // ------------------------------------------------------------
   // STATE
@@ -505,7 +656,9 @@
     roundResult: null,
     localMessageId: 0,
     connectionRetryCount: 0,
-    seedRng: null
+    seedRng: null,
+    adminAuthenticated: false,
+    adminNextRoundSeconds: null
   };
 
   // ------------------------------------------------------------
@@ -543,11 +696,26 @@
       .on('broadcast', { event: 'round_end' }, onRoundEnd)
       .on('broadcast', { event: 'request_state' }, onStateRequest)
       .on('broadcast', { event: 'state_snapshot' }, onStateSnapshot)
+      .on('broadcast', { event: 'admin_command' }, onAdminCommand)
+      .on('broadcast', { event: 'admin_announcement' }, onAdminAnnouncement)
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           state.connected = true;
           setConnectionStatus('ok', 'Connected to global lobby');
           await trackPresence('lobby');
+          const currentRoster = getPresencePlayers();
+          if (currentRoster.length > GAME.maxLobbyPlayers) {
+            try { await channel.untrack(); } catch {}
+            await supabase.removeChannel(channel);
+            channel = null;
+            state.connected = false;
+            state.inLobby = false;
+            setConnectionStatus('bad', 'Global lobby is full (15/15)');
+            playBtn.disabled = false;
+            playBtn.textContent = 'PLAY • JOIN GLOBAL LOBBY';
+            showAdminToast('The global lobby is full — 15/15 players.');
+            return;
+          }
           state.inLobby = true;
           showScreen('lobby');
           requestStateSync();
@@ -643,23 +811,27 @@
       playerList.appendChild(row);
     }
 
-    if (count >= GAME.minPlayers) {
-      launchStatus.textContent = state.startCountdownEndsAt > Date.now() ? 'Starting...' : 'Ready!';
-      launchSub.textContent = state.startCountdownEndsAt > Date.now()
-        ? `Launch countdown is active — ${Math.max(0, Math.ceil((state.startCountdownEndsAt - Date.now()) / 1000))}s`
-        : 'A host is preparing the round.';
+    if (state.startCountdownEndsAt > Date.now()) {
+      launchStatus.textContent = 'Starting...';
+      const seconds = Math.max(0, Math.ceil((state.startCountdownEndsAt - Date.now()) / 1000));
+      launchSub.textContent = seconds + 's until the forest opens' + (count < GAME.minPlayers ? ' • ADMIN BYPASS ACTIVE' : '');
+    } else if (count >= GAME.minPlayers) {
+      launchStatus.textContent = 'Ready!';
+      launchSub.textContent = 'A host can launch the round. The normal minimum is 5 players.';
     } else {
       launchStatus.textContent = 'Waiting...';
-      launchSub.textContent = `Need ${GAME.minPlayers - count} more player${GAME.minPlayers - count === 1 ? '' : 's'} before the countdown starts.`;
+      launchSub.textContent = `Need ${GAME.minPlayers - count} more player${GAME.minPlayers - count === 1 ? '' : 's'} before the normal countdown starts.`;
     }
+    updateAdminUI();
   }
 
-  function maybeHostLaunch() {
-    if (!state.inLobby || state.inGame || state.roundStarting) return;
-    if (state.hostId !== state.playerId) return;
-    const count = state.players.size;
-    if (count < GAME.minPlayers) return;
-    if (state.startCountdownEndsAt > Date.now()) return;
+  function maybeHostLaunch(forceMinimum = false) {
+    if (!state.inLobby || state.inGame || state.roundStarting) return false;
+    if (state.hostId !== state.playerId) return false;
+    const count = Math.min(state.players.size, GAME.maxLobbyPlayers);
+    if (count < GAME.minPlayers && !forceMinimum) return false;
+    if (count <= 0) return false;
+    if (state.startCountdownEndsAt > Date.now()) return false;
 
     state.startCountdownEndsAt = Date.now() + GAME.startCountdown * 1000;
     state.roundStarting = true;
@@ -667,8 +839,10 @@
     updateLobbyUI();
 
     setTimeout(() => {
-      if (state.hostId === state.playerId && state.inLobby) startRoundAsHost();
+      if (state.hostId === state.playerId && state.inLobby && state.startCountdownEndsAt <= Date.now() + 100) startRoundAsHost();
     }, GAME.startCountdown * 1000 + 80);
+    updateAdminUI();
+    return true;
   }
 
   function onLobbyCountdown({ payload }) {
@@ -792,15 +966,19 @@
   // ------------------------------------------------------------
   // ROUND START / STATE SYNC
   // ------------------------------------------------------------
-  async function startRoundAsHost() {
-    if (!state.inLobby || state.hostId !== state.playerId) return;
-    const roster = [...state.players.values()].filter(p => p.mode === 'lobby' || !p.mode);
-    if (roster.length < GAME.minPlayers) {
+  async function startRoundAsHost(bypassMinimum = false, bypassCountdown = false) {
+    if (!state.inLobby || state.hostId !== state.playerId) return false;
+    const roster = [...state.players.values()]
+      .filter(p => p.mode === 'lobby' || !p.mode)
+      .sort((a, b) => String(a.joinedAt || 0).localeCompare(String(b.joinedAt || 0)));
+    if (roster.length < GAME.minPlayers && !bypassMinimum) {
       state.roundStarting = false;
       state.startCountdownEndsAt = 0;
       updateLobbyUI();
-      return;
+      return false;
     }
+    if (roster.length > GAME.maxLobbyPlayers) roster.splice(GAME.maxLobbyPlayers);
+    if (!roster.length) return false;
 
     state.roundId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     state.roundSeed = Math.floor(Math.random() * 0xFFFFFFFF);
@@ -808,16 +986,23 @@
     state.custards = state.map.custards.map(c => ({ ...c }));
     state.collectedCustards.clear();
     const { assignments, spawns } = buildRoundAssignments();
+    const roundSeconds = Number(state.adminNextRoundSeconds) || GAME.roundSeconds;
+    state.adminNextRoundSeconds = null;
     const payload = {
       roundId: state.roundId,
       seed: state.roundSeed,
       assignments,
       spawns,
-      roundEndsAt: Date.now() + GAME.roundSeconds * 1000
+      roundSeconds,
+      roundEndsAt: Date.now() + roundSeconds * 1000
     };
 
+    state.roundStarting = false;
+    state.startCountdownEndsAt = 0;
     onRoundStart({ payload });
     broadcast('round_start', payload);
+    updateAdminUI();
+    return true;
   }
 
   function onRoundStart({ payload }) {
@@ -825,6 +1010,7 @@
 
     state.roundId = payload.roundId;
     state.roundSeed = Number(payload.seed);
+    state.roundResult = null;
     state.map = makeRoundWorld(state.roundSeed);
     state.custards = state.map.custards.map(c => ({ ...c }));
     state.collectedCustards.clear();
@@ -905,6 +1091,184 @@
     if (payload.roundEndsAt) state.roundEndsAt = payload.roundEndsAt;
     updateHud();
   }
+
+  // ------------------------------------------------------------
+  // ADMIN COMMANDS
+  // ------------------------------------------------------------
+  function onAdminCommand({ payload }) {
+    if (!payload?.action) return;
+
+    // The password check is intentionally local. The publishable client can be inspected,
+    // so this is convenience moderation for a prototype, not secure server authentication.
+    if (payload.action === 'start_timer') {
+      if (state.hostId !== state.playerId || !state.inLobby) return;
+      maybeHostLaunch(true);
+      showAdminToast('Admin: 10-second timer started.');
+      return;
+    }
+
+    if (payload.action === 'force_start') {
+      if (state.hostId !== state.playerId || !state.inLobby) return;
+      state.roundStarting = false;
+      state.startCountdownEndsAt = 0;
+      startRoundAsHost(true, true);
+      showAdminToast('Admin: round forced to start.');
+      return;
+    }
+
+    if (payload.action === 'cancel_timer') {
+      if (state.hostId !== state.playerId || !state.inLobby) return;
+      state.roundStarting = false;
+      state.startCountdownEndsAt = 0;
+      updateLobbyUI();
+      broadcast('admin_announcement', { text: 'The launch countdown was cancelled by an admin.' });
+      return;
+    }
+
+    if (payload.action === 'end_round') {
+      if (!state.inGame || !state.roundId) return;
+      const endPayload = { roundId: state.roundId, winner: 'survivors', reason: 'An admin ended the round.' };
+      broadcast('round_end', endPayload);
+      onRoundEnd({ payload: endPayload });
+      return;
+    }
+
+    if (payload.action === 'announce') {
+      const text = String(payload.text || '').trim().slice(0, 90);
+      if (text) onAdminAnnouncement({ payload: { text } });
+      return;
+    }
+
+    if (payload.action === 'set_length') {
+      if (state.hostId !== state.playerId || !state.inLobby) return;
+      const seconds = Math.max(60, Math.min(1800, Number(payload.seconds) || GAME.roundSeconds));
+      state.adminNextRoundSeconds = seconds;
+      showAdminToast(`Next round length set to ${Math.round(seconds / 60)}m.`);
+      return;
+    }
+
+    if (payload.action === 'reset_lobby') {
+      state.roundResult = null;
+      state.inGame = false;
+      state.inLobby = true;
+      state.roundId = null;
+      state.startCountdownEndsAt = 0;
+      state.roundStarting = false;
+      state.alive = true;
+      state.killerTrueForm = false;
+      state.sprintToggle = false;
+      state.flashlightOn = false;
+      state.collectedCustards.clear();
+      state.map = null;
+      gameOver.classList.remove('show');
+      fade.classList.remove('active');
+      showScreen('lobby');
+      trackPresence('lobby');
+      handlePresenceSync();
+      showAdminToast('Everyone has been returned to the lobby.');
+    }
+  }
+
+  function onAdminAnnouncement({ payload }) {
+    if (!payload?.text) return;
+    showCenterMessage(String(payload.text).slice(0, 90));
+    showAdminToast(String(payload.text).slice(0, 90));
+  }
+
+  function showAdminToast(text) {
+    adminToast.textContent = text;
+    adminToast.classList.add('show');
+    clearTimeout(showAdminToast._timer);
+    showAdminToast._timer = setTimeout(() => adminToast.classList.remove('show'), 2600);
+  }
+
+  function openAdminAuth() {
+    if (state.adminAuthenticated) {
+      adminConsole.classList.add('show');
+      updateAdminUI();
+      return;
+    }
+    adminPassword.value = '';
+    adminLoginStatus.textContent = '';
+    adminAuth.classList.add('show');
+    setTimeout(() => adminPassword.focus(), 30);
+  }
+
+  function closeAdminModals() {
+    adminAuth.classList.remove('show');
+    adminConsole.classList.remove('show');
+  }
+
+  function loginAdmin() {
+    if (adminPassword.value === GAME.adminPassword) {
+      state.adminAuthenticated = true;
+      adminLoginStatus.textContent = 'Access granted.';
+      adminLoginStatus.style.color = '#86efac';
+      adminAuth.classList.remove('show');
+      adminConsole.classList.add('show');
+      updateAdminUI();
+      showAdminToast('Admin console unlocked.');
+    } else {
+      adminLoginStatus.textContent = 'Wrong password.';
+      adminLoginStatus.style.color = '#fca5a5';
+      adminPassword.select();
+    }
+  }
+
+  function adminNeedsConnection() {
+    if (!channel || !state.connected) {
+      showAdminToast('Join the global lobby first.');
+      return false;
+    }
+    return true;
+  }
+
+  function sendAdminCommand(action, extra = {}) {
+    if (!state.adminAuthenticated || !adminNeedsConnection()) return;
+    broadcast('admin_command', { action, ...extra, from: state.playerId });
+    if (state.hostId === state.playerId) onAdminCommand({ payload: { action, ...extra, from: state.playerId } });
+  }
+
+  function updateAdminUI() {
+    if (!adminConsole.classList.contains('show')) return;
+    const count = state.players.size;
+    adminConnectionChip.textContent = state.connected ? 'ONLINE' : 'OFFLINE';
+    adminConnectionChip.style.color = state.connected ? '#86efac' : '#fca5a5';
+    adminHostChip.textContent = `HOST: ${state.hostId === state.playerId ? 'YOU' : (state.hostId ? 'OTHER' : '—')}`;
+    adminRoundChip.textContent = state.inGame ? `ROUND: ${state.roundId ? state.roundId.slice(0, 10) : 'ACTIVE'}` : (state.inLobby ? 'ROUND: LOBBY' : 'ROUND: MENU');
+    adminPlayerStat.textContent = `${Math.min(count, GAME.maxLobbyPlayers)} / ${GAME.maxLobbyPlayers}`;
+    const lobbyMode = state.inLobby && !state.inGame;
+    adminStartTimerBtn.disabled = !state.connected || !lobbyMode || !!state.startCountdownEndsAt;
+    adminForceStartBtn.disabled = !state.connected || !lobbyMode;
+    adminCancelTimerBtn.disabled = !state.connected || !lobbyMode || !state.startCountdownEndsAt;
+    adminEndRoundBtn.disabled = !state.connected || !state.inGame;
+    adminSetLengthBtn.disabled = !state.connected || !lobbyMode;
+    adminLobbyResetBtn.disabled = !state.connected;
+    adminRevealTimerBtn.disabled = !state.connected;
+  }
+
+  adminLoginBtn.addEventListener('click', loginAdmin);
+  adminPassword.addEventListener('keydown', e => { if (e.key === 'Enter') loginAdmin(); });
+  adminAuthClose.addEventListener('click', closeAdminModals);
+  adminCloseBtn.addEventListener('click', closeAdminModals);
+  adminStartTimerBtn.addEventListener('click', () => sendAdminCommand('start_timer'));
+  adminForceStartBtn.addEventListener('click', () => sendAdminCommand('force_start'));
+  adminCancelTimerBtn.addEventListener('click', () => sendAdminCommand('cancel_timer'));
+  adminEndRoundBtn.addEventListener('click', () => sendAdminCommand('end_round'));
+  adminSetLengthBtn.addEventListener('click', () => sendAdminCommand('set_length', { seconds: Number(adminRoundLength.value) }));
+  adminAnnounceBtn.addEventListener('click', () => {
+    const text = adminAnnouncementInput.value.trim();
+    if (!text) return;
+    sendAdminCommand('announce', { text });
+    adminAnnouncementInput.value = '';
+  });
+  adminAnnouncementInput.addEventListener('keydown', e => { if (e.key === 'Enter') adminAnnounceBtn.click(); });
+  adminRevealTimerBtn.addEventListener('click', () => {
+    const seconds = state.roundEndsAt ? Math.max(0, Math.ceil((state.roundEndsAt - Date.now()) / 1000)) : 0;
+    const msg = seconds ? `ROUND TIMER: ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}` : 'No active round timer.';
+    sendAdminCommand('announce', { text: msg });
+  });
+  adminLobbyResetBtn.addEventListener('click', () => sendAdminCommand('reset_lobby'));
 
   // ------------------------------------------------------------
   // REMOTE PLAYER UPDATES
@@ -990,6 +1354,19 @@
   // ------------------------------------------------------------
   window.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
+
+    if (e.key === '`') {
+      e.preventDefault();
+      if (!state.inGame && (state.inLobby || !state.connected)) openAdminAuth();
+      else if (state.inGame && state.adminAuthenticated) adminConsole.classList.toggle('show');
+      else if (state.inGame && !state.adminAuthenticated) openAdminAuth();
+      return;
+    }
+    if (e.key === 'Escape' && (adminAuth.classList.contains('show') || adminConsole.classList.contains('show'))) {
+      closeAdminModals();
+      return;
+    }
+
     if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift','f','m','t','e','q'].includes(key)) e.preventDefault();
 
     if (key === 'm' && state.inGame) {
@@ -1608,6 +1985,7 @@
     requestStateSync();
     handlePresenceSync();
     maybeHostLaunch();
+    updateAdminUI();
   }
 
   // ------------------------------------------------------------
@@ -1631,11 +2009,16 @@
     if (state.startCountdownEndsAt > Date.now() && state.inLobby) {
       const left = Math.max(0, Math.ceil((state.startCountdownEndsAt - Date.now()) / 1000));
       launchStatus.textContent = `STARTING IN ${left}`;
-      launchSub.textContent = 'Game is about to start... get ready.';
+      launchSub.textContent = state.players.size < GAME.minPlayers ? 'Admin bypass is active — game is about to start...' : 'Game is about to start... get ready.';
     }
 
-    if (state.inLobby && state.hostId === state.playerId && state.players.size >= GAME.minPlayers && !state.roundStarting) maybeHostLaunch();
+    if (state.inLobby && state.hostId === state.playerId && state.startCountdownEndsAt > 0 && Date.now() >= state.startCountdownEndsAt && !state.roundStarting) {
+      startRoundAsHost(state.players.size < GAME.minPlayers, false);
+    } else if (state.inLobby && state.hostId === state.playerId && state.players.size >= GAME.minPlayers && !state.roundStarting && state.startCountdownEndsAt <= Date.now()) {
+      maybeHostLaunch();
+    }
 
+    updateAdminUI();
     requestAnimationFrame(frame);
   }
 
