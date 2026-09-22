@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gartic Phone: Code Edition</title>
+    <title>Slither.io: Global Server</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Fredoka -->
@@ -17,6 +17,7 @@
             font-family: 'Fredoka', sans-serif;
             user-select: none;
             background: #0f172a;
+            overflow: hidden;
         }
         .retro-shadow {
             box-shadow: 0 6px 0 rgba(0, 0, 0, 0.3);
@@ -25,131 +26,50 @@
             box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
             transform: translateY(4px);
         }
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-        }
-        .animate-float {
-            animation: float 3s ease-in-out infinite;
-        }
     </style>
 </head>
-<body class="text-white h-screen w-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-900 overflow-hidden">
+<body class="text-white h-screen w-screen flex flex-col items-center justify-center bg-slate-950">
 
-    <!-- LOBBY / HOME SCREEN -->
-    <div id="lobbyScreen" class="max-w-md w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
-        <div class="inline-block bg-indigo-600/30 p-2.5 rounded-full border-2 border-indigo-400 animate-float">
-            <i class="fa-solid fa-paintbrush text-4xl text-yellow-400"></i>
+    <!-- START MENU SCREEN -->
+    <div id="menuScreen" class="absolute z-20 max-w-sm w-full bg-slate-900/90 backdrop-blur-md border-4 border-emerald-500 rounded-3xl p-6 shadow-2xl text-center space-y-5">
+        <div class="inline-block bg-emerald-600/30 p-3 rounded-full border-2 border-emerald-400 animate-bounce">
+            <i class="fa-solid fa-worm text-5xl text-emerald-400"></i>
         </div>
         <div>
-            <h1 class="text-2xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-400">GARTIC PHONE</h1>
-            <p class="text-xs text-slate-300 mt-1">Draw, guess, and laugh together!</p>
+            <h1 class="text-3xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-400">SLITHER GLOBAL</h1>
+            <p class="text-xs text-slate-300 mt-1">One massive server. Eat food, grow long, rule the map!</p>
         </div>
 
-        <!-- Setup Panel -->
-        <div class="space-y-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-700 text-left">
-            <div>
-                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Your Nickname</label>
-                <input type="text" id="playerNameInput" maxlength="12" placeholder="Doodler" class="w-full bg-slate-800 border-2 border-slate-600 rounded-xl px-4 py-2 text-center text-base font-bold text-yellow-300 focus:outline-none focus:border-indigo-500 transition">
-            </div>
-
-            <div class="pt-2 border-t border-slate-800">
-                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Join with 4-Digit Code</label>
-                <div class="flex space-x-2">
-                    <input type="text" id="roomCodeInput" maxlength="4" placeholder="e.g. 4829" class="w-2/3 bg-slate-800 border-2 border-slate-600 rounded-xl px-3 py-2 text-center text-lg font-mono font-bold text-yellow-300 tracking-widest focus:outline-none focus:border-indigo-500 transition">
-                    <button id="joinCodeBtn" class="w-1/3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl text-xs retro-shadow transition">
-                        Join Room
-                    </button>
-                </div>
-            </div>
+        <div class="space-y-3 bg-slate-800/60 p-4 rounded-2xl border border-slate-700 text-left">
+            <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Your Worm Name</label>
+            <input type="text" id="playerNameInput" maxlength="12" value="SlitherPro" class="w-full bg-slate-900 border-2 border-slate-600 rounded-xl px-4 py-2.5 text-center text-lg font-bold text-emerald-300 focus:outline-none focus:border-emerald-500 transition">
         </div>
 
-        <div>
-            <button id="createRoomBtn" class="w-full bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-2xl text-base retro-shadow transition transform active:scale-95">
-                <i class="fa-solid fa-plus mr-2"></i> Create New Private Lobby
-            </button>
-        </div>
-    </div>
-
-    <!-- WAITING ROOM SCREEN -->
-    <div id="waitingScreen" class="hidden max-w-md w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
-        <div class="flex justify-between items-center bg-slate-900/80 px-4 py-3 rounded-2xl border border-slate-700">
-            <span class="text-xs text-slate-400">Room Code: <span id="displayRoomId" class="font-mono text-yellow-300 font-bold text-base tracking-widest">----</span></span>
-            <span class="text-xs bg-yellow-500/20 text-yellow-300 px-3 py-1 rounded-full font-bold animate-pulse">Waiting...</span>
-        </div>
-
-        <div class="bg-slate-900/80 rounded-2xl p-4 border border-slate-700 text-left">
-            <div class="text-xs font-semibold text-slate-300 mb-2">Players in Room (<span id="waitingPlayerCount">0</span>/8)</div>
-            <div id="waitingPlayersList" class="space-y-2 max-h-36 overflow-y-auto pr-1">
-                <!-- Populated via JS -->
-            </div>
-        </div>
-
-        <button id="startMatchBtn" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-2xl text-base retro-shadow transition transform active:scale-95">
-            <i class="fa-solid fa-play mr-2"></i> Start Game Now
+        <button id="playBtn" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3.5 px-6 rounded-2xl text-lg retro-shadow transition transform active:scale-95">
+            <i class="fa-solid fa-play mr-2"></i> Play Live
         </button>
     </div>
 
-    <!-- GAME PHASE 1: WRITE PROMPT -->
-    <div id="writePhaseScreen" class="hidden max-w-lg w-full bg-slate-800/90 backdrop-blur-md border-4 border-purple-500 rounded-3xl p-6 shadow-2xl text-center space-y-5">
-        <div class="text-sm font-semibold text-purple-300 uppercase tracking-wider">Step 1: Write a Secret Sentence</div>
-        <p class="text-xs text-slate-300">Write something funny or weird for someone else to draw!</p>
-        <input type="text" id="promptInput" maxlength="60" placeholder="e.g. A cat astronaut eating space pizza" class="w-full bg-slate-900 border-2 border-slate-700 rounded-2xl px-4 py-3 text-center text-lg font-bold text-yellow-300 focus:outline-none focus:border-purple-500 transition">
-        <button id="submitPromptBtn" class="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-3 rounded-2xl text-base retro-shadow transition">
-            Submit Prompt <i class="fa-solid fa-check ml-1"></i>
-        </button>
-    </div>
-
-    <!-- GAME PHASE 2: DRAWING CANVAS -->
-    <div id="drawPhaseScreen" class="hidden max-w-2xl w-full bg-slate-800/90 backdrop-blur-md border-4 border-pink-500 rounded-3xl p-6 shadow-2xl space-y-4">
-        <div class="flex justify-between items-center">
-            <span class="text-xs font-semibold text-pink-300 uppercase tracking-wider">Step 2: Draw This!</span>
-            <span id="promptToDrawText" class="text-sm font-bold text-yellow-300 bg-slate-900 px-3 py-1 rounded-xl border border-slate-700">---</span>
-        </div>
-
-        <div class="relative bg-white rounded-2xl overflow-hidden border-4 border-slate-700 shadow-inner flex justify-center">
-            <canvas id="paintCanvas" width="520" height="340" class="cursor-crosshair bg-white"></canvas>
-        </div>
-
-        <div class="flex justify-between items-center">
-            <div class="flex space-x-2">
-                <button onclick="setBrushColor('#0f172a')" class="w-8 h-8 rounded-full bg-slate-900 border-2 border-white shadow"></button>
-                <button onclick="setBrushColor('#ef4444')" class="w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow"></button>
-                <button onclick="setBrushColor('#3b82f6')" class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow"></button>
-                <button onclick="setBrushColor('#10b981')" class="w-8 h-8 rounded-full bg-emerald-500 border-2 border-white shadow"></button>
-                <button onclick="setBrushColor('#ec4899')" class="w-8 h-8 rounded-full bg-pink-500 border-2 border-white shadow"></button>
-                <button onclick="clearCanvas()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs rounded-xl font-bold">Clear</button>
-            </div>
-            <button id="submitDrawingBtn" class="bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm retro-shadow transition">
-                Done Drawing <i class="fa-solid fa-arrow-right ml-1"></i>
-            </button>
+    <!-- HUD OVERLAY -->
+    <div id="hud" class="hidden absolute top-4 left-4 z-10 pointer-events-none flex flex-col space-y-2">
+        <div class="bg-slate-900/80 backdrop-blur border border-slate-700 px-4 py-2 rounded-2xl shadow-lg">
+            <div class="text-[10px] uppercase font-bold text-slate-400">Length / Score</div>
+            <div id="scoreDisplay" class="text-2xl font-extrabold text-emerald-400 font-mono">5</div>
         </div>
     </div>
 
-    <!-- GAME PHASE 3: GUESSING SCREEN -->
-    <div id="guessPhaseScreen" class="hidden max-w-lg w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
-        <div class="text-sm font-semibold text-indigo-300 uppercase tracking-wider">Step 3: What is this drawing?</div>
-        <div class="bg-white p-2 rounded-2xl border-4 border-slate-700 inline-block shadow">
-            <img id="guessImageDisplay" class="max-h-56 mx-auto rounded-lg" alt="Drawing to guess">
+    <!-- LEADERBOARD -->
+    <div id="leaderboard" class="hidden absolute top-4 right-4 z-10 pointer-events-none bg-slate-900/80 backdrop-blur border border-slate-700 p-3 rounded-2xl shadow-lg w-48">
+        <div class="text-xs font-bold text-teal-400 border-b border-slate-700 pb-1 mb-2"><i class="fa-solid fa-trophy mr-1"></i> Top Worms</div>
+        <div id="leaderboardList" class="space-y-1 text-xs text-slate-300 font-mono">
+            <!-- Dynamic leaderboard -->
         </div>
-        <input type="text" id="guessInput" maxlength="60" placeholder="Type your guess here..." class="w-full bg-slate-900 border-2 border-slate-700 rounded-2xl px-4 py-3 text-center text-lg font-bold text-yellow-300 focus:outline-none focus:border-indigo-500 transition">
-        <button id="submitGuessBtn" class="w-full bg-gradient-to-r from-indigo-500 to-teal-600 hover:from-indigo-600 hover:to-teal-700 text-white font-bold py-3 rounded-2xl text-base retro-shadow transition">
-            Submit Guess <i class="fa-solid fa-check ml-1"></i>
-        </button>
     </div>
 
-    <!-- GAME PHASE 4: ALBUM / REEL REVEAL -->
-    <div id="revealPhaseScreen" class="hidden max-w-lg w-full bg-slate-800/90 backdrop-blur-md border-4 border-yellow-500 rounded-3xl p-6 shadow-2xl text-center space-y-5">
-        <div class="text-sm font-semibold text-yellow-400 uppercase tracking-wider">🎉 Story Reveal Reel 🎉</div>
-        <div id="storyReelContainer" class="bg-slate-900/80 p-4 rounded-2xl border border-slate-700 space-y-3 min-h-[200px] flex flex-col items-center justify-center max-h-72 overflow-y-auto">
-            <!-- Dynamically populated step cards -->
-        </div>
-        <button onclick="location.reload()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl text-base retro-shadow transition">
-            Play Again <i class="fa-solid fa-rotate ml-1"></i>
-        </button>
-    </div>
+    <!-- GAME CANVAS -->
+    <canvas id="gameCanvas" class="block w-full h-full cursor-crosshair"></canvas>
 
-    <!-- SCRIPT LOGIC -->
+    <!-- GAME SCRIPT LOGIC -->
     <script>
         const SUPABASE_URL = 'https://degilckgjfdnekszsbry.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_ym_oqKIyxwk7ixxCvwNCmA_w2VtnpdP';
@@ -160,234 +80,238 @@
             console.error("Supabase init error:", e);
         }
 
-        let playerId = 'user_' + Math.random().toString(36).substring(2, 9);
-        let playerName = 'Doodler';
-        let roomId = null;
-        let channel = null;
-        let players = {};
-        let gameDeck = []; 
-        let currentStepIndex = 0;
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
 
-        function showScreen(screenId) {
-            ['lobbyScreen', 'waitingScreen', 'writePhaseScreen', 'drawPhaseScreen', 'guessPhaseScreen', 'revealPhaseScreen'].forEach(id => {
-                document.getElementById(id).classList.add('hidden');
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const WORLD_SIZE = 3000; // Giant shared world map boundary
+        let playerId = 'worm_' + Math.random().toString(36).substring(2, 9);
+        let playerName = 'SlitherPro';
+        let globalChannel = null;
+
+        // Local player state
+        let me = {
+            x: WORLD_SIZE / 2 + (Math.random() * 400 - 200),
+            y: WORLD_SIZE / 2 + (Math.random() * 400 - 200),
+            angle: 0,
+            speed: 3.5,
+            radius: 10,
+            trail: [],
+            score: 5,
+            color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')
+        };
+
+        let remotePlayers = {}; // Dictionary of other connected snakes
+        let foodPellets = [];   // Global shared food objects
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let gameActive = false;
+
+        // Generate initial random food across the map
+        for(let i=0; i<300; i++) {
+            foodPellets.push({
+                x: Math.random() * WORLD_SIZE,
+                y: Math.random() * WORLD_SIZE,
+                color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')
             });
-            document.getElementById(screenId).classList.remove('hidden');
         }
 
-        function getUserName() {
-            const nameInput = document.getElementById('playerNameInput').value.trim();
-            if (nameInput) playerName = nameInput;
-        }
-
-        // Create a new room with a random 4-digit code
-        document.getElementById('createRoomBtn').addEventListener('click', async () => {
-            getUserName();
-            roomId = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit code e.g. "5821"
-
-            if (supabaseClient) {
-                await supabaseClient.from('rooms').insert([{ id: roomId, status: 'waiting', players_count: 1 }]);
-            }
-
-            showScreen('waitingScreen');
-            document.getElementById('displayRoomId').innerText = roomId;
-            setupRealtimeChannel();
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
         });
 
-        // Join a room using the 4-digit code input
-        document.getElementById('joinCodeBtn').addEventListener('click', async () => {
-            getUserName();
-            const codeInput = document.getElementById('roomCodeInput').value.trim();
-            
-            if (codeInput.length !== 4) {
-                alert("Please enter a valid 4-digit room code.");
-                return;
-            }
+        document.getElementById('playBtn').addEventListener('click', () => {
+            const val = document.getElementById('playerNameInput').value.trim();
+            if(val) playerName = val;
 
-            roomId = codeInput;
+            document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('leaderboard').classList.remove('hidden');
 
-            if (supabaseClient) {
-                let { data, error } = await supabaseClient.from('rooms').select('*').eq('id', roomId).single();
-                if (error || !data) {
-                    alert("Room not found! Check the code or create a new room.");
-                    return;
-                }
-                await supabaseClient.from('rooms').update({ players_count: data.players_count + 1 }).eq('id', roomId);
-            }
-
-            showScreen('waitingScreen');
-            document.getElementById('displayRoomId').innerText = roomId;
-            setupRealtimeChannel();
+            initGlobalMultiplayer();
+            gameActive = true;
+            requestAnimationFrame(gameLoop);
         });
 
-        function setupRealtimeChannel() {
-            channel = supabaseClient.channel('room_' + roomId, {
+        function initGlobalMultiplayer() {
+            if (!supabaseClient) return;
+
+            // Connect everyone to one single universal channel room: "global_slither_room"
+            globalChannel = supabaseClient.channel('global_slither_room', {
                 config: { broadcast: { self: false } }
             });
 
-            channel.on('broadcast', { event: 'player_sync' }, payload => {
-                players[payload.payload.id] = payload.payload;
-                updateWaitingUI();
+            globalChannel.on('broadcast', { event: 'worm_sync' }, payload => {
+                remotePlayers[payload.payload.id] = payload.payload;
             });
 
-            channel.on('broadcast', { event: 'start_game' }, payload => {
-                gameDeck = payload.payload.deck;
-                beginGameSequence();
-            });
-
-            channel.subscribe(async (status) => {
-                if (status === 'SUBSCRIBED') {
-                    players[playerId] = { id: playerId, name: playerName };
-                    updateWaitingUI();
-
+            globalChannel.subscribe(status => {
+                if(status === 'SUBSCRIBED') {
+                    // Send positional heartbeat loop every 60ms
                     setInterval(() => {
-                        if (channel) {
-                            channel.send({ type: 'broadcast', event: 'player_sync', payload: { id: playerId, name: playerName } });
-                        }
-                    }, 1500);
+                        if(!gameActive) return;
+                        globalChannel.send({
+                            type: 'broadcast',
+                            event: 'worm_sync',
+                            payload: {
+                                id: playerId,
+                                name: playerName,
+                                x: me.x,
+                                y: me.y,
+                                trail: me.trail.slice(0, 30), // Sync recent body history trail
+                                score: me.score,
+                                color: me.color
+                            }
+                        });
+                    }, 60);
                 }
             });
         }
 
-        function updateWaitingUI() {
-            let count = Object.keys(players).length;
-            document.getElementById('waitingPlayerCount').innerText = count;
-            let html = '';
-            for (let id in players) {
-                html += `<div class="bg-slate-800 p-2 rounded-xl border border-slate-700 text-xs font-bold text-white flex justify-between items-center">
-                    <span><i class="fa-solid fa-user text-indigo-400 mr-2"></i> ${players[id].name}</span>
-                    <span class="text-green-400 text-[10px]">Ready</span>
-                </div>`;
-            }
-            document.getElementById('waitingPlayersList').innerHTML = html;
-        }
+        function gameLoop() {
+            if (!gameActive) return;
 
-        document.getElementById('startMatchBtn').addEventListener('click', async () => {
-            let playerList = Object.values(players);
-            let deck = playerList.map(p => ({ ownerId: p.id, ownerName: p.name, type: 'prompt', content: '' }));
-            
-            if (supabaseClient) {
-                await supabaseClient.from('rooms').update({ status: 'playing' }).eq('id', roomId);
+            // 1. Calculate movement angle towards mouse cursor relative to center screen
+            let centerX = canvas.width / 2;
+            let centerY = canvas.height / 2;
+            let dx = mouseX - centerX;
+            let dy = mouseY - centerY;
+            if (Math.hypot(dx, dy) > 5) {
+                me.angle = Math.atan2(dy, dx);
             }
 
-            if (channel) {
-                channel.send({ type: 'broadcast', event: 'start_game', payload: { deck } });
+            // Move head forward
+            me.x += Math.cos(me.angle) * me.speed;
+            me.y += Math.sin(me.angle) * me.speed;
+
+            // Enforce world borders
+            me.x = Math.max(20, Math.min(WORLD_SIZE - 20, me.x));
+            me.y = Math.max(20, Math.min(WORLD_SIZE - 20, me.y));
+
+            // Push head position into trail history
+            me.trail.unshift({ x: me.x, y: me.y });
+            let maxTrailLength = me.score * 4;
+            while(me.trail.length > maxTrailLength) {
+                me.trail.pop();
             }
-            gameDeck = deck;
-            beginGameSequence();
-        });
 
-        function beginGameSequence() {
-            currentStepIndex = 0;
-            showScreen('writePhaseScreen');
-        }
-
-        document.getElementById('submitPromptBtn').addEventListener('click', () => {
-            const val = document.getElementById('promptInput').value.trim();
-            if (!val) return alert("Please type a prompt first!");
-            
-            let myItem = gameDeck.find(item => item.ownerId === playerId);
-            if (myItem) myItem.content = val;
-
-            document.getElementById('writePhaseScreen').classList.add('hidden');
-            setupDrawingPhase();
-        });
-
-        const paintCanvas = document.getElementById('paintCanvas');
-        const pCtx = paintCanvas.getContext('2d');
-        let isDrawing = false;
-        let brushColor = '#0f172a';
-
-        function setBrushColor(col) { brushColor = col; }
-        function clearCanvas() { pCtx.clearRect(0, 0, paintCanvas.width, paintCanvas.height); pCtx.fillStyle = '#ffffff'; pCtx.fillRect(0, 0, paintCanvas.width, paintCanvas.height); }
-
-        pCtx.fillStyle = '#ffffff';
-        pCtx.fillRect(0, 0, paintCanvas.width, paintCanvas.height);
-
-        paintCanvas.addEventListener('mousedown', () => isDrawing = true);
-        window.addEventListener('mouseup', () => isDrawing = false);
-        paintCanvas.addEventListener('mousemove', (e) => {
-            if (!isDrawing) return;
-            const rect = paintCanvas.getBoundingClientRect();
-            let x = e.clientX - rect.left;
-            let y = e.clientY - rect.top;
-            pCtx.fillStyle = brushColor;
-            pCtx.beginPath();
-            pCtx.arc(x, y, 6, 0, Math.PI * 2);
-            pCtx.fill();
-        });
-
-        function setupDrawingPhase() {
-            showScreen('drawPhaseScreen');
-            clearCanvas();
-            let playerIds = Object.keys(players);
-            let myIdx = playerIds.indexOf(playerId);
-            let targetIdx = (myIdx + currentStepIndex) % playerIds.length;
-            let targetItem = gameDeck[targetIdx];
-            
-            document.getElementById('promptToDrawText').innerText = targetItem ? targetItem.content : "Draw something cool!";
-        }
-
-        document.getElementById('submitDrawingBtn').addEventListener('click', () => {
-            const dataUrl = paintCanvas.toDataURL();
-            let playerIds = Object.keys(players);
-            let myIdx = playerIds.indexOf(playerId);
-            let targetIdx = (myIdx + currentStepIndex) % playerIds.length;
-            
-            gameDeck[targetIdx].content = dataUrl;
-            gameDeck[targetIdx].type = 'drawing';
-
-            document.getElementById('drawPhaseScreen').classList.add('hidden');
-            setupGuessingPhase();
-        });
-
-        function setupGuessingPhase() {
-            showScreen('guessPhaseScreen');
-            let playerIds = Object.keys(players);
-            let myIdx = playerIds.indexOf(playerId);
-            let targetIdx = (myIdx + currentStepIndex + 1) % playerIds.length;
-            let targetItem = gameDeck[targetIdx];
-
-            if (targetItem && targetItem.type === 'drawing') {
-                document.getElementById('guessImageDisplay').src = targetItem.content;
-            }
-            document.getElementById('guessInput').value = '';
-        }
-
-        document.getElementById('submitGuessBtn').addEventListener('click', () => {
-            const val = document.getElementById('guessInput').value.trim();
-            if (!val) return alert("Please type a guess!");
-
-            let playerIds = Object.keys(players);
-            let myIdx = playerIds.indexOf(playerId);
-            let targetIdx = (myIdx + currentStepIndex + 1) % playerIds.length;
-
-            gameDeck[targetIdx].content = val;
-            gameDeck[targetIdx].type = 'guess';
-
-            currentStepIndex++;
-            if (currentStepIndex >= playerIds.length - 1) {
-                showRevealPhase();
-            } else {
-                setupDrawingPhase();
-            }
-        });
-
-        function showRevealPhase() {
-            showScreen('revealPhaseScreen');
-            let container = document.getElementById('storyReelContainer');
-            let html = '';
-            gameDeck.forEach((item, idx) => {
-                html += `<div class="bg-slate-800 p-3 rounded-xl border border-slate-700 text-left">
-                    <div class="text-[10px] text-purple-300 font-bold mb-1">${item.ownerName}'s Chain</div>`;
-                if (idx % 2 === 0) {
-                    html += `<div class="text-xs text-yellow-300 font-bold">"${item.content}"</div>`;
-                } else {
-                    html += `<img src="${item.content}" class="max-h-32 mx-auto rounded-lg border border-slate-600">`;
+            // 2. Food collision checking
+            for (let i = foodPellets.length - 1; i >= 0; i--) {
+                let f = foodPellets[i];
+                let dist = Math.hypot(me.x - f.x, me.y - f.y);
+                if (dist < me.radius + 8) {
+                    // Eat food! Grow longer
+                    me.score += 1;
+                    document.getElementById('scoreDisplay').innerText = me.score;
+                    // Respawn pellet elsewhere
+                    foodPellets[i] = {
+                        x: Math.random() * WORLD_SIZE,
+                        y: Math.random() * WORLD_SIZE,
+                        color: f.color
+                    };
                 }
-                html += `</div>`;
+            }
+
+            // 3. Render World (Camera centered on local player)
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            // Translate camera view to follow player center
+            ctx.translate(centerX - me.x, centerY - me.y);
+
+            // Draw Grid Background lines for motion reference
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            let gridSize = 80;
+            let startX = Math.floor((me.x - centerX) / gridSize) * gridSize;
+            let startY = Math.floor((me.y - centerY) / gridSize) * gridSize;
+            for (let x = startX; x < startX + canvas.width + gridSize * 2; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, me.y - centerY - 100); ctx.lineTo(x, me.y + centerY + canvas.height); ctx.stroke();
+            }
+            for (let y = startY; y < startY + canvas.height + gridSize * 2; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(me.x - centerX - 100, y); ctx.lineTo(me.x + centerX + canvas.width, y); ctx.stroke();
+            }
+
+            // Draw World Boundary Border Box
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 8;
+            ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+
+            // Draw Food Pellets
+            foodPellets.forEach(f => {
+                ctx.fillStyle = f.color;
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, 5, 0, Math.PI * 2);
+                ctx.fill();
             });
-            container.innerHTML = html;
+
+            // Draw Remote Players' Worms
+            for (let id in remotePlayers) {
+                let p = remotePlayers[id];
+                if (p.trail && p.trail.length > 0) {
+                    // Draw body segments
+                    p.trail.forEach((t, idx) => {
+                        ctx.fillStyle = p.color || '#3b82f6';
+                        ctx.beginPath();
+                        ctx.arc(t.x, t.y, 9, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                    // Draw remote player name header
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 12px Fredoka';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(p.name, p.x, p.y - 16);
+                }
+            }
+
+            // Draw Local Player's Worm Body Trail
+            me.trail.forEach((t) => {
+                ctx.fillStyle = me.color;
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, 10, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw Local Player Head
+            ctx.fillStyle = me.color;
+            ctx.beginPath();
+            ctx.arc(me.x, me.y, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Local Eyes
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(me.x + Math.cos(me.angle - 0.4) * 6, me.y + Math.sin(me.angle - 0.4) * 6, 3.5, 0, Math.PI * 2);
+            ctx.arc(me.x + Math.cos(me.angle + 0.4) * 6, me.y + Math.sin(me.angle + 0.4) * 6, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+            // Update Leaderboard UI
+            updateLeaderboardUI();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateLeaderboardUI() {
+            let allWorms = [{ name: playerName, score: me.score }];
+            for(let id in remotePlayers) {
+                allWorms.push({ name: remotePlayers[id].name, score: remotePlayers[id].score || 5 });
+            }
+            allWorms.sort((a,b) => b.score - a.score);
+
+            let html = '';
+            allWorms.slice(0, 5).forEach((w, idx) => {
+                html += `<div class="flex justify-between"><span>#${idx+1} ${w.name}</span><span class="font-bold text-emerald-400">${w.score}</span></div>`;
+            });
+            document.getElementById('leaderboardList').innerHTML = html;
         }
     </script>
 </body>
