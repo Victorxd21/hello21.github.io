@@ -7,8 +7,7 @@
 const SUPABASE_URL = "https://degilckgjfdnekszsbry.supabase.co";
 const SUPABASE_KEY = "sb_publishable_ym_oqKIyxwk7ixxCvwNCmA_w2VtnpdP";
 
-const { createClient } = window.supabase;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   realtime: { params: { eventsPerSecond: 20 } }
 });
 
@@ -243,7 +242,7 @@ async function ensureChannel() {
   if (channel) return;
 
   const topic = "gartic-phone-" + roomCode;
-  channel = supabase.channel(topic, {
+  channel = supabaseClient.channel(topic, {
     config: {
       presence: { key: clientId },
       broadcast: { self: false }
@@ -776,7 +775,7 @@ async function leaveRoom() {
   timerHandle = null;
   if (channel) {
     try { await channel.untrack(); } catch (_) {}
-    try { await supabase.removeChannel(channel); } catch (_) {}
+    try { await supabaseClient.removeChannel(channel); } catch (_) {}
   }
   channel = null;
   localState = null;
