@@ -657,9 +657,6 @@
   const adminRevealTimerBtn = document.getElementById('adminRevealTimerBtn');
   const adminLobbyResetBtn = document.getElementById('adminLobbyResetBtn');
 
-  debugLogMessage('Global lobby page loaded.');
-  debugLogMessage(`Configured for ${GAME.minPlayers} minimum / ${GAME.maxLobbyPlayers} maximum players.`);
-
   // ------------------------------------------------------------
   // STATE
   // ------------------------------------------------------------
@@ -715,6 +712,9 @@
   // ------------------------------------------------------------
   let channel = null;
   let connectPromise = null;
+
+  debugLogMessage('Global lobby page loaded.');
+  debugLogMessage(`Configured for ${GAME.minPlayers} minimum / ${GAME.maxLobbyPlayers} maximum players.`);
 
   function debugLogMessage(message, level = 'info') {
     const now = new Date();
