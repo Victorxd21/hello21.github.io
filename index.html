@@ -1,382 +1,882 @@
+```html
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-```
-<title>Game Hub</title>
+    <title>Game Hub</title>
 
-<style>
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-    }
-
-    body {
-        font-family: Arial, Helvetica, sans-serif;
-        background:
-            radial-gradient(circle at 20% 20%, #25254a 0%, transparent 35%),
-            radial-gradient(circle at 80% 80%, #171735 0%, transparent 40%),
-            #080810;
-        color: white;
-        min-height: 100vh;
-        overflow-x: hidden;
-    }
-
-    body::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        background-image:
-            linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-        background-size: 40px 40px;
-    }
-
-    header {
-        position: relative;
-        padding: 70px 30px 50px;
-        text-align: center;
-    }
-
-    .badge {
-        display: inline-block;
-        padding: 7px 14px;
-        border-radius: 999px;
-        background: rgba(120, 120, 255, 0.12);
-        border: 1px solid rgba(140, 140, 255, 0.25);
-        color: #aaaaff;
-        font-size: 13px;
-        margin-bottom: 20px;
-    }
-
-    h1 {
-        font-size: clamp(45px, 8vw, 85px);
-        font-weight: 900;
-        letter-spacing: -4px;
-        background: linear-gradient(90deg, #ffffff, #aaaaff, #ffffff);
-        background-size: 200%;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: gradient 5s linear infinite;
-    }
-
-    @keyframes gradient {
-        0% {
-            background-position: 0%;
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
-        100% {
-            background-position: 200%;
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background:
+                radial-gradient(circle at 20% 20%, #25254a 0%, transparent 35%),
+                radial-gradient(circle at 80% 80%, #171735 0%, transparent 40%),
+                #080810;
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
-    }
 
-    .subtitle {
-        margin-top: 15px;
-        color: #89899a;
-        font-size: 16px;
-    }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
 
-    main {
-        position: relative;
-        width: min(1200px, calc(100% - 40px));
-        margin: auto;
-        padding-bottom: 80px;
-    }
+            background-image:
+                linear-gradient(
+                    rgba(255,255,255,0.025) 1px,
+                    transparent 1px
+                ),
+                linear-gradient(
+                    90deg,
+                    rgba(255,255,255,0.025) 1px,
+                    transparent 1px
+                );
 
-    .topbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 20px;
-        margin-bottom: 25px;
-    }
-
-    .games-count {
-        color: #858597;
-        font-size: 14px;
-    }
-
-    .refresh {
-        border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(255,255,255,0.05);
-        color: white;
-        padding: 10px 16px;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-
-    .refresh:hover {
-        background: rgba(255,255,255,0.1);
-        transform: translateY(-2px);
-    }
-
-    #games {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-        gap: 18px;
-    }
-
-    .game {
-        position: relative;
-        min-height: 150px;
-        padding: 24px;
-        border-radius: 18px;
-        border: 1px solid rgba(255,255,255,0.08);
-        background: rgba(255,255,255,0.045);
-        backdrop-filter: blur(12px);
-        cursor: pointer;
-        overflow: hidden;
-        transition:
-            transform 0.25s ease,
-            border-color 0.25s ease,
-            background 0.25s ease;
-    }
-
-    .game::before {
-        content: "";
-        position: absolute;
-        width: 150px;
-        height: 150px;
-        background: #6d5dfc;
-        filter: blur(80px);
-        opacity: 0;
-        top: -80px;
-        right: -80px;
-        transition: 0.3s;
-    }
-
-    .game:hover {
-        transform: translateY(-6px);
-        border-color: rgba(140,140,255,0.4);
-        background: rgba(255,255,255,0.075);
-    }
-
-    .game:hover::before {
-        opacity: 0.3;
-    }
-
-    .game-icon {
-        width: 45px;
-        height: 45px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #6d5dfc, #9b8cff);
-        font-size: 21px;
-        margin-bottom: 18px;
-        box-shadow: 0 8px 30px rgba(109,93,252,0.25);
-    }
-
-    .game-name {
-        position: relative;
-        font-size: 19px;
-        font-weight: 700;
-        margin-bottom: 7px;
-        word-break: break-word;
-    }
-
-    .game-file {
-        position: relative;
-        color: #777789;
-        font-size: 12px;
-    }
-
-    .loading {
-        grid-column: 1 / -1;
-        text-align: center;
-        padding: 70px 20px;
-        color: #777789;
-    }
-
-    .spinner {
-        width: 35px;
-        height: 35px;
-        border: 3px solid rgba(255,255,255,0.08);
-        border-top-color: #8b7cff;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        margin: 0 auto 18px;
-    }
-
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
+            background-size: 40px 40px;
         }
-    }
 
-    .error {
-        grid-column: 1 / -1;
-        padding: 30px;
-        border-radius: 15px;
-        background: rgba(255,70,70,0.08);
-        border: 1px solid rgba(255,70,70,0.2);
-        color: #ff9b9b;
-        text-align: center;
-    }
-
-    footer {
-        position: relative;
-        text-align: center;
-        color: #555566;
-        font-size: 12px;
-        padding: 30px;
-    }
-
-    @media (max-width: 600px) {
         header {
-            padding-top: 45px;
+            position: relative;
+            padding: 70px 30px 50px;
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 7px 14px;
+            border-radius: 999px;
+
+            background: rgba(120, 120, 255, 0.12);
+            border: 1px solid rgba(140, 140, 255, 0.25);
+
+            color: #aaaaff;
+            font-size: 13px;
+
+            margin-bottom: 20px;
         }
 
         h1 {
-            letter-spacing: -2px;
+            font-size: clamp(45px, 8vw, 85px);
+            font-weight: 900;
+            letter-spacing: -4px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #ffffff,
+                    #aaaaff,
+                    #ffffff
+                );
+
+            background-size: 200%;
+
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+
+            animation: gradient 5s linear infinite;
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0%;
+            }
+
+            100% {
+                background-position: 200%;
+            }
+        }
+
+        .subtitle {
+            margin-top: 15px;
+            color: #89899a;
+            font-size: 16px;
         }
 
         main {
-            width: min(100% - 25px, 1200px);
+            position: relative;
+
+            width: min(
+                1200px,
+                calc(100% - 40px)
+            );
+
+            margin: auto;
+            padding-bottom: 80px;
         }
 
-        #games {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
-```
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
 
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .games-count {
+            color: #858597;
+            font-size: 14px;
+        }
+
+        .refresh {
+            border: 1px solid rgba(255,255,255,0.1);
+
+            background: rgba(255,255,255,0.05);
+            color: white;
+
+            padding: 10px 16px;
+            border-radius: 10px;
+
+            cursor: pointer;
+
+            transition:
+                0.2s;
+        }
+
+        .refresh:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-2px);
+        }
+
+        /*
+        ============================================
+        CATEGORY
+        ============================================
+        */
+
+        .category {
+            margin-bottom: 45px;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            margin-bottom: 18px;
+        }
+
+        .category-icon {
+            width: 38px;
+            height: 38px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 10px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #6d5dfc,
+                    #9b8cff
+                );
+
+            box-shadow:
+                0 8px 30px rgba(
+                    109,
+                    93,
+                    252,
+                    0.2
+                );
+
+            font-size: 18px;
+        }
+
+        .category-name {
+            font-size: 23px;
+            font-weight: 800;
+
+            text-transform: capitalize;
+        }
+
+        .category-count {
+            color: #666677;
+            font-size: 12px;
+            margin-left: 3px;
+        }
+
+        /*
+        ============================================
+        GAMES GRID
+        ============================================
+        */
+
+        .games-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    auto-fill,
+                    minmax(240px, 1fr)
+                );
+
+            gap: 18px;
+        }
+
+        /*
+        ============================================
+        GAME CARD
+        ============================================
+        */
+
+        .game {
+            position: relative;
+
+            min-height: 150px;
+            padding: 24px;
+
+            border-radius: 18px;
+
+            border:
+                1px solid
+                rgba(255,255,255,0.08);
+
+            background:
+                rgba(255,255,255,0.045);
+
+            backdrop-filter: blur(12px);
+
+            cursor: pointer;
+            overflow: hidden;
+
+            transition:
+                transform 0.25s ease,
+                border-color 0.25s ease,
+                background 0.25s ease;
+        }
+
+        .game::before {
+            content: "";
+
+            position: absolute;
+
+            width: 150px;
+            height: 150px;
+
+            background: #6d5dfc;
+
+            filter: blur(80px);
+
+            opacity: 0;
+
+            top: -80px;
+            right: -80px;
+
+            transition: 0.3s;
+        }
+
+        .game:hover {
+            transform: translateY(-6px);
+
+            border-color:
+                rgba(140,140,255,0.4);
+
+            background:
+                rgba(255,255,255,0.075);
+        }
+
+        .game:hover::before {
+            opacity: 0.3;
+        }
+
+        .game-icon {
+            position: relative;
+
+            width: 45px;
+            height: 45px;
+
+            border-radius: 12px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #6d5dfc,
+                    #9b8cff
+                );
+
+            font-size: 21px;
+
+            margin-bottom: 18px;
+
+            box-shadow:
+                0 8px 30px
+                rgba(
+                    109,
+                    93,
+                    252,
+                    0.25
+                );
+        }
+
+        .game-name {
+            position: relative;
+
+            font-size: 19px;
+            font-weight: 700;
+
+            margin-bottom: 7px;
+
+            word-break: break-word;
+        }
+
+        .game-file {
+            position: relative;
+
+            color: #777789;
+            font-size: 12px;
+
+            word-break: break-word;
+        }
+
+        /*
+        ============================================
+        LOADING
+        ============================================
+        */
+
+        .loading {
+            text-align: center;
+
+            padding: 70px 20px;
+
+            color: #777789;
+        }
+
+        .spinner {
+            width: 35px;
+            height: 35px;
+
+            border:
+                3px solid
+                rgba(255,255,255,0.08);
+
+            border-top-color: #8b7cff;
+
+            border-radius: 50%;
+
+            animation:
+                spin 0.8s linear infinite;
+
+            margin:
+                0 auto 18px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /*
+        ============================================
+        ERROR
+        ============================================
+        */
+
+        .error {
+            padding: 30px;
+
+            border-radius: 15px;
+
+            background:
+                rgba(255,70,70,0.08);
+
+            border:
+                1px solid
+                rgba(255,70,70,0.2);
+
+            color: #ff9b9b;
+
+            text-align: center;
+        }
+
+        /*
+        ============================================
+        EMPTY CATEGORY
+        ============================================
+        */
+
+        .empty-category {
+            padding: 25px;
+
+            border-radius: 14px;
+
+            border:
+                1px solid
+                rgba(255,255,255,0.05);
+
+            background:
+                rgba(255,255,255,0.025);
+
+            color: #666677;
+
+            font-size: 13px;
+        }
+
+        /*
+        ============================================
+        FOOTER
+        ============================================
+        */
+
+        footer {
+            position: relative;
+
+            text-align: center;
+
+            color: #555566;
+            font-size: 12px;
+
+            padding: 30px;
+        }
+
+        /*
+        ============================================
+        MOBILE
+        ============================================
+        */
+
+        @media (max-width: 600px) {
+
+            header {
+                padding-top: 45px;
+            }
+
+            h1 {
+                letter-spacing: -2px;
+            }
+
+            main {
+                width:
+                    min(
+                        calc(100% - 25px),
+                        1200px
+                    );
+            }
+
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                align-items: flex-start;
+            }
+
+            .category-name {
+                font-size: 20px;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
 <header>
-    <div class="badge">🎮 GITHUB GAME HUB</div>
 
-```
-<h1>GAME HUB</h1>
+    <div class="badge">
+        🎮 GITHUB GAME HUB
+    </div>
 
-<p class="subtitle">
-    Pick a game and start playing.
-</p>
-```
+    <h1>
+        GAME HUB
+    </h1>
+
+    <p class="subtitle">
+        Pick a game and start playing.
+    </p>
 
 </header>
 
 <main>
 
-```
-<div class="topbar">
-    <div class="games-count" id="gameCount">
-        Loading games...
+    <div class="topbar">
+
+        <div
+            class="games-count"
+            id="gameCount"
+        >
+            Loading games...
+        </div>
+
+        <button
+            class="refresh"
+            onclick="loadGames()"
+        >
+            ↻ Refresh
+        </button>
+
     </div>
 
-    <button class="refresh" onclick="loadGames()">
-        ↻ Refresh
-    </button>
-</div>
+    <div id="games">
 
-<div id="games">
-    <div class="loading">
-        <div class="spinner"></div>
-        Loading games...
+        <div class="loading">
+
+            <div class="spinner"></div>
+
+            Loading games...
+
+        </div>
+
     </div>
-</div>
-```
 
 </main>
 
 <footer>
-    Games are loaded automatically from the <b>/games</b> folder.
+
+    Games are loaded automatically from
+    the <b>/games</b> folder.
+
 </footer>
+
 
 <script>
 
+/*
+============================================================
+GITHUB GAME HUB
+============================================================
+
+Supported structure:
+
+games/
+│
+├── game1.html
+├── game2.html
+│
+├── cat-game/
+│   └── index.html
+│
+└── horror/
+    ├── maze.html
+    └── night.html
+
+Root HTML files appear under "Games".
+
+Folders become categories.
+
+HTML files inside folders become games
+inside that category.
+============================================================
+*/
+
+
 async function loadGames() {
 
-    const gamesContainer = document.getElementById("games");
-    const gameCount = document.getElementById("gameCount");
+    const gamesContainer =
+        document.getElementById("games");
+
+    const gameCount =
+        document.getElementById("gameCount");
+
 
     gamesContainer.innerHTML = `
         <div class="loading">
+
             <div class="spinner"></div>
+
             Loading games...
+
         </div>
     `;
 
-    gameCount.textContent = "Loading games...";
+    gameCount.textContent =
+        "Loading games...";
+
 
     try {
 
         /*
-            Automatically figures out your GitHub username
-            and repository from the GitHub Pages URL.
+        ================================================
+        FIGURE OUT GITHUB OWNER + REPOSITORY
+        ================================================
         */
 
-        const hostname = window.location.hostname;
-        const pathname = window.location.pathname;
+        const hostname =
+            window.location.hostname;
+
+        const pathname =
+            window.location.pathname;
+
 
         let owner;
         let repo;
 
-        // Normal GitHub Pages:
-        // username.github.io/repository/
-        if (hostname.endsWith(".github.io")) {
 
-            owner = hostname.split(".")[0];
+        /*
+        Normal GitHub Pages:
 
-            const parts = pathname
-                .split("/")
-                .filter(Boolean);
+        username.github.io/repository/
+        */
 
-            repo = parts[0];
+        if (
+            hostname.endsWith(".github.io")
+        ) {
 
-            // If the page is username.github.io directly
+            owner =
+                hostname.split(".")[0];
+
+            const parts =
+                pathname
+                    .split("/")
+                    .filter(Boolean);
+
+
+            repo =
+                parts[0];
+
+
+            /*
+            User site:
+
+            username.github.io
+            */
+
             if (!repo) {
-                repo = `${owner}.github.io`;
+
+                repo =
+                    `${owner}.github.io`;
+
             }
 
         } else {
 
             /*
-                Custom domain fallback.
+            Custom domain fallback.
 
-                If you're using a custom domain, put your
-                GitHub repository details here.
+            Change these if necessary.
             */
 
-            owner = "YOUR_GITHUB_USERNAME";
-            repo = "YOUR_REPOSITORY";
+            owner =
+                "YOUR_GITHUB_USERNAME";
+
+            repo =
+                "YOUR_REPOSITORY";
         }
 
-        const apiURL =
+
+        /*
+        ================================================
+        GET /games CONTENTS
+        ================================================
+        */
+
+        const gamesURL =
             `https://api.github.com/repos/${owner}/${repo}/contents/games`;
 
-        const response = await fetch(apiURL);
+
+        const response =
+            await fetch(gamesURL);
+
 
         if (!response.ok) {
+
             throw new Error(
                 `GitHub API returned ${response.status}`
             );
+
         }
 
-        const files = await response.json();
 
-        const games = files.filter(file =>
-            file.type === "file" &&
-            file.name.toLowerCase().endsWith(".html")
-        );
+        const files =
+            await response.json();
 
-        gamesContainer.innerHTML = "";
 
-        if (games.length === 0) {
+        /*
+        ================================================
+        SEPARATE FILES AND FOLDERS
+        ================================================
+        */
+
+        const rootGames =
+            files.filter(file =>
+
+                file.type === "file" &&
+
+                file.name
+                    .toLowerCase()
+                    .endsWith(".html")
+
+            );
+
+
+        const folders =
+            files.filter(file =>
+
+                file.type === "dir"
+
+            );
+
+
+        /*
+        ================================================
+        TOTAL GAME COUNT
+        ================================================
+        */
+
+        let totalGames =
+            rootGames.length;
+
+
+        /*
+        We don't know the games inside
+        folders yet, so load those first.
+        */
+
+        const categories = [];
+
+
+        /*
+        ================================================
+        ROOT GAMES CATEGORY
+        ================================================
+        */
+
+        if (rootGames.length > 0) {
+
+            categories.push({
+
+                name: "Games",
+
+                icon: "🎮",
+
+                games: rootGames
+
+            });
+
+        }
+
+
+        /*
+        ================================================
+        LOAD EVERY FOLDER
+        ================================================
+        */
+
+        for (
+            const folder of folders
+        ) {
+
+            try {
+
+                const folderURL =
+                    `https://api.github.com/repos/${owner}/${repo}/contents/games/${encodeURIComponent(folder.name)}`;
+
+
+                const folderResponse =
+                    await fetch(folderURL);
+
+
+                if (!folderResponse.ok) {
+
+                    console.warn(
+                        `Couldn't read folder ${folder.name}`
+                    );
+
+                    continue;
+
+                }
+
+
+                const folderFiles =
+                    await folderResponse.json();
+
+
+                /*
+                Find HTML files directly
+                inside the category folder.
+                */
+
+                const folderGames =
+                    folderFiles.filter(file =>
+
+                        file.type === "file" &&
+
+                        file.name
+                            .toLowerCase()
+                            .endsWith(".html")
+
+                    );
+
+
+                /*
+                No HTML games in this folder.
+                */
+
+                if (
+                    folderGames.length === 0
+                ) {
+
+                    continue;
+
+                }
+
+
+                totalGames +=
+                    folderGames.length;
+
+
+                categories.push({
+
+                    name: folder.name,
+
+                    icon: getCategoryIcon(
+                        folder.name
+                    ),
+
+                    games: folderGames,
+
+                    folder: folder.name
+
+                });
+
+            } catch (folderError) {
+
+                console.error(
+                    `Error loading folder ${folder.name}:`,
+                    folderError
+                );
+
+            }
+
+        }
+
+
+        /*
+        ================================================
+        NOTHING FOUND
+        ================================================
+        */
+
+        if (
+            totalGames === 0
+        ) {
 
             gamesContainer.innerHTML = `
+
                 <div class="loading">
-                    <div style="font-size:40px;margin-bottom:15px;">
+
+                    <div
+                        style="
+                            font-size:40px;
+                            margin-bottom:15px;
+                        "
+                    >
                         🎮
                     </div>
 
@@ -384,126 +884,591 @@ async function loadGames() {
                         No games found.
                     </div>
 
-                    <div style="font-size:12px;margin-top:8px;">
-                        Put some .html files inside the games folder.
+                    <div
+                        style="
+                            font-size:12px;
+                            margin-top:8px;
+                        "
+                    >
+                        Put .html games or game
+                        folders inside /games.
                     </div>
+
                 </div>
+
             `;
 
-            gameCount.textContent = "0 games";
+            gameCount.textContent =
+                "0 games";
 
             return;
+
         }
 
+
+        /*
+        ================================================
+        UPDATE COUNT
+        ================================================
+        */
+
         gameCount.textContent =
-            `${games.length} game${games.length === 1 ? "" : "s"}`;
+            `${totalGames} game${
+                totalGames === 1
+                    ? ""
+                    : "s"
+            }`;
 
-        games.sort((a, b) =>
-            a.name.localeCompare(b.name)
-        );
 
-        games.forEach(file => {
+        /*
+        ================================================
+        SORT CATEGORIES
+        ================================================
+        */
 
-            const card = document.createElement("div");
+        categories.sort((a, b) => {
 
-            card.className = "game";
+            /*
+            Keep the main Games category
+            at the top.
+            */
 
-            const gameName = file.name
-                .replace(/\.html$/i, "")
-                .replace(/[-_]/g, " ")
-                .replace(/\b\w/g, char => char.toUpperCase());
+            if (
+                a.name === "Games"
+            ) {
+                return -1;
+            }
 
-            card.innerHTML = `
-                <div class="game-icon">
-                    🎮
-                </div>
+            if (
+                b.name === "Games"
+            ) {
+                return 1;
+            }
 
-                <div class="game-name">
-                    ${escapeHTML(gameName)}
-                </div>
-
-                <div class="game-file">
-                    ${escapeHTML(file.name)}
-                </div>
-            `;
-
-            card.addEventListener("click", () => {
-
-                /*
-                    Opens the game in a new tab/window.
-                */
-
-                window.open(
-                    getGameURL(file.name),
-                    "_blank"
-                );
-
-            });
-
-            gamesContainer.appendChild(card);
+            return a.name.localeCompare(
+                b.name
+            );
 
         });
+
+
+        /*
+        ================================================
+        RENDER
+        ================================================
+        */
+
+        gamesContainer.innerHTML = "";
+
+
+        for (
+            const category of categories
+        ) {
+
+            const categoryElement =
+                createCategory(
+                    category
+                );
+
+
+            gamesContainer.appendChild(
+                categoryElement
+            );
+
+        }
+
 
     } catch (error) {
 
         console.error(error);
 
+
         gamesContainer.innerHTML = `
+
             <div class="error">
-                <h3>Couldn't load the games 😭</h3>
 
-                <p style="margin-top:10px;">
-                    Make sure the repository is public and
-                    the <b>games</b> folder exists.
+                <h3>
+                    Couldn't load the games 😭
+                </h3>
+
+                <p
+                    style="
+                        margin-top:10px;
+                    "
+                >
+                    Make sure the repository is
+                    public and the
+                    <b>games</b> folder exists.
                 </p>
 
-                <p style="margin-top:8px;font-size:12px;">
-                    ${escapeHTML(error.message)}
+                <p
+                    style="
+                        margin-top:8px;
+                        font-size:12px;
+                    "
+                >
+                    ${escapeHTML(
+                        error.message
+                    )}
                 </p>
+
             </div>
+
         `;
 
-        gameCount.textContent = "Error loading games";
+
+        gameCount.textContent =
+            "Error loading games";
+
     }
+
 }
 
 
-function getGameURL(filename) {
+/*
+============================================================
+CREATE CATEGORY
+============================================================
+*/
 
-    const currentURL = new URL(window.location.href);
+function createCategory(category) {
 
-    let basePath = currentURL.pathname;
+    const section =
+        document.createElement("section");
+
+    section.className =
+        "category";
+
 
     /*
-        Make sure we are pointing to:
-        /games/filename.html
+    CATEGORY HEADER
     */
 
-    if (!basePath.endsWith("/")) {
-        basePath += "/";
-    }
+    const header =
+        document.createElement("div");
 
-    return new URL(
-        `games/${encodeURIComponent(filename)}`,
-        currentURL.origin + basePath
-    ).href;
+    header.className =
+        "category-header";
+
+
+    const icon =
+        document.createElement("div");
+
+    icon.className =
+        "category-icon";
+
+    icon.textContent =
+        category.icon;
+
+
+    const name =
+        document.createElement("div");
+
+    name.className =
+        "category-name";
+
+    name.textContent =
+        formatName(category.name);
+
+
+    const count =
+        document.createElement("span");
+
+    count.className =
+        "category-count";
+
+    count.textContent =
+        `(${category.games.length})`;
+
+
+    name.appendChild(count);
+
+    header.appendChild(icon);
+    header.appendChild(name);
+
+
+    /*
+    GAME GRID
+    */
+
+    const grid =
+        document.createElement("div");
+
+    grid.className =
+        "games-grid";
+
+
+    /*
+    SORT GAMES
+    */
+
+    const sortedGames =
+        [...category.games].sort(
+            (a, b) =>
+                a.name.localeCompare(
+                    b.name
+                )
+        );
+
+
+    /*
+    CREATE GAME CARDS
+    */
+
+    sortedGames.forEach(
+        file => {
+
+            const card =
+                createGameCard(
+                    file,
+                    category.folder
+                );
+
+            grid.appendChild(card);
+
+        }
+    );
+
+
+    section.appendChild(header);
+    section.appendChild(grid);
+
+
+    return section;
+
 }
 
+
+/*
+============================================================
+CREATE GAME CARD
+============================================================
+*/
+
+function createGameCard(
+    file,
+    folder
+) {
+
+    const card =
+        document.createElement("div");
+
+    card.className =
+        "game";
+
+
+    /*
+    GAME NAME
+    */
+
+    let gameName =
+        file.name
+            .replace(
+                /\.html$/i,
+                ""
+            )
+            .replace(
+                /[-_]/g,
+                " "
+            );
+
+
+    /*
+    If the game is:
+
+    folder/index.html
+
+    use the folder name instead
+    of displaying "Index".
+    */
+
+    if (
+        folder &&
+        file.name.toLowerCase() ===
+        "index.html"
+    ) {
+
+        gameName =
+            folder
+                .replace(
+                    /[-_]/g,
+                    " "
+                );
+
+    }
+
+
+    gameName =
+        formatName(gameName);
+
+
+    /*
+    DISPLAY PATH
+    */
+
+    let displayPath;
+
+
+    if (folder) {
+
+        displayPath =
+            `${folder}/${file.name}`;
+
+    } else {
+
+        displayPath =
+            file.name;
+
+    }
+
+
+    /*
+    CARD HTML
+    */
+
+    card.innerHTML = `
+
+        <div class="game-icon">
+            🎮
+        </div>
+
+        <div class="game-name">
+            ${escapeHTML(
+                gameName
+            )}
+        </div>
+
+        <div class="game-file">
+            ${escapeHTML(
+                displayPath
+            )}
+        </div>
+
+    `;
+
+
+    /*
+    CLICK GAME
+    */
+
+    card.addEventListener(
+        "click",
+        () => {
+
+            const gameURL =
+                getGameURL(
+                    file,
+                    folder
+                );
+
+
+            window.open(
+                gameURL,
+                "_blank"
+            );
+
+        }
+    );
+
+
+    return card;
+
+}
+
+
+/*
+============================================================
+GET GAME URL
+============================================================
+*/
+
+function getGameURL(
+    file,
+    folder
+) {
+
+    const currentURL =
+        new URL(
+            window.location.href
+        );
+
+
+    let basePath =
+        currentURL.pathname;
+
+
+    /*
+    Make sure the GameHub URL
+    ends with /.
+    */
+
+    if (
+        !basePath.endsWith("/")
+    ) {
+
+        basePath += "/";
+
+    }
+
+
+    let gamePath;
+
+
+    /*
+    Game inside a folder
+    */
+
+    if (folder) {
+
+        gamePath =
+            `games/${encodeURIComponent(folder)}/${encodeURIComponent(file.name)}`;
+
+    } else {
+
+        /*
+        Game directly inside /games
+        */
+
+        gamePath =
+            `games/${encodeURIComponent(file.name)}`;
+
+    }
+
+
+    return new URL(
+        gamePath,
+        currentURL.origin +
+        basePath
+    ).href;
+
+}
+
+
+/*
+============================================================
+FORMAT NAMES
+============================================================
+*/
+
+function formatName(name) {
+
+    return name
+        .replace(
+            /[-_]/g,
+            " "
+        )
+        .replace(
+            /\b\w/g,
+            char =>
+                char.toUpperCase()
+        );
+
+}
+
+
+/*
+============================================================
+CATEGORY ICONS
+============================================================
+*/
+
+function getCategoryIcon(
+    folderName
+) {
+
+    const name =
+        folderName.toLowerCase();
+
+
+    if (
+        name.includes("horror")
+    ) {
+        return "👻";
+    }
+
+    if (
+        name.includes("action")
+    ) {
+        return "⚔️";
+    }
+
+    if (
+        name.includes("arcade")
+    ) {
+        return "🕹️";
+    }
+
+    if (
+        name.includes("multiplayer")
+    ) {
+        return "👥";
+    }
+
+    if (
+        name.includes("2d")
+    ) {
+        return "🎨";
+    }
+
+    if (
+        name.includes("puzzle")
+    ) {
+        return "🧩";
+    }
+
+    if (
+        name.includes("rpg")
+    ) {
+        return "🧙";
+    }
+
+    if (
+        name.includes("sport")
+    ) {
+        return "🏆";
+    }
+
+    if (
+        name.includes("scary")
+    ) {
+        return "😈";
+    }
+
+
+    return "📁";
+
+}
+
+
+/*
+============================================================
+ESCAPE HTML
+============================================================
+*/
 
 function escapeHTML(text) {
 
-    const div = document.createElement("div");
+    const div =
+        document.createElement("div");
 
-    div.textContent = text;
+    div.textContent =
+        text;
 
     return div.innerHTML;
+
 }
 
 
-// Load games when the page starts.
+/*
+============================================================
+START
+============================================================
+*/
+
 loadGames();
 
 </script>
 
 </body>
 </html>
+```
