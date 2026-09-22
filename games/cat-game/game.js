@@ -7,47 +7,49 @@ const playButton = document.getElementById("playButton");
 const hud = document.getElementById("hud");
 const heightText = document.getElementById("height");
 
-let WIDTH = window.innerWidth;
-let HEIGHT = window.innerHeight;
+let width = window.innerWidth;
+let height = window.innerHeight;
 
-canvas.width = WIDTH;
-canvas.height = HEIGHT;
+canvas.width = width;
+canvas.height = height;
 
-window.addEventListener("resize", () => {
-    WIDTH = window.innerWidth;
-    HEIGHT = window.innerHeight;
+window.addEventListener("resize", function () {
+    width = window.innerWidth;
+    height = window.innerHeight;
 
-    canvas.width = WIDTH;
-    canvas.height = HEIGHT;
+    canvas.width = width;
+    canvas.height = height;
 });
 
+
 /* =========================================================
-   SETTINGS
+   CONFIG
 ========================================================= */
 
 const CONFIG = {
     catSize: 28,
 
-    gravity: 0.65,
+    gravity: 0.6,
     moveSpeed: 4.5,
     jumpForce: 12,
 
-    friction: 0.82,
+    groundFriction: 0.78,
     airFriction: 0.96,
 
-    chainLength: 95,
-    chainStiffness: 0.16,
+    chainLength: 100,
+    chainForce: 0.18,
 
-    cameraSmoothness: 0.08,
+    cameraSpeed: 0.08,
 
-    platformWidthMin: 110,
-    platformWidthMax: 230,
+    platformMinWidth: 120,
+    platformMaxWidth: 240,
 
     platformHeight: 18,
 
-    levelGapMin: 100,
-    levelGapMax: 170
+    platformGapMin: 100,
+    platformGapMax: 170
 };
+
 
 /* =========================================================
    INPUT
@@ -55,20 +57,18 @@ const CONFIG = {
 
 const keys = {};
 
-window.addEventListener("keydown", (event) => {
+window.addEventListener("keydown", function (event) {
     keys[event.key.toLowerCase()] = true;
 
-    if (
-        event.code === "Space" ||
-        event.key === "ArrowUp"
-    ) {
+    if (event.code === "Space") {
         event.preventDefault();
     }
 });
 
-window.addEventListener("keyup", (event) => {
+window.addEventListener("keyup", function (event) {
     keys[event.key.toLowerCase()] = false;
 });
+
 
 /* =========================================================
    GAME STATE
@@ -78,13 +78,12 @@ let gameStarted = false;
 
 let cameraY = 0;
 
-let highestPoint = 0;
-
 let platforms = [];
 
 let cats = [];
 
-let chainSegments = [];
+let chainPoints = [];
+
 
 /* =========================================================
    UTILITY
@@ -98,12 +97,15 @@ function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
 
+
 /* =========================================================
    CAT
 ========================================================= */
 
 class Cat {
+
     constructor(x, y, color) {
+
         this.x = x;
         this.y = y;
 
@@ -116,14 +118,15 @@ class Cat {
         this.color = color;
 
         this.grounded = false;
-
-        this.jumpCooldown = 0;
+        this.jumpLock = false;
 
         this.spawnX = x;
         this.spawnY = y;
     }
 
+
     update() {
+
         const left =
             keys["a"] ||
             keys["arrowleft"];
@@ -137,9 +140,8 @@ class Cat {
             keys["arrowup"] ||
             keys[" "];
 
-        /*
-         * Horizontal movement
-         */
+
+        /* Horizontal movement */
 
         if (left) {
             this.vx -= 0.7;
@@ -149,130 +151,114 @@ class Cat {
             this.vx += 0.7;
         }
 
+
         this.vx = clamp(
             this.vx,
             -CONFIG.moveSpeed,
             CONFIG.moveSpeed
         );
 
-        /*
-         * Friction
-         */
+
+        /* Friction */
 
         if (this.grounded) {
-            this.vx *= CONFIG.friction;
+            this.vx *= CONFIG.groundFriction;
         } else {
             this.vx *= CONFIG.airFriction;
         }
 
-        /*
-         * Jump
-         */
 
-        if (
-            jump &&
-            this.grounded &&
-            this.jumpCooldown <= 0
-        ) {
+        /* Jump */
+
+        if (jump && this.grounded && !this.jumpLock) {
+
             this.vy = -CONFIG.jumpForce;
+
             this.grounded = false;
-            this.jumpCooldown = 12;
+
+            this.jumpLock = true;
         }
 
-        if (this.jumpCooldown > 0) {
-            this.jumpCooldown--;
+        if (!jump) {
+            this.jumpLock = false;
         }
 
-        /*
-         * Gravity
-         */
+
+        /* Gravity */
 
         this.vy += CONFIG.gravity;
 
-        /*
-         * Move
-         */
+
+        /* Move */
 
         this.x += this.vx;
         this.y += this.vy;
 
-        /*
-         * Platform collision
-         */
+
+        /* Platform collision */
 
         this.grounded = false;
 
-        for (const platform of platforms) {
-            this.collideWithPlatform(platform);
+        for (let i = 0; i < platforms.length; i++) {
+            this.collideWithPlatform(platforms[i]);
         }
 
-        /*
-         * World boundaries
-         */
+
+        /* Screen boundaries */
 
         if (this.x < 0) {
+
             this.x = 0;
             this.vx *= -0.4;
         }
 
-        if (this.x + this.width > WIDTH) {
-            this.x = WIDTH - this.width;
+
+        if (this.x + this.width > width) {
+
+            this.x = width - this.width;
             this.vx *= -0.4;
         }
 
-        /*
-         * Respawn if player falls too far
-         */
 
-        if (this.y > cameraY + HEIGHT + 500) {
+        /* Respawn */
+
+        if (this.y > cameraY + height + 500) {
             this.respawn();
         }
-
-        highestPoint = Math.min(
-            highestPoint,
-            this.y
-        );
     }
 
+
     collideWithPlatform(platform) {
-        const catBottom =
-            this.y + this.height;
 
-        const catTop =
-            this.y;
+        const bottom = this.y + this.height;
+        const top = this.y;
 
-        const catRight =
-            this.x + this.width;
+        const right = this.x + this.width;
+        const left = this.x;
 
-        const catLeft =
-            this.x;
-
-        const platformTop =
-            platform.y;
-
+        const platformTop = platform.y;
         const platformBottom =
             platform.y + platform.height;
 
+        const platformLeft = platform.x;
         const platformRight =
             platform.x + platform.width;
 
-        const platformLeft =
-            platform.x;
 
-        const horizontalCollision =
-            catRight > platformLeft &&
-            catLeft < platformRight;
+        const horizontal =
+            right > platformLeft &&
+            left < platformRight;
 
-        /*
-         * Landing on top
-         */
+
+        /* Landing */
 
         if (
-            horizontalCollision &&
+            horizontal &&
             this.vy >= 0 &&
-            catBottom >= platformTop &&
-            catTop < platformTop
+            bottom >= platformTop &&
+            top < platformTop
         ) {
+
             this.y =
                 platformTop - this.height;
 
@@ -283,22 +269,25 @@ class Cat {
             return;
         }
 
-        /*
-         * Hit underside
-         */
+
+        /* Hitting the bottom */
 
         if (
-            horizontalCollision &&
+            horizontal &&
             this.vy < 0 &&
-            catTop <= platformBottom &&
-            catBottom > platformBottom
+            top <= platformBottom &&
+            bottom > platformBottom
         ) {
+
             this.y = platformBottom;
+
             this.vy = 0;
         }
     }
 
+
     respawn() {
+
         this.x = this.spawnX;
         this.y = this.spawnY;
 
@@ -306,13 +295,14 @@ class Cat {
         this.vy = 0;
     }
 
+
     draw() {
+
         const screenY =
             this.y - cameraY;
 
-        /*
-         * Cat body
-         */
+
+        /* Body */
 
         ctx.fillStyle = this.color;
 
@@ -323,9 +313,8 @@ class Cat {
             this.height
         );
 
-        /*
-         * Tiny ears
-         */
+
+        /* Ears */
 
         ctx.beginPath();
 
@@ -346,6 +335,7 @@ class Cat {
 
         ctx.fill();
 
+
         ctx.beginPath();
 
         ctx.moveTo(
@@ -365,9 +355,8 @@ class Cat {
 
         ctx.fill();
 
-        /*
-         * Eyes
-         */
+
+        /* Eyes */
 
         ctx.fillStyle = "#111";
 
@@ -387,22 +376,28 @@ class Cat {
     }
 }
 
+
 /* =========================================================
    PLATFORM
 ========================================================= */
 
 class Platform {
-    constructor(x, y, width) {
+
+    constructor(x, y, platformWidth) {
+
         this.x = x;
         this.y = y;
 
-        this.width = width;
+        this.width = platformWidth;
         this.height = CONFIG.platformHeight;
     }
 
+
     draw() {
+
         const screenY =
             this.y - cameraY;
+
 
         ctx.fillStyle = "#333";
 
@@ -412,6 +407,7 @@ class Platform {
             this.width,
             this.height
         );
+
 
         ctx.fillStyle = "#555";
 
@@ -424,73 +420,183 @@ class Platform {
     }
 }
 
+
+/* =========================================================
+   LEVEL GENERATION
+========================================================= */
+
+function generateLevel() {
+
+    platforms = [];
+
+
+    /* Starting platform */
+
+    platforms.push(
+        new Platform(
+            width / 2 - 160,
+            400,
+            320
+        )
+    );
+
+
+    let y = 300;
+
+
+    /* Generate platforms upward */
+
+    for (let i = 0; i < 100; i++) {
+
+        const platformWidth =
+            random(
+                CONFIG.platformMinWidth,
+                CONFIG.platformMaxWidth
+            );
+
+
+        const x =
+            random(
+                20,
+                width - platformWidth - 20
+            );
+
+
+        platforms.push(
+            new Platform(
+                x,
+                y,
+                platformWidth
+            )
+        );
+
+
+        y -= random(
+            CONFIG.platformGapMin,
+            CONFIG.platformGapMax
+        );
+    }
+}
+
+
+/* =========================================================
+   MORE PLATFORMS
+========================================================= */
+
+function generateMorePlatforms() {
+
+    let highestY = 0;
+
+
+    for (let i = 0; i < platforms.length; i++) {
+
+        if (platforms[i].y < highestY) {
+            highestY = platforms[i].y;
+        }
+    }
+
+
+    for (let i = 0; i < 40; i++) {
+
+        const platformWidth =
+            random(
+                CONFIG.platformMinWidth,
+                CONFIG.platformMaxWidth
+            );
+
+
+        const x =
+            random(
+                20,
+                width - platformWidth - 20
+            );
+
+
+        highestY -= random(
+            CONFIG.platformGapMin,
+            CONFIG.platformGapMax
+        );
+
+
+        platforms.push(
+            new Platform(
+                x,
+                highestY,
+                platformWidth
+            )
+        );
+    }
+}
+
+
 /* =========================================================
    CHAIN
 ========================================================= */
 
-class ChainSegment {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-
-        this.vx = 0;
-        this.vy = 0;
-    }
-}
-
 function createChain() {
-    chainSegments = [];
 
-    const catA = cats[0];
-    const catB = cats[1];
+    chainPoints = [];
 
-    const dx =
-        catB.x - catA.x;
 
-    const dy =
-        catB.y - catA.y;
-
-    const distance =
-        Math.sqrt(dx * dx + dy * dy);
-
-    const count =
-        Math.max(
-            2,
-            Math.floor(
-                distance / 12
-            )
-        );
-
-    for (let i = 0; i <= count; i++) {
-        const t = i / count;
-
-        chainSegments.push(
-            new ChainSegment(
-                catA.x + dx * t,
-                catA.y + dy * t
-            )
-        );
-    }
-}
-
-function updateChain() {
     if (cats.length < 2) {
         return;
     }
 
-    const a = cats[0];
-    const b = cats[1];
 
-    /*
-     * Pull the cats toward each other
-     * when they exceed the allowed chain length.
-     */
+    const first = cats[0];
+    const second = cats[1];
+
+
+    const dx = second.x - first.x;
+    const dy = second.y - first.y;
+
+
+    const distance =
+        Math.sqrt(
+            dx * dx +
+            dy * dy
+        );
+
+
+    const count =
+        Math.max(
+            4,
+            Math.floor(distance / 10)
+        );
+
+
+    for (let i = 0; i <= count; i++) {
+
+        const t = i / count;
+
+
+        chainPoints.push({
+            x: first.x + dx * t,
+            y: first.y + dy * t,
+            vx: 0,
+            vy: 0
+        });
+    }
+}
+
+
+function updateChain() {
+
+    if (cats.length < 2) {
+        return;
+    }
+
+
+    const first = cats[0];
+    const second = cats[1];
+
 
     let dx =
-        b.x - a.x;
+        second.x - first.x;
 
     let dy =
-        b.y - a.y;
+        second.y - first.y;
+
 
     let distance =
         Math.sqrt(
@@ -498,16 +604,19 @@ function updateChain() {
             dy * dy
         );
 
-    if (distance === 0) {
+
+    if (distance < 0.001) {
         distance = 0.001;
     }
 
-    const maxLength =
-        CONFIG.chainLength;
 
-    if (distance > maxLength) {
-        const difference =
-            distance - maxLength;
+    /* Pull cats together when chain is stretched */
+
+    if (distance > CONFIG.chainLength) {
+
+        const amount =
+            distance - CONFIG.chainLength;
+
 
         const nx =
             dx / distance;
@@ -515,292 +624,206 @@ function updateChain() {
         const ny =
             dy / distance;
 
+
         const force =
-            difference *
-            CONFIG.chainStiffness;
+            amount * CONFIG.chainForce;
 
-        a.vx += nx * force;
-        a.vy += ny * force;
 
-        b.vx -= nx * force;
-        b.vy -= ny * force;
+        first.vx += nx * force;
+        first.vy += ny * force;
+
+        second.vx -= nx * force;
+        second.vy -= ny * force;
     }
 
-    /*
-     * Update visible chain segments.
-     */
+
+    /* Move chain points */
 
     const count =
-        chainSegments.length - 1;
+        chainPoints.length - 1;
+
 
     for (let i = 0; i <= count; i++) {
+
+        const point =
+            chainPoints[i];
+
+
         const t =
             count === 0
                 ? 0
                 : i / count;
 
+
         const targetX =
-            a.x +
-            (b.x - a.x) * t +
-            a.vx * t * 2;
+            first.x +
+            (second.x - first.x) * t;
+
 
         const targetY =
-            a.y +
-            (b.y - a.y) * t;
+            first.y +
+            (second.y - first.y) * t;
 
-        const segment =
-            chainSegments[i];
 
-        segment.vx +=
-            (targetX - segment.x) *
-            0.25;
+        point.vx +=
+            (targetX - point.x) * 0.25;
 
-        segment.vy +=
-            (targetY - segment.y) *
-            0.25;
 
-        segment.vx *= 0.82;
-        segment.vy *= 0.82;
+        point.vy +=
+            (targetY - point.y) * 0.25;
 
-        segment.x += segment.vx;
-        segment.y += segment.vy;
+
+        point.vx *= 0.82;
+        point.vy *= 0.82;
+
+
+        point.x += point.vx;
+        point.y += point.vy;
     }
 }
 
+
 function drawChain() {
-    if (cats.length < 2) {
+
+    if (chainPoints.length < 2) {
         return;
     }
 
-    /*
-     * Draw rope using a smooth line
-     * through the physics segments.
-     */
 
     ctx.beginPath();
 
-    if (chainSegments.length > 0) {
-        const first =
-            chainSegments[0];
 
-        ctx.moveTo(
-            first.x,
-            first.y - cameraY
+    const first =
+        chainPoints[0];
+
+
+    ctx.moveTo(
+        first.x,
+        first.y - cameraY
+    );
+
+
+    for (let i = 1; i < chainPoints.length; i++) {
+
+        const point =
+            chainPoints[i];
+
+
+        ctx.lineTo(
+            point.x,
+            point.y - cameraY
         );
-
-        for (
-            let i = 1;
-            i < chainSegments.length;
-            i++
-        ) {
-            const segment =
-                chainSegments[i];
-
-            ctx.lineTo(
-                segment.x,
-                segment.y - cameraY
-            );
-        }
     }
 
+
     ctx.strokeStyle = "#aaa";
+
     ctx.lineWidth = 5;
+
     ctx.lineCap = "round";
+
     ctx.lineJoin = "round";
 
     ctx.stroke();
 }
 
-/* =========================================================
-   LEVEL GENERATION
-========================================================= */
-
-function generateInitialLevel() {
-    platforms = [];
-
-    /*
-     * Starting platform
-     */
-
-    platforms.push(
-        new Platform(
-            WIDTH / 2 - 150,
-            400,
-            300
-        )
-    );
-
-    let currentY = 300;
-
-    /*
-     * Generate lots of platforms upward.
-     */
-
-    for (let i = 0; i < 80; i++) {
-        const width =
-            random(
-                CONFIG.platformWidthMin,
-                CONFIG.platformWidthMax
-            );
-
-        const x =
-            random(
-                20,
-                WIDTH - width - 20
-            );
-
-        platforms.push(
-            new Platform(
-                x,
-                currentY,
-                width
-            )
-        );
-
-        currentY -= random(
-            CONFIG.levelGapMin,
-            CONFIG.levelGapMax
-        );
-    }
-}
-
-/* =========================================================
-   ADD MORE LEVEL
-========================================================= */
-
-function generateMoreLevel() {
-    if (platforms.length === 0) {
-        return;
-    }
-
-    let highestPlatform =
-        Math.min(
-            ...platforms.map(
-                p => p.y
-            )
-        );
-
-    for (let i = 0; i < 30; i++) {
-        const width =
-            random(
-                CONFIG.platformWidthMin,
-                CONFIG.platformWidthMax
-            );
-
-        const x =
-            random(
-                20,
-                WIDTH - width - 20
-            );
-
-        highestPlatform -= random(
-            CONFIG.levelGapMin,
-            CONFIG.levelGapMax
-        );
-
-        platforms.push(
-            new Platform(
-                x,
-                highestPlatform,
-                width
-            )
-        );
-    }
-}
 
 /* =========================================================
    CAMERA
 ========================================================= */
 
 function updateCamera() {
+
     if (cats.length === 0) {
         return;
     }
 
-    /*
-     * Follow the highest cat.
-     */
 
-    const highestCat =
-        cats.reduce(
-            (highest, cat) =>
-                cat.y < highest.y
-                    ? cat
-                    : highest,
-            cats[0]
-        );
+    let highestCat =
+        cats[0];
 
-    const targetCamera =
-        highestCat.y -
-        HEIGHT * 0.55;
 
-    /*
-     * Camera only moves upward.
-     */
+    for (let i = 1; i < cats.length; i++) {
 
-    if (
-        targetCamera <
-        cameraY
-    ) {
-        cameraY +=
-            (
-                targetCamera -
-                cameraY
-            ) *
-            CONFIG.cameraSmoothness;
+        if (cats[i].y < highestCat.y) {
+            highestCat = cats[i];
+        }
     }
 
-    /*
-     * Generate more platforms
-     * when we're getting close to the top.
-     */
 
-    const highestPlatform =
-        Math.min(
-            ...platforms.map(
-                p => p.y
-            )
-        );
+    const target =
+        highestCat.y -
+        height * 0.55;
+
+
+    /* Camera only travels upward */
+
+    if (target < cameraY) {
+
+        cameraY +=
+            (target - cameraY) *
+            CONFIG.cameraSpeed;
+    }
+
+
+    /* Generate more level */
+
+    let highestPlatform = 0;
+
+
+    for (let i = 0; i < platforms.length; i++) {
+
+        if (platforms[i].y < highestPlatform) {
+            highestPlatform =
+                platforms[i].y;
+        }
+    }
+
 
     if (
         highestPlatform >
-        cameraY - HEIGHT * 2
+        cameraY - height * 2
     ) {
-        generateMoreLevel();
+
+        generateMorePlatforms();
     }
 }
+
 
 /* =========================================================
    BACKGROUND
 ========================================================= */
 
 function drawBackground() {
+
     ctx.fillStyle = "#151515";
 
     ctx.fillRect(
         0,
         0,
-        WIDTH,
-        HEIGHT
+        width,
+        height
     );
 
-    /*
-     * Simple vertical grid.
-     */
 
     const gridSize = 50;
 
+    const offset =
+        ((-cameraY % gridSize) + gridSize) %
+        gridSize;
+
+
     ctx.strokeStyle = "#1d1d1d";
+
     ctx.lineWidth = 1;
 
-    const offsetY =
-        -cameraY % gridSize;
 
     for (
-        let y = offsetY;
-        y < HEIGHT;
+        let y = offset;
+        y < height;
         y += gridSize
     ) {
+
         ctx.beginPath();
 
         ctx.moveTo(
@@ -809,18 +832,20 @@ function drawBackground() {
         );
 
         ctx.lineTo(
-            WIDTH,
+            width,
             y
         );
 
         ctx.stroke();
     }
 
+
     for (
         let x = 0;
-        x < WIDTH;
+        x < width;
         x += gridSize
     ) {
+
         ctx.beginPath();
 
         ctx.moveTo(
@@ -830,110 +855,124 @@ function drawBackground() {
 
         ctx.lineTo(
             x,
-            HEIGHT
+            height
         );
 
         ctx.stroke();
     }
 }
 
+
 /* =========================================================
-   HEIGHT HUD
+   HUD
 ========================================================= */
 
 function updateHUD() {
+
     if (cats.length === 0) {
         return;
     }
 
-    const highestCat =
-        Math.min(
-            ...cats.map(
-                cat => cat.y
-            )
-        );
+
+    let highestY =
+        cats[0].y;
+
+
+    for (let i = 1; i < cats.length; i++) {
+
+        if (cats[i].y < highestY) {
+            highestY = cats[i].y;
+        }
+    }
+
 
     const meters =
         Math.max(
             0,
             Math.floor(
-                (400 - highestCat) / 10
+                (400 - highestY) / 10
             )
         );
 
+
     heightText.textContent =
-        `Height: ${meters}m`;
+        "Height: " + meters + "m";
 }
+
 
 /* =========================================================
    START GAME
 ========================================================= */
 
 function startGame() {
+
+    if (gameStarted) {
+        return;
+    }
+
+
     gameStarted = true;
 
+
     menu.style.display = "none";
+
     hud.style.display = "block";
 
-    generateInitialLevel();
+
+    cameraY = 0;
+
+
+    generateLevel();
+
 
     /*
-     * Two test cats.
+     * Temporary local test cats.
      *
-     * Later these will become
-     * actual multiplayer players.
+     * These will become real multiplayer
+     * players later.
      */
 
     cats = [
+
         new Cat(
-            WIDTH / 2 - 55,
-            330,
+            width / 2 - 50,
+            350,
             "#ff4d5a"
         ),
 
         new Cat(
-            WIDTH / 2 + 25,
-            330,
+            width / 2 + 22,
+            350,
             "#4d8dff"
         )
+
     ];
+
 
     createChain();
 
+
     requestAnimationFrame(gameLoop);
 }
+
 
 /* =========================================================
    GAME LOOP
 ========================================================= */
 
-let lastTime = performance.now();
+function gameLoop() {
 
-function gameLoop(currentTime) {
     if (!gameStarted) {
         return;
     }
 
-    /*
-     * Prevent huge physics jumps
-     * when the browser lags.
-     */
 
-    const delta =
-        Math.min(
-            (currentTime - lastTime) / 16.67,
-            2
-        );
+    /* Physics */
 
-    lastTime = currentTime;
-
-    /*
-     * Physics update
-     */
-
-    for (const cat of cats) {
-        cat.update();
+    for (let i = 0; i < cats.length; i++) {
+        cats[i].update();
     }
+
 
     updateChain();
 
@@ -941,36 +980,43 @@ function gameLoop(currentTime) {
 
     updateHUD();
 
-    /*
-     * Rendering
-     */
+
+    /* Render */
 
     drawBackground();
 
-    for (const platform of platforms) {
-        /*
-         * Don't draw platforms far away.
-         */
+
+    for (let i = 0; i < platforms.length; i++) {
+
+        const platform =
+            platforms[i];
+
 
         const screenY =
             platform.y - cameraY;
 
+
         if (
             screenY > -100 &&
-            screenY < HEIGHT + 100
+            screenY < height + 100
         ) {
+
             platform.draw();
         }
     }
 
+
     drawChain();
 
-    for (const cat of cats) {
-        cat.draw();
+
+    for (let i = 0; i < cats.length; i++) {
+        cats[i].draw();
     }
+
 
     requestAnimationFrame(gameLoop);
 }
+
 
 /* =========================================================
    PLAY BUTTON
