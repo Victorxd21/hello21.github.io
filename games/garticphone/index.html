@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gartic Phone - Simple</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div id="app">
+    <section id="screen-home" class="screen active">
+      <div class="panel hero-panel">
+        <div class="logo">GARTIC <span>PHONE</span></div>
+        <p class="subtitle">A simple multiplayer drawing telephone.</p>
+
+        <label for="nameInput">Your name</label>
+        <input id="nameInput" maxlength="18" placeholder="Enter your name" autocomplete="off">
+
+        <div class="home-actions">
+          <button id="createBtn" class="primary">Create Room</button>
+          <div class="or">or</div>
+          <div class="join-row">
+            <input id="roomInput" maxlength="6" placeholder="ROOM CODE" autocomplete="off">
+            <button id="joinBtn">Join</button>
+          </div>
+        </div>
+
+        <p id="homeStatus" class="status"></p>
+      </div>
+    </section>
+
+    <section id="screen-lobby" class="screen">
+      <div class="panel lobby-panel">
+        <div class="topbar">
+          <div>
+            <div class="eyebrow">ROOM</div>
+            <div id="roomCodeDisplay" class="room-code">-----</div>
+          </div>
+          <button id="copyRoomBtn">Copy Code</button>
+        </div>
+
+        <div class="lobby-grid">
+          <div class="panel inner-panel">
+            <h2>Players <span id="playerCount">0</span></h2>
+            <div id="playerList" class="player-list"></div>
+          </div>
+
+          <div class="panel inner-panel rules-panel">
+            <h2>How it works</h2>
+            <p>1. Everyone gets a secret prompt.</p>
+            <p>2. Draw it before the timer runs out.</p>
+            <p>3. You get another player's drawing.</p>
+            <p>4. Guess what they drew.</p>
+            <p>5. Reveal the chaos.</p>
+            <button id="startBtn" class="primary full">Start Game</button>
+            <p id="lobbyStatus" class="status"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-draw" class="screen">
+      <div class="game-shell">
+        <div class="game-topbar">
+          <div>
+            <div class="eyebrow">ROUND <span id="roundNumber">1</span></div>
+            <div id="phaseTitle" class="phase-title">DRAW!</div>
+          </div>
+          <div id="timer" class="timer">30</div>
+        </div>
+
+        <div class="prompt-card">
+          <span>Your prompt</span>
+          <strong id="promptText">Loading...</strong>
+        </div>
+
+        <div class="canvas-wrap">
+          <canvas id="drawCanvas" width="760" height="500"></canvas>
+        </div>
+
+        <div class="toolbar">
+          <div class="tool-group">
+            <button class="swatch active" data-color="#111111" style="--swatch:#111111"></button>
+            <button class="swatch" data-color="#ef4444" style="--swatch:#ef4444"></button>
+            <button class="swatch" data-color="#f59e0b" style="--swatch:#f59e0b"></button>
+            <button class="swatch" data-color="#22c55e" style="--swatch:#22c55e"></button>
+            <button class="swatch" data-color="#3b82f6" style="--swatch:#3b82f6"></button>
+            <button class="swatch" data-color="#a855f7" style="--swatch:#a855f7"></button>
+            <button class="swatch" data-color="#ffffff" style="--swatch:#ffffff"></button>
+          </div>
+          <div class="tool-group sizes">
+            <button class="size active" data-size="5">●</button>
+            <button class="size" data-size="12">●</button>
+            <button class="size" data-size="24">●</button>
+          </div>
+          <button id="clearCanvasBtn">Clear</button>
+          <button id="submitDrawingBtn" class="primary">Done Drawing</button>
+        </div>
+        <p id="drawStatus" class="status"></p>
+      </div>
+    </section>
+
+    <section id="screen-guess" class="screen">
+      <div class="game-shell narrow">
+        <div class="game-topbar">
+          <div>
+            <div class="eyebrow">ROUND <span id="guessRoundNumber">1</span></div>
+            <div class="phase-title">GUESS!</div>
+          </div>
+          <div id="guessTimer" class="timer">20</div>
+        </div>
+
+        <div class="prompt-card">
+          <span>What do you think they drew?</span>
+          <strong class="muted">There is no wrong answer. Probably.</strong>
+        </div>
+
+        <div class="guess-image-wrap">
+          <img id="guessImage" alt="Drawing to guess">
+        </div>
+
+        <div class="guess-row">
+          <input id="guessInput" maxlength="80" placeholder="Type your guess..." autocomplete="off">
+          <button id="submitGuessBtn" class="primary">Submit Guess</button>
+        </div>
+        <p id="guessStatus" class="status"></p>
+      </div>
+    </section>
+
+    <section id="screen-results" class="screen">
+      <div class="panel results-panel">
+        <div class="eyebrow">ROUND <span id="resultRoundNumber">1</span> RESULTS</div>
+        <h1>THE REVEAL</h1>
+        <p class="subtitle">Let's see how badly everyone understood everyone else.</p>
+        <div id="resultsList" class="results-list"></div>
+        <button id="nextRoundBtn" class="primary full">Next Round</button>
+        <p id="resultsStatus" class="status"></p>
+      </div>
+    </section>
+
+    <section id="screen-gameover" class="screen">
+      <div class="panel hero-panel">
+        <div class="eyebrow">GAME OVER</div>
+        <div class="logo">THE <span>END</span></div>
+        <p class="subtitle">That was the entire telephone. Beautiful.</p>
+        <div id="finalResults" class="results-list"></div>
+        <button id="returnLobbyBtn" class="primary full">Back To Lobby</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="game.js"></script>
+</body>
+</html>
