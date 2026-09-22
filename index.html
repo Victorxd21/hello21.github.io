@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chained Cats: Only Up! Multiplayer</title>
-    <!-- Tailwind CSS for modern UI styling -->
+    <title>Gartic Phone: Cat Edition</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Fredoka for playful cat game vibe -->
+    <!-- Google Fonts: Fredoka -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- FontAwesome for icons -->
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -16,12 +16,7 @@
         body {
             font-family: 'Fredoka', sans-serif;
             user-select: none;
-            overflow: hidden;
             background: #0f172a;
-        }
-        canvas {
-            display: block;
-            touch-action: none;
         }
         .retro-shadow {
             box-shadow: 0 6px 0 rgba(0, 0, 0, 0.3);
@@ -39,106 +34,129 @@
         }
     </style>
 </head>
-<body class="text-white h-screen w-screen flex flex-col justify-between relative">
+<body class="text-white h-screen w-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-900 overflow-hidden">
 
     <!-- LOBBY SCREEN -->
-    <div id="lobbyScreen" class="absolute inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 p-4">
-        <div class="max-w-md w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
-            <div class="inline-block bg-indigo-600/30 p-2.5 rounded-full border-2 border-indigo-400 animate-float">
-                <i class="fa-solid fa-cat text-4xl text-yellow-400"></i>
-            </div>
-            <div>
-                <h1 class="text-2xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-400">CHAINED CATS: ONLY UP!</h1>
-                <p class="text-xs text-slate-300 mt-1">Climb together, fail together! Up to 5 players.</p>
-            </div>
+    <div id="lobbyScreen" class="max-w-md w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-5">
+        <div class="inline-block bg-indigo-600/30 p-3 rounded-full border-2 border-indigo-400 animate-float">
+            <i class="fa-solid fa-paintbrush text-5xl text-yellow-400"></i>
+        </div>
+        <div>
+            <h1 class="text-3xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-400">GARTIC PHONE</h1>
+            <p class="text-sm text-slate-300 mt-1">The game of hilarious telephone drawings!</p>
+        </div>
 
-            <!-- Player Setup -->
-            <div class="space-y-2 bg-slate-900/60 p-3 rounded-2xl border border-slate-700">
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Enter Your Cat Name</label>
-                <input type="text" id="playerNameInput" maxlength="12" placeholder="Meowster" class="w-full bg-slate-800 border-2 border-slate-600 rounded-xl px-4 py-1.5 text-center text-base font-bold text-yellow-300 focus:outline-none focus:border-indigo-500 transition">
-                
-                <div class="pt-1 flex items-center justify-center space-x-3">
-                    <span class="text-xs text-slate-400">Assigned Color:</span>
-                    <div id="assignedColorPreview" class="w-8 h-8 rounded-full border-2 border-white shadow-md transition-all duration-300"></div>
-                </div>
-            </div>
+        <!-- Setup Panel -->
+        <div class="space-y-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-700">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Your Nickname</label>
+            <input type="text" id="playerNameInput" maxlength="12" placeholder="Doodler" class="w-full bg-slate-800 border-2 border-slate-600 rounded-xl px-4 py-2 text-center text-lg font-bold text-yellow-300 focus:outline-none focus:border-indigo-500 transition">
+        </div>
 
-            <!-- Main Menu Buttons -->
-            <div id="mainMenuButtons" class="space-y-2">
-                <button id="joinBtn" class="w-full bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-2xl text-base retro-shadow transition transform active:scale-95">
-                    <i class="fa-solid fa-right-to-bracket mr-2"></i> Quick Match / Create Lobby
-                </button>
-                <button id="openBrowserBtn" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-2.5 px-6 rounded-2xl text-sm border border-slate-600 transition transform active:scale-95">
-                    <i class="fa-solid fa-list mr-2"></i> Browse Active Lobbies
-                </button>
-            </div>
-
-            <!-- Active Lobby Waiting View (Hidden initially) -->
-            <div id="waitingRoomView" class="hidden space-y-3">
-                <div class="bg-slate-900/80 rounded-2xl p-3 border border-slate-700 text-left">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-semibold text-slate-300">Room: <span id="hudRoomCode" class="font-mono text-yellow-300">---</span> (<span id="playerCount">0</span>/5)</span>
-                        <span id="matchStatus" class="text-[10px] px-2 py-0.5 bg-yellow-500/20 text-yellow-300 rounded-full font-bold animate-pulse">Waiting...</span>
-                    </div>
-                    <div id="playerListContainer" class="space-y-1.5 max-h-24 overflow-y-auto pr-1">
-                        <!-- Dynamically populated players -->
-                    </div>
-                </div>
-
-                <button id="startManualBtn" disabled class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-2.5 px-6 rounded-2xl text-sm retro-shadow transition transform active:scale-95 opacity-50 cursor-not-allowed">
-                    <i class="fa-solid fa-play mr-2"></i> Start Game Now (2+ Players)
-                </button>
-            </div>
+        <div class="space-y-3">
+            <button id="quickJoinBtn" class="w-full bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-2xl text-lg retro-shadow transition transform active:scale-95">
+                <i class="fa-solid fa-right-to-bracket mr-2"></i> Join / Create Lobby
+            </button>
+            <button id="openBrowserBtn" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-2.5 px-6 rounded-2xl text-sm border border-slate-600 transition">
+                <i class="fa-solid fa-list mr-2"></i> Browse Active Lobbies
+            </button>
         </div>
     </div>
 
+    <!-- WAITING ROOM SCREEN -->
+    <div id="waitingScreen" class="hidden max-w-md w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-5">
+        <div class="flex justify-between items-center bg-slate-900/80 px-4 py-3 rounded-2xl border border-slate-700">
+            <span class="text-xs text-slate-400">Room Code: <span id="displayRoomId" class="font-mono text-yellow-300 font-bold">---</span></span>
+            <span class="text-xs bg-yellow-500/20 text-yellow-300 px-3 py-1 rounded-full font-bold animate-pulse">Lobby</span>
+        </div>
+
+        <div class="bg-slate-900/80 rounded-2xl p-4 border border-slate-700 text-left">
+            <div class="text-xs font-semibold text-slate-300 mb-2">Players in Room (<span id="waitingPlayerCount">0</span>/8)</div>
+            <div id="waitingPlayersList" class="space-y-2 max-h-36 overflow-y-auto pr-1">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+
+        <button id="startMatchBtn" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-2xl text-base retro-shadow transition transform active:scale-95">
+            <i class="fa-solid fa-play mr-2"></i> Start Game Now
+        </button>
+    </div>
+
     <!-- LOBBY BROWSER MODAL -->
-    <div id="browserModal" class="hidden absolute inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div id="browserModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-slate-800 border-4 border-indigo-500 rounded-3xl p-5 max-w-md w-full space-y-4 shadow-2xl">
             <div class="flex justify-between items-center">
                 <h2 class="text-xl font-bold text-yellow-300"><i class="fa-solid fa-earth-americas mr-2"></i> Public Lobbies</h2>
                 <button id="closeBrowserBtn" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <p class="text-xs text-slate-300">Select an active room below to join your friends or other players climbing right now!</p>
-            
             <div id="lobbiesListContainer" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                <div class="text-center text-slate-400 text-xs py-6">Searching for active lobbies...</div>
+                <div class="text-center text-slate-400 text-xs py-6">Searching for public lobbies...</div>
             </div>
-
             <button id="refreshLobbiesBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl text-sm retro-shadow transition">
                 <i class="fa-solid fa-rotate mr-1"></i> Refresh List
             </button>
         </div>
     </div>
 
-    <!-- IN-GAME HUD -->
-    <div id="gameHud" class="hidden absolute top-0 left-0 w-full p-4 z-30 flex justify-between items-start pointer-events-none">
-        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-2xl p-4 shadow-xl pointer-events-auto">
-            <div class="text-xs text-slate-400 uppercase tracking-wider">Height Climbed</div>
-            <div class="text-2xl font-black text-yellow-400"><span id="hudHeight">0</span>m</div>
-            <div class="text-xs text-indigo-300 mt-1">Room: <span id="hudActiveRoomCode" class="font-mono">---</span></div>
+    <!-- GAME PHASE 1: WRITE PROMPT -->
+    <div id="writePhaseScreen" class="hidden max-w-lg w-full bg-slate-800/90 backdrop-blur-md border-4 border-purple-500 rounded-3xl p-6 shadow-2xl text-center space-y-5">
+        <div class="text-sm font-semibold text-purple-300 uppercase tracking-wider">Step 1: Write a Secret Sentence</div>
+        <p class="text-xs text-slate-300">Write something funny or weird for someone else to draw!</p>
+        <input type="text" id="promptInput" maxlength="60" placeholder="e.g. A cat astronaut eating space pizza" class="w-full bg-slate-900 border-2 border-slate-700 rounded-2xl px-4 py-3 text-center text-lg font-bold text-yellow-300 focus:outline-none focus:border-purple-500 transition">
+        <button id="submitPromptBtn" class="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-3 rounded-2xl text-base retro-shadow transition">
+            Submit Prompt <i class="fa-solid fa-check ml-1"></i>
+        </button>
+    </div>
+
+    <!-- GAME PHASE 2: DRAWING CANVAS -->
+    <div id="drawPhaseScreen" class="hidden max-w-2xl w-full bg-slate-800/90 backdrop-blur-md border-4 border-pink-500 rounded-3xl p-6 shadow-2xl space-y-4">
+        <div class="flex justify-between items-center">
+            <span class="text-xs font-semibold text-pink-300 uppercase tracking-wider">Step 2: Draw This!</span>
+            <span id="promptToDrawText" class="text-sm font-bold text-yellow-300 bg-slate-900 px-3 py-1 rounded-xl border border-slate-700">---</span>
         </div>
 
-        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-2xl p-4 shadow-xl text-right pointer-events-auto">
-            <div class="text-xs text-slate-400 uppercase tracking-wider">Controls</div>
-            <div class="text-sm text-slate-200 mt-1">A/D or Arrows to Move</div>
-            <div class="text-sm text-slate-200">Space or W to Jump / Climb</div>
+        <div class="relative bg-white rounded-2xl overflow-hidden border-4 border-slate-700 shadow-inner flex justify-center">
+            <canvas id="paintCanvas" width="520" height="340" class="cursor-crosshair bg-white"></canvas>
+        </div>
+
+        <div class="flex justify-between items-center">
+            <div class="flex space-x-2">
+                <button onclick="setBrushColor('#0f172a')" class="w-8 h-8 rounded-full bg-slate-900 border-2 border-white shadow"></button>
+                <button onclick="setBrushColor('#ef4444')" class="w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow"></button>
+                <button onclick="setBrushColor('#3b82f6')" class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow"></button>
+                <button onclick="setBrushColor('#10b981')" class="w-8 h-8 rounded-full bg-emerald-500 border-2 border-white shadow"></button>
+                <button onclick="setBrushColor('#ec4899')" class="w-8 h-8 rounded-full bg-pink-500 border-2 border-white shadow"></button>
+                <button onclick="clearCanvas()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs rounded-xl font-bold">Clear</button>
+            </div>
+            <button id="submitDrawingBtn" class="bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm retro-shadow transition">
+                Done Drawing <i class="fa-solid fa-arrow-right ml-1"></i>
+            </button>
         </div>
     </div>
 
-    <!-- GAME OVER / WIN MODAL -->
-    <div id="modalOverlay" class="hidden absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border-4 border-yellow-500 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl animate-float">
-            <div id="modalIcon" class="text-5xl text-yellow-400"><i class="fa-solid fa-trophy"></i></div>
-            <h2 id="modalTitle" class="text-2xl font-bold text-white">Victory!</h2>
-            <p id="modalDesc" class="text-slate-300 text-sm">You reached the top of the tower!</p>
-            <button onclick="location.reload()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl retro-shadow transition">Play Again</button>
+    <!-- GAME PHASE 3: GUESSING SCREEN -->
+    <div id="guessPhaseScreen" class="hidden max-w-lg w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
+        <div class="text-sm font-semibold text-indigo-300 uppercase tracking-wider">Step 3: What is this drawing?</div>
+        <div class="bg-white p-2 rounded-2xl border-4 border-slate-700 inline-block shadow">
+            <img id="guessImageDisplay" class="max-h-56 mx-auto rounded-lg" alt="Drawing to guess">
         </div>
+        <input type="text" id="guessInput" maxlength="60" placeholder="Type your guess here..." class="w-full bg-slate-900 border-2 border-slate-700 rounded-2xl px-4 py-3 text-center text-lg font-bold text-yellow-300 focus:outline-none focus:border-indigo-500 transition">
+        <button id="submitGuessBtn" class="w-full bg-gradient-to-r from-indigo-500 to-teal-600 hover:from-indigo-600 hover:to-teal-700 text-white font-bold py-3 rounded-2xl text-base retro-shadow transition">
+            Submit Guess <i class="fa-solid fa-check ml-1"></i>
+        </button>
     </div>
 
-    <!-- GAME CANVAS -->
-    <canvas id="gameCanvas" class="w-full h-full bg-gradient-to-t from-slate-900 via-indigo-950 to-blue-950"></canvas>
+    <!-- GAME PHASE 4: ALBUM / REEL REVEAL -->
+    <div id="revealPhaseScreen" class="hidden max-w-lg w-full bg-slate-800/90 backdrop-blur-md border-4 border-yellow-500 rounded-3xl p-6 shadow-2xl text-center space-y-5">
+        <div class="text-sm font-semibold text-yellow-400 uppercase tracking-wider">🎉 Story Reveal Reel 🎉</div>
+        <div id="storyReelContainer" class="bg-slate-900/80 p-4 rounded-2xl border border-slate-700 space-y-3 min-h-[200px] flex flex-col items-center justify-center">
+            <!-- Dynamically populated step cards -->
+        </div>
+        <button onclick="location.reload()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl text-base retro-shadow transition">
+            Play Again <i class="fa-solid fa-rotate ml-1"></i>
+        </button>
+    </div>
 
+    <!-- SCRIPT LOGIC -->
     <script>
         const SUPABASE_URL = 'https://degilckgjfdnekszsbry.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_ym_oqKIyxwk7ixxCvwNCmA_w2VtnpdP';
@@ -149,110 +167,38 @@
             console.error("Supabase init error:", e);
         }
 
-        const PLAYER_COLORS = [
-            { name: "Sunny Orange", hex: "#f97316", tail: "#c2410c" },
-            { name: "Royal Blue", hex: "#3b82f6", tail: "#1d4ed8" },
-            { name: "Neon Pink", hex: "#ec4899", tail: "#be185d" },
-            { name: "Emerald Green", hex: "#10b981", tail: "#047857" },
-            { name: "Electric Purple", hex: "#8b5cf6", tail: "#6d28d9" }
-        ];
-
-        let assignedColorObj = PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
-        document.getElementById('assignedColorPreview').style.backgroundColor = assignedColorObj.hex;
-
-        let gameState = 'LOBBY'; 
+        let playerId = 'user_' + Math.random().toString(36).substring(2, 9);
+        let playerName = 'Doodler';
         let roomId = null;
-        let playerId = 'cat_' + Math.random().toString(36).substring(2, 9);
-        let playerName = 'Meowster';
-        let players = {}; 
-        let platforms = [];
-        let cameraY = 0;
-        let maxWorldHeight = 8000; 
+        let channel = null;
+        let players = {};
+        let gameDeck = []; // Holds items passed around in telephone chain
+        let currentStepIndex = 0;
 
-        const GRAVITY = 0.5;
-        const FRICTION = 0.82;
-        const JUMP_FORCE = -12;
-        const MOVE_SPEED = 0.8;
-        const MAX_SPEED = 6;
-        const ROPE_LENGTH = 110; 
-
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+        // UI navigation helpers
+        function showScreen(screenId) {
+            ['lobbyScreen', 'waitingScreen', 'writePhaseScreen', 'drawPhaseScreen', 'guessPhaseScreen', 'revealPhaseScreen'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
         }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
 
-        const keys = {};
-        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
-        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+        // --- LOBBY & ROOM MANAGEMENT ---
+        document.getElementById('quickJoinBtn').addEventListener('click', async () => {
+            const nameInput = document.getElementById('playerNameInput').value.trim();
+            if (nameInput) playerName = nameInput;
 
-        function generatePlatforms() {
-            platforms = [];
-            platforms.push({ x: canvas.width / 2 - 150, y: maxWorldHeight - 100, w: 300, h: 40, type: 'normal' });
-
-            let currentY = maxWorldHeight - 250;
-            let currentX = canvas.width / 2;
-
-            while (currentY > 200) {
-                let w = Math.max(80, 180 - (maxWorldHeight - currentY) / 100);
-                let offset = (Math.random() - 0.5) * Math.min(canvas.width * 0.7, 600);
-                currentX = Math.max(50, Math.min(canvas.width - w - 50, canvas.width / 2 + offset));
-                
-                let type = 'normal';
-                let rand = Math.random();
-                if (rand < 0.15) type = 'bouncy';
-                else if (rand < 0.25) type = 'moving';
-
-                platforms.push({
-                    x: currentX,
-                    y: currentY,
-                    w: w,
-                    h: 22,
-                    type: type,
-                    dir: Math.random() > 0.5 ? 1 : -1,
-                    speed: 1.5
-                });
-
-                currentY -= Math.floor(Math.random() * 90) + 75;
-            }
-
-            platforms.push({ x: canvas.width / 2 - 120, y: 100, w: 240, h: 40, type: 'win' });
-        }
-        generatePlatforms();
-
-        let myCat = {
-            id: playerId,
-            name: 'Cat',
-            x: canvas.width / 2,
-            y: maxWorldHeight - 150,
-            vx: 0,
-            vy: 0,
-            radius: 18,
-            grounded: false,
-            color: assignedColorObj.hex,
-            tailColor: assignedColorObj.tail,
-            height: 0
-        };
-
-        // UI Event Listeners
-        document.getElementById('joinBtn').addEventListener('click', async () => {
-            fetchNameInput();
-            document.getElementById('mainMenuButtons').classList.add('hidden');
-            document.getElementById('waitingRoomView').classList.remove('hidden');
-
+            showScreen('waitingScreen');
             if (supabaseClient) {
                 await joinMatchmaking();
             } else {
-                startLocalGameMode();
+                alert("Supabase credentials missing or invalid.");
             }
         });
 
         document.getElementById('openBrowserBtn').addEventListener('click', async () => {
-            fetchNameInput();
+            const nameInput = document.getElementById('playerNameInput').value.trim();
+            if (nameInput) playerName = nameInput;
             document.getElementById('browserModal').classList.remove('hidden');
             await fetchPublicLobbies();
         });
@@ -265,27 +211,9 @@
             await fetchPublicLobbies();
         });
 
-        document.getElementById('startManualBtn').addEventListener('click', () => {
-            if (Object.keys(players).length >= 2) {
-                triggerGameStart();
-            }
-        });
-
-        function fetchNameInput() {
-            const nameInput = document.getElementById('playerNameInput').value.trim();
-            if (nameInput) playerName = nameInput;
-            myCat.name = playerName;
-        }
-
         async function fetchPublicLobbies() {
             const container = document.getElementById('lobbiesListContainer');
             container.innerHTML = '<div class="text-center text-slate-400 text-xs py-4">Fetching active rooms...</div>';
-
-            if (!supabaseClient) {
-                container.innerHTML = '<div class="text-center text-red-400 text-xs py-4">Database offline. Use Quick Match.</div>';
-                return;
-            }
-
             try {
                 let { data: rooms, error } = await supabaseClient
                     .from('rooms')
@@ -294,7 +222,7 @@
                     .limit(10);
 
                 if (error || !rooms || rooms.length === 0) {
-                    container.innerHTML = '<div class="text-center text-slate-400 text-xs py-4">No active rooms found. Create one using Quick Match!</div>';
+                    container.innerHTML = '<div class="text-center text-slate-400 text-xs py-4">No active rooms found. Create one using Quick Join!</div>';
                     return;
                 }
 
@@ -303,7 +231,7 @@
                     html += `<div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
                         <div>
                             <div class="text-xs font-mono text-yellow-300 font-bold">Room: ${r.id}</div>
-                            <div class="text-[10px] text-slate-400">Players: ${r.players_count}/5</div>
+                            <div class="text-[10px] text-slate-400">Players: ${r.players_count}/8</div>
                         </div>
                         <button onclick="joinSpecificRoom('${r.id}', ${r.players_count})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs retro-shadow transition">
                             Join
@@ -319,47 +247,30 @@
 
         async function joinSpecificRoom(targetRoomId, currentCount) {
             document.getElementById('browserModal').classList.add('hidden');
-            document.getElementById('mainMenuButtons').classList.add('hidden');
-            document.getElementById('waitingRoomView').classList.remove('hidden');
-
+            showScreen('waitingScreen');
             roomId = targetRoomId;
-            document.getElementById('hudRoomCode').innerText = roomId;
-
-            if (supabaseClient) {
-                await supabaseClient.from('rooms').update({ players_count: currentCount + 1 }).eq('id', roomId);
-                setupRealtimeChannel();
-            } else {
-                startLocalGameMode();
-            }
+            document.getElementById('displayRoomId').innerText = roomId;
+            await supabaseClient.from('rooms').update({ players_count: currentCount + 1 }).eq('id', roomId);
+            setupRealtimeChannel();
         }
 
-        let channel = null;
         async function joinMatchmaking() {
-            try {
-                let { data: rooms, error } = await supabaseClient
-                    .from('rooms')
-                    .select('*')
-                    .eq('status', 'waiting')
-                    .limit(1);
+            let { data: rooms, error } = await supabaseClient
+                .from('rooms')
+                .select('*')
+                .eq('status', 'waiting')
+                .limit(1);
 
-                if (error || !rooms || rooms.length === 0) {
-                    roomId = 'room_' + Math.floor(Math.random() * 10000);
-                    await supabaseClient.from('rooms').insert([{
-                        id: roomId,
-                        status: 'waiting',
-                        players_count: 1
-                    }]);
-                } else {
-                    roomId = rooms[0].id;
-                    await supabaseClient.from('rooms').update({ players_count: rooms[0].players_count + 1 }).eq('id', roomId);
-                }
-
-                document.getElementById('hudRoomCode').innerText = roomId;
-                setupRealtimeChannel();
-            } catch (err) {
-                console.error("Matchmaking error, falling back to local mode:", err);
-                startLocalGameMode();
+            if (error || !rooms || rooms.length === 0) {
+                roomId = 'gartic_' + Math.floor(Math.random() * 10000);
+                await supabaseClient.from('rooms').insert([{ id: roomId, status: 'waiting', players_count: 1 }]);
+            } else {
+                roomId = rooms[0].id;
+                await supabaseClient.from('rooms').update({ players_count: rooms[0].players_count + 1 }).eq('id', roomId);
             }
+
+            document.getElementById('displayRoomId').innerText = roomId;
+            setupRealtimeChannel();
         }
 
         function setupRealtimeChannel() {
@@ -369,329 +280,172 @@
 
             channel.on('broadcast', { event: 'player_sync' }, payload => {
                 players[payload.payload.id] = payload.payload;
-                updateLobbyUI();
+                updateWaitingUI();
             });
 
-            channel.on('broadcast', { event: 'start_game' }, () => {
-                if (gameState === 'WAITING') {
-                    startGameSession();
-                }
+            channel.on('broadcast', { event: 'start_game' }, payload => {
+                gameDeck = payload.payload.deck;
+                beginGameSequence();
             });
 
             channel.subscribe(async (status) => {
                 if (status === 'SUBSCRIBED') {
-                    gameState = 'WAITING';
-                    document.getElementById('matchStatus').innerText = "Waiting for players...";
-                    
-                    players[playerId] = myCat;
-                    updateLobbyUI();
-                    
-                    setInterval(() => {
-                        if (channel && gameState !== 'LOBBY') {
-                            channel.send({
-                                type: 'broadcast',
-                                event: 'player_sync',
-                                payload: myCat
-                            });
-                        }
-                    }, 100);
+                    players[playerId] = { id: playerId, name: playerName };
+                    updateWaitingUI();
 
-                    checkLobbyReady();
+                    setInterval(() => {
+                        if (channel) {
+                            channel.send({ type: 'broadcast', event: 'player_sync', payload: { id: playerId, name: playerName } });
+                        }
+                    }, 1500);
                 }
             });
         }
 
-        function updateLobbyUI() {
-            let activeCount = Object.keys(players).length;
-            document.getElementById('playerCount').innerText = activeCount;
-            
-            let listHtml = '';
+        function updateWaitingUI() {
+            let count = Object.keys(players).length;
+            document.getElementById('waitingPlayerCount').innerText = count;
+            let html = '';
             for (let id in players) {
-                let p = players[id];
-                listHtml += `<div class="flex items-center justify-between bg-slate-800 p-2 rounded-xl border border-slate-700">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-3.5 h-3.5 rounded-full" style="background-color: ${p.color}"></div>
-                        <span class="font-bold text-xs text-white">${p.name} ${p.id === playerId ? '(You)' : ''}</span>
-                    </div>
-                    <span class="text-[10px] text-green-400">Ready</span>
+                html += `<div class="bg-slate-800 p-2 rounded-xl border border-slate-700 text-xs font-bold text-white flex justify-between items-center">
+                    <span><i class="fa-solid fa-user text-indigo-400 mr-2"></i> ${players[id].name}</span>
+                    <span class="text-green-400 text-[10px]">Ready</span>
                 </div>`;
             }
-            document.getElementById('playerListContainer').innerHTML = listHtml;
-
-            const manualBtn = document.getElementById('startManualBtn');
-            if (activeCount >= 2) {
-                manualBtn.disabled = false;
-                manualBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            } else {
-                manualBtn.disabled = true;
-                manualBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            }
+            document.getElementById('waitingPlayersList').innerHTML = html;
         }
 
-        function checkLobbyReady() {
-            let activeCount = Object.keys(players).length;
-            updateLobbyUI();
-
-            if (activeCount >= 5 || window.matchForceStarted) {
-                triggerGameStart();
-            } else {
-                setTimeout(checkLobbyReady, 1000);
-            }
-        }
-
-        setTimeout(() => {
-            if (gameState === 'WAITING') {
-                window.matchForceStarted = true;
-            }
-        }, 10000);
-
-        function triggerGameStart() {
-            if (gameState === 'PLAYING') return;
-            if (channel) {
-                channel.send({ type: 'broadcast', event: 'start_game', payload: {} });
-            }
-            startGameSession();
-        }
-
-        function startLocalGameMode() {
-            roomId = 'SOLO_ROOM';
-            document.getElementById('hudRoomCode').innerText = roomId;
-            players[playerId] = myCat;
+        document.getElementById('startMatchBtn').addEventListener('click', () => {
+            // Build initial deck for players
+            let playerList = Object.values(players);
+            let deck = playerList.map(p => ({ ownerId: p.id, ownerName: p.name, type: 'prompt', content: '' }));
             
-            let botColors = PLAYER_COLORS.filter(c => c.hex !== assignedColorObj.hex);
-            for (let i = 0; i < 3; i++) {
-                let botId = 'bot_' + i;
-                players[botId] = {
-                    id: botId,
-                    name: ['Whiskers', 'Shadow', 'Paws'][i],
-                    x: canvas.width / 2 + ((i - 1) * 40),
-                    y: maxWorldHeight - 150,
-                    vx: 0,
-                    vy: 0,
-                    radius: 18,
-                    grounded: false,
-                    color: botColors[i].hex,
-                    tailColor: botColors[i].tail,
-                    height: 0,
-                    isBot: true
-                };
+            if (channel) {
+                channel.send({ type: 'broadcast', event: 'start_game', payload: { deck } });
             }
-            startGameSession();
+            gameDeck = deck;
+            beginGameSequence();
+        });
+
+        // --- GAMEPLAY TELEPHONE LOGIC ---
+        function beginGameSequence() {
+            currentStepIndex = 0;
+            showScreen('writePhaseScreen');
         }
 
-        function startGameSession() {
-            gameState = 'PLAYING';
-            document.getElementById('lobbyScreen').classList.add('hidden');
-            document.getElementById('gameHud').classList.remove('hidden');
-            document.getElementById('hudActiveRoomCode').innerText = roomId;
-            requestAnimationFrame(gameLoop);
+        // Step 1: Submit Initial Prompt
+        document.getElementById('submitPromptBtn').addEventListener('click', () => {
+            const val = document.getElementById('promptInput').value.trim();
+            if (!val) return alert("Please type a prompt first!");
+            
+            // Store own prompt in deck
+            let myItem = gameDeck.find(item => item.ownerId === playerId);
+            if (myItem) myItem.content = val;
+
+            document.getElementById('writePhaseScreen').classList.add('hidden');
+            // Advance to drawing phase for the next item in rotation
+            setupDrawingPhase();
+        });
+
+        // Step 2: Drawing Setup & Canvas
+        const paintCanvas = document.getElementById('paintCanvas');
+        const pCtx = paintCanvas.getContext('2d');
+        let isDrawing = false;
+        let brushColor = '#0f172a';
+
+        function setBrushColor(col) { brushColor = col; }
+        function clearCanvas() { pCtx.clearRect(0, 0, paintCanvas.width, paintCanvas.height); pCtx.fillStyle = '#ffffff'; pCtx.fillRect(0, 0, paintCanvas.width, paintCanvas.height); }
+
+        pCtx.fillStyle = '#ffffff';
+        pCtx.fillRect(0, 0, paintCanvas.width, paintCanvas.height);
+
+        paintCanvas.addEventListener('mousedown', () => isDrawing = true);
+        window.addEventListener('mouseup', () => isDrawing = false);
+        paintCanvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const rect = paintCanvas.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+            pCtx.fillStyle = brushColor;
+            pCtx.beginPath();
+            pCtx.arc(x, y, 6, 0, Math.PI * 2);
+            pCtx.fill();
+        });
+
+        function setupDrawingPhase() {
+            showScreen('drawPhaseScreen');
+            clearCanvas();
+            // Find prompt assigned to us based on rotation
+            let playerIds = Object.keys(players);
+            let myIdx = playerIds.indexOf(playerId);
+            let targetIdx = (myIdx + currentStepIndex) % playerIds.length;
+            let targetItem = gameDeck[targetIdx];
+            
+            document.getElementById('promptToDrawText').innerText = targetItem ? targetItem.content : "Draw something cool!";
         }
 
-        function updatePhysics() {
-            if (keys['ArrowLeft'] || keys['KeyA']) {
-                myCat.vx = Math.max(-MAX_SPEED, myCat.vx - MOVE_SPEED);
-            } else if (keys['ArrowRight'] || keys['KeyD']) {
-                myCat.vx = Math.min(MAX_SPEED, myCat.vx + MOVE_SPEED);
+        document.getElementById('submitDrawingBtn').addEventListener('click', () => {
+            const dataUrl = paintCanvas.toDataURL();
+            let playerIds = Object.keys(players);
+            let myIdx = playerIds.indexOf(playerId);
+            let targetIdx = (myIdx + currentStepIndex) % playerIds.length;
+            
+            gameDeck[targetIdx].content = dataUrl;
+            gameDeck[targetIdx].type = 'drawing';
+
+            document.getElementById('drawPhaseScreen').classList.add('hidden');
+            setupGuessingPhase();
+        });
+
+        // Step 3: Guessing Setup
+        function setupGuessingPhase() {
+            showScreen('guessPhaseScreen');
+            let playerIds = Object.keys(players);
+            let myIdx = playerIds.indexOf(playerId);
+            let targetIdx = (myIdx + currentStepIndex + 1) % playerIds.length;
+            let targetItem = gameDeck[targetIdx];
+
+            if (targetItem && targetItem.type === 'drawing') {
+                document.getElementById('guessImageDisplay').src = targetItem.content;
+            }
+            document.getElementById('guessInput').value = '';
+        }
+
+        document.getElementById('submitGuessBtn').addEventListener('click', () => {
+            const val = document.getElementById('guessInput').value.trim();
+            if (!val) return alert("Please type a guess!");
+
+            let playerIds = Object.keys(players);
+            let myIdx = playerIds.indexOf(playerId);
+            let targetIdx = (myIdx + currentStepIndex + 1) % playerIds.length;
+
+            gameDeck[targetIdx].content = val;
+            gameDeck[targetIdx].type = 'guess';
+
+            currentStepIndex++;
+            if (currentStepIndex >= playerIds.length - 1) {
+                showRevealPhase();
             } else {
-                myCat.vx *= FRICTION;
+                setupDrawingPhase();
             }
+        });
 
-            if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW']) && myCat.grounded) {
-                myCat.vy = JUMP_FORCE;
-                myCat.grounded = false;
-            }
-
-            myCat.vy += GRAVITY;
-            myCat.x += myCat.vx;
-            myCat.y += myCat.vy;
-
-            if (myCat.x < myCat.radius) { myCat.x = myCat.radius; myCat.vx *= -0.5; }
-            if (myCat.x > canvas.width - myCat.radius) { myCat.x = canvas.width - myCat.radius; myCat.vx *= -0.5; }
-
-            myCat.grounded = false;
-            for (let p of platforms) {
-                if (p.type === 'moving') {
-                    p.x += p.dir * p.speed;
-                    if (p.x < 30 || p.x + p.w > canvas.width - 30) p.dir *= -1;
-                }
-
-                if (
-                    myCat.x + myCat.radius > p.x &&
-                    myCat.x - myCat.radius < p.x + p.w &&
-                    myCat.y + myCat.radius >= p.y &&
-                    myCat.y - myCat.radius <= p.y + p.h &&
-                    myCat.vy > 0
-                ) {
-                    myCat.y = p.y - myCat.radius;
-                    if (p.type === 'bouncy') {
-                        myCat.vy = JUMP_FORCE * 1.5;
-                    } else {
-                        myCat.vy = 0;
-                        myCat.grounded = true;
-                    }
-                    if (p.type === 'win') {
-                        showVictoryModal();
-                    }
-                }
-            }
-
-            myCat.height = Math.max(0, Math.floor((maxWorldHeight - 150 - myCat.y) / 10));
-            document.getElementById('hudHeight').innerText = myCat.height;
-
-            let targetCameraY = myCat.y - canvas.height * 0.6;
-            cameraY += (targetCameraY - cameraY) * 0.1;
-            cameraY = Math.max(0, Math.min(maxWorldHeight - canvas.height, cameraY));
-
-            for (let id in players) {
-                let p = players[id];
-                if (p.isBot) {
-                    p.vy += GRAVITY;
-                    p.x += Math.sin(Date.now() / 400) * 2;
-                    p.y += p.vy;
-                    for (let plat of platforms) {
-                        if (p.x > plat.x && p.x < plat.x + plat.w && p.y + p.radius >= plat.y && p.y - p.radius <= plat.y + plat.h && p.vy > 0) {
-                            p.y = plat.y - p.radius;
-                            p.vy = JUMP_FORCE * (0.8 + Math.random() * 0.4);
-                        }
-                    }
-                }
-            }
-
-            let playerList = Object.values(players);
-            for (let i = 0; i < playerList.length - 1; i++) {
-                let p1 = playerList[i];
-                let p2 = playerList[i+1];
-
-                let dx = p2.x - p1.x;
-                let dy = p2.y - p1.y;
-                let dist = Math.sqrt(dx * dx + dy * dy);
-
-                if (dist > ROPE_LENGTH) {
-                    let angle = Math.atan2(dy, dx);
-                    let pullForce = (dist - ROPE_LENGTH) * 0.1;
-                    
-                    if (p1.id === playerId) {
-                        myCat.vx += Math.cos(angle) * pullForce * 0.5;
-                        myCat.vy += Math.sin(angle) * pullForce * 0.5;
-                    } else if (p2.id === playerId) {
-                        myCat.vx -= Math.cos(angle) * pullForce * 0.5;
-                        myCat.vy -= Math.sin(angle) * pullForce * 0.5;
-                    }
-                }
-            }
-        }
-
-        function drawGame() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            ctx.save();
-            ctx.translate(0, -cameraY);
-
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-            for (let i = 0; i < 15; i++) {
-                let cy = (i * 600) % maxWorldHeight;
-                ctx.beginPath();
-                ctx.arc(canvas.width * (0.2 + (i % 3) * 0.3), cy, 120, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            for (let p of platforms) {
-                if (p.type === 'win') {
-                    ctx.fillStyle = '#f59e0b';
-                    ctx.shadowColor = '#fbbf24';
-                    ctx.shadowBlur = 20;
-                } else if (p.type === 'bouncy') {
-                    ctx.fillStyle = '#ec4899';
-                    ctx.shadowColor = '#f472b6';
-                    ctx.shadowBlur = 10;
-                } else if (p.type === 'moving') {
-                    ctx.fillStyle = '#6366f1';
-                    ctx.shadowBlur = 0;
+        // Step 4: Reveal Reel
+        function showRevealPhase() {
+            showScreen('revealPhaseScreen');
+            let container = document.getElementById('storyReelContainer');
+            let html = '';
+            gameDeck.forEach((item, idx) => {
+                html += `<div class="bg-slate-800 p-3 rounded-xl border border-slate-700 text-left">
+                    <div class="text-[10px] text-purple-300 font-bold mb-1">${item.ownerName}'s Chain</div>`;
+                if (idx % 2 === 0) {
+                    html += `<div class="text-xs text-yellow-300 font-bold">"${item.content}"</div>`;
                 } else {
-                    ctx.fillStyle = '#334155';
-                    ctx.shadowBlur = 0;
+                    html += `<img src="${item.content}" class="max-h-32 mx-auto rounded-lg border border-slate-600">`;
                 }
-
-                ctx.beginPath();
-                ctx.roundRect(p.x, p.y, p.w, p.h, 10);
-                ctx.fill();
-                ctx.shadowBlur = 0;
-
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-                ctx.fillRect(p.x, p.y, p.w, 4);
-            }
-
-            let playerList = Object.values(players);
-            ctx.strokeStyle = '#cbd5e1';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            for (let i = 0; i < playerList.length; i++) {
-                let p = playerList[i];
-                if (i === 0) ctx.moveTo(p.x, p.y);
-                else ctx.lineTo(p.x, p.y);
-            }
-            ctx.stroke();
-
-            for (let id in players) {
-                let p = (id === playerId) ? myCat : players[id];
-                
-                ctx.save();
-                ctx.translate(p.x, p.y);
-
-                ctx.fillStyle = p.color || '#f97316';
-                ctx.beginPath();
-                ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.beginPath();
-                ctx.moveTo(-14, -10);
-                ctx.lineTo(-22, -26);
-                ctx.lineTo(-6, -18);
-                ctx.closePath();
-                ctx.moveTo(14, -10);
-                ctx.lineTo(22, -26);
-                ctx.lineTo(6, -18);
-                ctx.closePath();
-                ctx.fillStyle = p.color || '#f97316';
-                ctx.fill();
-
-                ctx.fillStyle = '#0f172a';
-                ctx.beginPath();
-                ctx.arc(-6, -3, 3, 0, Math.PI * 2);
-                ctx.arc(6, -3, 3, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.strokeStyle = '#0f172a';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(-12, 3); ctx.lineTo(-4, 2);
-                ctx.moveTo(12, 3); ctx.lineTo(4, 2);
-                ctx.stroke();
-
-                ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
-                ctx.fillRect(-35, -46, 70, 20);
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 11px Fredoka';
-                ctx.textAlign = 'center';
-                ctx.fillText(p.name || 'Cat', 0, -32);
-
-                ctx.restore();
-            }
-
-            ctx.restore();
-        }
-
-        function showVictoryModal() {
-            gameState = 'END';
-            document.getElementById('modalOverlay').classList.remove('hidden');
-        }
-
-        function gameLoop() {
-            if (gameState === 'PLAYING') {
-                updatePhysics();
-                drawGame();
-                requestAnimationFrame(gameLoop);
-            }
+                html += `</div>`;
+            });
+            container.innerHTML = html;
         }
     </script>
 </body>
