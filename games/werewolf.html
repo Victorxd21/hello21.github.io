@@ -713,6 +713,101 @@
   let channel = null;
   let connectPromise = null;
 
+  function setConnectionStatus(kind, text) {
+    statusDot.classList.remove('ok', 'bad');
+    if (kind === 'ok') statusDot.classList.add('ok');
+    if (kind === 'bad') statusDot.classList.add('bad');
+    statusLabel.textContent = text;
+  }
+
+  async function connectGlobal() {
+    if (connectPromise) return connectPromise;
+    if (channel) return true;
+
+    connectPromise = (async () => {
+      setConnectionStatus('busy', 'Connecting to global lobby...');
+      debugLogMessage('Opening shared Supabase Realtime channel...', 'net');
+
+      channel = supabase.channel(GAME.channelName, {
+        config: {
+          presence: { key: state.playerId },
+          broadcast: { ack: false }
+        }
+      });
+
+      channel
+        .on('presence', { event: 'sync' }, handlePresenceSync)
+        .on('presence', { event: 'join' }, handlePresenceSync)
+        .on('presence', { event: 'leave' }, handlePresenceSync)
+        .on('broadcast', { event: 'lobby_countdown' }, onLobbyCountdown)
+        .on('broadcast', { event: 'round_start' }, onRoundStart)
+        .on('broadcast', { event: 'player_move' }, onPlayerMove)
+        .on('broadcast', { event: 'custard_collect' }, onCustardCollect)
+        .on('broadcast', { event: 'player_killed' }, onPlayerKilled)
+        .on('broadcast', { event: 'round_end' }, onRoundEnd)
+        .on('broadcast', { event: 'request_state' }, onStateRequest)
+        .on('broadcast', { event: 'state_snapshot' }, onStateSnapshot)
+        .on('broadcast', { event: 'admin_command' }, onAdminCommand)
+        .on('broadcast', { event: 'admin_announcement' }, onAdminAnnouncement)
+        .subscribe(async (status) => {
+          debugLogMessage(`Realtime channel status: ${status}`, status === 'SUBSCRIBED' ? 'net' : 'error');
+
+          if (status === 'SUBSCRIBED') {
+            state.connected = true;
+            setConnectionStatus('ok', 'Connected to global lobby');
+
+            try {
+              await trackPresence('lobby');
+              const currentRoster = getPresencePlayers();
+              debugLogMessage(`Initial global roster: ${currentRoster.length} player(s).`, 'net');
+
+              if (currentRoster.length > GAME.maxLobbyPlayers) {
+                try { await channel.untrack(); } catch {}
+                await supabase.removeChannel(channel);
+                channel = null;
+                state.connected = false;
+                state.inLobby = false;
+                setConnectionStatus('bad', `Global lobby is full (${GAME.maxLobbyPlayers}/${GAME.maxLobbyPlayers})`);
+                playBtn.disabled = false;
+                playBtn.textContent = 'PLAY • JOIN GLOBAL LOBBY';
+                showAdminToast(`The global lobby is full — ${GAME.maxLobbyPlayers}/${GAME.maxLobbyPlayers} players.`);
+                return;
+              }
+
+              state.inLobby = true;
+              handlePresenceSync();
+              showScreen('lobby');
+              requestStateSync();
+            } catch (err) {
+              debugLogMessage(`Global lobby setup failed: ${err?.message || err}`, 'error');
+              state.connected = false;
+              state.inLobby = false;
+              setConnectionStatus('bad', 'Lobby setup failed');
+            }
+            return;
+          }
+
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            state.connected = false;
+            state.inLobby = false;
+            setConnectionStatus('bad', `Realtime ${status.toLowerCase().replace('_', ' ')}`);
+            debugLogMessage(`Supabase Realtime connection problem: ${status}`, 'error');
+          }
+        });
+
+      // The subscribe callback handles the actual success/failure state.
+      // Give the channel a moment to establish before returning control.
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      return !!state.connected;
+    })();
+
+    try {
+      return await connectPromise;
+    } finally {
+      connectPromise = null;
+    }
+  }
+
   debugLogMessage('Global lobby page loaded.');
   debugLogMessage(`Configured for ${GAME.minPlayers} minimum / ${GAME.maxLobbyPlayers} maximum players.`);
 
