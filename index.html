@@ -43,47 +43,71 @@
 
     <!-- LOBBY SCREEN -->
     <div id="lobbyScreen" class="absolute inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 p-4">
-        <div class="max-w-md w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-5">
-            <div class="inline-block bg-indigo-600/30 p-3 rounded-full border-2 border-indigo-400 animate-float">
-                <i class="fa-solid fa-cat text-5xl text-yellow-400"></i>
+        <div class="max-w-md w-full bg-slate-800/90 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
+            <div class="inline-block bg-indigo-600/30 p-2.5 rounded-full border-2 border-indigo-400 animate-float">
+                <i class="fa-solid fa-cat text-4xl text-yellow-400"></i>
             </div>
             <div>
-                <h1 class="text-3xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-400">CHAINED CATS: ONLY UP!</h1>
-                <p class="text-sm text-slate-300 mt-1">Climb together, fail together! Up to 5 players.</p>
+                <h1 class="text-2xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-400">CHAINED CATS: ONLY UP!</h1>
+                <p class="text-xs text-slate-300 mt-1">Climb together, fail together! Up to 5 players.</p>
             </div>
 
             <!-- Player Setup -->
-            <div class="space-y-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-700">
+            <div class="space-y-2 bg-slate-900/60 p-3 rounded-2xl border border-slate-700">
                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Enter Your Cat Name</label>
-                <input type="text" id="playerNameInput" maxlength="12" placeholder="Meowster" class="w-full bg-slate-800 border-2 border-slate-600 rounded-xl px-4 py-2 text-center text-lg font-bold text-yellow-300 focus:outline-none focus:border-indigo-500 transition">
+                <input type="text" id="playerNameInput" maxlength="12" placeholder="Meowster" class="w-full bg-slate-800 border-2 border-slate-600 rounded-xl px-4 py-1.5 text-center text-base font-bold text-yellow-300 focus:outline-none focus:border-indigo-500 transition">
                 
-                <div class="pt-2">
-                    <span class="text-xs text-slate-400 block mb-1">Your Assigned Color:</span>
-                    <div id="assignedColorPreview" class="w-12 h-12 rounded-full mx-auto border-4 border-white shadow-md transition-all duration-300"></div>
+                <div class="pt-1 flex items-center justify-center space-x-3">
+                    <span class="text-xs text-slate-400">Assigned Color:</span>
+                    <div id="assignedColorPreview" class="w-8 h-8 rounded-full border-2 border-white shadow-md transition-all duration-300"></div>
                 </div>
             </div>
 
-            <!-- Lobby Status Box -->
-            <div class="bg-slate-900/80 rounded-2xl p-4 border border-slate-700 text-left">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-semibold text-slate-300">Lobby Players (<span id="playerCount">0</span>/5)</span>
-                    <span id="matchStatus" class="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded-full font-bold animate-pulse">Waiting...</span>
-                </div>
-                <div id="playerListContainer" class="space-y-2 max-h-28 overflow-y-auto pr-1">
-                    <!-- Dynamically populated players -->
-                </div>
-            </div>
-
-            <div class="space-y-2">
-                <button id="joinBtn" class="w-full bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-2xl text-lg retro-shadow transition transform active:scale-95">
-                    <i class="fa-solid fa-right-to-bracket mr-2"></i> Find & Join Lobby
+            <!-- Main Menu Buttons -->
+            <div id="mainMenuButtons" class="space-y-2">
+                <button id="joinBtn" class="w-full bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-2xl text-base retro-shadow transition transform active:scale-95">
+                    <i class="fa-solid fa-right-to-bracket mr-2"></i> Quick Match / Create Lobby
                 </button>
+                <button id="openBrowserBtn" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-2.5 px-6 rounded-2xl text-sm border border-slate-600 transition transform active:scale-95">
+                    <i class="fa-solid fa-list mr-2"></i> Browse Active Lobbies
+                </button>
+            </div>
 
-                <!-- Manual Start Game Button (Enabled when 2+ players are present) -->
-                <button id="startManualBtn" disabled class="w-full hidden bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-2xl text-base retro-shadow transition transform active:scale-95 opacity-50 cursor-not-allowed">
+            <!-- Active Lobby Waiting View (Hidden initially) -->
+            <div id="waitingRoomView" class="hidden space-y-3">
+                <div class="bg-slate-900/80 rounded-2xl p-3 border border-slate-700 text-left">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-semibold text-slate-300">Room: <span id="hudRoomCode" class="font-mono text-yellow-300">---</span> (<span id="playerCount">0</span>/5)</span>
+                        <span id="matchStatus" class="text-[10px] px-2 py-0.5 bg-yellow-500/20 text-yellow-300 rounded-full font-bold animate-pulse">Waiting...</span>
+                    </div>
+                    <div id="playerListContainer" class="space-y-1.5 max-h-24 overflow-y-auto pr-1">
+                        <!-- Dynamically populated players -->
+                    </div>
+                </div>
+
+                <button id="startManualBtn" disabled class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-2.5 px-6 rounded-2xl text-sm retro-shadow transition transform active:scale-95 opacity-50 cursor-not-allowed">
                     <i class="fa-solid fa-play mr-2"></i> Start Game Now (2+ Players)
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- LOBBY BROWSER MODAL -->
+    <div id="browserModal" class="hidden absolute inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border-4 border-indigo-500 rounded-3xl p-5 max-w-md w-full space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold text-yellow-300"><i class="fa-solid fa-earth-americas mr-2"></i> Public Lobbies</h2>
+                <button id="closeBrowserBtn" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-slate-300">Select an active room below to join your friends or other players climbing right now!</p>
+            
+            <div id="lobbiesListContainer" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <div class="text-center text-slate-400 text-xs py-6">Searching for active lobbies...</div>
+            </div>
+
+            <button id="refreshLobbiesBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl text-sm retro-shadow transition">
+                <i class="fa-solid fa-rotate mr-1"></i> Refresh List
+            </button>
         </div>
     </div>
 
@@ -92,7 +116,7 @@
         <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-2xl p-4 shadow-xl pointer-events-auto">
             <div class="text-xs text-slate-400 uppercase tracking-wider">Height Climbed</div>
             <div class="text-2xl font-black text-yellow-400"><span id="hudHeight">0</span>m</div>
-            <div class="text-xs text-indigo-300 mt-1">Room: <span id="hudRoomCode" class="font-mono">---</span></div>
+            <div class="text-xs text-indigo-300 mt-1">Room: <span id="hudActiveRoomCode" class="font-mono">---</span></div>
         </div>
 
         <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-2xl p-4 shadow-xl text-right pointer-events-auto">
@@ -125,7 +149,6 @@
             console.error("Supabase init error:", e);
         }
 
-        // Expanded color pool for 5 players
         const PLAYER_COLORS = [
             { name: "Sunny Orange", hex: "#f97316", tail: "#c2410c" },
             { name: "Royal Blue", hex: "#3b82f6", tail: "#1d4ed8" },
@@ -215,13 +238,11 @@
             height: 0
         };
 
+        // UI Event Listeners
         document.getElementById('joinBtn').addEventListener('click', async () => {
-            const nameInput = document.getElementById('playerNameInput').value.trim();
-            if (nameInput) playerName = nameInput;
-            myCat.name = playerName;
-
-            document.getElementById('joinBtn').disabled = true;
-            document.getElementById('joinBtn').innerHTML = '<i class="fa-solid fa-spinner animate-spin mr-2"></i> Connecting to Lobby...';
+            fetchNameInput();
+            document.getElementById('mainMenuButtons').classList.add('hidden');
+            document.getElementById('waitingRoomView').classList.remove('hidden');
 
             if (supabaseClient) {
                 await joinMatchmaking();
@@ -230,11 +251,87 @@
             }
         });
 
+        document.getElementById('openBrowserBtn').addEventListener('click', async () => {
+            fetchNameInput();
+            document.getElementById('browserModal').classList.remove('hidden');
+            await fetchPublicLobbies();
+        });
+
+        document.getElementById('closeBrowserBtn').addEventListener('click', () => {
+            document.getElementById('browserModal').classList.add('hidden');
+        });
+
+        document.getElementById('refreshLobbiesBtn').addEventListener('click', async () => {
+            await fetchPublicLobbies();
+        });
+
         document.getElementById('startManualBtn').addEventListener('click', () => {
             if (Object.keys(players).length >= 2) {
                 triggerGameStart();
             }
         });
+
+        function fetchNameInput() {
+            const nameInput = document.getElementById('playerNameInput').value.trim();
+            if (nameInput) playerName = nameInput;
+            myCat.name = playerName;
+        }
+
+        async function fetchPublicLobbies() {
+            const container = document.getElementById('lobbiesListContainer');
+            container.innerHTML = '<div class="text-center text-slate-400 text-xs py-4">Fetching active rooms...</div>';
+
+            if (!supabaseClient) {
+                container.innerHTML = '<div class="text-center text-red-400 text-xs py-4">Database offline. Use Quick Match.</div>';
+                return;
+            }
+
+            try {
+                let { data: rooms, error } = await supabaseClient
+                    .from('rooms')
+                    .select('*')
+                    .eq('status', 'waiting')
+                    .limit(10);
+
+                if (error || !rooms || rooms.length === 0) {
+                    container.innerHTML = '<div class="text-center text-slate-400 text-xs py-4">No active rooms found. Create one using Quick Match!</div>';
+                    return;
+                }
+
+                let html = '';
+                rooms.forEach(r => {
+                    html += `<div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+                        <div>
+                            <div class="text-xs font-mono text-yellow-300 font-bold">Room: ${r.id}</div>
+                            <div class="text-[10px] text-slate-400">Players: ${r.players_count}/5</div>
+                        </div>
+                        <button onclick="joinSpecificRoom('${r.id}', ${r.players_count})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs retro-shadow transition">
+                            Join
+                        </button>
+                    </div>`;
+                });
+                container.innerHTML = html;
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<div class="text-center text-red-400 text-xs py-4">Error loading public lobbies.</div>';
+            }
+        }
+
+        async function joinSpecificRoom(targetRoomId, currentCount) {
+            document.getElementById('browserModal').classList.add('hidden');
+            document.getElementById('mainMenuButtons').classList.add('hidden');
+            document.getElementById('waitingRoomView').classList.remove('hidden');
+
+            roomId = targetRoomId;
+            document.getElementById('hudRoomCode').innerText = roomId;
+
+            if (supabaseClient) {
+                await supabaseClient.from('rooms').update({ players_count: currentCount + 1 }).eq('id', roomId);
+                setupRealtimeChannel();
+            } else {
+                startLocalGameMode();
+            }
+        }
 
         let channel = null;
         async function joinMatchmaking() {
@@ -247,60 +344,61 @@
 
                 if (error || !rooms || rooms.length === 0) {
                     roomId = 'room_' + Math.floor(Math.random() * 10000);
-                    let { error: createErr } = await supabaseClient.from('rooms').insert([{
+                    await supabaseClient.from('rooms').insert([{
                         id: roomId,
                         status: 'waiting',
                         players_count: 1
                     }]);
-                    if (createErr) console.error(createErr);
                 } else {
                     roomId = rooms[0].id;
                     await supabaseClient.from('rooms').update({ players_count: rooms[0].players_count + 1 }).eq('id', roomId);
                 }
 
                 document.getElementById('hudRoomCode').innerText = roomId;
-
-                channel = supabaseClient.channel('room_' + roomId, {
-                    config: { broadcast: { self: false } }
-                });
-
-                channel.on('broadcast', { event: 'player_sync' }, payload => {
-                    players[payload.payload.id] = payload.payload;
-                    updateLobbyUI();
-                });
-
-                channel.on('broadcast', { event: 'start_game' }, () => {
-                    if (gameState === 'WAITING') {
-                        startGameSession();
-                    }
-                });
-
-                await channel.subscribe(async (status) => {
-                    if (status === 'SUBSCRIBED') {
-                        gameState = 'WAITING';
-                        document.getElementById('matchStatus').innerText = "Waiting for players...";
-                        
-                        players[playerId] = myCat;
-                        updateLobbyUI();
-                        
-                        setInterval(() => {
-                            if (channel && gameState !== 'LOBBY') {
-                                channel.send({
-                                    type: 'broadcast',
-                                    event: 'player_sync',
-                                    payload: myCat
-                                });
-                            }
-                        }, 100);
-
-                        checkLobbyReady();
-                    }
-                });
-
+                setupRealtimeChannel();
             } catch (err) {
                 console.error("Matchmaking error, falling back to local mode:", err);
                 startLocalGameMode();
             }
+        }
+
+        function setupRealtimeChannel() {
+            channel = supabaseClient.channel('room_' + roomId, {
+                config: { broadcast: { self: false } }
+            });
+
+            channel.on('broadcast', { event: 'player_sync' }, payload => {
+                players[payload.payload.id] = payload.payload;
+                updateLobbyUI();
+            });
+
+            channel.on('broadcast', { event: 'start_game' }, () => {
+                if (gameState === 'WAITING') {
+                    startGameSession();
+                }
+            });
+
+            channel.subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    gameState = 'WAITING';
+                    document.getElementById('matchStatus').innerText = "Waiting for players...";
+                    
+                    players[playerId] = myCat;
+                    updateLobbyUI();
+                    
+                    setInterval(() => {
+                        if (channel && gameState !== 'LOBBY') {
+                            channel.send({
+                                type: 'broadcast',
+                                event: 'player_sync',
+                                payload: myCat
+                            });
+                        }
+                    }, 100);
+
+                    checkLobbyReady();
+                }
+            });
         }
 
         function updateLobbyUI() {
@@ -312,17 +410,15 @@
                 let p = players[id];
                 listHtml += `<div class="flex items-center justify-between bg-slate-800 p-2 rounded-xl border border-slate-700">
                     <div class="flex items-center space-x-2">
-                        <div class="w-4 h-4 rounded-full" style="background-color: ${p.color}"></div>
-                        <span class="font-bold text-sm text-white">${p.name} ${p.id === playerId ? '(You)' : ''}</span>
+                        <div class="w-3.5 h-3.5 rounded-full" style="background-color: ${p.color}"></div>
+                        <span class="font-bold text-xs text-white">${p.name} ${p.id === playerId ? '(You)' : ''}</span>
                     </div>
-                    <span class="text-xs text-green-400">Ready</span>
+                    <span class="text-[10px] text-green-400">Ready</span>
                 </div>`;
             }
             document.getElementById('playerListContainer').innerHTML = listHtml;
 
-            // Show manual start button if at least 2 players are present
             const manualBtn = document.getElementById('startManualBtn');
-            manualBtn.classList.remove('hidden');
             if (activeCount >= 2) {
                 manualBtn.disabled = false;
                 manualBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -347,7 +443,7 @@
             if (gameState === 'WAITING') {
                 window.matchForceStarted = true;
             }
-        }, 8000);
+        }, 10000);
 
         function triggerGameStart() {
             if (gameState === 'PLAYING') return;
@@ -387,6 +483,7 @@
             gameState = 'PLAYING';
             document.getElementById('lobbyScreen').classList.add('hidden');
             document.getElementById('gameHud').classList.remove('hidden');
+            document.getElementById('hudActiveRoomCode').innerText = roomId;
             requestAnimationFrame(gameLoop);
         }
 
