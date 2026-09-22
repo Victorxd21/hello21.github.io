@@ -37,7 +37,7 @@
         </div>
         <div>
             <h1 class="text-3xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-400">SLITHER GLOBAL</h1>
-            <p class="text-xs text-slate-300 mt-1">One massive server. Eat food, grow long, rule the map!</p>
+            <p class="text-xs text-slate-300 mt-1">Collide into other worms to destroy them! Grow thick and long.</p>
         </div>
 
         <div class="space-y-3 bg-slate-800/60 p-4 rounded-2xl border border-slate-700 text-left">
@@ -54,16 +54,14 @@
     <div id="hud" class="hidden absolute top-4 left-4 z-10 pointer-events-none flex flex-col space-y-2">
         <div class="bg-slate-900/80 backdrop-blur border border-slate-700 px-4 py-2 rounded-2xl shadow-lg">
             <div class="text-[10px] uppercase font-bold text-slate-400">Length / Score</div>
-            <div id="scoreDisplay" class="text-2xl font-extrabold text-emerald-400 font-mono">5</div>
+            <div id="scoreDisplay" class="text-2xl font-extrabold text-emerald-400 font-mono">10</div>
         </div>
     </div>
 
     <!-- LEADERBOARD -->
     <div id="leaderboard" class="hidden absolute top-4 right-4 z-10 pointer-events-none bg-slate-900/80 backdrop-blur border border-slate-700 p-3 rounded-2xl shadow-lg w-48">
         <div class="text-xs font-bold text-teal-400 border-b border-slate-700 pb-1 mb-2"><i class="fa-solid fa-trophy mr-1"></i> Top Worms</div>
-        <div id="leaderboardList" class="space-y-1 text-xs text-slate-300 font-mono">
-            <!-- Dynamic leaderboard -->
-        </div>
+        <div id="leaderboardList" class="space-y-1 text-xs text-slate-300 font-mono"></div>
     </div>
 
     <!-- GAME CANVAS -->
@@ -90,35 +88,39 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        const WORLD_SIZE = 3000; // Giant shared world map boundary
+        const WORLD_SIZE = 3000; 
         let playerId = 'worm_' + Math.random().toString(36).substring(2, 9);
         let playerName = 'SlitherPro';
         let globalChannel = null;
 
-        // Local player state
         let me = {
-            x: WORLD_SIZE / 2 + (Math.random() * 400 - 200),
-            y: WORLD_SIZE / 2 + (Math.random() * 400 - 200),
+            x: WORLD_SIZE / 2,
+            y: WORLD_SIZE / 2,
             angle: 0,
             speed: 3.5,
-            radius: 10,
             trail: [],
-            score: 5,
+            score: 10,
             color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')
         };
 
-        let remotePlayers = {}; // Dictionary of other connected snakes
-        let foodPellets = [];   // Global shared food objects
+        let remotePlayers = {}; 
+        let foodPellets = [];   
         let mouseX = window.innerWidth / 2;
         let mouseY = window.innerHeight / 2;
         let gameActive = false;
 
-        // Generate initial random food across the map
-        for(let i=0; i<300; i++) {
+        // Synchronized deterministic food generation using a fixed PRNG seed so all players have identical food positions
+        function seededRandom(seed) {
+            let x = Math.sin(seed++) * 10000;
+            return x - Math.floor(x);
+        }
+
+        for(let i=0; i<400; i++) {
             foodPellets.push({
-                x: Math.random() * WORLD_SIZE,
-                y: Math.random() * WORLD_SIZE,
-                color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')
+                id: 'food_' + i,
+                x: seededRandom(i * 3 + 1) * WORLD_SIZE,
+                y: seededRandom(i * 3 + 2) * WORLD_SIZE,
+                color: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'][Math.floor(seededRandom(i * 3 + 3) * 5)]
             });
         }
 
@@ -135,16 +137,27 @@
             document.getElementById('hud').classList.remove('hidden');
             document.getElementById('leaderboard').classList.remove('hidden');
 
+            respawnPlayer();
             initGlobalMultiplayer();
             gameActive = true;
             requestAnimationFrame(gameLoop);
         });
 
+        function respawnPlayer() {
+            me.x = 500 + Math.random() * (WORLD_SIZE - 1000);
+            me.y = 500 + Math.random() * (WORLD_SIZE - 1000);
+            me.score = 10;
+            me.trail = [];
+            for(let i=0; i<me.score*4; i++) {
+                me.trail.push({ x: me.x, y: me.y });
+            }
+            document.getElementById('scoreDisplay').innerText = me.score;
+        }
+
         function initGlobalMultiplayer() {
             if (!supabaseClient) return;
 
-            // Connect everyone to one single universal channel room: "global_slither_room"
-            globalChannel = supabaseClient.channel('global_slither_room', {
+            globalChannel = supabaseClient.channel('global_slither_room_v2', {
                 config: { broadcast: { self: false } }
             });
 
@@ -152,9 +165,17 @@
                 remotePlayers[payload.payload.id] = payload.payload;
             });
 
+            globalChannel.on('broadcast', { event: 'food_eaten' }, payload => {
+                // Remove eaten food pellet globally if someone else ate it
+                let idx = foodPellets.findIndex(f => f.id === payload.payload.foodId);
+                if(idx !== -1) {
+                    foodPellets[idx].x = payload.payload.newX;
+                    foodPellets[idx].y = payload.payload.newY;
+                }
+            });
+
             globalChannel.subscribe(status => {
                 if(status === 'SUBSCRIBED') {
-                    // Send positional heartbeat loop every 60ms
                     setInterval(() => {
                         if(!gameActive) return;
                         globalChannel.send({
@@ -165,12 +186,12 @@
                                 name: playerName,
                                 x: me.x,
                                 y: me.y,
-                                trail: me.trail.slice(0, 30), // Sync recent body history trail
+                                trail: me.trail,
                                 score: me.score,
                                 color: me.color
                             }
                         });
-                    }, 60);
+                    }, 50);
                 }
             });
         }
@@ -178,7 +199,6 @@
         function gameLoop() {
             if (!gameActive) return;
 
-            // 1. Calculate movement angle towards mouse cursor relative to center screen
             let centerX = canvas.width / 2;
             let centerY = canvas.height / 2;
             let dx = mouseX - centerX;
@@ -187,46 +207,69 @@
                 me.angle = Math.atan2(dy, dx);
             }
 
-            // Move head forward
             me.x += Math.cos(me.angle) * me.speed;
             me.y += Math.sin(me.angle) * me.speed;
 
-            // Enforce world borders
             me.x = Math.max(20, Math.min(WORLD_SIZE - 20, me.x));
             me.y = Math.max(20, Math.min(WORLD_SIZE - 20, me.y));
 
-            // Push head position into trail history
+            // Width scales with score up to a maximum limit
+            let currentWidth = Math.min(22, 10 + Math.floor(me.score / 15));
+
             me.trail.unshift({ x: me.x, y: me.y });
             let maxTrailLength = me.score * 4;
             while(me.trail.length > maxTrailLength) {
                 me.trail.pop();
             }
 
-            // 2. Food collision checking
-            for (let i = foodPellets.length - 1; i >= 0; i--) {
+            // Food collision check
+            for (let i = 0; i < foodPellets.length; i++) {
                 let f = foodPellets[i];
                 let dist = Math.hypot(me.x - f.x, me.y - f.y);
-                if (dist < me.radius + 8) {
-                    // Eat food! Grow longer
+                if (dist < currentWidth + 6) {
                     me.score += 1;
                     document.getElementById('scoreDisplay').innerText = me.score;
-                    // Respawn pellet elsewhere
-                    foodPellets[i] = {
-                        x: Math.random() * WORLD_SIZE,
-                        y: Math.random() * WORLD_SIZE,
-                        color: f.color
-                    };
+                    
+                    // Reposition food and broadcast to others
+                    let newX = Math.random() * WORLD_SIZE;
+                    let newY = Math.random() * WORLD_SIZE;
+                    f.x = newX;
+                    f.y = newY;
+
+                    if(globalChannel) {
+                        globalChannel.send({
+                            type: 'broadcast',
+                            event: 'food_eaten',
+                            payload: { foodId: f.id, newX: newX, newY: newY }
+                        });
+                    }
                 }
             }
 
-            // 3. Render World (Camera centered on local player)
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Combat Check: Check if local snake head collides with any remote player's body trail
+            for (let id in remotePlayers) {
+                let p = remotePlayers[id];
+                if (p.trail && p.trail.length > 5) {
+                    let remoteWidth = Math.min(22, 10 + Math.floor(p.score / 15));
+                    for (let tIdx = 4; tIdx < p.trail.length; tIdx += 2) {
+                        let segment = p.trail[tIdx];
+                        let hitDist = Math.hypot(me.x - segment.x, me.y - segment.y);
+                        if (hitDist < currentWidth + remoteWidth - 4) {
+                            // Crash detected! You died.
+                            alert("Oops! You crashed into " + p.name + "'s body!");
+                            respawnPlayer();
+                            break;
+                        }
+                    }
+                }
+            }
 
+            // Render Frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
-            // Translate camera view to follow player center
             ctx.translate(centerX - me.x, centerY - me.y);
 
-            // Draw Grid Background lines for motion reference
+            // Grid background
             ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 1;
             let gridSize = 80;
@@ -239,71 +282,67 @@
                 ctx.beginPath(); ctx.moveTo(me.x - centerX - 100, y); ctx.lineTo(me.x + centerX + canvas.width, y); ctx.stroke();
             }
 
-            // Draw World Boundary Border Box
             ctx.strokeStyle = '#ef4444';
             ctx.lineWidth = 8;
             ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
 
-            // Draw Food Pellets
+            // Draw Shared Food Pellets
             foodPellets.forEach(f => {
                 ctx.fillStyle = f.color;
                 ctx.beginPath();
-                ctx.arc(f.x, f.y, 5, 0, Math.PI * 2);
+                ctx.arc(f.x, f.y, 6, 0, Math.PI * 2);
                 ctx.fill();
             });
 
-            // Draw Remote Players' Worms
+            // Draw Remote Players (With synchronized width & color)
             for (let id in remotePlayers) {
                 let p = remotePlayers[id];
                 if (p.trail && p.trail.length > 0) {
-                    // Draw body segments
-                    p.trail.forEach((t, idx) => {
+                    let rWidth = Math.min(22, 10 + Math.floor(p.score / 15));
+                    p.trail.forEach((t) => {
                         ctx.fillStyle = p.color || '#3b82f6';
                         ctx.beginPath();
-                        ctx.arc(t.x, t.y, 9, 0, Math.PI * 2);
+                        ctx.arc(t.x, t.y, rWidth, 0, Math.PI * 2);
                         ctx.fill();
                     });
-                    // Draw remote player name header
                     ctx.fillStyle = '#ffffff';
                     ctx.font = 'bold 12px Fredoka';
                     ctx.textAlign = 'center';
-                    ctx.fillText(p.name, p.x, p.y - 16);
+                    ctx.fillText(p.name + ` (${p.score})`, p.x, p.y - (rWidth + 8));
                 }
             }
 
-            // Draw Local Player's Worm Body Trail
+            // Draw Local Player Body Trail
             me.trail.forEach((t) => {
                 ctx.fillStyle = me.color;
                 ctx.beginPath();
-                ctx.arc(t.x, t.y, 10, 0, Math.PI * 2);
+                ctx.arc(t.x, t.y, currentWidth, 0, Math.PI * 2);
                 ctx.fill();
             });
 
-            // Draw Local Player Head
+            // Draw Local Head
             ctx.fillStyle = me.color;
             ctx.beginPath();
-            ctx.arc(me.x, me.y, 12, 0, Math.PI * 2);
+            ctx.arc(me.x, me.y, currentWidth + 2, 0, Math.PI * 2);
             ctx.fill();
 
-            // Local Eyes
+            // Eyes
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
-            ctx.arc(me.x + Math.cos(me.angle - 0.4) * 6, me.y + Math.sin(me.angle - 0.4) * 6, 3.5, 0, Math.PI * 2);
-            ctx.arc(me.x + Math.cos(me.angle + 0.4) * 6, me.y + Math.sin(me.angle + 0.4) * 6, 3.5, 0, Math.PI * 2);
+            ctx.arc(me.x + Math.cos(me.angle - 0.4) * (currentWidth*0.6), me.y + Math.sin(me.angle - 0.4) * (currentWidth*0.6), 4, 0, Math.PI * 2);
+            ctx.arc(me.x + Math.cos(me.angle + 0.4) * (currentWidth*0.6), me.y + Math.sin(me.angle + 0.4) * (currentWidth*0.6), 4, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.restore();
 
-            // Update Leaderboard UI
             updateLeaderboardUI();
-
             requestAnimationFrame(gameLoop);
         }
 
         function updateLeaderboardUI() {
             let allWorms = [{ name: playerName, score: me.score }];
             for(let id in remotePlayers) {
-                allWorms.push({ name: remotePlayers[id].name, score: remotePlayers[id].score || 5 });
+                allWorms.push({ name: remotePlayers[id].name, score: remotePlayers[id].score || 10 });
             }
             allWorms.sort((a,b) => b.score - a.score);
 
