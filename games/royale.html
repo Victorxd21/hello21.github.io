@@ -3,45 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2D Multiplayer Battle Royale</title>
+    <title>2D Platformer Battle Royale</title>
     <!-- Supabase JS Client CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: #0f172a; color: #f8fafc; overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        body { background: #090d16; color: #f8fafc; overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center; }
         
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; z-index: 10; }
-        .hud-panel { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); padding: 12px 20px; border-radius: 8px; backdrop-filter: blur(5px); pointer-events: auto; }
+        .hud-panel { background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); padding: 12px 20px; border-radius: 8px; backdrop-filter: blur(5px); pointer-events: auto; }
         
         #top-hud { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
         .stats-group { display: flex; gap: 15px; font-weight: bold; font-size: 16px; }
-        .stat-box { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.4); padding: 8px 15px; border-radius: 6px; border-bottom: 3px solid #3b82f6; }
+        .stat-box { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 6px; border-bottom: 3px solid #3b82f6; }
         .stat-value { font-size: 20px; color: #60a5fa; }
 
-        #leaderboard { width: 200px; font-size: 13px; }
-        #leaderboard h3 { font-size: 14px; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px; color: #94a3b8; }
-        .lb-entry { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        /* Weapon Bar HUD */
+        #weapon-bar { display: flex; gap: 8px; margin-top: 10px; pointer-events: auto; }
+        .weapon-slot { width: 60px; height: 60px; background: rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.15); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #94a3b8; position: relative; transition: all 0.2s; }
+        .weapon-slot.active { border-color: #3b82f6; background: rgba(59, 130, 246, 0.2); color: #fff; transform: translateY(-3px); }
+        .weapon-slot .key-num { position: absolute; top: 3px; left: 5px; font-size: 10px; color: #64748b; }
 
-        #killfeed { position: absolute; top: 100px; right: 20px; width: 250px; display: flex; flex-direction: column; gap: 5px; align-items: flex-end; pointer-events: none; }
-        .kill-msg { background: rgba(0, 0, 0, 0.7); padding: 5px 10px; border-radius: 4px; font-size: 12px; border-left: 3px solid #ef4444; animation: fadeInOut 4s forwards; }
+        #killfeed { position: absolute; top: 120px; right: 20px; width: 250px; display: flex; flex-direction: column; gap: 5px; align-items: flex-end; pointer-events: none; }
+        .kill-msg { background: rgba(0, 0, 0, 0.8); padding: 5px 10px; border-radius: 4px; font-size: 12px; border-left: 3px solid #ef4444; animation: fadeInOut 4s forwards; }
 
         #bottom-hud { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; }
-        .health-bar-container { width: 250px; background: rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; height: 22px; border: 1px solid rgba(255,255,255,0.2); position: relative; }
+        .health-bar-container { width: 250px; background: rgba(0,0,0,0.6); border-radius: 4px; overflow: hidden; height: 22px; border: 1px solid rgba(255,255,255,0.2); position: relative; }
         #health-bar-fill { width: 100%; height: 100%; background: #22c55e; transition: width 0.1s linear; }
         .health-text { position: absolute; width: 100%; text-align: center; top: 1px; font-weight: bold; font-size: 12px; text-shadow: 1px 1px 2px black; }
 
-        #minimap-container { width: 150px; height: 150px; background: rgba(15, 23, 42, 0.9); border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; overflow: hidden; position: relative; }
+        #minimap-container { width: 180px; height: 110px; background: rgba(15, 23, 42, 0.9); border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; overflow: hidden; position: relative; }
         #minimap-canvas { width: 100%; height: 100%; }
 
-        /* Screens */
-        .screen-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: flex; justify-content: center; align-items: center; z-index: 100; pointer-events: auto; }
-        .modal-card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); padding: 30px; border-radius: 12px; width: 350px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
-        .modal-card h1 { margin-bottom: 20px; font-size: 24px; color: #f8fafc; }
-        .form-control { width: 100%; padding: 10px; margin-bottom: 15px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; font-size: 14px; }
-        .btn { width: 100%; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        /* Screens & Modals */
+        .screen-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(9, 13, 22, 0.96); display: flex; justify-content: center; align-items: center; z-index: 100; pointer-events: auto; }
+        .modal-card { background: #131d31; border: 1px solid rgba(255,255,255,0.1); padding: 30px; border-radius: 12px; width: 420px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); max-height: 90vh; overflow-y: auto; }
+        .modal-card h1 { margin-bottom: 15px; font-size: 24px; color: #f8fafc; letter-spacing: 1px; }
+        .form-control { width: 100%; padding: 10px; margin-bottom: 12px; background: #090d16; border: 1px solid #1e293b; color: white; border-radius: 6px; font-size: 14px; }
+        .btn { width: 100%; padding: 11px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s; margin-top: 5px; }
         .btn:hover { background: #2563eb; }
 
-        canvas { display: block; background: #0f172a; }
+        /* Keybind list table */
+        .keybind-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #94a3b8; background: #090d16; padding: 6px 10px; border-radius: 4px; }
+        .keybind-btn { background: #1e293b; border: 1px solid #334155; color: #f8fafc; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; min-width: 60px; text-align: center; }
+        .keybind-btn.listening { background: #ef4444; border-color: #f87171; }
+
+        canvas { display: block; background: #090d16; }
         @keyframes fadeInOut { 0% { opacity: 0; transform: translateY(-10px); } 15% { opacity: 1; transform: translateY(0); } 85% { opacity: 1; } 100% { opacity: 0; } }
     </style>
 </head>
@@ -56,11 +63,15 @@
             <div class="stats-group">
                 <div class="stat-box"><span>ALIVE</span><span id="stat-alive" class="stat-value">1</span></div>
                 <div class="stat-box"><span>KILLS</span><span id="stat-kills" class="stat-value">0</span></div>
-                <div class="stat-box"><span>AMMO</span><span id="stat-ammo" class="stat-value">30</span></div>
+                <div class="stat-box"><span>AMMO</span><span id="stat-ammo" class="stat-value">60</span></div>
+                <div class="stat-box" style="border-color: #a855f7;"><span>MODE</span><span id="stat-mode" class="stat-value" style="color:#c084fc;">COMBAT</span></div>
             </div>
-            <div id="leaderboard" class="hud-panel">
-                <h3>LEADERBOARD</h3>
-                <div id="leaderboard-list"></div>
+            <!-- Weapon Slots UI -->
+            <div id="weapon-bar">
+                <div class="weapon-slot active" id="w-slot-1"><span class="key-num">1</span>Pistol</div>
+                <div class="weapon-slot" id="w-slot-2"><span class="key-num">2</span>Shotgun</div>
+                <div class="weapon-slot" id="w-slot-3"><span class="key-num">3</span>Assault</div>
+                <div class="weapon-slot" id="w-slot-4"><span class="key-num">4</span>Sniper</div>
             </div>
         </div>
 
@@ -77,13 +88,20 @@
         </div>
     </div>
 
-    <!-- Lobby Screen -->
+    <!-- Lobby & Settings Screen -->
     <div id="lobby-screen" class="screen-overlay">
         <div class="modal-card">
-            <h1>BATTLE ROYALE</h1>
-            <input type="text" id="player-name" class="form-control" placeholder="Enter Operator Name" maxlength="12" value="Survivor">
-            <div style="margin-bottom: 15px; text-align: left; font-size: 13px; color: #94a3b8;">Choose Operator Color:</div>
-            <input type="color" id="player-color" class="form-control" value="#3b82f6" style="height: 40px; cursor: pointer; padding: 2px;">
+            <h1>PLATFORMER ROYALE</h1>
+            <input type="text" id="player-name" class="form-control" placeholder="Operator Callsign" maxlength="12" value="Brawler">
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center; justify-content: space-between;">
+                <span style="font-size: 13px; color: #94a3b8;">Operator Color:</span>
+                <input type="color" id="player-color" value="#3b82f6" style="width: 60px; height: 35px; background: none; border: none; cursor: pointer;">
+            </div>
+
+            <div style="text-align: left; font-size: 13px; color: #94a3b8; margin-bottom: 5px; font-weight: bold;">KEYBIND CONFIGURATION:</div>
+            <div id="keybinds-config-list" style="margin-bottom: 15px;"></div>
+
             <button class="btn" id="join-btn">DEPLOY TO ARENA</button>
         </div>
     </div>
@@ -92,13 +110,13 @@
     <div id="gameover-screen" class="screen-overlay" style="display: none;">
         <div class="modal-card">
             <h1 id="gameover-title" style="color: #ef4444;">ELIMINATED</h1>
-            <p id="gameover-stats" style="margin-bottom: 20px; color: #94a3b8;">Placement: #5<br>Kills: 2</p>
+            <p id="gameover-stats" style="margin-bottom: 20px; color: #94a3b8;">Placement: #1<br>Kills: 0</p>
             <button class="btn" onclick="location.reload()">PLAY AGAIN</button>
         </div>
     </div>
 
     <script>
-        // Supabase Configuration with your credentials
+        // Supabase Credentials
         const SUPABASE_URL = 'https://khpndifubrgpvpnwlwmm.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_E2QiUI92Kg8Pvag2D2YHnQ_JuQ54FYI';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -108,92 +126,239 @@
         const minimapCanvas = document.getElementById('minimap-canvas');
         const minimapCtx = minimapCanvas.getContext('2d');
 
-        // Resize Canvas
         function resize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            minimapCanvas.width = 150;
-            minimapCanvas.height = 150;
+            minimapCanvas.width = 180;
+            minimapCanvas.height = 110;
         }
         window.addEventListener('resize', resize);
         resize();
 
-        // Game Constants & World Config
-        const WORLD_SIZE = 3000;
+        // Massive Horizontal Map Dimensions
+        const WORLD_WIDTH = 6000;
+        const WORLD_HEIGHT = 1600;
+        const GROUND_Y = 1350;
+
+        // Keybindings configuration map
+        let keybinds = {
+            left: 'KeyA',
+            right: 'KeyD',
+            jump: 'KeyW',
+            shoot: 'KeyE',
+            wall: 'KeyZ',
+            stairs: 'KeyX',
+            floor: 'KeyC',
+            cone: 'KeyV',
+            edit: 'KeyF',
+            slot1: 'Digit1',
+            slot2: 'Digit2',
+            slot3: 'Digit3',
+            slot4: 'Digit4'
+        };
+
+        const keybindLabels = {
+            left: 'Move Left (A)',
+            right: 'Move Right (D)',
+            jump: 'Jump / Climb (W)',
+            shoot: 'Shoot Weapon (E)',
+            wall: 'Build Wall (Z)',
+            stairs: 'Build Stairs (X)',
+            floor: 'Build Floor (C)',
+            cone: 'Build Cone (V)',
+            edit: 'Toggle Edit Mode (F)',
+            slot1: 'Weapon 1 (Pistol)',
+            slot2: 'Weapon 2 (Shotgun)',
+            slot3: 'Weapon 3 (Assault)',
+            slot4: 'Weapon 4 (Sniper)'
+        };
+
+        const kbList = document.getElementById('keybinds-config-list');
+        function renderKeybindUI() {
+            kbList.innerHTML = '';
+            for (let action in keybinds) {
+                const row = document.createElement('div');
+                row.className = 'keybind-row';
+                row.innerHTML = `<span>${keybindLabels[action] || action}</span><button class="keybind-btn" data-action="${action}">${keybinds[action].replace('Key','').replace('Digit','')}</button>`;
+                kbList.appendChild(row);
+            }
+
+            document.querySelectorAll('.keybind-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const action = e.target.getAttribute('data-action');
+                    e.target.innerText = '...';
+                    e.target.classList.add('listening');
+
+                    const listener = (evt) => {
+                        evt.preventDefault();
+                        keybinds[action] = evt.code;
+                        window.removeEventListener('keydown', listener);
+                        renderKeybindUI();
+                    };
+                    window.addEventListener('keydown', listener, { once: true });
+                });
+            });
+        }
+        renderKeybindUI();
+
+        // Weapons Config
+        const weapons = {
+            1: { name: 'Pistol', damage: 18, fireRate: 300, ammoCost: 1, speed: 14, spread: 0.04, pellets: 1 },
+            2: { name: 'Shotgun', damage: 12, fireRate: 800, ammoCost: 3, speed: 11, spread: 0.22, pellets: 5 },
+            3: { name: 'Assault', damage: 14, fireRate: 150, ammoCost: 1, speed: 16, spread: 0.07, pellets: 1 },
+            4: { name: 'Sniper', damage: 75, fireRate: 1200, ammoCost: 5, speed: 25, spread: 0.0, pellets: 1 }
+        };
+
         const player = {
             id: 'user_' + Math.random().toString(36).substr(2, 9),
-            name: 'Survivor',
+            name: 'Brawler',
             color: '#3b82f6',
-            x: Math.random() * 2000 + 500,
-            y: Math.random() * 2000 + 500,
-            radius: 16,
-            angle: 0,
-            speed: 4,
+            x: 500,
+            y: 1000,
+            width: 28,
+            height: 48,
+            vx: 0,
+            vy: 0,
+            speed: 4.5,
+            jumpForce: -13,
+            gravity: 0.55,
+            isGrounded: false,
+            facing: 1, // 1 for right, -1 for left
             hp: 100,
             maxHp: 100,
-            ammo: 30,
-            maxAmmo: 30,
+            ammo: 60,
+            maxAmmo: 100,
             kills: 0,
-            isDead: false
+            isDead: false,
+            activeSlot: 1,
+            buildMode: false,
+            editMode: false,
+            selectedBuildType: 'wall'
         };
 
         let remotePlayers = {};
         let bullets = [];
         let loots = [];
-        let storm = { x: WORLD_SIZE / 2, y: WORLD_SIZE / 2, radius: WORLD_SIZE * 0.7, targetRadius: 300, shrinkSpeed: 0.2 };
+        let platforms = []; // Static world platforms
+        let structures = []; // Player built structures [{id, type, x, y, w, h, hp, owner}]
         
+        // Horizontal Shrinking Storm (closes from left and right edges toward center)
+        let storm = { 
+            xMin: 0, 
+            xMax: WORLD_WIDTH, 
+            shrinkSpeed: 0.35,
+            targetMin: 1800,
+            targetMax: 4200
+        };
+
         let keys = {};
-        let mouse = { x: 0, y: 0, worldX: 0, worldY: 0, down: false };
+        let mouse = { x: 0, y: 0, worldX: 0, worldY: 0 };
         let gameStarted = false;
         let channel = null;
+        let lastShotTime = 0;
 
-        // Input Handlers
-        window.addEventListener('keydown', e => keys[e.code] = true);
-        window.addEventListener('keyup', e => keys[e.code] = false);
+        // Generate Horizontal Platforms & Terrain
+        platforms.push({ x: 0, y: GROUND_Y, w: WORLD_WIDTH, h: 250 }); // Main floor
+
+        for (let i = 0; i < 45; i++) {
+            platforms.push({
+                x: Math.random() * (WORLD_WIDTH - 400) + 200,
+                y: Math.random() * (GROUND_Y - 400) + 300,
+                w: Math.random() * 160 + 100,
+                h: 24
+            });
+        }
+
+        // Spawn Loot Crates
+        for (let i = 0; i < 60; i++) {
+            loots.push({
+                id: 'loot_' + i,
+                x: Math.random() * (WORLD_WIDTH - 200) + 100,
+                y: Math.random() * (GROUND_Y - 200) + 100,
+                type: Math.random() > 0.4 ? 'ammo' : 'health'
+            });
+        }
+
+        // Input Listeners
+        window.addEventListener('keydown', e => {
+            if (!gameStarted || player.isDead) return;
+            keys[e.code] = true;
+
+            // Weapon slot switching
+            if (e.code === keybinds.slot1) switchWeapon(1);
+            if (e.code === keybinds.slot2) switchWeapon(2);
+            if (e.code === keybinds.slot3) switchWeapon(3);
+            if (e.code === keybinds.slot4) switchWeapon(4);
+
+            // Toggle Edit mode
+            if (e.code === keybinds.edit) {
+                player.editMode = !player.editMode;
+                player.buildMode = false;
+                document.getElementById('stat-mode').innerText = player.editMode ? 'EDITING' : (player.buildMode ? 'BUILDING' : 'COMBAT');
+            }
+
+            // Build selections
+            if (e.code === keybinds.wall) selectBuild('wall');
+            if (e.code === keybinds.stairs) selectBuild('stairs');
+            if (e.code === keybinds.floor) selectBuild('floor');
+            if (e.code === keybinds.cone) selectBuild('cone');
+        });
+
+        window.addEventListener('keyup', e => { keys[e.code] = false; });
+
         window.addEventListener('mousemove', e => {
             mouse.x = e.clientX;
             mouse.y = e.clientY;
             mouse.worldX = player.x + (mouse.x - canvas.width / 2);
             mouse.worldY = player.y + (mouse.y - canvas.height / 2);
-            player.angle = Math.atan2(mouse.worldY - player.y, mouse.worldX - player.x);
+            if (mouse.worldX < player.x) player.facing = -1;
+            else player.facing = 1;
         });
+
         window.addEventListener('mousedown', () => {
             if (!gameStarted || player.isDead) return;
-            if (player.ammo > 0) {
-                player.ammo--;
-                document.getElementById('stat-ammo').innerText = player.ammo;
-                
-                const bullet = {
-                    id: player.id + '_' + Date.now(),
-                    x: player.x,
-                    y: player.y,
-                    vx: Math.cos(player.angle) * 12,
-                    vy: Math.sin(player.angle) * 12,
+
+            if (player.editMode) {
+                structures.forEach((s, idx) => {
+                    if (Math.hypot(mouse.worldX - (s.x + s.w/2), mouse.worldY - (s.y + s.h/2)) < 50) {
+                        structures.splice(idx, 1);
+                        broadcastStructureAction('delete', s.id);
+                    }
+                });
+            } else if (player.buildMode) {
+                const buildX = Math.round(player.x + player.facing * 60);
+                const buildY = Math.round(player.y);
+                const newStruct = {
+                    id: player.id + '_struct_' + Date.now(),
+                    type: player.selectedBuildType,
+                    x: buildX,
+                    y: buildY,
+                    w: 40,
+                    h: 40,
+                    hp: 150,
                     owner: player.id
                 };
-                bullets.push(bullet);
-
-                if (channel) {
-                    channel.send({
-                        type: 'broadcast',
-                        event: 'shoot',
-                        payload: bullet
-                    });
-                }
+                structures.push(newStruct);
+                broadcastStructureAction('create', newStruct);
             }
         });
 
-        // Spawn Initial Loot items
-        for (let i = 0; i < 40; i++) {
-            loots.push({
-                id: 'loot_' + i,
-                x: Math.random() * (WORLD_SIZE - 200) + 100,
-                y: Math.random() * (WORLD_SIZE - 200) + 100,
-                type: Math.random() > 0.5 ? 'health' : 'ammo'
-            });
+        function switchWeapon(slot) {
+            player.activeSlot = slot;
+            player.buildMode = false;
+            player.editMode = false;
+            document.getElementById('stat-mode').innerText = 'COMBAT';
+            document.querySelectorAll('.weapon-slot').forEach(el => el.classList.remove('active'));
+            document.getElementById(`w-slot-${slot}`).classList.add('active');
         }
 
-        // Setup Lobby UI Button
+        function selectBuild(type) {
+            player.buildMode = true;
+            player.editMode = false;
+            player.selectedBuildType = type;
+            document.getElementById('stat-mode').innerText = `BUILD (${type.toUpperCase()})`;
+        }
+
         document.getElementById('join-btn').addEventListener('click', () => {
             const nameInput = document.getElementById('player-name').value.trim();
             if (nameInput) player.name = nameInput;
@@ -207,15 +372,13 @@
             requestAnimationFrame(gameLoop);
         });
 
-        // Supabase Realtime Channel Connection
         function initMultiplayer() {
-            channel = supabaseClient.channel('battle_royale_room_v1', {
+            channel = supabaseClient.channel('platformer_royale_room_v1', {
                 config: { broadcast: { self: false } }
             });
 
             channel.on('broadcast', { event: 'state' }, payload => {
-                const p = payload.payload;
-                remotePlayers[p.id] = p;
+                remotePlayers[payload.payload.id] = payload.payload;
             })
             .on('broadcast', { event: 'shoot' }, payload => {
                 bullets.push(payload.payload);
@@ -224,14 +387,17 @@
                 if (payload.payload.targetId === player.id) {
                     player.hp -= payload.payload.damage;
                     updateHealthBar();
-                    if (player.hp <= 0 && !player.isDead) {
-                        handlePlayerDeath(payload.payload.killerName);
-                    }
+                    if (player.hp <= 0 && !player.isDead) handlePlayerDeath(payload.payload.killerName);
                 }
+            })
+            .on('broadcast', { event: 'structure' }, payload => {
+                const data = payload.payload;
+                if (data.action === 'create') structures.push(data.struct);
+                else if (data.action === 'delete') structures = structures.filter(s => s.id !== data.id);
             })
             .subscribe(status => {
                 if (status === 'SUBSCRIBED') {
-                    setInterval(sendPlayerState, 50); // Broadcast state every 50ms
+                    setInterval(sendPlayerState, 50);
                 }
             });
         }
@@ -247,20 +413,22 @@
                     color: player.color,
                     x: player.x,
                     y: player.y,
-                    angle: player.angle,
+                    vx: player.vx,
+                    vy: player.vy,
+                    facing: player.facing,
                     hp: player.hp,
                     isDead: player.isDead
                 }
             });
         }
 
-        function addKillfeedMessage(msg) {
-            const feed = document.getElementById('killfeed');
-            const div = document.createElement('div');
-            div.className = 'kill-msg';
-            div.innerText = msg;
-            feed.appendChild(div);
-            setTimeout(() => div.remove(), 4000);
+        function broadcastStructureAction(action, data) {
+            if (!channel) return;
+            channel.send({
+                type: 'broadcast',
+                event: 'structure',
+                payload: { action, struct: action === 'create' ? data : null, id: action === 'delete' ? data : null }
+            });
         }
 
         function updateHealthBar() {
@@ -271,48 +439,108 @@
 
         function handlePlayerDeath(killerName) {
             player.isDead = true;
-            document.getElementById('gameover-title').innerText = "ELIMINATED BY " + (killerName || "THE STORM");
+            document.getElementById('gameover-title').innerText = "ELIMINATED BY " + (killerName || "THE HORIZONTAL STORM");
             document.getElementById('gameover-stats').innerHTML = `Kills: ${player.kills}`;
             document.getElementById('gameover-screen').style.display = 'flex';
         }
 
-        // Main Game Loop
         function gameLoop() {
             if (!player.isDead) {
-                // Movement Controls
-                let dx = 0, dy = 0;
-                if (keys['KeyW'] || keys['ArrowUp']) dy -= 1;
-                if (keys['KeyS'] || keys['ArrowDown']) dy += 1;
-                if (keys['KeyA'] || keys['ArrowLeft']) dx -= 1;
-                if (keys['KeyD'] || keys['ArrowRight']) dx += 1;
+                // Horizontal Left/Right movement physics
+                player.vx = 0;
+                if (keys[keybinds.left]) { player.vx = -player.speed; player.facing = -1; }
+                if (keys[keybinds.right]) { player.vx = player.speed; player.facing = 1; }
 
-                if (dx !== 0 && dy !== 0) {
-                    dx *= 0.7071;
-                    dy *= 0.7071;
+                // Jump mechanism
+                if (keys[keybinds.jump] && player.isGrounded) {
+                    player.vy = player.jumpForce;
+                    player.isGrounded = false;
                 }
 
-                player.x = Math.max(50, Math.min(WORLD_SIZE - 50, player.x + dx * player.speed));
-                player.y = Math.max(50, Math.min(WORLD_SIZE - 50, player.y + dy * player.speed));
+                // Apply Gravity physics
+                player.vy += player.gravity;
 
-                // Storm mechanics shrinking
-                if (storm.radius > storm.targetRadius) {
-                    storm.radius -= storm.shrinkSpeed;
+                // Move X and check platform/structure collisions horizontally
+                player.x += player.vx;
+                player.x = Math.max(20, Math.min(WORLD_WIDTH - 20, player.x));
+
+                // Move Y and check platform/structure collisions vertically
+                player.y += player.vy;
+                player.isGrounded = false;
+
+                const allBlocks = [...platforms, ...structures];
+                for (let b of allBlocks) {
+                    // AABB Collision check
+                    if (player.x + player.width / 2 > b.x && 
+                        player.x - player.width / 2 < b.x + b.w && 
+                        player.y + player.height > b.y && 
+                        player.y < b.y + b.h) {
+                        
+                        // Landing on top of a platform
+                        if (player.vy > 0 && player.y + player.height - player.vy <= b.y + 10) {
+                            player.y = b.y - player.height;
+                            player.vy = 0;
+                            player.isGrounded = true;
+                        } 
+                        // Hitting ceiling from below
+                        else if (player.vy < 0 && player.y - player.vy >= b.y + b.h - 10) {
+                            player.y = b.y + b.h;
+                            player.vy = 0;
+                        }
+                    }
                 }
-                const distToStormCenter = Math.hypot(player.x - storm.x, player.y - storm.y);
-                if (distToStormCenter > storm.radius) {
-                    player.hp -= 0.05; // Storm damage tick
+
+                // Shooting with 'E' key
+                if (keys[keybinds.shoot]) {
+                    const now = Date.now();
+                    const currentWeapon = weapons[player.activeSlot];
+                    if (now - lastShotTime >= currentWeapon.fireRate) {
+                        if (player.ammo >= currentWeapon.ammoCost) {
+                            player.ammo -= currentWeapon.ammoCost;
+                            document.getElementById('stat-ammo').innerText = player.ammo;
+                            lastShotTime = now;
+
+                            const shootAngle = Math.atan2((mouse.worldY - player.y), (mouse.worldX - player.x));
+
+                            for (let p = 0; p < currentWeapon.pellets; p++) {
+                                const spreadAngle = shootAngle + (Math.random() - 0.5) * currentWeapon.spread;
+                                const bullet = {
+                                    id: player.id + '_' + Date.now() + '_' + p,
+                                    x: player.x,
+                                    y: player.y + 10,
+                                    vx: Math.cos(spreadAngle) * currentWeapon.speed,
+                                    vy: Math.sin(spreadAngle) * currentWeapon.speed,
+                                    damage: currentWeapon.damage,
+                                    owner: player.id
+                                };
+                                bullets.push(bullet);
+
+                                if (channel) {
+                                    channel.send({ type: 'broadcast', event: 'shoot', payload: bullet });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Horizontal Storm shrinking (closes from left and right boundaries)
+                if (storm.xMin < storm.targetMin) storm.xMin += storm.shrinkSpeed;
+                if (storm.xMax > storm.targetMax) storm.xMax -= storm.shrinkSpeed;
+
+                if (player.x < storm.xMin || player.x > storm.xMax) {
+                    player.hp -= 0.08;
                     updateHealthBar();
-                    if (player.hp <= 0 && !player.isDead) handlePlayerDeath("The Storm");
+                    if (player.hp <= 0 && !player.isDead) handlePlayerDeath("The Horizontal Storm");
                 }
 
-                // Loot collection collision check
+                // Loot Pickups
                 loots.forEach((l, index) => {
-                    if (Math.hypot(player.x - l.x, player.y - l.y) < player.radius + 15) {
+                    if (Math.hypot(player.x - l.x, (player.y + player.height/2) - l.y) < 30) {
                         if (l.type === 'health') {
-                            player.hp = Math.min(player.maxHp, player.hp + 30);
+                            player.hp = Math.min(player.maxHp, player.hp + 35);
                             updateHealthBar();
                         } else {
-                            player.ammo = Math.min(player.maxAmmo, player.ammo + 15);
+                            player.ammo = Math.min(player.maxAmmo, player.ammo + 30);
                             document.getElementById('stat-ammo').innerText = player.ammo;
                         }
                         loots.splice(index, 1);
@@ -320,21 +548,21 @@
                 });
             }
 
-            // Update Bullets
+            // Bullet updates & collision check
             for (let i = bullets.length - 1; i >= 0; i--) {
                 let b = bullets[i];
                 b.x += b.vx;
                 b.y += b.vy;
 
-                // Check hit against remote players
+                // Hit detection against remote players
                 if (b.owner === player.id) {
                     for (let id in remotePlayers) {
                         let rp = remotePlayers[id];
-                        if (!rp.isDead && Math.hypot(b.x - rp.x, b.y - rp.y) < 20) {
+                        if (!rp.isDead && Math.hypot(b.x - rp.x, b.y - (rp.y + 24)) < 24) {
                             channel.send({
                                 type: 'broadcast',
                                 event: 'hit',
-                                payload: { targetId: rp.id, damage: 25, killerName: player.name }
+                                payload: { targetId: rp.id, damage: b.damage, killerName: player.name }
                             });
                             bullets.splice(i, 1);
                             break;
@@ -343,18 +571,34 @@
                 }
             }
 
-            // Render World
+            // Render Arena
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             ctx.save();
             ctx.translate(canvas.width / 2 - player.x, canvas.height / 2 - player.y);
 
-            // Draw World Boundary & Grid Background
+            // World bounds
             ctx.strokeStyle = '#334155';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+            ctx.lineWidth = 6;
+            ctx.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-            // Draw Loot Drops
+            // Platforms
+            ctx.fillStyle = '#1e293b';
+            platforms.forEach(p => {
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.strokeStyle = '#475569';
+                ctx.strokeRect(p.x, p.y, p.w, p.h);
+            });
+
+            // Player Structures
+            structures.forEach(s => {
+                ctx.fillStyle = s.type === 'wall' ? '#475569' : (s.type === 'stairs' ? '#0284c7' : (s.type === 'floor' ? '#0d9488' : '#d97706'));
+                ctx.fillRect(s.x, s.y, s.w, s.h);
+                ctx.strokeStyle = '#fff';
+                ctx.strokeRect(s.x, s.y, s.w, s.h);
+            });
+
+            // Loots
             loots.forEach(l => {
                 ctx.fillStyle = l.type === 'health' ? '#22c55e' : '#eab308';
                 ctx.beginPath();
@@ -364,42 +608,36 @@
                 ctx.stroke();
             });
 
-            // Draw Remote Players
+            // Remote Players
             for (let id in remotePlayers) {
                 let rp = remotePlayers[id];
                 if (rp.isDead) continue;
 
-                ctx.save();
-                ctx.translate(rp.x, rp.y);
-                ctx.rotate(rp.angle);
                 ctx.fillStyle = rp.color || '#ef4444';
-                ctx.beginPath();
-                ctx.arc(0, 0, 16, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillRect(0, -4, 22, 8); // Gun barrel
-                ctx.restore();
+                ctx.fillRect(rp.x - 14, rp.y, 28, 48);
+                
+                // Gun barrel indicator
+                ctx.fillStyle = '#94a3b8';
+                if (rp.facing === 1) ctx.fillRect(rp.x + 4, rp.y + 18, 16, 6);
+                else ctx.fillRect(rp.x - 20, rp.y + 18, 16, 6);
 
-                // Name tag
                 ctx.fillStyle = '#fff';
                 ctx.font = '12px sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText(rp.name, rp.x, rp.y - 24);
+                ctx.fillText(rp.name, rp.x, rp.y - 10);
             }
 
-            // Draw Local Player
+            // Local Player
             if (!player.isDead) {
-                ctx.save();
-                ctx.translate(player.x, player.y);
-                ctx.rotate(player.angle);
                 ctx.fillStyle = player.color;
-                ctx.beginPath();
-                ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillRect(0, -4, 22, 8);
-                ctx.restore();
+                ctx.fillRect(player.x - player.width/2, player.y, player.width, player.height);
+                
+                ctx.fillStyle = '#fff';
+                if (player.facing === 1) ctx.fillRect(player.x + 4, player.y + 18, 16, 6);
+                else ctx.fillRect(player.x - 20, player.y + 18, 16, 6);
             }
 
-            // Draw Bullets
+            // Bullets
             ctx.fillStyle = '#facc15';
             bullets.forEach(b => {
                 ctx.beginPath();
@@ -407,41 +645,45 @@
                 ctx.fill();
             });
 
-            // Draw Storm Circle
-            ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)';
-            ctx.lineWidth = 6;
+            // Horizontal Storm Danger Zones (Left & Right red walls)
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
+            ctx.fillRect(0, 0, storm.xMin, WORLD_HEIGHT);
+            ctx.fillRect(storm.xMax, 0, WORLD_WIDTH - storm.xMax, WORLD_HEIGHT);
+
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 4;
             ctx.beginPath();
-            ctx.arc(storm.x, storm.y, storm.radius, 0, Math.PI * 2);
+            ctx.moveTo(storm.xMin, 0); ctx.lineTo(storm.xMin, WORLD_HEIGHT);
+            ctx.moveTo(storm.xMax, 0); ctx.lineTo(storm.xMax, WORLD_HEIGHT);
             ctx.stroke();
 
             ctx.restore();
 
-            // Render Minimap
-            minimapCtx.clearRect(0, 0, 150, 150);
+            // Minimap Rendering (Horizontal Orientation)
+            minimapCtx.clearRect(0, 0, 180, 110);
             minimapCtx.fillStyle = '#0f172a';
-            minimapCtx.fillRect(0, 0, 150, 150);
+            minimapCtx.fillRect(0, 0, 180, 110);
 
-            const scale = 150 / WORLD_SIZE;
-            
-            // Minimap Storm
-            minimapCtx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+            const mScaleX = 180 / WORLD_WIDTH;
+            const mScaleY = 110 / WORLD_HEIGHT;
+
+            minimapCtx.strokeStyle = '#ef4444';
             minimapCtx.beginPath();
-            minimapCtx.arc(storm.x * scale, storm.y * scale, storm.radius * scale, 0, Math.PI * 2);
+            minimapCtx.moveTo(storm.xMin * mScaleX, 0); minimapCtx.lineTo(storm.xMin * mScaleX, 110);
+            minimapCtx.moveTo(storm.xMax * mScaleX, 0); minimapCtx.lineTo(storm.xMax * mScaleX, 110);
             minimapCtx.stroke();
 
-            // Minimap Players
             minimapCtx.fillStyle = '#3b82f6';
-            minimapCtx.fillRect(player.x * scale - 2, player.y * scale - 2, 4, 4);
+            minimapCtx.fillRect(player.x * mScaleX - 2, player.y * mScaleY - 2, 4, 4);
 
             for (let id in remotePlayers) {
                 let rp = remotePlayers[id];
                 if (!rp.isDead) {
                     minimapCtx.fillStyle = '#ef4444';
-                    minimapCtx.fillRect(rp.x * scale - 2, rp.y * scale - 2, 4, 4);
+                    minimapCtx.fillRect(rp.x * mScaleX - 2, rp.y * mScaleY - 2, 4, 4);
                 }
             }
 
-            // Update Alive Count and Leaderboard UI
             let activeCount = 1 + Object.values(remotePlayers).filter(p => !p.isDead).length;
             if (player.isDead) activeCount--;
             document.getElementById('stat-alive').innerText = Math.max(1, activeCount);
