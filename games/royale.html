@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Battle Royale Multiplayer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0f19',
+                        panelBg: '#131c2e',
+                        accentNeon: '#10b981',
+                        dangerRed: '#ef4444'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+        /* Custom Scrollbar for lobbies and logs */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(19, 28, 46, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(16, 185, 129, 0.3);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(16, 185, 129, 0.6);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between select-none overflow-hidden">
+
+    <!-- LOBBY SCREEN -->
+    <div id="lobbyScreen" class="absolute inset-0 z-50 flex items-center justify-center bg-darkBg/95 backdrop-blur-md p-4">
+        <div class="max-w-md w-full bg-panelBg border border-emerald-500/30 rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col gap-6">
+            <div class="text-center">
+                <h1 class="text-3xl font-extrabold tracking-wider text-emerald-400 uppercase drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]">Apex Arena</h1>
+                <p class="text-xs text-gray-400 mt-1 uppercase tracking-widest">Multiplayer 2D Battle Royale</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-300 mb-2">Player Nickname</label>
+                    <input type="text" id="playerNameInput" maxlength="15" placeholder="Enter codename..." 
+                        class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition font-medium text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-300 mb-2">Choose Operator Color</label>
+                    <div class="grid grid-cols-6 gap-2" id="colorPickerContainer">
+                        <!-- Colors injected via JS -->
+                    </div>
+                </div>
+
+                <div class="bg-gray-900/60 p-4 rounded-xl border border-gray-800 text-xs text-gray-400 space-y-1">
+                    <p class="font-semibold text-gray-300">Controls:</p>
+                    <p><span class="text-emerald-400 font-mono">WASD / Arrows</span> - Move</p>
+                    <p><span class="text-emerald-400 font-mono">Mouse</span> - Aim & Click to Shoot</p>
+                    <p><span class="text-emerald-400 font-mono">Storm Circle</span> - Shrinks over time, stay inside!</p>
+                </div>
+            </div>
+
+            <button id="joinButton" 
+                class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] transition text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 uppercase tracking-wider text-sm flex items-center justify-center gap-2">
+                <i data-lucide="play" class="w-4 h-4"></i> Enter Combat Zone
+            </button>
+            <div id="connectionStatus" class="text-center text-xs text-yellow-500 font-mono">Connecting to Supabase...</div>
+        </div>
+    </div>
+
+    <!-- GAME HUD -->
+    <div id="gameHud" class="absolute inset-0 z-10 pointer-events-none hidden flex flex-col justify-between p-4 sm:p-6">
+        <!-- Top Bar: Players Alive, Storm Timer, Leaderboard -->
+        <div class="flex justify-between items-start w-full">
+            <!-- Left Info: Alive & Storm status -->
+            <div class="flex flex-col gap-2">
+                <div class="bg-panelBg/80 backdrop-blur-md border border-gray-700/50 px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
+                        <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Alive:</span>
+                        <span id="hudAliveCount" class="text-lg font-bold text-white font-mono">1</span>
+                    </div>
+                    <div class="h-4 w-px bg-gray-700"></div>
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i>
+                        <span id="hudStormStatus" class="text-xs font-medium text-amber-300">Storm closing in: 0:60</span>
+                    </div>
+                </div>
+
+                <!-- Kill Feed Container -->
+                <div id="killFeedContainer" class="flex flex-col gap-1.5 w-64 max-h-36 overflow-hidden">
+                    <!-- Kill notifications injected dynamically -->
+                </div>
+            </div>
+
+            <!-- Right Info: Mini-map & Leaderboard -->
+            <div class="flex flex-col items-end gap-3">
+                <div class="bg-panelBg/80 backdrop-blur-md border border-gray-700/50 p-2 rounded-xl shadow-lg">
+                    <div class="text-[10px] uppercase font-bold text-gray-400 mb-1 px-1 flex justify-between">
+                        <span>Tactical Radar</span>
+                        <span id="miniMapCoords" class="font-mono text-emerald-400">0, 0</span>
+                    </div>
+                    <canvas id="miniMapCanvas" width="140" height="140" class="rounded-lg bg-gray-900 border border-gray-800"></canvas>
+                </div>
+
+                <!-- Leaderboard -->
+                <div class="bg-panelBg/80 backdrop-blur-md border border-gray-700/50 p-3 rounded-xl shadow-lg w-48">
+                    <div class="text-[10px] uppercase font-bold text-gray-400 mb-1 flex items-center gap-1">
+                        <i data-lucide="trophy" class="w-3 h-3 text-yellow-500"></i> Leaderboard
+                    </div>
+                    <div id="leaderboardList" class="space-y-1 text-xs font-medium max-h-28 overflow-y-auto pr-1">
+                        <!-- Leaderboard items -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Bar: Health, Ammo, Weapon -->
+        <div class="flex justify-between items-end w-full">
+            <!-- Player Stats -->
+            <div class="bg-panelBg/80 backdrop-blur-md border border-gray-700/50 px-5 py-3 rounded-2xl shadow-lg flex items-center gap-6">
+                <!-- Health -->
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        <span>HP</span>
+                        <span id="hudHpText" class="text-emerald-400 font-mono">100/100</span>
+                    </div>
+                    <div class="w-32 bg-gray-900 h-3 rounded-full overflow-hidden p-0.5 border border-gray-700">
+                        <div id="hudHpBar" class="bg-emerald-500 h-full rounded-full transition-all duration-150" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                <div class="h-8 w-px bg-gray-700"></div>
+
+                <!-- Ammo / Weapon -->
+                <div class="flex items-center gap-3">
+                    <div class="bg-gray-900 border border-gray-800 p-2.5 rounded-xl text-emerald-400">
+                        <i data-lucide="crosshair" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-[10px] uppercase font-bold text-gray-400">Assault Rifle</div>
+                        <div class="text-lg font-extrabold text-white font-mono"><span id="hudAmmoText">30</span> <span class="text-xs text-gray-500 font-normal">/ ∞</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls hint badge -->
+            <div class="hidden sm:flex bg-panelBg/80 backdrop-blur-md border border-gray-700/50 px-4 py-2 rounded-xl text-xs text-gray-400 items-center gap-2">
+                <span>Aim with Mouse</span> • <span>Left Click to Shoot</span> • <span>Collect Loot Packs</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME OVER / WINNER SCREEN -->
+    <div id="gameOverScreen" class="absolute inset-0 z-50 flex items-center justify-center bg-darkBg/95 backdrop-blur-md hidden p-4">
+        <div class="max-w-md w-full bg-panelBg border border-emerald-500/30 rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col gap-6 text-center">
+            <div id="gameOverHeader" class="space-y-2">
+                <div id="gameOverIconContainer" class="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-2 border border-red-500/30">
+                    <i data-lucide="skull" class="w-8 h-8"></i>
+                </div>
+                <h2 id="gameOverTitle" class="text-3xl font-extrabold uppercase tracking-wider text-red-500">Eliminated</h2>
+                <p id="gameOverSubtitle" class="text-xs text-gray-400 uppercase tracking-widest">You were defeated in combat</p>
+            </div>
+
+            <div class="bg-gray-900/60 p-4 rounded-xl border border-gray-800 grid grid-cols-2 gap-4 text-left">
+                <div>
+                    <div class="text-[10px] uppercase font-bold text-gray-500">Kills</div>
+                    <div id="statKills" class="text-xl font-bold text-white font-mono">0</div>
+                </div>
+                <div>
+                    <div class="text-[10px] uppercase font-bold text-gray-500">Placement</div>
+                    <div id="statPlacement" class="text-xl font-bold text-emerald-400 font-mono">#4</div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <button id="spectateButton" class="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-xl border border-gray-700 transition uppercase tracking-wider text-xs flex items-center justify-center gap-2">
+                    <i data-lucide="eye" class="w-4 h-4"></i> Spectate Match
+                </button>
+                <button id="playAgainButton" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] transition text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 uppercase tracking-wider text-sm flex items-center justify-center gap-2">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Play Again
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN GAME CANVAS -->
+    <canvas id="gameCanvas" class="absolute inset-0 z-0"></canvas>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Supabase configuration
+        const SUPABASE_URL = 'https://degilckgjfdnekszsbry.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_ym_oqKIyxwk7ixxCvwNCmA_w2VtnpdP';
+        let supabaseClient = null;
+        let gameChannel = null;
+
+        // Map dimensions
+        const MAP_WIDTH = 3000;
+        const MAP_HEIGHT = 3000;
+
+        // Player configuration options
+        const PLAYER_COLORS = [
+            '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4', '#84cc16', '#f43f5e'
+        ];
+        let selectedColor = PLAYER_COLORS[0];
+
+        // Game State
+        let gameState = 'LOBBY'; // LOBBY, PLAYING, SPECTATING, GAMEOVER
+        let myPlayerId = 'player_' + Math.random().toString(36.substring(2, 9));
+        let myPlayerName = 'Operator_' + Math.floor(Math.random() * 900 + 100);
+        
+        let localPlayer = {
+            id: myPlayerId,
+            name: myPlayerName,
+            x: MAP_WIDTH / 2 + (Math.random() * 400 - 200),
+            y: MAP_HEIGHT / 2 + (Math.random() * 400 - 200),
+            radius: 18,
+            color: selectedColor,
+            angle: 0,
+            hp: 100,
+            maxHp: 100,
+            kills: 0,
+            ammo: 30,
+            isAlive: true,
+            score: 0
+        };
+
+        let remotePlayers = new Map(); // id -> player object
+        let bullets = []; // local & synced bullets
+        let lootItems = []; // health packs, ammo crates
+        let killLog = [];
+
+        // Storm Circle State
+        let storm = {
+            x: MAP_WIDTH / 2,
+            y: MAP_HEIGHT / 2,
+            radius: 2000,
+            targetRadius: 400,
+            shrinkSpeed: 0.35,
+            damageTimer: 0,
+            phase: 1,
+            timeRemaining: 90 // seconds until next shrink
+        };
+
+        // Input state
+        const keys = { w: false, a: false, s: false, d: false, up: false, left: false, down: false, right: false };
+        let mouseX = 0;
+        let mouseY = 0;
+        let isMouseDown = false;
+        let lastShotTime = 0;
+        const shootCooldown = 180; // ms
+
+        // Canvas & Context
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const miniMapCanvas = document.getElementById('miniMapCanvas');
+        const miniMapCtx = miniMapCanvas.getContext('2d');
+
+        // Camera
+        let camera = { x: 0, y: 0 };
+
+        // DOM elements
+        const lobbyScreen = document.getElementById('lobbyScreen');
+        const gameHud = document.getElementById('gameHud');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const joinButton = document.getElementById('joinButton');
+        const playerNameInput = document.getElementById('playerNameInput');
+        const colorPickerContainer = document.getElementById('colorPickerContainer');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const hudAliveCount = document.getElementById('hudAliveCount');
+        const hudStormStatus = document.getElementById('hudStormStatus');
+        const hudHpBar = document.getElementById('hudHpBar');
+        const hudHpText = document.getElementById('hudHpText');
+        const hudAmmoText = document.getElementById('hudAmmoText');
+        const killFeedContainer = document.getElementById('killFeedContainer');
+        const leaderboardList = document.getElementById('leaderboardList');
+        const spectateButton = document.getElementById('spectateButton');
+        const playAgainButton = document.getElementById('playAgainButton');
+
+        // Initialize color picker
+        function initColorPicker() {
+            colorPickerContainer.innerHTML = '';
+            PLAYER_COLORS.forEach((color, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `w-10 h-10 rounded-xl border-2 transition transform hover:scale-105 ${color === selectedColor ? 'border-white scale-110 shadow-lg' : 'border-transparent'}`;
+                btn.style.backgroundColor = color;
+                btn.onclick = () => {
+                    selectedColor = color;
+                    localPlayer.color = color;
+                    initColorPicker();
+                };
+                colorPickerContainer.appendChild(btn);
+            });
+            playerNameInput.value = myPlayerName;
+        }
+
+        // Initialize Supabase Connection
+        function initSupabase() {
+            try {
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                gameChannel = supabaseClient.channel('battle_royale_room_v1', {
+                    config: { broadcast: { ack: true } }
+                });
+
+                gameChannel
+                    .on('broadcast', { event: 'player_sync' }, payload => {
+                        handleRemotePlayerSync(payload.payload);
+                    })
+                    .on('broadcast', { event: 'player_shoot' }, payload => {
+                        handleRemotePlayerShoot(payload.payload);
+                    })
+                    .on('broadcast', { event: 'player_hit' }, payload => {
+                        handleRemotePlayerHit(payload.payload);
+                    })
+                    .on('broadcast', { event: 'player_eliminated' }, payload => {
+                        handleRemotePlayerEliminated(payload.payload);
+                    })
+                    .on('broadcast', { event: 'spawn_loot' }, payload => {
+                        handleRemoteLootSpawn(payload.payload);
+                    })
+                    .on('broadcast', { event: 'collect_loot' }, payload => {
+                        handleRemoteLootCollect(payload.payload);
+                    })
+                    .subscribe(status => {
+                        if (status === 'SUBSCRIBED') {
+                            connectionStatus.textContent = 'Connected to Battle Royale Server!';
+                            connectionStatus.className = 'text-center text-xs text-emerald-400 font-mono';
+                            joinButton.disabled = false;
+                        } else {
+                            connectionStatus.textContent = 'Connection status: ' + status;
+                        }
+                    });
+            } catch (e) {
+                console.error('Supabase init error:', e);
+                connectionStatus.textContent = 'Offline Mode Active (Local simulation)';
+                joinButton.disabled = false;
+            }
+        }
+
+        // Setup Loot Spawns across map
+        function spawnInitialLoot() {
+            lootItems = [];
+            for (let i = 0; i < 35; i++) {
+                lootItems.push({
+                    id: 'loot_' + Math.random().toString(36).substring(2, 9),
+                    x: Math.random() * (MAP_WIDTH - 400) + 200,
+                    y: Math.random() * (MAP_HEIGHT - 400) + 200,
+                    type: Math.random() > 0.4 ? 'HEALTH' : 'AMMO',
+                    value: Math.random() > 0.4 ? 25 : 15,
+                    active: true
+                });
+            }
+        }
+
+        // Resize Canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Event Listeners for Input
+        window.addEventListener('keydown', e => {
+            if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') keys.w = true;
+            if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.a = true;
+            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') keys.s = true;
+            if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.d = true;
+        });
+
+        window.addEventListener('keyup', e => {
+            if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') keys.w = false;
+            if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.a = false;
+            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') keys.s = false;
+            if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.d = false;
+        });
+
+        window.addEventListener('mousemove', e => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        window.addEventListener('mousedown', e => {
+            if (e.button === 0 && gameState === 'PLAYING' && localPlayer.isAlive) {
+                isMouseDown = true;
+                tryShoot();
+            }
+        });
+
+        window.addEventListener('mouseup', e => {
+            if (e.button === 0) isMouseDown = false;
+        });
+
+        // Join Button Action
+        joinButton.addEventListener('click', () => {
+            const nameVal = playerNameInput.value.trim();
+            if (nameVal) myPlayerName = nameVal;
+            localPlayer.name = myPlayerName;
+            localPlayer.color = selectedColor;
+            localPlayer.hp = 100;
+            localPlayer.ammo = 30;
+            localPlayer.kills = 0;
+            localPlayer.isAlive = true;
+            
+            // Random spawn near center ring
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * 600;
+            localPlayer.x = MAP_WIDTH / 2 + Math.cos(angle) * dist;
+            localPlayer.y = MAP_HEIGHT / 2 + Math.sin(angle) * dist;
+
+            spawnInitialLoot();
+
+            lobbyScreen.classList.add('hidden');
+            gameHud.classList.remove('hidden');
+            gameOverScreen.classList.add('hidden');
+            gameState = 'PLAYING';
+
+            addKillerLog('System', `You entered the battle arena as ${localPlayer.name}!`);
+        });
+
+        playAgainButton.addEventListener('click', () => {
+            gameOverScreen.classList.add('hidden');
+            lobbyScreen.classList.remove('hidden');
+            gameHud.classList.add('hidden');
+            gameState = 'LOBBY';
+        });
+
+        spectateButton.addEventListener('click', () => {
+            gameOverScreen.classList.add('hidden');
+            gameHud.classList.remove('hidden');
+            gameState = 'SPECTATING';
+        });
+
+        // Shooting Mechanics
+        function tryShoot() {
+            const now = performance.now();
+            if (now - lastShotTime < shootCooldown) return;
+            if (localPlayer.ammo <= 0) {
+                addKillerLog('System', 'Out of ammo! Search for ammo packs.');
+                return;
+            }
+
+            lastShotTime = now;
+            localPlayer.ammo--;
+            hudAmmoText.textContent = localPlayer.ammo;
+
+            // Calculate bullet trajectory based on aiming angle
+            const speed = 14;
+            const bX = localPlayer.x + Math.cos(localPlayer.angle) * 25;
+            const bY = localPlayer.y + Math.sin(localPlayer.angle) * 25;
+            
+            const newBullet = {
+                id: 'bullet_' + Math.random().toString(36).substring(2, 9),
+                shooterId: localPlayer.id,
+                shooterName: localPlayer.name,
+                x: bX,
+                y: bY,
+                vx: Math.cos(localPlayer.angle) * speed,
+                vy: Math.sin(localPlayer.angle) * speed,
+                damage: 22,
+                range: 900,
+                travelled: 0
+            };
+
+            bullets.push(newBullet);
+
+            // Broadcast bullet firing
+            if (gameChannel) {
+                gameChannel.send({
+                    type: 'broadcast',
+                    event: 'player_shoot',
+                    payload: newBullet
+                });
+            }
+        }
+
+        // Broadcast Player position & state
+        let lastSyncTime = 0;
+        function broadcastPlayerState() {
+            if (!gameChannel || gameState !== 'PLAYING') return;
+            const now = performance.now();
+            if (now - lastSyncTime > 50) { // 20 times per sec
+                lastSyncTime = now;
+                gameChannel.send({
+                    type: 'broadcast',
+                    event: 'player_sync',
+                    payload: {
+                        id: localPlayer.id,
+                        name: localPlayer.name,
+                        x: localPlayer.x,
+                        y: localPlayer.y,
+                        angle: localPlayer.angle,
+                        hp: localPlayer.hp,
+                        isAlive: localPlayer.isAlive,
+                        color: localPlayer.color,
+                        kills: localPlayer.kills
+                    }
+                });
+            }
+        }
+
+        // Remote handlers
+        function handleRemotePlayerSync(data) {
+            if (data.id === localPlayer.id) return;
+            remotePlayers.set(data.id, data);
+        }
+
+        function handleRemotePlayerShoot(data) {
+            if (data.shooterId === localPlayer.id) return;
+            bullets.push(data);
+        }
+
+        function handleRemotePlayerHit(data) {
+            if (data.targetId === localPlayer.id) {
+                localPlayer.hp -= data.damage;
+                if (localPlayer.hp <= 0 && localPlayer.isAlive) {
+                    localPlayer.hp = 0;
+                    triggerElimination(data.shooterName);
+                }
+            }
+        }
+
+        function handleRemotePlayerEliminated(data) {
+            addKillerLog('Elimination', `${data.victimName} was eliminated by ${data.killerName}`);
+            remotePlayers.delete(data.victimId);
+        }
+
+        function handleRemoteLootSpawn(data) {
+            lootItems.push(data);
+        }
+
+        function handleRemoteLootCollect(data) {
+            lootItems = lootItems.filter(item => item.id !== data.lootId);
+        }
+
+        function addKillerLog(type, text) {
+            const div = document.createElement('div');
+            div.className = 'bg-gray-900/80 border border-gray-800 text-[11px] px-3 py-1.5 rounded-lg text-gray-300 shadow-md animate-fade-in flex items-center gap-2';
+            if (type === 'Elimination') {
+                div.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span><span>${text}</span>`;
+            } else {
+                div.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>${text}</span>`;
+            }
+            killFeedContainer.appendChild(div);
+            if (killFeedContainer.children.length > 5) {
+                killFeedContainer.removeChild(killFeedContainer.firstChild);
+            }
+        }
+
+        function triggerElimination(killerName) {
+            localPlayer.isAlive = false;
+            gameState = 'GAMEOVER';
+            
+            document.getElementById('gameOverIconContainer').innerHTML = '<i data-lucide="skull" class="w-8 h-8"></i>';
+            document.getElementById('gameOverTitle').textContent = 'Eliminated';
+            document.getElementById('gameOverTitle').className = 'text-3xl font-extrabold uppercase tracking-wider text-red-500';
+            document.getElementById('gameOverSubtitle').textContent = `Eliminated by ${killerName || 'Storm'}`;
+            document.getElementById('statKills').textContent = localPlayer.kills;
+            document.getElementById('statPlacement').textContent = `#${remotePlayers.size + 2}`;
+
+            gameOverScreen.classList.remove('hidden');
+            lucide.createIcons();
+
+            if (gameChannel) {
+                gameChannel.send({
+                    type: 'broadcast',
+                    event: 'player_eliminated',
+                    payload: {
+                        victimId: localPlayer.id,
+                        victimName: localPlayer.name,
+                        killerName: killerName || 'Storm'
+                    }
+                });
+            }
+        }
+
+        // Main Game Loop Update
+        function update(dt) {
+            if (gameState !== 'PLAYING' && gameState !== 'SPECTATING') return;
+
+            // Storm shrink logic
+            storm.timeRemaining -= dt / 1000;
+            if (storm.timeRemaining <= 0) {
+                if (storm.radius > storm.targetRadius) {
+                    storm.radius -= 15 * (dt / 1000);
+                }
+            }
+
+            const minutes = Math.floor(Math.max(0, storm.timeRemaining) / 60);
+            const seconds = Math.floor(Math.max(0, storm.timeRemaining) % 60);
+            hudStormStatus.textContent = `Storm closing: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+            if (gameState === 'PLAYING' && localPlayer.isAlive) {
+                // Movement
+                let dx = 0;
+                let dy = 0;
+                const speed = 4.2;
+
+                if (keys.w || keys.up) dy -= 1;
+                if (keys.s || keys.down) dy += 1;
+                if (keys.a || keys.left) dx -= 1;
+                if (keys.d || keys.right) dx += 1;
+
+                if (dx !== 0 && dy !== 0) {
+                    dx *= 0.7071;
+                    dy *= 0.7071;
+                }
+
+                localPlayer.x += dx * speed;
+                localPlayer.y += dy * speed;
+
+                // Map bounds restriction
+                localPlayer.x = Math.max(localPlayer.radius, Math.min(MAP_WIDTH - localPlayer.radius, localPlayer.x));
+                localPlayer.y = Math.max(localPlayer.radius, Math.min(MAP_HEIGHT - localPlayer.radius, localPlayer.y));
+
+                // Aim angle towards mouse
+                const screenCenterX = window.innerWidth / 2;
+                const screenCenterY = window.innerHeight / 2;
+                localPlayer.angle = Math.atan2(mouseY - screenCenterY, mouseX - screenCenterX);
+
+                // Continuous shooting if mouse held down
+                if (isMouseDown) {
+                    tryShoot();
+                }
+
+                // Check Storm Damage
+                const distToStormCenter = Math.hypot(localPlayer.x - storm.x, localPlayer.y - storm.y);
+                if (distToStormCenter > storm.radius) {
+                    storm.damageTimer += dt;
+                    if (storm.damageTimer > 1000) {
+                        storm.damageTimer = 0;
+                        localPlayer.hp -= 8;
+                        addKillerLog('System', 'Warning: Taking storm damage!');
+                        if (localPlayer.hp <= 0) {
+                            localPlayer.hp = 0;
+                            triggerElimination('Storm');
+                        }
+                    }
+                }
+
+                // Check Loot Pickup
+                lootItems.forEach(item => {
+                    if (!item.active) return;
+                    const dist = Math.hypot(localPlayer.x - item.x, localPlayer.y - item.y);
+                    if (dist < localPlayer.radius + 15) {
+                        item.active = false;
+                        if (item.type === 'HEALTH') {
+                            localPlayer.hp = Math.min(localPlayer.maxHp, localPlayer.hp + item.value);
+                            addKillerLog('System', `Picked up Health Pack (+${item.value} HP)`);
+                        } else {
+                            localPlayer.ammo += item.value;
+                            hudAmmoText.textContent = localPlayer.ammo;
+                            addKillerLog('System', `Picked up Ammo (+${item.value})`);
+                        }
+
+                        if (gameChannel) {
+                            gameChannel.send({
+                                type: 'broadcast',
+                                event: 'collect_loot',
+                                payload: { lootId: item.id }
+                            });
+                        }
+                    }
+                });
+
+                lootItems = lootItems.filter(item => item.active);
+
+                // Update HUD bars
+                hudHpBar.style.width = `${Math.max(0, (localPlayer.hp / localPlayer.maxHp) * 100)}%`;
+                hudHpText.textContent = `${Math.ceil(localPlayer.hp)}/${localPlayer.maxHp}`;
+
+                broadcastPlayerState();
+            } else if (gameState === 'SPECTATING') {
+                // Follow first available remote player or fallback
+                const remoteArr = Array.from(remotePlayers.values());
+                if (remoteArr.length > 0) {
+                    localPlayer.x = remoteArr[0].x;
+                    localPlayer.y = remoteArr[0].y;
+                }
+            }
+
+            // Update Bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i];
+                b.x += b.vx;
+                b.y += b.vy;
+                b.travelled += Math.hypot(b.vx, b.vy);
+
+                // Collision with local player
+                if (gameState === 'PLAYING' && localPlayer.isAlive && b.shooterId !== localPlayer.id) {
+                    const dist = Math.hypot(b.x - localPlayer.x, b.y - localPlayer.y);
+                    if (dist < localPlayer.radius + 6) {
+                        // Hit local player
+                        localPlayer.hp -= b.damage;
+                        bullets.splice(i, 1);
+
+                        if (localPlayer.hp <= 0 && localPlayer.isAlive) {
+                            localPlayer.hp = 0;
+                            triggerElimination(b.shooterName);
+                        }
+                        continue;
+                    }
+                }
+
+                // Remove out-of-range bullets
+                if (b.travelled >= b.range || b.x < 0 || b.x > MAP_WIDTH || b.y < 0 || b.y > MAP_HEIGHT) {
+                    bullets.splice(i, 1);
+                }
+            }
+
+            // Update Camera to follow player
+            const targetCamX = localPlayer.x - window.innerWidth / 2;
+            const targetCamY = localPlayer.y - window.innerHeight / 2;
+            camera.x += (targetCamX - camera.x) * 0.1;
+            camera.y += (targetCamY - camera.y) * 0.1;
+
+            // Update Alive Count
+            let aliveCount = (localPlayer.isAlive ? 1 : 0) + Array.from(remotePlayers.values()).filter(p => p.isAlive).length;
+            hudAliveCount.textContent = aliveCount;
+
+            // Check Win Condition
+            if (gameState === 'PLAYING' && aliveCount === 1 && remotePlayers.size > 0) {
+                gameState = 'GAMEOVER';
+                document.getElementById('gameOverIconContainer').innerHTML = '<i data-lucide="trophy" class="w-8 h-8 text-yellow-500"></i>';
+                document.getElementById('gameOverTitle').textContent = 'Victory Royale!';
+                document.getElementById('gameOverTitle').className = 'text-3xl font-extrabold uppercase tracking-wider text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]';
+                document.getElementById('gameOverSubtitle').textContent = 'You are the last operator standing';
+                document.getElementById('statKills').textContent = localPlayer.kills;
+                document.getElementById('statPlacement').textContent = '#1';
+                gameOverScreen.classList.remove('hidden');
+                lucide.createIcons();
+            }
+
+            updateLeaderboard();
+        }
+
+        // Leaderboard Update
+        function updateLeaderboard() {
+            let playersList = [{ name: localPlayer.name, kills: localPlayer.kills, isAlive: localPlayer.isAlive, id: localPlayer.id }];
+            remotePlayers.forEach(p => playersList.push(p));
+
+            playersList.sort((a, b) => b.kills - a.kills);
+
+            leaderboardList.innerHTML = '';
+            playersList.slice(0, 5).forEach((p, index) => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center text-gray-300 px-1 py-0.5';
+                div.innerHTML = `
+                    <span class="truncate max-w-[100px] ${p.id === localPlayer.id ? 'text-emerald-400 font-bold' : ''}">${index + 1}. ${p.name}</span>
+                    <span class="font-mono text-gray-400">⚡ ${p.kills}</span>
+                `;
+                leaderboardList.appendChild(div);
+            });
+        }
+
+        // Render Game
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(-camera.x, -camera.y);
+
+            // 1. Draw Grid Background
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            const gridSize = 100;
+            const startX = Math.floor(camera.x / gridSize) * gridSize;
+            const startY = Math.floor(camera.y / gridSize) * gridSize;
+
+            for (let x = startX; x < camera.x + canvas.width + gridSize; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, camera.y);
+                ctx.lineTo(x, camera.y + canvas.height);
+                ctx.stroke();
+            }
+            for (let y = startY; y < camera.y + canvas.height + gridSize; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(camera.x, y);
+                ctx.lineTo(camera.x + canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Map border boundary
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+
+            // 2. Draw Loot Items
+            lootItems.forEach(item => {
+                ctx.save();
+                ctx.translate(item.x, item.y);
+                if (item.type === 'HEALTH') {
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('+', 0, 1);
+                } else {
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillRect(-10, -10, 20, 20);
+                    ctx.fillStyle = '#0b0f19';
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('AM', 0, 0);
+                }
+                ctx.restore();
+            });
+
+            // 3. Draw Remote Players
+            remotePlayers.forEach(p => {
+                if (!p.isAlive) return;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.angle);
+
+                // Body
+                ctx.fillStyle = p.color || '#3b82f6';
+                ctx.beginPath();
+                ctx.arc(0, 0, 18, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#1e293b';
+                ctx.stroke();
+
+                // Gun Barrel
+                ctx.fillStyle = '#64748b';
+                ctx.fillRect(8, -4, 18, 8);
+
+                ctx.restore();
+
+                // Name tag & HP Bar
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+                ctx.fillRect(p.x - 35, p.y - 38, 70, 16);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.name, p.x, p.y - 27);
+
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(p.x - 25, p.y - 48, 50, 4);
+                ctx.fillStyle = '#10b981';
+                ctx.fillRect(p.x - 25, p.y - 48, 50 * (p.hp / 100), 4);
+            });
+
+            // 4. Draw Local Player
+            if (localPlayer.isAlive && (gameState === 'PLAYING' || gameState === 'SPECTATING')) {
+                ctx.save();
+                ctx.translate(localPlayer.x, localPlayer.y);
+                ctx.rotate(localPlayer.angle);
+
+                // Body
+                ctx.fillStyle = localPlayer.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, localPlayer.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                // Gun Barrel
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillRect(8, -5, 20, 10);
+
+                ctx.restore();
+
+                // Name tag
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+                ctx.fillRect(localPlayer.x - 35, localPlayer.y - 38, 70, 16);
+                ctx.fillStyle = '#10b981';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(localPlayer.name, localPlayer.x, localPlayer.y - 27);
+            }
+
+            // 5. Draw Bullets
+            bullets.forEach(b => {
+                ctx.fillStyle = '#fde047';
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 6. Draw Shrinking Storm Circle (Danger Zone)
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)';
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.arc(storm.x, storm.y, storm.radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.05)';
+            ctx.beginPath();
+            ctx.rect(camera.x - 100, camera.y - 100, canvas.width + 200, canvas.height + 200);
+            // Invert clip for storm outside area
+            ctx.arc(storm.x, storm.y, storm.radius, 0, Math.PI * 2, true);
+            ctx.fill();
+
+            ctx.restore();
+
+            // Render Minimap
+            renderMiniMap();
+        }
+
+        function renderMiniMap() {
+            miniMapCtx.clearRect(0, 0, miniMapCanvas.width, miniMapCanvas.height);
+            const scale = miniMapCanvas.width / MAP_WIDTH;
+
+            // Background
+            miniMapCtx.fillStyle = '#0f172a';
+            miniMapCtx.fillRect(0, 0, miniMapCanvas.width, miniMapCanvas.height);
+
+            // Storm on Minimap
+            miniMapCtx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+            miniMapCtx.lineWidth = 2;
+            miniMapCtx.beginPath();
+            miniMapCtx.arc(storm.x * scale, storm.y * scale, storm.radius * scale, 0, Math.PI * 2);
+            miniMapCtx.stroke();
+
+            // Remote players on minimap
+            remotePlayers.forEach(p => {
+                if (!p.isAlive) return;
+                miniMapCtx.fillStyle = p.color || '#3b82f6';
+                miniMapCtx.fillRect(p.x * scale - 2, p.y * scale - 2, 4, 4);
+            });
+
+            // Local player on minimap
+            if (localPlayer.isAlive) {
+                miniMapCtx.fillStyle = '#10b981';
+                miniMapCtx.beginPath();
+                miniMapCtx.arc(localPlayer.x * scale, localPlayer.y * scale, 3, 0, Math.PI * 2);
+                miniMapCtx.fill();
+            }
+
+            document.getElementById('miniMapCoords').textContent = `${Math.floor(localPlayer.x)}, ${Math.floor(localPlayer.y)}`;
+        }
+
+        // Main Loop timer
+        let lastTime = performance.now();
+        function gameLoop(time) {
+            const dt = time - lastTime;
+            lastTime = time;
+
+            update(dt);
+            render();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize App on Load
+        window.onload = () => {
+            initColorPicker();
+            initSupabase();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
