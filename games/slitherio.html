@@ -103,9 +103,14 @@
             </div>
         </div>
 
-        <button id="playBtn" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-2xl text-lg retro-shadow transition transform active:scale-95">
-            <i class="fa-solid fa-play mr-2"></i> Play Live
-        </button>
+        <div class="flex space-x-2">
+            <button id="playBtn" class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-4 rounded-2xl text-md retro-shadow transition transform active:scale-95">
+                <i class="fa-solid fa-play mr-1"></i> Play Normal
+            </button>
+            <button id="brPlayBtn" class="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-2xl text-md retro-shadow transition transform active:scale-95">
+                <i class="fa-solid fa-skull-crossbones mr-1"></i> Battle Royale
+            </button>
+        </div>
         <div class="text-[10px] text-slate-500">Press `~` (tilde) in-game to open Admin Console</div>
     </div>
 
@@ -152,6 +157,14 @@
             </button>
         </div>
 
+        <!-- Admin BR Controls -->
+        <div class="space-y-2 pt-2 border-t border-slate-800">
+            <label class="block text-[10px] font-semibold uppercase tracking-wider text-purple-400">Battle Royale Host Controls</label>
+            <button id="adminStartBRBtn" class="w-full bg-purple-600/40 hover:bg-purple-600/60 border border-purple-500 text-purple-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
+                <i class="fa-solid fa-play mr-2"></i> Start BR Match Now
+            </button>
+        </div>
+
         <!-- TARGETED PLAYER SCORE CONTROLS -->
         <div class="space-y-2 pt-2 border-t border-slate-800">
             <label class="block text-[10px] font-semibold uppercase tracking-wider text-amber-400">Target Player Controls</label>
@@ -195,6 +208,49 @@
                 <i class="fa-solid fa-gear mr-1"></i> Change Customization
             </button>
         </div>
+    </div>
+
+    <!-- MATCH STATISTICS SCREEN OVERLAY -->
+    <div id="statsScreen" class="hidden absolute z-30 max-w-md w-full bg-slate-900/95 backdrop-blur-md border-4 border-purple-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
+        <div class="inline-block bg-purple-600/30 p-3 rounded-full border-2 border-purple-400">
+            <i class="fa-solid fa-flag-checkered text-4xl text-purple-400"></i>
+        </div>
+        <div>
+            <h2 class="text-2xl font-bold text-purple-400">MATCH SUMMARY</h2>
+            <p class="text-xs text-slate-300 mt-1" id="statsSubText">You survived the Battle Royale!</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-left">
+            <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700">
+                <div class="text-[10px] uppercase text-slate-400 font-bold">Time Survived</div>
+                <div id="statTimeSurvived" class="text-lg font-extrabold text-emerald-400 font-mono">0s</div>
+            </div>
+            <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700">
+                <div class="text-[10px] uppercase text-slate-400 font-bold">Food Eaten</div>
+                <div id="statFoodEaten" class="text-lg font-extrabold text-amber-400 font-mono">0</div>
+            </div>
+            <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700">
+                <div class="text-[10px] uppercase text-slate-400 font-bold">Peak Length</div>
+                <div id="statPeakScore" class="text-lg font-extrabold text-purple-400 font-mono">10</div>
+            </div>
+            <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700">
+                <div class="text-[10px] uppercase text-slate-400 font-bold">Worms Defeated</div>
+                <div id="statKills" class="text-lg font-extrabold text-rose-400 font-mono">0</div>
+            </div>
+        </div>
+        <div class="space-y-2 pt-2">
+            <button id="spectateBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-teal-300 font-bold py-2.5 px-6 rounded-xl text-sm transition">
+                <i class="fa-solid fa-eye mr-1"></i> Spectate Match
+            </button>
+            <button id="statsMenuBtn" class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-xl text-md retro-shadow transition">
+                <i class="fa-solid fa-house mr-2"></i> Return to Menu
+            </button>
+        </div>
+    </div>
+
+    <!-- LOBBY WAITING BANNER -->
+    <div id="lobbyBanner" class="hidden absolute top-16 left-1/2 transform -translate-x-1/2 z-20 bg-indigo-900/90 border-2 border-indigo-500 backdrop-blur px-6 py-3 rounded-2xl shadow-xl text-center pointer-events-none">
+        <div class="text-xs font-bold uppercase tracking-wider text-indigo-300">Battle Royale Lobby</div>
+        <div class="text-sm font-extrabold text-white mt-0.5">Waiting for Host/Admin to start match...</div>
     </div>
 
     <!-- HUD OVERLAY -->
@@ -261,6 +317,39 @@
         let godMode = false;
         let superSpeedActive = false;
 
+        let gameMode = 'normal'; // 'normal' or 'battleroyale'
+        let isLobby = false;
+        let isSpectating = false;
+        
+        // Match Statistics tracking
+        let matchStartTime = 0;
+        let statsFoodEaten = 0;
+        let statsPeakScore = 10;
+        let statsKills = 0;
+
+        // Battle Royale Shrinking Zone State
+        let brZone = {
+            x: WORLD_SIZE / 2,
+            y: WORLD_SIZE / 2,
+            radius: WORLD_SIZE * 0.6,
+            targetX: WORLD_SIZE / 2,
+            targetY: WORLD_SIZE / 2,
+            targetRadius: WORLD_SIZE * 0.6,
+            active: false,
+            shrinkTimer: 120
+        };
+
+        // Non-lethal Obstacle Cubes
+        let obstacleCubes = [];
+        for (let i = 0; i < 40; i++) {
+            obstacleCubes.push({
+                x: Math.random() * (WORLD_SIZE - 2000) + 1000,
+                y: Math.random() * (WORLD_SIZE - 2000) + 1000,
+                size: 150 + Math.random() * 250,
+                color: '#1e293b'
+            });
+        }
+
         let screenShakeTime = 0;
         let screenShakeIntensity = 0;
 
@@ -318,7 +407,6 @@
             `;
             list.prepend(item);
 
-            // Limit kill feed items to max 4 entries
             if (list.children.length > 4) {
                 list.removeChild(list.lastChild);
             }
@@ -586,29 +674,112 @@
             }
         }
 
-        document.getElementById('playBtn').addEventListener('click', startGame);
-        document.getElementById('respawnBtn').addEventListener('click', startGame);
+        document.getElementById('playBtn').addEventListener('click', () => startGame('normal'));
+        document.getElementById('brPlayBtn').addEventListener('click', () => startGame('battleroyale'));
+        document.getElementById('respawnBtn').addEventListener('click', () => startGame(gameMode));
+        document.getElementById('adminStartBRBtn').addEventListener('click', triggerAdminStartBR);
+        document.getElementById('spectateBtn').addEventListener('click', enableSpectatorMode);
+        document.getElementById('statsMenuBtn').addEventListener('click', returnToMenu);
 
         document.getElementById('menuBtn').addEventListener('click', () => {
             document.getElementById('deathScreen').classList.add('hidden');
             document.getElementById('menuScreen').classList.remove('hidden');
         });
 
-        function startGame() {
+        function startGame(mode) {
             const val = document.getElementById('playerNameInput').value.trim();
             if(val) playerName = val;
 
+            gameMode = mode;
+            isSpectating = false;
             document.getElementById('menuScreen').classList.add('hidden');
             document.getElementById('deathScreen').classList.add('hidden');
+            document.getElementById('statsScreen').classList.add('hidden');
+
+            if (gameMode === 'battleroyale') {
+                isLobby = true;
+                godMode = true;
+                document.getElementById('lobbyBanner').classList.remove('hidden');
+                me.x = WORLD_SIZE / 2;
+                me.y = WORLD_SIZE / 2;
+            } else {
+                isLobby = false;
+                godMode = false;
+                document.getElementById('lobbyBanner').classList.add('hidden');
+                respawnPlayer();
+            }
+
             document.getElementById('hud').classList.remove('hidden');
             document.getElementById('leaderboard').classList.remove('hidden');
             document.getElementById('killFeedContainer').classList.remove('hidden');
             document.getElementById('minimapContainer').classList.remove('hidden');
 
-            respawnPlayer();
             initGlobalMultiplayer();
             gameActive = true;
+            matchStartTime = Date.now();
+            statsFoodEaten = 0;
+            statsPeakScore = me.score;
+            statsKills = 0;
+
             requestAnimationFrame(gameLoop);
+        }
+
+        function triggerAdminStartBR() {
+            if (!isAdmin) return;
+            isLobby = false;
+            godMode = false;
+            document.getElementById('lobbyBanner').classList.add('hidden');
+            
+            me.x = Math.random() * (WORLD_SIZE - 4000) + 2000;
+            me.y = Math.random() * (WORLD_SIZE - 4000) + 2000;
+            brZone.active = true;
+
+            if (globalChannel) {
+                globalChannel.send({
+                    type: 'broadcast',
+                    event: 'start_br_match',
+                    payload: {}
+                });
+            }
+        }
+
+        function enableSpectatorMode() {
+            document.getElementById('statsScreen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('minimapContainer').classList.remove('hidden');
+            isSpectating = true;
+            gameActive = true;
+            requestAnimationFrame(gameLoop);
+        }
+
+        function returnToMenu() {
+            isSpectating = false;
+            isLobby = false;
+            document.getElementById('statsScreen').classList.add('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('leaderboard').classList.add('hidden');
+            document.getElementById('killFeedContainer').classList.add('hidden');
+            document.getElementById('minimapContainer').classList.add('hidden');
+            document.getElementById('menuScreen').classList.remove('hidden');
+        }
+
+        function showMatchStats(reason) {
+            gameActive = false;
+            let timeSurvivedSec = Math.floor((Date.now() - matchStartTime) / 1000);
+            
+            document.getElementById('statTimeSurvived').innerText = timeSurvivedSec + 's';
+            document.getElementById('statFoodEaten').innerText = statsFoodEaten;
+            document.getElementById('statPeakScore').innerText = statsPeakScore;
+            document.getElementById('statKills').innerText = statsKills;
+            document.getElementById('statsSubText').innerText = reason;
+
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('leaderboard').classList.add('hidden');
+            document.getElementById('killFeedContainer').classList.add('hidden');
+            document.getElementById('minimapContainer').classList.add('hidden');
+            document.getElementById('adminConsole').classList.add('hidden');
+
+            document.getElementById('statsScreen').classList.remove('hidden');
         }
 
         function respawnPlayer() {
@@ -623,513 +794,441 @@
             document.getElementById('scoreDisplay').innerText = me.score;
         }
 
-        function triggerScreenShake(duration, intensity) {
-            screenShakeTime = duration;
-            screenShakeIntensity = intensity;
-        }
-
-        function triggerDeath(killerName) {
-            if (me.isDead || godMode) return;
-            me.isDead = true;
-            triggerScreenShake(30, 22);
-
-            addKillFeedMessage(killerName, playerName);
+        function initGlobalMultiplayer() {
+            if (!supabaseClient) return;
             if (globalChannel) {
-                globalChannel.send({
-                    type: 'broadcast',
-                    event: 'player_died',
-                    payload: { killer: killerName, victim: playerName }
-                });
+                supabaseClient.removeChannel(globalChannel);
             }
 
-            me.trail.forEach((segment, idx) => {
-                if (idx % 2 === 0) {
-                    let angle = Math.random() * Math.PI * 2;
-                    let speed = Math.random() * 12 + 3;
-                    let droppedFood = {
-                        id: 'drop_' + Math.random().toString(36).substring(2, 9),
-                        x: segment.x,
-                        y: segment.y,
-                        vx: Math.cos(angle) * speed,
-                        vy: Math.sin(angle) * speed,
-                        color: me.color
-                    };
-                    foodPellets.push(droppedFood);
-                    if(globalChannel) {
-                        globalChannel.send({ type: 'broadcast', event: 'food_spawn', payload: droppedFood });
-                    }
-                }
-            });
-
-            setTimeout(() => {
-                gameActive = false;
-                document.getElementById('hud').classList.add('hidden');
-                document.getElementById('leaderboard').classList.add('hidden');
-                document.getElementById('killFeedContainer').classList.add('hidden');
-                document.getElementById('minimapContainer').classList.add('hidden');
-                document.getElementById('finalScoreDisplay').innerText = me.score;
-                document.getElementById('deathReasonText').innerText = "You crashed into " + killerName + "'s body!";
-                document.getElementById('deathScreen').classList.remove('hidden');
-            }, 600);
-        }
-
-        function initGlobalMultiplayer() {
-            if (!supabaseClient || globalChannel) return;
-
-            globalChannel = supabaseClient.channel('global_slither_room_v5', {
+            globalChannel = supabaseClient.channel('slither_global_room', {
                 config: { broadcast: { self: false } }
             });
 
-            globalChannel.on('broadcast', { event: 'worm_sync' }, payload => {
-                remotePlayers[payload.payload.id] = payload.payload;
-                updateAdminTargetDropdown();
-            });
-
-            globalChannel.on('broadcast', { event: 'player_died' }, payload => {
-                addKillFeedMessage(payload.payload.killer, payload.payload.victim);
-            });
-
-            globalChannel.on('broadcast', { event: 'admin_score_adjust' }, payload => {
-                if (payload.payload.targetId === playerId) {
-                    me.score = payload.payload.newScore;
-                    document.getElementById('scoreDisplay').innerText = me.score;
-                }
-            });
-
-            globalChannel.on('broadcast', { event: 'food_eaten' }, payload => {
-                let idx = foodPellets.findIndex(f => f.id === payload.payload.foodId);
-                if(idx !== -1) {
-                    foodPellets[idx].x = payload.payload.newX;
-                    foodPellets[idx].y = payload.payload.newY;
-                    foodPellets[idx].vx = 0;
-                    foodPellets[idx].vy = 0;
-                }
-            });
-
-            globalChannel.on('broadcast', { event: 'food_spawn' }, payload => {
-                foodPellets.push(payload.payload);
-            });
-
-            globalChannel.subscribe(status => {
-                if(status === 'SUBSCRIBED') {
-                    setInterval(() => {
-                        if(!gameActive || me.isDead) return;
-                        globalChannel.send({
-                            type: 'broadcast',
-                            event: 'worm_sync',
-                            payload: {
-                                id: playerId,
-                                name: playerName,
-                                x: me.x,
-                                y: me.y,
-                                trail: me.trail,
-                                score: me.score,
-                                color: me.color,
-                                skin: me.skin,
-                                angle: me.angle
+            globalChannel
+                .on('broadcast', { event: 'player_sync' }, (payload) => {
+                    let p = payload.payload;
+                    if (p.id !== playerId) {
+                        remotePlayers[p.id] = p;
+                        updateAdminTargetDropdown();
+                    }
+                })
+                .on('broadcast', { event: 'player_death' }, (payload) => {
+                    let p = payload.payload;
+                    if (remotePlayers[p.id]) {
+                        addKillFeedMessage(p.killer || 'Someone', remotePlayers[p.id].name);
+                        delete remotePlayers[p.id];
+                        updateAdminTargetDropdown();
+                    }
+                })
+                .on('broadcast', { event: 'food_spawn' }, (payload) => {
+                    foodPellets.push(payload.payload);
+                })
+                .on('broadcast', { event: 'start_br_match' }, () => {
+                    if (gameMode === 'battleroyale' && isLobby) {
+                        isLobby = false;
+                        godMode = false;
+                        document.getElementById('lobbyBanner').classList.add('hidden');
+                        brZone.active = true;
+                        me.x = Math.random() * (WORLD_SIZE - 4000) + 2000;
+                        me.y = Math.random() * (WORLD_SIZE - 4000) + 2000;
+                    }
+                })
+                .on('broadcast', { event: 'admin_score_adjust' }, (payload) => {
+                    if (payload.payload.targetId === playerId) {
+                        me.score = payload.payload.newScore;
+                        document.getElementById('scoreDisplay').innerText = me.score;
+                    }
+                })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        setInterval(() => {
+                            if (gameActive && !me.isDead) {
+                                globalChannel.send({
+                                    type: 'broadcast',
+                                    event: 'player_sync',
+                                    payload: {
+                                        id: playerId,
+                                        name: playerName,
+                                        x: me.x,
+                                        y: me.y,
+                                        angle: me.angle,
+                                        score: me.score,
+                                        color: me.color,
+                                        skin: me.skin,
+                                        trail: me.trail.slice(0, 30)
+                                    }
+                                });
                             }
-                        });
-                    }, 50);
-                }
-            });
+                        }, 50);
+                    }
+                });
         }
 
         function updateAdminTargetDropdown() {
             let select = document.getElementById('adminTargetSelect');
             let currentVal = select.value;
-            select.innerHTML = `<option value="self">You (${playerName})</option>`;
-            
+            select.innerHTML = '<option value="self">-- Myself (' + playerName + ') --</option>';
+
             for (let id in remotePlayers) {
-                let p = remotePlayers[id];
+                let rp = remotePlayers[id];
                 let opt = document.createElement('option');
                 opt.value = id;
-                opt.text = `${p.name || 'Worm'} (Score: ${p.score || 10})`;
+                opt.innerText = `Player: ${rp.name || id}`;
                 select.appendChild(opt);
             }
 
             for (let id in aiBots) {
-                let b = aiBots[id];
+                let bot = aiBots[id];
                 let opt = document.createElement('option');
                 opt.value = id;
-                opt.text = `[BOT] ${b.name} (Score: ${b.score})`;
+                opt.innerText = `Bot: ${bot.name}`;
                 select.appendChild(opt);
             }
 
             select.value = currentVal;
+            document.getElementById('adminPlayerCount').innerText = Object.keys(remotePlayers).length + 1;
+            document.getElementById('adminBotCount').innerText = Object.keys(aiBots).length;
+            document.getElementById('adminScoreVal').innerText = me.score;
         }
 
-        function drawSnakeHead(context, x, y, angle, radius, color, skinId) {
-            let img = skinId !== 'none' ? loadedSkinImages[skinId] : null;
-            if (img && img.complete && img.naturalWidth !== 0) {
-                context.save();
-                context.translate(x, y);
-                context.rotate(angle);
-                context.beginPath();
-                context.arc(0, 0, radius + 2, 0, Math.PI * 2);
-                context.clip();
-                context.drawImage(img, -(radius + 2), -(radius + 2), (radius + 2) * 2, (radius + 2) * 2);
-                context.restore();
-                context.strokeStyle = color;
-                context.lineWidth = 2.5;
-                context.beginPath();
-                context.arc(x, y, radius + 2, 0, Math.PI * 2);
-                context.stroke();
-            } else {
-                context.fillStyle = color;
-                context.beginPath();
-                context.arc(x, y, radius + 2, 0, Math.PI * 2);
-                context.fill();
+        function triggerScreenShake(duration, intensity) {
+            screenShakeTime = duration;
+            screenShakeIntensity = intensity;
+        }
 
-                context.fillStyle = '#ffffff';
-                context.beginPath();
-                context.arc(x + Math.cos(angle - 0.4) * (radius*0.6), y + Math.sin(angle - 0.4) * (radius*0.6), 4, 0, Math.PI * 2);
-                context.arc(x + Math.cos(angle + 0.4) * (radius*0.6), y + Math.sin(angle + 0.4) * (radius*0.6), 4, 0, Math.PI * 2);
-                context.fill();
+        function spawnParticles(x, y, color, count = 10) {
+            for (let i = 0; i < count; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * 6 + 2;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    color: color,
+                    life: 1.0,
+                    decay: Math.random() * 0.03 + 0.02
+                });
             }
         }
 
-        function lerpAngle(current, target, amount) {
-            let diff = target - current;
-            while (diff < -Math.PI) diff += Math.PI * 2;
-            while (diff > Math.PI) diff -= Math.PI * 2;
-            return current + diff * amount;
+        function handleDeath(reason, killerName = 'Another Worm') {
+            if (me.isDead || godMode) return;
+            me.isDead = true;
+            gameActive = false;
+
+            triggerScreenShake(30, 20);
+            spawnParticles(me.x, me.y, me.color, 40);
+
+            if (globalChannel) {
+                globalChannel.send({
+                    type: 'broadcast',
+                    event: 'player_death',
+                    payload: { id: playerId, killer: killerName }
+                });
+            }
+
+            addKillFeedMessage(killerName, playerName);
+
+            if (gameMode === 'battleroyale') {
+                showMatchStats(reason);
+            } else {
+                document.getElementById('hud').classList.add('hidden');
+                document.getElementById('leaderboard').classList.add('hidden');
+                document.getElementById('killFeedContainer').classList.add('hidden');
+                document.getElementById('minimapContainer').classList.add('hidden');
+                document.getElementById('adminConsole').classList.add('hidden');
+
+                document.getElementById('deathReasonText').innerText = reason;
+                document.getElementById('finalScoreDisplay').innerText = me.score;
+                document.getElementById('deathScreen').classList.remove('hidden');
+            }
         }
 
         function gameLoop() {
             if (!gameActive) return;
 
-            if (!me.isDead) {
-                let centerX = canvas.width / 2;
-                let centerY = canvas.height / 2;
-                let dx = mouseX - centerX;
-                let dy = mouseY - centerY;
-                if (Math.hypot(dx, dy) > 5) {
-                    let targetAngle = Math.atan2(dy, dx);
-                    me.angle = lerpAngle(me.angle, targetAngle, 0.12);
+            if (isSpectating) {
+                let targetX = WORLD_SIZE / 2;
+                let targetY = WORLD_SIZE / 2;
+                let maxScore = -1;
+                for(let id in remotePlayers) {
+                    if ((remotePlayers[id].score || 10) > maxScore) {
+                        maxScore = remotePlayers[id].score;
+                        targetX = remotePlayers[id].x;
+                        targetY = remotePlayers[id].y;
+                    }
                 }
+                me.x += (targetX - me.x) * 0.1;
+                me.y += (targetY - me.y) * 0.1;
+            } else {
+                let targetAngle = Math.atan2(mouseY - window.innerHeight / 2, mouseX - window.innerWidth / 2);
+                let angleDiff = targetAngle - me.angle;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                me.angle += angleDiff * 0.15;
 
                 let currentSpeed = me.speed;
                 if (isBoosting && me.score > 15) {
-                    currentSpeed = superSpeedActive ? 12.0 : 6.5;
-                    if (Math.random() < 0.2) {
-                        me.score -= 1;
+                    currentSpeed *= 1.6;
+                    if (Math.random() < 0.3) {
+                        me.score--;
                         document.getElementById('scoreDisplay').innerText = me.score;
+                        foodPellets.push({
+                            id: 'drop_' + Math.random(),
+                            x: me.x - Math.cos(me.angle) * 20,
+                            y: me.y - Math.sin(me.angle) * 20,
+                            vx: (Math.random() - 0.5) * 4,
+                            vy: (Math.random() - 0.5) * 4,
+                            color: me.color
+                        });
                     }
                 }
 
-                me.x += Math.cos(me.angle) * currentSpeed;
-                me.y += Math.sin(me.angle) * currentSpeed;
-
-                me.x = Math.max(20, Math.min(WORLD_SIZE - 20, me.x));
-                me.y = Math.max(20, Math.min(WORLD_SIZE - 20, me.y));
-
-                me.trail.unshift({ x: me.x, y: me.y });
-                let maxTrailLength = me.score * 4;
-                while(me.trail.length > maxTrailLength) {
-                    me.trail.pop();
+                if (!isLobby) {
+                    me.x += Math.cos(me.angle) * currentSpeed;
+                    me.y += Math.sin(me.angle) * currentSpeed;
                 }
 
-                if (Math.random() < 0.6) {
-                    let backSegment = me.trail[me.trail.length - 1] || me;
-                    particles.push({
-                        x: backSegment.x + (Math.random() * 10 - 5),
-                        y: backSegment.y + (Math.random() * 10 - 5),
-                        vx: (Math.random() - 0.5) * 1.5,
-                        vy: (Math.random() - 0.5) * 1.5,
-                        life: 1.0,
-                        decay: Math.random() * 0.03 + 0.02,
-                        style: me.trailStyle,
-                        color: me.color
-                    });
+                if (me.x < 50 || me.x > WORLD_SIZE - 50 || me.y < 50 || me.y > WORLD_SIZE - 50) {
+                    if (!godMode) {
+                        handleDeath("You hit the outer boundary wall!");
+                        return;
+                    } else {
+                        me.x = Math.max(50, Math.min(WORLD_SIZE - 50, me.x));
+                        me.y = Math.max(50, Math.min(WORLD_SIZE - 50, me.y));
+                    }
+                }
+
+                me.trail.unshift({ x: me.x, y: me.y });
+                let maxTrailLength = Math.max(40, me.score * 4);
+                while (me.trail.length > maxTrailLength) {
+                    me.trail.pop();
                 }
             }
 
-            for (let bId in aiBots) {
-                let bot = aiBots[bId];
-                bot.angle += (Math.random() - 0.5) * 0.3;
+            for (let id in aiBots) {
+                let bot = aiBots[id];
+                bot.angle += (Math.random() - 0.5) * 0.2;
                 bot.x += Math.cos(bot.angle) * bot.speed;
                 bot.y += Math.sin(bot.angle) * bot.speed;
 
-                if (bot.x < 200 || bot.x > WORLD_SIZE - 200 || bot.y < 200 || bot.y > WORLD_SIZE - 200) {
-                    bot.angle += Math.PI;
-                }
+                if (bot.x < 100 || bot.x > WORLD_SIZE - 100) bot.angle = Math.PI - bot.angle;
+                if (bot.y < 100 || bot.y > WORLD_SIZE - 100) bot.angle = -bot.angle;
 
                 bot.trail.unshift({ x: bot.x, y: bot.y });
-                let botMaxTrail = bot.score * 4;
-                while (bot.trail.length > botMaxTrail) bot.trail.pop();
-
-                let botWidth = 10 + Math.floor(bot.score / 15);
-                for (let i = 0; i < foodPellets.length; i++) {
-                    let f = foodPellets[i];
-                    if (Math.hypot(bot.x - f.x, bot.y - f.y) < botWidth + 6) {
-                        bot.score += 1;
-                        f.x = Math.random() * WORLD_SIZE;
-                        f.y = Math.random() * WORLD_SIZE;
-                        f.vx = 0; f.vy = 0;
-                        break;
-                    }
-                }
-
-                if (!me.isDead && bot.trail.length > 5) {
-                    for (let tIdx = 4; tIdx < bot.trail.length; tIdx += 2) {
-                        let seg = bot.trail[tIdx];
-                        if (Math.hypot(me.x - seg.x, me.y - seg.y) < (10 + Math.floor(me.score / 15)) + botWidth - 4) {
-                            triggerDeath(bot.name);
-                            break;
-                        }
-                    }
-                }
+                let bMaxLen = Math.max(40, bot.score * 4);
+                while (bot.trail.length > bMaxLen) bot.trail.pop();
             }
 
-            let currentWidth = 10 + Math.floor(me.score / 15);
-
-            for (let i = 0; i < foodPellets.length; i++) {
+            for (let i = foodPellets.length - 1; i >= 0; i--) {
                 let f = foodPellets[i];
-                if (f.vx || f.vy) {
-                    f.x += f.vx;
-                    f.y += f.vy;
-                    f.vx *= 0.92;
-                    f.vy *= 0.92;
-                    f.x = Math.max(10, Math.min(WORLD_SIZE - 10, f.x));
-                    f.y = Math.max(10, Math.min(WORLD_SIZE - 10, f.y));
+                f.x += f.vx;
+                f.y += f.vy;
+                f.vx *= 0.92;
+                f.vy *= 0.92;
+
+                let dist = Math.hypot(me.x - f.x, me.y - f.y);
+                if (dist < 22 && !isLobby) {
+                    me.score += 1;
+                    statsFoodEaten++;
+                    document.getElementById('scoreDisplay').innerText = me.score;
+                    foodPellets.splice(i, 1);
+                }
+            }
+
+            if (foodPellets.length < 2500) {
+                for (let i = 0; i < 50; i++) {
+                    foodPellets.push({
+                        id: 'gen_' + Math.random(),
+                        x: me.x + (Math.random() * 4000 - 2000),
+                        y: me.y + (Math.random() * 4000 - 2000),
+                        vx: 0, vy: 0,
+                        color: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'][Math.floor(Math.random() * 5)]
+                    });
+                }
+            }
+
+            if (gameMode === 'battleroyale' && brZone.active && !isLobby) {
+                brZone.radius += (brZone.targetRadius - brZone.radius) * 0.001;
+                brZone.x += (brZone.targetX - brZone.x) * 0.001;
+                brZone.y += (brZone.targetY - brZone.y) * 0.001;
+
+                if (Math.random() < 0.0005) {
+                    brZone.targetX = WORLD_SIZE / 2 + (Math.random() - 0.5) * 8000;
+                    brZone.targetY = WORLD_SIZE / 2 + (Math.random() - 0.5) * 8000;
+                    brZone.targetRadius = Math.max(1500, brZone.targetRadius * 0.85);
                 }
 
-                if (!me.isDead) {
-                    let dist = Math.hypot(me.x - f.x, me.y - f.y);
-                    if (dist < currentWidth + 6) {
-                        me.score += 1;
-                        document.getElementById('scoreDisplay').innerText = me.score;
-                        
-                        let newX = Math.random() * WORLD_SIZE;
-                        let newY = Math.random() * WORLD_SIZE;
-                        f.x = newX;
-                        f.y = newY;
-                        f.vx = 0;
-                        f.vy = 0;
-
-                        if(globalChannel) {
-                            globalChannel.send({
-                                type: 'broadcast',
-                                event: 'food_eaten',
-                                payload: { foodId: f.id, newX: newX, newY: newY }
-                            });
-                        }
+                let distFromZoneCenter = Math.hypot(me.x - brZone.x, me.y - brZone.y);
+                if (distFromZoneCenter > brZone.radius && !godMode) {
+                    me.score = Math.max(10, me.score - 0.2);
+                    document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
+                    if (me.score <= 15) {
+                        showMatchStats("Eliminated by the shrinking storm zone!");
+                        return;
                     }
                 }
             }
 
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let pt = particles[i];
-                pt.x += pt.vx;
-                pt.y += pt.vy;
-                pt.life -= pt.decay;
-                if (pt.life <= 0) particles.splice(i, 1);
-            }
-
-            if (!me.isDead) {
-                for (let id in remotePlayers) {
-                    let p = remotePlayers[id];
-                    if (p.trail && p.trail.length > 5) {
-                        let remoteWidth = 10 + Math.floor(p.score / 15);
-                        for (let tIdx = 4; tIdx < p.trail.length; tIdx += 2) {
-                            let segment = p.trail[tIdx];
-                            let hitDist = Math.hypot(me.x - segment.x, me.y - segment.y);
-                            if (hitDist < currentWidth + remoteWidth - 4) {
-                                triggerDeath(p.name);
-                                break;
-                            }
-                        }
-                    }
-                    if (me.isDead) break;
+            for (let obs of obstacleCubes) {
+                let dx = me.x - obs.x;
+                let dy = me.y - obs.y;
+                let minDist = obs.size / 2 + 20;
+                let currentDist = Math.hypot(dx, dy);
+                if (currentDist < minDist && !isLobby) {
+                    let angle = Math.atan2(dy, dx);
+                    me.x = obs.x + Math.cos(angle) * minDist;
+                    me.y = obs.y + Math.sin(angle) * minDist;
                 }
             }
+
+            if (me.score > statsPeakScore) statsPeakScore = Math.floor(me.score);
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
 
-            let shakeX = 0, shakeY = 0;
+            ctx.save();
             if (screenShakeTime > 0) {
-                shakeX = (Math.random() - 0.5) * screenShakeIntensity;
-                shakeY = (Math.random() - 0.5) * screenShakeIntensity;
+                let shakeX = (Math.random() - 0.5) * screenShakeIntensity;
+                let shakeY = (Math.random() - 0.5) * screenShakeIntensity;
+                ctx.translate(shakeX, shakeY);
                 screenShakeTime--;
             }
 
-            let zoom = Math.max(0.35, 1 / (1 + (currentWidth - 10) * 0.03));
-            ctx.translate(canvas.width / 2 + shakeX, canvas.height / 2 + shakeY);
-            ctx.scale(zoom, zoom);
-            ctx.translate(-me.x, -me.y);
+            let camX = canvas.width / 2 - me.x;
+            let camY = canvas.height / 2 - me.y;
+
+            ctx.save();
+            ctx.translate(camX, camY);
 
             ctx.strokeStyle = '#1e293b';
-            ctx.lineWidth = 1;
-            let gridSize = 80;
-            let startX = Math.floor((me.x - (canvas.width / 2) / zoom) / gridSize) * gridSize;
-            let startY = Math.floor((me.y - (canvas.height / 2) / zoom) / gridSize) * gridSize;
-            let viewRangeX = (canvas.width / zoom);
-            let viewRangeY = (canvas.height / zoom);
+            ctx.lineWidth = 1.5;
+            let gridSize = 100;
+            let startX = Math.floor(me.x - canvas.width / 2 / gridSize) * gridSize - gridSize;
+            let endX = startX + canvas.width + gridSize * 2;
+            let startY = Math.floor(me.y - canvas.height / 2 / gridSize) * gridSize - gridSize;
+            let endY = startY + canvas.height + gridSize * 2;
 
-            for (let x = startX; x < startX + viewRangeX + gridSize * 2; x += gridSize) {
-                ctx.beginPath(); ctx.moveTo(x, me.y - viewRangeY); ctx.lineTo(x, me.y + viewRangeY * 2); ctx.stroke();
-            }
-            for (let y = startY; y < startY + viewRangeY + gridSize * 2; y += gridSize) {
-                ctx.beginPath(); ctx.moveTo(me.x - viewRangeX, y); ctx.lineTo(me.x + viewRangeX * 2, y); ctx.stroke();
-            }
-
-            ctx.strokeStyle = '#ef4444';
-            ctx.lineWidth = 8;
-            ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
-
-            particles.forEach(pt => {
-                ctx.save();
-                ctx.globalAlpha = pt.life;
-                if (pt.style === 'sparkle') {
-                    ctx.fillStyle = '#fde047';
-                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2); ctx.fill();
-                } else if (pt.style === 'bubble') {
-                    ctx.strokeStyle = pt.color;
-                    ctx.lineWidth = 1.5;
-                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2); ctx.stroke();
-                } else if (pt.style === 'fire') {
-                    ctx.fillStyle = Math.random() < 0.5 ? '#f97316' : '#ef4444';
-                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2); ctx.fill();
-                } else if (pt.style === 'matrix') {
-                    ctx.fillStyle = '#22c55e';
-                    ctx.font = '10px monospace';
-                    ctx.fillText('1', pt.x, pt.y);
-                }
-                ctx.restore();
-            });
-
-            foodPellets.forEach(f => {
-                ctx.fillStyle = f.color;
+            for (let x = startX; x <= endX; x += gridSize) {
                 ctx.beginPath();
-                ctx.arc(f.x, f.y, 6, 0, Math.PI * 2);
-                ctx.fill();
-            });
+                ctx.moveTo(x, Math.max(0, startY));
+                ctx.lineTo(x, Math.min(WORLD_SIZE, endY));
+                ctx.stroke();
+            }
+            for (let y = startY; y <= endY; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(Math.max(0, startX), y);
+                ctx.lineTo(Math.min(WORLD_SIZE, endX), y);
+                ctx.stroke();
+            }
 
-            for (let bId in aiBots) {
-                let bot = aiBots[bId];
-                let bWidth = 10 + Math.floor(bot.score / 15);
-                bot.trail.forEach(t => {
+            for (let obs of obstacleCubes) {
+                if (Math.abs(obs.x - me.x) < canvas.width && Math.abs(obs.y - me.y) < canvas.height) {
+                    ctx.fillStyle = obs.color;
+                    ctx.fillRect(obs.x - obs.size / 2, obs.y - obs.size / 2, obs.size, obs.size);
+                    ctx.strokeStyle = '#334155';
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(obs.x - obs.size / 2, obs.y - obs.size / 2, obs.size, obs.size);
+                }
+            }
+
+            if (gameMode === 'battleroyale' && brZone.active) {
+                ctx.strokeStyle = 'rgba(168, 85, 247, 0.7)';
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.arc(brZone.x, brZone.y, brZone.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            for (let f of foodPellets) {
+                if (Math.abs(f.x - me.x) < canvas.width / 2 + 100 && Math.abs(f.y - me.y) < canvas.height / 2 + 100) {
+                    ctx.fillStyle = f.color;
+                    ctx.beginPath();
+                    ctx.arc(f.x, f.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            for (let id in aiBots) {
+                let bot = aiBots[id];
+                for (let i = bot.trail.length - 1; i >= 0; i--) {
+                    let pt = bot.trail[i];
                     ctx.fillStyle = bot.color;
                     ctx.beginPath();
-                    ctx.arc(t.x, t.y, bWidth, 0, Math.PI * 2);
+                    ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
                     ctx.fill();
-                });
-                drawSnakeHead(ctx, bot.x, bot.y, bot.angle, bWidth, bot.color, bot.skin);
+                }
+                ctx.fillStyle = bot.color;
+                ctx.beginPath();
+                ctx.arc(bot.x, bot.y, 14, 0, Math.PI * 2);
+                ctx.fill();
+
                 ctx.fillStyle = '#ffffff';
-                ctx.font = '12px Fredoka, sans-serif';
+                ctx.font = '10px Fredoka, sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText(bot.name, bot.x, bot.y - bWidth - 12);
+                ctx.fillText(bot.name, bot.x, bot.y - 20);
             }
 
             for (let id in remotePlayers) {
-                let p = remotePlayers[id];
-                if (p.trail && p.trail.length > 0) {
-                    let rWidth = 10 + Math.floor(p.score / 15);
-                    p.trail.forEach((t) => {
-                        ctx.fillStyle = p.color || '#3b82f6';
+                let rp = remotePlayers[id];
+                if (rp.trail) {
+                    for (let pt of rp.trail) {
+                        ctx.fillStyle = rp.color || '#3b82f6';
                         ctx.beginPath();
-                        ctx.arc(t.x, t.y, rWidth, 0, Math.PI * 2);
+                        ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
                         ctx.fill();
-                    });
-                    
-                    drawSnakeHead(ctx, p.x, p.y, p.angle || 0, rWidth, p.color, p.skin);
-
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = '12px Fredoka, sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(p.name, p.x, p.y - rWidth - 12);
+                    }
                 }
-            }
-
-            if (me.trail.length > 0) {
-                me.trail.forEach((t) => {
-                    ctx.fillStyle = me.color;
-                    ctx.beginPath();
-                    ctx.arc(t.x, t.y, currentWidth, 0, Math.PI * 2);
-                    ctx.fill();
-                });
-                
-                drawSnakeHead(ctx, me.x, me.y, me.angle, currentWidth, me.color, me.skin);
+                ctx.fillStyle = rp.color || '#3b82f6';
+                ctx.beginPath();
+                ctx.arc(rp.x, rp.y, 14, 0, Math.PI * 2);
+                ctx.fill();
 
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 13px Fredoka, sans-serif';
+                ctx.font = '10px Fredoka, sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText(playerName + (godMode ? ' [GOD MODE]' : ''), me.x, me.y - currentWidth - 14);
+                ctx.fillText(rp.name || 'Player', rp.x, rp.y - 20);
             }
+
+            for (let i = me.trail.length - 1; i >= 0; i--) {
+                let pt = me.trail[i];
+                ctx.fillStyle = me.color;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 12, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = me.color;
+            ctx.beginPath();
+            ctx.arc(me.x, me.y, 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 11px Fredoka, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(isSpectating ? '👁️ SPECTATING' : playerName, me.x, me.y - 22);
 
             ctx.restore();
+            ctx.restore();
 
-            drawMinimap();
-
-            if (isAdmin) {
-                document.getElementById('adminPlayerCount').innerText = Object.keys(remotePlayers).length + 1;
-                document.getElementById('adminBotCount').innerText = Object.keys(aiBots).length;
-                document.getElementById('adminScoreVal').innerText = me.score;
-            }
-
-            updateLeaderboard();
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        function drawMinimap() {
             minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
             let scaleX = minimapCanvas.width / WORLD_SIZE;
             let scaleY = minimapCanvas.height / WORLD_SIZE;
 
-            minimapCtx.fillStyle = '#334155';
-            foodPellets.forEach(f => {
-                minimapCtx.fillRect(f.x * scaleX, f.y * scaleY, 1.5, 1.5);
-            });
-
-            for (let bId in aiBots) {
-                let b = aiBots[bId];
-                minimapCtx.fillStyle = b.color;
-                minimapCtx.beginPath();
-                minimapCtx.arc(b.x * scaleX, b.y * scaleY, 2, 0, Math.PI * 2);
-                minimapCtx.fill();
-            }
-
-            for (let id in remotePlayers) {
-                let p = remotePlayers[id];
-                minimapCtx.fillStyle = p.color || '#3b82f6';
-                minimapCtx.beginPath();
-                minimapCtx.arc(p.x * scaleX, p.y * scaleY, 2, 0, Math.PI * 2);
-                minimapCtx.fill();
-            }
-
             minimapCtx.fillStyle = '#10b981';
             minimapCtx.beginPath();
-            minimapCtx.arc(me.x * scaleX, me.y * scaleY, 3.5, 0, Math.PI * 2);
+            minimapCtx.arc(me.x * scaleX, me.y * scaleY, 3, 0, Math.PI * 2);
             minimapCtx.fill();
-        }
 
-        function updateLeaderboard() {
-            let listEl = document.getElementById('leaderboardList');
-            let allPlayers = [{ name: playerName + ' (You)', score: me.score }];
-            
             for (let id in remotePlayers) {
-                allPlayers.push({ name: remotePlayers[id].name || 'Worm', score: remotePlayers[id].score || 10 });
+                let rp = remotePlayers[id];
+                minimapCtx.fillStyle = '#3b82f6';
+                minimapCtx.beginPath();
+                minimapCtx.arc(rp.x * scaleX, rp.y * scaleY, 2, 0, Math.PI * 2);
+                minimapCtx.fill();
             }
 
-            for (let id in aiBots) {
-                allPlayers.push({ name: aiBots[id].name, score: aiBots[id].score });
-            }
-
-            allPlayers.sort((a, b) => b.score - a.score);
-            let top5 = allPlayers.slice(0, 5);
-
-            listEl.innerHTML = '';
-            top5.forEach((p, index) => {
-                let row = document.createElement('div');
-                row.className = 'flex justify-between items-center';
-                row.innerHTML = `
-                    <span class="truncate pr-2">${index + 1}. ${p.name}</span>
-                    <span class="font-bold text-emerald-400">${p.score}</span>
-                `;
-                listEl.appendChild(row);
-            });
+            requestAnimationFrame(gameLoop);
         }
     </script>
 </body>
