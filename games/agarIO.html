@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agar.io Global: Mass, Split, Eject & Kill Feed</title>
+    <title>Agar.io Expanded: Skins, Gravity Mass, & Viruses</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Fredoka -->
@@ -48,14 +48,14 @@
 </head>
 <body class="text-white h-screen w-screen flex flex-col items-center justify-center bg-slate-950">
 
-    <!-- START & CUSTOMIZATION MENU SCREEN -->
+    <!-- MENU SCREEN -->
     <div id="menuScreen" class="absolute z-25 max-w-md w-full bg-slate-900/95 backdrop-blur-md border-4 border-indigo-500 rounded-3xl p-6 shadow-2xl text-center space-y-4 max-h-[90vh] overflow-y-auto">
         <div class="inline-block bg-indigo-600/30 p-3 rounded-full border-2 border-indigo-400 animate-bounce">
-            <i class="fa-solid fa-circle-nodes text-4xl text-indigo-400"></i>
+            <i class="fa-solid fa-earth-americas text-4xl text-indigo-400"></i>
         </div>
         <div>
-            <h1 class="text-2xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-400">AGAR GLOBAL</h1>
-            <p class="text-[11px] text-slate-300 mt-0.5">Eat pellets, consume smaller cells, split, and dominate!</p>
+            <h1 class="text-2xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-400">AGAR.IO EXPANDED</h1>
+            <p class="text-[11px] text-slate-300 mt-0.5">10k World • Local /heads/ Skins • Attracting Mass Pellets</p>
         </div>
 
         <!-- LIVE PREVIEW CONTAINER -->
@@ -66,13 +66,13 @@
 
         <div class="space-y-3 bg-slate-800/60 p-4 rounded-2xl border border-slate-700 text-left">
             <div>
-                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Your Cell Name</label>
-                <input type="text" id="playerNameInput" maxlength="12" value="AgarPro" class="w-full bg-slate-900 border-2 border-slate-600 rounded-xl px-4 py-2 text-center text-md font-bold text-indigo-300 focus:outline-none focus:border-indigo-500 transition">
+                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Cell Name (Matches <code class="text-indigo-300">heads/name.png</code>)</label>
+                <input type="text" id="playerNameInput" maxlength="15" value="earth" class="w-full bg-slate-900 border-2 border-slate-600 rounded-xl px-4 py-2 text-center text-md font-bold text-indigo-300 focus:outline-none focus:border-indigo-500 transition">
             </div>
 
             <!-- Color Picker & Presets -->
             <div>
-                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Cell Color</label>
+                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Fallback Color</label>
                 <div class="flex items-center space-x-2">
                     <input type="color" id="playerColorPicker" value="#6366f1" class="w-10 h-10 rounded-xl bg-slate-900 border-2 border-slate-600 cursor-pointer p-1">
                     <div class="flex space-x-1.5 flex-1 justify-around">
@@ -87,43 +87,22 @@
         </div>
 
         <button id="playBtn" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-2xl text-lg retro-shadow transition transform active:scale-95">
-            <i class="fa-solid fa-play mr-2"></i> Play Agar.io
+            <i class="fa-solid fa-play mr-2"></i> Launch into 10k World
         </button>
-        <div class="text-[10px] text-slate-500">Press `~` (tilde) in-game for Admin Console • <b class="text-indigo-300">Space</b> to Split • <b class="text-indigo-300">W</b> to Eject Mass</div>
-    </div>
-
-    <!-- ADMIN LOGIN MODAL -->
-    <div id="adminLoginModal" class="hidden absolute z-50 max-w-xs w-full bg-slate-900 border-2 border-amber-500 rounded-2xl p-5 shadow-2xl text-center space-y-3">
-        <h3 class="text-md font-bold text-amber-400"><i class="fa-solid fa-lock mr-1"></i> Admin Login</h3>
-        <p class="text-[11px] text-slate-400">Enter server password to access controls.</p>
-        <input type="password" id="adminPasswordInput" placeholder="Password" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-center text-sm text-white focus:outline-none focus:border-amber-500">
-        <div class="flex space-x-2">
-            <button id="adminLoginSubmit" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition">Login</button>
-            <button id="adminLoginClose" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs transition">Cancel</button>
-        </div>
+        <div class="text-[10px] text-slate-500">Press `~` for Admin Console • <b class="text-indigo-300">Space</b> Split • <b class="text-indigo-300">W</b> Eject Mass</div>
     </div>
 
     <!-- ADMIN CONSOLE OVERLAY -->
-    <div id="adminConsole" class="hidden absolute z-40 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 rounded-2xl p-5 shadow-2xl text-left space-y-3 max-h-[85vh] overflow-y-auto">
+    <div id="adminConsole" class="hidden absolute z-40 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 rounded-2xl p-5 shadow-2xl text-left space-y-3">
         <div class="flex justify-between items-center border-b border-slate-700 pb-2">
-            <h3 class="text-sm font-bold text-amber-400"><i class="fa-solid fa-shield-halved mr-1"></i> Server Admin Console</h3>
+            <h3 class="text-sm font-bold text-amber-400"><i class="fa-solid fa-shield-halved mr-1"></i> Admin Console</h3>
             <button id="closeAdminBtn" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="space-y-1 text-xs text-slate-300">
-            <div>Online Players: <span id="adminPlayerCount" class="font-mono font-bold text-indigo-400">1</span></div>
-            <div>Active AI Bots: <span id="adminBotCount" class="font-mono font-bold text-amber-400">0</span></div>
+            <div>Map Scale: <span class="font-mono text-amber-300">10,000 x 10,000 px</span></div>
             <div>Your Mass: <span id="adminMassVal" class="font-mono font-bold text-indigo-400">10</span></div>
         </div>
         <div class="space-y-2 pt-2 border-t border-slate-800">
-            <button id="adminSpawnBotBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
-                <i class="fa-solid fa-robot mr-2"></i> Spawn AI Bot Cell
-            </button>
-            <button id="adminSpawnFoodBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
-                <i class="fa-solid fa-cookie-bite mr-2"></i> Spawn +100 Food Pellets
-            </button>
-            <button id="adminGodModeBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-indigo-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
-                <i class="fa-solid fa-bolt mr-2"></i> Toggle God Mode (Invincible)
-            </button>
             <button id="adminGiantBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-purple-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
                 <i class="fa-solid fa-expand mr-2"></i> Grow Massive (+500 Mass)
             </button>
@@ -133,77 +112,56 @@
         </div>
     </div>
 
-    <!-- IN-UI DEATH SCREEN OVERLAY -->
+    <!-- DEATH SCREEN -->
     <div id="deathScreen" class="hidden absolute z-30 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-4 border-red-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
         <div class="inline-block bg-red-600/30 p-3 rounded-full border-2 border-red-400">
             <i class="fa-solid fa-skull-crossbones text-4xl text-red-400"></i>
         </div>
         <div>
-            <h2 class="text-2xl font-bold text-red-400">EATEN!</h2>
-            <p class="text-xs text-slate-300 mt-1" id="deathReasonText">You were consumed by a larger cell!</p>
+            <h2 class="text-2xl font-bold text-red-400">CONSUMED!</h2>
+            <p class="text-xs text-slate-300 mt-1" id="deathReasonText">You were eaten!</p>
         </div>
-        <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700 flex justify-around items-center">
-            <div>
-                <div class="text-[10px] uppercase text-slate-400 font-bold">Final Mass</div>
-                <div id="finalMassDisplay" class="text-xl font-extrabold text-indigo-400 font-mono">0</div>
-            </div>
-        </div>
-        <div class="space-y-2">
-            <button id="respawnBtn" class="w-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold py-3 px-6 rounded-xl text-md retro-shadow transition transform active:scale-95">
-                <i class="fa-solid fa-rotate-right mr-2"></i> Play Again
-            </button>
-            <button id="menuBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 px-6 rounded-xl text-sm transition">
-                <i class="fa-solid fa-gear mr-1"></i> Change Customization
-            </button>
-        </div>
+        <button id="respawnBtn" class="w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold py-3 px-6 rounded-xl text-md retro-shadow transition">
+            <i class="fa-solid fa-rotate-right mr-2"></i> Play Again
+        </button>
     </div>
 
-    <!-- HUD OVERLAY -->
+    <!-- HUD, LEADERBOARD, KILL FEED & MINIMAP -->
     <div id="hud" class="hidden absolute top-4 left-4 z-10 pointer-events-none flex flex-col space-y-2">
         <div class="bg-slate-900/80 backdrop-blur border border-slate-700 px-4 py-2 rounded-2xl shadow-lg">
-            <div class="text-[10px] uppercase font-bold text-slate-400">Total Mass Score</div>
+            <div class="text-[10px] uppercase font-bold text-slate-400">Total Mass</div>
             <div id="massDisplay" class="text-2xl font-extrabold text-indigo-400 font-mono">10</div>
         </div>
-        <div class="text-[10px] text-slate-400 bg-slate-900/60 px-3 py-1 rounded-xl">Controls: <b class="text-indigo-400">Space</b> Split • <b class="text-indigo-400">W</b> Eject</div>
     </div>
 
-    <!-- LEADERBOARD -->
     <div id="leaderboard" class="hidden absolute top-28 right-4 z-10 pointer-events-none bg-slate-900/80 backdrop-blur border border-slate-700 p-3 rounded-2xl shadow-lg w-48">
         <div class="text-xs font-bold text-purple-400 border-b border-slate-700 pb-1 mb-2"><i class="fa-solid fa-trophy mr-1"></i> Leaderboard</div>
         <div id="leaderboardList" class="space-y-1 text-xs text-slate-300 font-mono"></div>
     </div>
 
-    <!-- KILL FEED CONTAINER -->
-    <div id="killFeedContainer" class="hidden absolute top-4 right-4 z-20 pointer-events-none flex flex-col space-y-1.5 w-52 overflow-hidden">
-        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 px-1"><i class="fa-solid fa-skull mr-1"></i> Kill Feed</div>
+    <div id="killFeedContainer" class="hidden absolute top-4 right-4 z-20 pointer-events-none flex flex-col space-y-1.5 w-52">
         <div id="killFeedList" class="space-y-1.5 flex flex-col"></div>
     </div>
 
-    <!-- MINIMAP CONTAINER -->
     <div id="minimapContainer" class="hidden absolute bottom-4 left-4 z-10 bg-slate-900/90 backdrop-blur border-2 border-slate-700 p-2 rounded-2xl shadow-xl pointer-events-none w-36 h-36 flex items-center justify-center">
         <canvas id="minimapCanvas" width="120" height="120" class="rounded-xl bg-slate-950"></canvas>
     </div>
 
-    <!-- GAME CANVAS -->
     <canvas id="gameCanvas" class="block w-full h-full cursor-crosshair"></canvas>
 
-    <!-- GAME SCRIPT LOGIC -->
+    <!-- SCRIPT LOGIC -->
     <script>
         const SUPABASE_URL = 'https://degilckgjfdnekszsbry.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_ym_oqKIyxwk7ixxCvwNCmA_w2VtnpdP';
         let supabaseClient = null;
         try {
             supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        } catch(e) {
-            console.error("Supabase init error:", e);
-        }
+        } catch(e) {}
 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-
         const previewCanvas = document.getElementById('previewCanvas');
         const previewCtx = previewCanvas.getContext('2d');
-
         const minimapCanvas = document.getElementById('minimapCanvas');
         const minimapCtx = minimapCanvas.getContext('2d');
 
@@ -214,51 +172,57 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        const WORLD_SIZE = 5000; 
+        const WORLD_SIZE = 10000; // Expanded to 10k map!
         let playerId = 'cell_' + Math.random().toString(36).substring(2, 9);
-        let playerName = 'AgarPro';
+        let playerName = 'earth';
         let globalChannel = null;
         let isAdmin = false;
-        let godMode = false;
 
-        let playerCells = []; 
-        let remotePlayers = {}; 
-        let aiBots = {};
-        let foodPellets = [];    
+        let playerCells = [];
+        let remotePlayers = {};
+        let foodPellets = [];
         let ejectedMass = [];
+        let viruses = [];
         let mouseX = window.innerWidth / 2;
         let mouseY = window.innerHeight / 2;
         let gameActive = false;
-
         let playerColor = '#6366f1';
 
-        function addKillFeedMessage(predator, prey) {
-            let list = document.getElementById('killFeedList');
-            let item = document.createElement('div');
-            item.className = 'kill-feed-item bg-slate-900/90 backdrop-blur border border-slate-700/80 px-2.5 py-1.5 rounded-xl text-[10px] text-slate-300 shadow flex items-center justify-between space-x-1';
-            item.innerHTML = `
-                <span class="font-bold text-amber-300 truncate max-w-[75px]">${predator}</span>
-                <i class="fa-solid fa-utensils text-rose-400 text-[9px]"></i>
-                <span class="font-bold text-rose-300 truncate max-w-[75px]">${prey}</span>
-            `;
-            list.prepend(item);
-
-            if (list.children.length > 4) {
-                list.removeChild(list.lastChild);
+        // Skin cache handler for local /heads/ folder
+        const skinCache = {};
+        function getSkinImage(name) {
+            let cleanName = name.trim().toLowerCase();
+            if (!cleanName) return null;
+            if (skinCache[cleanName] !== undefined) {
+                return skinCache[cleanName];
             }
-
-            setTimeout(() => {
-                if (item && item.parentNode) {
-                    item.style.transition = 'opacity 0.4s ease';
-                    item.style.opacity = '0';
-                    setTimeout(() => item.remove(), 400);
-                }
-            }, 4000);
+            let img = new Image();
+            img.src = `heads/${cleanName}.png`;
+            skinCache[cleanName] = img;
+            return img;
         }
+
+        // Initialize world elements
+        function seedWorld() {
+            for(let i=0; i<3000; i++) {
+                foodPellets.push({
+                    x: Math.random() * WORLD_SIZE,
+                    y: Math.random() * WORLD_SIZE,
+                    color: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'][Math.floor(Math.random() * 6)]
+                });
+            }
+            for(let i=0; i<30; i++) {
+                viruses.push({
+                    x: Math.random() * WORLD_SIZE,
+                    y: Math.random() * WORLD_SIZE,
+                    mass: 100
+                });
+            }
+        }
+        seedWorld();
 
         const colorPicker = document.getElementById('playerColorPicker');
         colorPicker.addEventListener('input', (e) => { playerColor = e.target.value; });
-
         document.querySelectorAll('.color-preset').forEach(btn => {
             btn.addEventListener('click', () => {
                 playerColor = btn.getAttribute('data-color');
@@ -268,136 +232,56 @@
 
         function renderPreview() {
             previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-            previewCtx.fillStyle = playerColor;
+            let nameVal = document.getElementById('playerNameInput').value;
+            let skinImg = getSkinImage(nameVal);
+
+            previewCtx.save();
             previewCtx.beginPath();
-            previewCtx.arc(100, 35, 24, 0, Math.PI * 2);
-            previewCtx.fill();
+            previewCtx.arc(100, 35, 26, 0, Math.PI * 2);
+            previewCtx.closePath();
+            previewCtx.clip();
+
+            if (skinImg && skinImg.complete && skinImg.naturalWidth !== 0) {
+                previewCtx.drawImage(skinImg, 100 - 26, 35 - 26, 52, 52);
+            } else {
+                previewCtx.fillStyle = playerColor;
+                previewCtx.fillRect(0, 0, 200, 70);
+            }
+            previewCtx.restore();
+
             previewCtx.strokeStyle = '#ffffff';
             previewCtx.lineWidth = 3;
+            previewCtx.beginPath();
+            previewCtx.arc(100, 35, 26, 0, Math.PI * 2);
             previewCtx.stroke();
-            
-            previewCtx.fillStyle = '#ffffff';
-            previewCtx.font = 'bold 12px Fredoka, sans-serif';
-            previewCtx.textAlign = 'center';
-            previewCtx.fillText(document.getElementById('playerNameInput').value || 'AgarPro', 100, 39);
-            
+
             requestAnimationFrame(renderPreview);
         }
         renderPreview();
 
-        function seededRandom(seed) {
-            let x = Math.sin(seed++) * 10000;
-            return x - Math.floor(x);
-        }
-
-        for(let i=0; i<1000; i++) {
-            foodPellets.push({
-                id: 'food_' + i,
-                x: seededRandom(i * 3 + 1) * WORLD_SIZE,
-                y: seededRandom(i * 3 + 2) * WORLD_SIZE,
-                color: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'][Math.floor(seededRandom(i * 3 + 3) * 6)]
-            });
-        }
-
-        document.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-        });
+        document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
 
         window.addEventListener('keydown', (e) => {
             if (e.key === '`' || e.key === '~') {
                 e.preventDefault();
-                if (isAdmin) {
-                    document.getElementById('adminConsole').classList.toggle('hidden');
-                } else {
-                    document.getElementById('adminLoginModal').classList.remove('hidden');
-                    document.getElementById('adminPasswordInput').focus();
-                }
+                isAdmin = !isAdmin;
+                document.getElementById('adminConsole').classList.toggle('hidden', !isAdmin);
             }
-            if (e.code === 'Space' && gameActive) {
-                e.preventDefault();
-                splitCells();
-            }
-            if (e.code === 'KeyW' && gameActive) {
-                e.preventDefault();
-                ejectMassPellet();
-            }
-        });
-
-        document.getElementById('adminLoginSubmit').addEventListener('click', () => {
-            let pass = document.getElementById('adminPasswordInput').value;
-            if (pass === 'papivictor') {
-                isAdmin = true;
-                document.getElementById('adminLoginModal').classList.add('hidden');
-                document.getElementById('adminConsole').classList.remove('hidden');
-            } else {
-                alert('Incorrect password!');
-            }
-        });
-
-        document.getElementById('adminLoginClose').addEventListener('click', () => {
-            document.getElementById('adminLoginModal').classList.add('hidden');
+            if (e.code === 'Space' && gameActive) { e.preventDefault(); splitCells(); }
+            if (e.code === 'KeyW' && gameActive) { e.preventDefault(); ejectMassPellet(); }
         });
 
         document.getElementById('closeAdminBtn').addEventListener('click', () => {
             document.getElementById('adminConsole').classList.add('hidden');
+            isAdmin = false;
         });
-
-        document.getElementById('adminSpawnBotBtn').addEventListener('click', () => {
-            let botId = 'bot_' + Math.random().toString(36).substring(2, 9);
-            let botColors = ['#f43f5e', '#a855f7', '#3b82f6', '#f59e0b', '#06b6d4', '#ec4899'];
-            let botNames = ['AgarBot', 'CellZilla', 'Blobber', 'Nucleus', 'Divider', 'Titan'];
-            
-            let avgX = playerCells.length > 0 ? playerCells[0].x : WORLD_SIZE / 2;
-            let avgY = playerCells.length > 0 ? playerCells[0].y : WORLD_SIZE / 2;
-
-            aiBots[botId] = {
-                id: botId,
-                name: botNames[Math.floor(Math.random() * botNames.length)],
-                x: avgX + (Math.random() * 400 - 200),
-                y: avgY + (Math.random() * 400 - 200),
-                mass: 40 + Math.floor(Math.random() * 80),
-                color: botColors[Math.floor(Math.random() * botColors.length)],
-                vx: 0, vy: 0
-            };
-        });
-
-        document.getElementById('adminSpawnFoodBtn').addEventListener('click', () => {
-            for(let i=0; i<100; i++) {
-                foodPellets.push({
-                    id: 'admin_food_' + Math.random().toString(36).substring(2, 9),
-                    x: Math.random() * WORLD_SIZE,
-                    y: Math.random() * WORLD_SIZE,
-                    color: '#f59e0b'
-                });
-            }
-        });
-
-        document.getElementById('adminGodModeBtn').addEventListener('click', () => {
-            godMode = !godMode;
-            document.getElementById('adminGodModeBtn').classList.toggle('bg-indigo-900', godMode);
-        });
-
-        document.getElementById('adminGiantBtn').addEventListener('click', () => {
-            if (playerCells.length > 0) {
-                playerCells[0].mass += 500;
-            }
-        });
-
-        document.getElementById('adminTeleportBtn').addEventListener('click', () => {
-            if (playerCells.length > 0) {
-                playerCells[0].x = WORLD_SIZE / 2;
-                playerCells[0].y = WORLD_SIZE / 2;
-            }
+        document.getElementById('adminGiantBtn').addEventListener('click', () => { if(playerCells.length) playerCells[0].mass += 500; });
+        document.getElementById('adminTeleportBtn').addEventListener('click', () => { 
+            if(playerCells.length) { playerCells[0].x = WORLD_SIZE/2; playerCells[0].y = WORLD_SIZE/2; }
         });
 
         document.getElementById('playBtn').addEventListener('click', startGame);
         document.getElementById('respawnBtn').addEventListener('click', startGame);
-
-        document.getElementById('menuBtn').addEventListener('click', () => {
-            document.getElementById('deathScreen').classList.add('hidden');
-            document.getElementById('menuScreen').classList.remove('hidden');
-        });
 
         function startGame() {
             const val = document.getElementById('playerNameInput').value.trim();
@@ -410,48 +294,24 @@
             document.getElementById('killFeedContainer').classList.remove('hidden');
             document.getElementById('minimapContainer').classList.remove('hidden');
 
-            respawnPlayer();
+            playerCells = [{ x: WORLD_SIZE/2 + (Math.random()*200-100), y: WORLD_SIZE/2 + (Math.random()*200-100), mass: 20, vx: 0, vy: 0 }];
             initGlobalMultiplayer();
             gameActive = true;
             requestAnimationFrame(gameLoop);
-        }
-
-        function respawnPlayer() {
-            let startX = 500 + Math.random() * (WORLD_SIZE - 1000);
-            let startY = 500 + Math.random() * (WORLD_SIZE - 1000);
-            playerCells = [{
-                x: startX,
-                y: startY,
-                mass: 20,
-                vx: 0,
-                vy: 0
-            }];
-        }
-
-        function getTotalMass() {
-            return playerCells.reduce((sum, c) => sum + c.mass, 0);
         }
 
         function splitCells() {
             let newCells = [];
             playerCells.forEach(cell => {
                 if (cell.mass >= 40) {
-                    let halfMass = Math.floor(cell.mass / 2);
-                    cell.mass = halfMass;
+                    let half = Math.floor(cell.mass / 2);
+                    cell.mass = half;
                     let angle = Math.atan2(mouseY - canvas.height/2, mouseX - canvas.width/2);
-                    newCells.push({
-                        x: cell.x + Math.cos(angle) * 40,
-                        y: cell.y + Math.sin(angle) * 40,
-                        mass: halfMass,
-                        vx: Math.cos(angle) * 15,
-                        vy: Math.sin(angle) * 15
-                    });
+                    newCells.push({ x: cell.x + Math.cos(angle)*40, y: cell.y + Math.sin(angle)*40, mass: half, vx: Math.cos(angle)*15, vy: Math.sin(angle)*15 });
                 }
                 newCells.push(cell);
             });
-            if (newCells.length <= 16) {
-                playerCells = newCells;
-            }
+            if (newCells.length <= 16) playerCells = newCells;
         }
 
         function ejectMassPellet() {
@@ -460,7 +320,6 @@
                     cell.mass -= 12;
                     let angle = Math.atan2(mouseY - canvas.height/2, mouseX - canvas.width/2);
                     ejectedMass.push({
-                        id: 'em_' + Math.random().toString(36).substring(2, 9),
                         x: cell.x + Math.cos(angle) * 30,
                         y: cell.y + Math.sin(angle) * 30,
                         vx: Math.cos(angle) * 12,
@@ -473,33 +332,13 @@
 
         function initGlobalMultiplayer() {
             if (!supabaseClient || globalChannel) return;
-
-            globalChannel = supabaseClient.channel('global_agar_room_v1', {
-                config: { broadcast: { self: false } }
-            });
-
-            globalChannel.on('broadcast', { event: 'cell_sync' }, payload => {
-                remotePlayers[payload.payload.id] = payload.payload;
-            });
-
-            globalChannel.on('broadcast', { event: 'player_eaten' }, payload => {
-                addKillFeedMessage(payload.payload.predator, payload.payload.prey);
-            });
-
+            globalChannel = supabaseClient.channel('global_agar_room_v2', { config: { broadcast: { self: false } } });
+            globalChannel.on('broadcast', { event: 'cell_sync' }, payload => { remotePlayers[payload.payload.id] = payload.payload; });
             globalChannel.subscribe(status => {
                 if(status === 'SUBSCRIBED') {
                     setInterval(() => {
-                        if(!gameActive || playerCells.length === 0) return;
-                        globalChannel.send({
-                            type: 'broadcast',
-                            event: 'cell_sync',
-                            payload: {
-                                id: playerId,
-                                name: playerName,
-                                color: playerColor,
-                                cells: playerCells
-                            }
-                        });
+                        if(!gameActive || !playerCells.length) return;
+                        globalChannel.send({ type: 'broadcast', event: 'cell_sync', payload: { id: playerId, name: playerName, color: playerColor, cells: playerCells } });
                     }, 50);
                 }
             });
@@ -511,65 +350,43 @@
             let centerX = canvas.width / 2;
             let centerY = canvas.height / 2;
 
-            // Update player cells
+            // Update player movement
             playerCells.forEach(cell => {
-                let dx = mouseX - centerX;
-                let dy = mouseY - centerY;
+                let dx = mouseX - centerX, dy = mouseY - centerY;
                 let dist = Math.hypot(dx, dy);
                 let speed = Math.max(1.2, 5.5 * Math.pow(cell.mass, -0.15));
-
                 if (dist > 5) {
                     cell.vx += (dx / dist) * speed * 0.2;
                     cell.vy += (dy / dist) * speed * 0.2;
                 }
-
-                cell.vx *= 0.85;
-                cell.vy *= 0.85;
-
-                cell.x += cell.vx;
-                cell.y += cell.vy;
-
+                cell.vx *= 0.85; cell.vy *= 0.85;
+                cell.x += cell.vx; cell.y += cell.vy;
                 cell.x = Math.max(20, Math.min(WORLD_SIZE - 20, cell.x));
                 cell.y = Math.max(20, Math.min(WORLD_SIZE - 20, cell.y));
-
-                // Natural slow mass decay for large cells
-                if (cell.mass > 100 && Math.random() < 0.05) {
-                    cell.mass -= 0.1;
-                }
             });
 
-            // Update AI bots
-            for (let bId in aiBots) {
-                let bot = aiBots[bId];
-                bot.x += (Math.random() - 0.5) * 3;
-                bot.y += (Math.random() - 0.5) * 3;
-                bot.x = Math.max(20, Math.min(WORLD_SIZE - 20, bot.x));
-                bot.y = Math.max(20, Math.min(WORLD_SIZE - 20, bot.y));
-
-                // Bot eating food
-                for (let i = foodPellets.length - 1; i >= 0; i--) {
-                    let f = foodPellets[i];
-                    let radius = Math.sqrt(bot.mass) * 3;
-                    if (Math.hypot(bot.x - f.x, bot.y - f.y) < radius) {
-                        bot.mass += 0.5;
-                        foodPellets.splice(i, 1);
-                        foodPellets.push({
-                            id: 'food_' + Math.random(),
-                            x: Math.random() * WORLD_SIZE,
-                            y: Math.random() * WORLD_SIZE,
-                            color: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'][Math.floor(Math.random() * 6)]
-                        });
-                    }
-                }
-            }
-
-            // Update ejected mass
+            // EJECTED MASS ATTRACTION & MERGING LOGIC
             for (let i = ejectedMass.length - 1; i >= 0; i--) {
                 let em = ejectedMass[i];
-                em.x += em.vx;
-                em.y += em.vy;
-                em.vx *= 0.9;
-                em.vy *= 0.9;
+                em.x += em.vx; em.y += em.vy;
+                em.vx *= 0.9; em.vy *= 0.9;
+
+                // Attract to nearby ejected mass pellets
+                for (let j = i - 1; j >= 0; j--) {
+                    let other = ejectedMass[j];
+                    let d = Math.hypot(em.x - other.x, em.y - other.y);
+                    if (d < 80 && d > 0) {
+                        let pullAngle = Math.atan2(other.y - em.y, other.x - em.x);
+                        em.vx += Math.cos(pullAngle) * 0.15;
+                        em.vy += Math.sin(pullAngle) * 0.15;
+
+                        // Merge if they get really close!
+                        if (d < 12) {
+                            ejectedMass.splice(i, 1);
+                            break;
+                        }
+                    }
+                }
 
                 // Player eats ejected mass
                 playerCells.forEach(cell => {
@@ -581,260 +398,116 @@
                 });
             }
 
-            // Food consumption by player cells
+            // Food collision
             for (let i = foodPellets.length - 1; i >= 0; i--) {
                 let f = foodPellets[i];
                 for (let j = 0; j < playerCells.length; j++) {
                     let cell = playerCells[j];
-                    let r = Math.sqrt(cell.mass) * 3;
-                    if (Math.hypot(cell.x - f.x, cell.y - f.y) < r) {
-                        cell.mass += 0.8;
+                    if (Math.hypot(cell.x - f.x, cell.y - f.y) < Math.sqrt(cell.mass) * 3) {
+                        cell.mass += 0.6;
                         foodPellets.splice(i, 1);
-                        foodPellets.push({
-                            id: 'food_' + Math.random(),
-                            x: Math.random() * WORLD_SIZE,
-                            y: Math.random() * WORLD_SIZE,
-                            color: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'][Math.floor(Math.random() * 6)]
-                        });
+                        foodPellets.push({ x: Math.random() * WORLD_SIZE, y: Math.random() * WORLD_SIZE, color: f.color });
                         break;
                     }
                 }
             }
 
-            // Check player-on-player and bot consumption
-            if (!godMode) {
-                for (let i = playerCells.length - 1; i >= 0; i--) {
-                    let cell = playerCells[i];
-                    let r1 = Math.sqrt(cell.mass) * 3;
+            if (playerCells.length === 0) triggerDeath("Map Hazards");
 
-                    // Check AI bots
-                    for (let bId in aiBots) {
-                        let bot = aiBots[bId];
-                        let r2 = Math.sqrt(bot.mass) * 3;
-                        let dist = Math.hypot(cell.x - bot.x, cell.y - bot.y);
-
-                        if (r1 > r2 * 1.15 && dist < r1) {
-                            cell.mass += bot.mass;
-                            delete aiBots[bId];
-                            addKillFeedMessage(playerName, bot.name);
-                        } else if (r2 > r1 * 1.15 && dist < r2 && playerCells.length === 1) {
-                            bot.mass += cell.mass;
-                            playerCells.splice(i, 1);
-                            addKillFeedMessage(bot.name, playerName);
-                            triggerDeath(bot.name);
-                            break;
-                        }
-                    }
-
-                    // Check remote players
-                    for (let id in remotePlayers) {
-                        let rp = remotePlayers[id];
-                        if (!rp.cells) continue;
-                        rp.cells.forEach(rc => {
-                            let r2 = Math.sqrt(rc.mass) * 3;
-                            let dist = Math.hypot(cell.x - rc.x, cell.y - rc.y);
-                            if (r1 > r2 * 1.15 && dist < r1) {
-                                cell.mass += rc.mass;
-                                addKillFeedMessage(playerName, rp.name);
-                            }
-                        });
-                    }
-                }
-            }
-
-            if (playerCells.length === 0 && gameActive) {
-                triggerDeath("Another Cell");
-            }
-
-            let totalMass = Math.floor(getTotalMass());
+            let totalMass = Math.floor(playerCells.reduce((s, c) => s + c.mass, 0));
             document.getElementById('massDisplay').innerText = totalMass;
 
             // Render World
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
 
-            let avgX = playerCells.length > 0 ? playerCells.reduce((s, c) => s + c.x, 0) / playerCells.length : WORLD_SIZE/2;
-            let avgY = playerCells.length > 0 ? playerCells.reduce((s, c) => s + c.y, 0) / playerCells.length : WORLD_SIZE/2;
+            let avgX = playerCells.reduce((s, c) => s + c.x, 0) / playerCells.length;
+            let avgY = playerCells.reduce((s, c) => s + c.y, 0) / playerCells.length;
+            let zoom = Math.max(0.15, 1 / (1 + Math.sqrt(totalMass) * 0.03));
 
-            let zoom = Math.max(0.25, 1 / (1 + Math.sqrt(totalMass) * 0.04));
             ctx.translate(canvas.width / 2, canvas.height / 2);
             ctx.scale(zoom, zoom);
             ctx.translate(-avgX, -avgY);
 
-            // Draw grid lines
-            ctx.strokeStyle = '#1e293b';
-            ctx.lineWidth = 1;
-            let gridSize = 100;
-            let startX = Math.floor((avgX - (canvas.width / 2) / zoom) / gridSize) * gridSize;
-            let startY = Math.floor((avgY - (canvas.height / 2) / zoom) / gridSize) * gridSize;
-            let viewRangeX = (canvas.width / zoom);
-            let viewRangeY = (canvas.height / zoom);
-
-            for (let x = startX; x < startX + viewRangeX + gridSize * 2; x += gridSize) {
-                ctx.beginPath(); ctx.moveTo(x, avgY - viewRangeY); ctx.lineTo(x, avgY + viewRangeY * 2); ctx.stroke();
+            // Draw grid
+            ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2;
+            let gridSize = 150;
+            let startX = Math.floor((avgX - (canvas.width/2)/zoom)/gridSize)*gridSize;
+            let startY = Math.floor((avgY - (canvas.height/2)/zoom)/gridSize)*gridSize;
+            for (let x = startX; x < startX + (canvas.width/zoom) + gridSize*2; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, avgY - (canvas.height/zoom)); ctx.lineTo(x, avgY + (canvas.height/zoom)*2); ctx.stroke();
             }
-            for (let y = startY; y < startY + viewRangeY + gridSize * 2; y += gridSize) {
-                ctx.beginPath(); ctx.moveTo(avgX - viewRangeX, y); ctx.lineTo(avgX + viewRangeX * 2, y); ctx.stroke();
+            for (let y = startY; y < startY + (canvas.height/zoom) + gridSize*2; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(avgX - (canvas.width/zoom), y); ctx.lineTo(avgX + (canvas.width/zoom)*2, y); ctx.stroke();
             }
 
             // Draw border
-            ctx.strokeStyle = '#6366f1';
-            ctx.lineWidth = 10;
+            ctx.strokeStyle = '#6366f1'; ctx.lineWidth = 15;
             ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
 
-            // Draw food pellets
+            // Draw food
             foodPellets.forEach(f => {
-                ctx.fillStyle = f.color;
-                ctx.beginPath();
-                ctx.arc(f.x, f.y, 5, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.fillStyle = f.color; ctx.beginPath(); ctx.arc(f.x, f.y, 6, 0, Math.PI*2); ctx.fill();
             });
 
             // Draw ejected mass
             ejectedMass.forEach(em => {
-                ctx.fillStyle = em.color;
-                ctx.beginPath();
-                ctx.arc(em.x, em.y, 8, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
+                ctx.fillStyle = em.color; ctx.beginPath(); ctx.arc(em.x, em.y, 8, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
             });
 
-            // Draw AI bots
-            for (let bId in aiBots) {
-                let bot = aiBots[bId];
-                let r = Math.sqrt(bot.mass) * 3;
-                ctx.fillStyle = bot.color;
-                ctx.beginPath();
-                ctx.arc(bot.x, bot.y, r, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 3;
-                ctx.stroke();
+            // Draw Viruses
+            viruses.forEach(v => {
+                ctx.fillStyle = '#22c55e'; ctx.strokeStyle = '#15803d'; ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.arc(v.x, v.y, 35, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+            });
 
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 12px Fredoka, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(bot.name, bot.x, bot.y + 4);
-            }
-
-            // Draw remote players
-            for (let id in remotePlayers) {
-                let rp = remotePlayers[id];
-                if (!rp.cells) continue;
-                rp.cells.forEach(rc => {
-                    let r = Math.sqrt(rc.mass) * 3;
-                    ctx.fillStyle = rp.color || '#3b82f6';
-                    ctx.beginPath();
-                    ctx.arc(rc.x, rc.y, r, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = '#000000';
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 12px Fredoka, sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(rp.name, rc.x, rc.y + 4);
-                });
-            }
-
-            // Draw player cells
+            // Draw player cells with skin support
             playerCells.forEach(cell => {
                 let r = Math.sqrt(cell.mass) * 3;
-                ctx.fillStyle = playerColor;
+                let skinImg = getSkinImage(playerName);
+
+                ctx.save();
                 ctx.beginPath();
                 ctx.arc(cell.x, cell.y, r, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 3.5;
-                ctx.stroke();
+                ctx.closePath();
+                ctx.clip();
 
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 13px Fredoka, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(playerName + (godMode ? ' [GOD]' : ''), cell.x, cell.y + 4);
+                if (skinImg && skinImg.complete && skinImg.naturalWidth !== 0) {
+                    ctx.drawImage(skinImg, cell.x - r, cell.y - r, r * 2, r * 2);
+                } else {
+                    ctx.fillStyle = playerColor;
+                    ctx.fillRect(cell.x - r, cell.y - r, r * 2, r * 2);
+                }
+                ctx.restore();
+
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.arc(cell.x, cell.y, r, 0, Math.PI * 2); ctx.stroke();
+
+                ctx.fillStyle = '#ffffff'; ctx.font = 'bold 14px Fredoka, sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText(playerName, cell.x, cell.y + 4);
             });
 
             ctx.restore();
 
-            drawMinimap();
-            updateLeaderboard();
-
-            if (isAdmin) {
-                document.getElementById('adminPlayerCount').innerText = Object.keys(remotePlayers).length + 1;
-                document.getElementById('adminBotCount').innerText = Object.keys(aiBots).length;
-                document.getElementById('adminMassVal').innerText = totalMass;
-            }
+            // Draw Minimap
+            minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+            let scaleX = minimapCanvas.width / WORLD_SIZE, scaleY = minimapCanvas.height / WORLD_SIZE;
+            playerCells.forEach(c => {
+                minimapCtx.fillStyle = '#6366f1'; minimapCtx.beginPath(); minimapCtx.arc(c.x * scaleX, c.y * scaleY, 4, 0, Math.PI*2); minimapCtx.fill();
+            });
 
             requestAnimationFrame(gameLoop);
         }
 
-        function triggerDeath(predatorName) {
+        function triggerDeath(reason) {
             gameActive = false;
             document.getElementById('hud').classList.add('hidden');
             document.getElementById('leaderboard').classList.add('hidden');
             document.getElementById('killFeedContainer').classList.add('hidden');
             document.getElementById('minimapContainer').classList.add('hidden');
-            document.getElementById('finalMassDisplay').innerText = Math.floor(getTotalMass());
-            document.getElementById('deathReasonText').innerText = "You were consumed by " + predatorName + "!";
+            document.getElementById('deathReasonText').innerText = "You were eliminated by " + reason + "!";
             document.getElementById('deathScreen').classList.remove('hidden');
-        }
-
-        function drawMinimap() {
-            minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-            let scaleX = minimapCanvas.width / WORLD_SIZE;
-            let scaleY = minimapCanvas.height / WORLD_SIZE;
-
-            minimapCtx.fillStyle = '#334155';
-            foodPellets.forEach(f => {
-                minimapCtx.fillRect(f.x * scaleX, f.y * scaleY, 1.5, 1.5);
-            });
-
-            for (let bId in aiBots) {
-                let b = aiBots[bId];
-                minimapCtx.fillStyle = b.color;
-                minimapCtx.beginPath();
-                minimapCtx.arc(b.x * scaleX, b.y * scaleY, 2, 0, Math.PI * 2);
-                minimapCtx.fill();
-            }
-
-            playerCells.forEach(cell => {
-                minimapCtx.fillStyle = '#6366f1';
-                minimapCtx.beginPath();
-                minimapCtx.arc(cell.x * scaleX, cell.y * scaleY, 3.5, 0, Math.PI * 2);
-                minimapCtx.fill();
-            });
-        }
-
-        function updateLeaderboard() {
-            let listEl = document.getElementById('leaderboardList');
-            let allPlayers = [{ name: playerName + ' (You)', mass: getTotalMass() }];
-            
-            for (let id in remotePlayers) {
-                let rp = remotePlayers[id];
-                let m = rp.cells ? rp.cells.reduce((s, c) => s + c.mass, 0) : 10;
-                allPlayers.push({ name: rp.name || 'Cell', mass: m });
-            }
-
-            for (let id in aiBots) {
-                allPlayers.push({ name: aiBots[id].name, mass: aiBots[id].mass });
-            }
-
-            allPlayers.sort((a, b) => b.mass - a.mass);
-            let top5 = allPlayers.slice(0, 5);
-
-            listEl.innerHTML = '';
-            top5.forEach((p, index) => {
-                let row = document.createElement('div');
-                row.className = 'flex justify-between items-center';
-                row.innerHTML = `
-                    <span class="truncate pr-2">${index + 1}. ${p.name}</span>
-                    <span class="font-bold text-indigo-400">${Math.floor(p.mass)}</span>
-                `;
-                listEl.appendChild(row);
-            });
         }
     </script>
 </body>
