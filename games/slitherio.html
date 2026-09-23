@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slither.io</title>
+    <title>Slither.io - Battle Royale with Guns</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Fredoka -->
@@ -108,7 +108,7 @@
                 <i class="fa-solid fa-play mr-1"></i> Play Normal
             </button>
             <button id="brPlayBtn" class="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-2xl text-md retro-shadow transition transform active:scale-95">
-                <i class="fa-solid fa-skull-crossbones mr-1"></i> Battle Royale
+                <i class="fa-solid fa-gun mr-1"></i> Battle Royale (Guns)
             </button>
         </div>
         <div class="text-[10px] text-slate-500">Press `~` (tilde) in-game to open Admin Console</div>
@@ -260,6 +260,7 @@
             <div id="scoreDisplay" class="text-2xl font-extrabold text-emerald-400 font-mono">10</div>
         </div>
         <div class="text-[10px] text-slate-400 bg-slate-900/60 px-3 py-1 rounded-xl">Hold <b class="text-amber-400">SPACE</b> to Boost</div>
+        <div id="gunHudHint" class="hidden text-[10px] text-purple-300 bg-purple-950/80 border border-purple-600 px-3 py-1 rounded-xl">Press <b class="text-amber-400">E</b> to Shoot Gun</div>
     </div>
 
     <!-- LEADERBOARD -->
@@ -321,13 +322,11 @@
         let isLobby = false;
         let isSpectating = false;
         
-        // Match Statistics tracking
         let matchStartTime = 0;
         let statsFoodEaten = 0;
         let statsPeakScore = 10;
         let statsKills = 0;
 
-        // Battle Royale Shrinking Zone State
         let brZone = {
             x: WORLD_SIZE / 2,
             y: WORLD_SIZE / 2,
@@ -339,7 +338,6 @@
             shrinkTimer: 120
         };
 
-        // Non-lethal Obstacle Cubes
         let obstacleCubes = [];
         for (let i = 0; i < 40; i++) {
             obstacleCubes.push({
@@ -349,6 +347,8 @@
                 color: '#1e293b'
             });
         }
+
+        let bullets = []; // Array to track active gun projectiles in BR mode
 
         let screenShakeTime = 0;
         let screenShakeIntensity = 0;
@@ -515,6 +515,12 @@
 
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space') isBoosting = true;
+            
+            // Shoot gun in Battle Royale mode when pressing 'E'
+            if ((e.key === 'e' || e.key === 'E') && gameMode === 'battleroyale' && gameActive && !isLobby && !isSpectating) {
+                shootGun();
+            }
+
             if (e.key === '`' || e.key === '~') {
                 e.preventDefault();
                 if (isAdmin) {
@@ -529,6 +535,33 @@
         window.addEventListener('keyup', (e) => {
             if (e.code === 'Space') isBoosting = false;
         });
+
+        function shootGun() {
+            if (me.score <= 15) return; // Cost length to shoot
+            me.score -= 3;
+            document.getElementById('scoreDisplay').innerText = me.score;
+
+            let bullet = {
+                id: 'bullet_' + Math.random().toString(36).substring(2, 9),
+                ownerId: playerId,
+                ownerName: playerName,
+                x: me.x + Math.cos(me.angle) * 20,
+                y: me.y + Math.sin(me.angle) * 20,
+                vx: Math.cos(me.angle) * 16,
+                vy: Math.sin(me.angle) * 16,
+                life: 60 // Frames before bullet expires
+            };
+
+            bullets.push(bullet);
+
+            if (globalChannel) {
+                globalChannel.send({
+                    type: 'broadcast',
+                    event: 'player_shoot',
+                    payload: bullet
+                });
+            }
+        }
 
         document.getElementById('adminLoginSubmit').addEventListener('click', () => {
             let pass = document.getElementById('adminPasswordInput').value;
@@ -700,12 +733,14 @@
                 isLobby = true;
                 godMode = true;
                 document.getElementById('lobbyBanner').classList.remove('hidden');
+                document.getElementById('gunHudHint').classList.remove('hidden');
                 me.x = WORLD_SIZE / 2;
                 me.y = WORLD_SIZE / 2;
             } else {
                 isLobby = false;
                 godMode = false;
                 document.getElementById('lobbyBanner').classList.add('hidden');
+                document.getElementById('gunHudHint').classList.add('hidden');
                 respawnPlayer();
             }
 
@@ -810,6 +845,12 @@
                     if (p.id !== playerId) {
                         remotePlayers[p.id] = p;
                         updateAdminTargetDropdown();
+                    }
+                })
+                .on('broadcast', { event: 'player_shoot' }, (payload) => {
+                    let b = payload.payload;
+                    if (b.ownerId !== playerId) {
+                        bullets.push(b);
                     }
                 })
                 .on('broadcast', { event: 'player_death' }, (payload) => {
@@ -1007,6 +1048,50 @@
                 }
             }
 
+            // Update Bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i];
+                b.x += b.vx;
+                b.y += b.vy;
+                b.life--;
+
+                // Check bullet collision with local player (in BR mode)
+                if (gameMode === 'battleroyale' && b.ownerId !== playerId && !isLobby && !godMode) {
+                    let hitDist = Math.hypot(me.x - b.x, me.y - b.y);
+                    if (hitDist < 20) {
+                        me.score = Math.max(10, me.score - 15);
+                        document.getElementById('scoreDisplay').innerText = me.score;
+                        triggerScreenShake(10, 8);
+                        bullets.splice(i, 1);
+                        if (me.score <= 15) {
+                            handleDeath("Shot down by " + b.ownerName + "!", b.ownerName);
+                            return;
+                        }
+                        continue;
+                    }
+                }
+
+                // Check bullet collision with AI Bots
+                for (let botId in aiBots) {
+                    let bot = aiBots[botId];
+                    let hitBotDist = Math.hypot(bot.x - b.x, bot.y - b.y);
+                    if (hitBotDist < 20) {
+                        bot.score = Math.max(10, bot.score - 15);
+                        bullets.splice(i, 1);
+                        if (bot.score <= 15) {
+                            statsKills++;
+                            delete aiBots[botId];
+                            updateAdminTargetDropdown();
+                        }
+                        break;
+                    }
+                }
+
+                if (b && (b.life <= 0 || b.x < 0 || b.x > WORLD_SIZE || b.y < 0 || b.y > WORLD_SIZE)) {
+                    bullets.splice(i, 1);
+                }
+            }
+
             for (let id in aiBots) {
                 let bot = aiBots[id];
                 bot.angle += (Math.random() - 0.5) * 0.2;
@@ -1149,6 +1234,14 @@
                 }
             }
 
+            // Render Bullets
+            for (let b of bullets) {
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
             for (let id in aiBots) {
                 let bot = aiBots[id];
                 for (let i = bot.trail.length - 1; i >= 0; i--) {
@@ -1202,6 +1295,14 @@
             ctx.beginPath();
             ctx.arc(me.x, me.y, 15, 0, Math.PI * 2);
             ctx.fill();
+
+            // Draw a tiny weapon barrel graphic if in Battle Royale mode
+            if (gameMode === 'battleroyale') {
+                ctx.fillStyle = '#94a3b8';
+                ctx.beginPath();
+                ctx.arc(me.x + Math.cos(me.angle) * 14, me.y + Math.sin(me.angle) * 14, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
 
             ctx.fillStyle = '#10b981';
             ctx.font = 'bold 11px Fredoka, sans-serif';
