@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slither.io: Global Server with Skins, Minimap, Smooth Steering & Admin Panel</title>
+    <title>Slither.io</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Fredoka -->
@@ -37,6 +37,13 @@
             background: #475569;
             border-radius: 8px;
         }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .kill-feed-item {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
     </style>
 </head>
 <body class="text-white h-screen w-screen flex flex-col items-center justify-center bg-slate-950">
@@ -48,7 +55,7 @@
         </div>
         <div>
             <h1 class="text-2xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-400">SLITHER GLOBAL</h1>
-            <p class="text-[11px] text-slate-300 mt-0.5">Customize your worm, pick a skin, and battle online!</p>
+            <p class="text-[11px] text-slate-300 mt-0.5">Customize your worm, particle trail, skin, and battle!</p>
         </div>
 
         <!-- LIVE PREVIEW CONTAINER -->
@@ -78,10 +85,21 @@
                 </div>
             </div>
 
+            <!-- Particle Trail Selector -->
+            <div>
+                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Particle Trail Effect</label>
+                <select id="trailStyleSelect" class="w-full bg-slate-900 border-2 border-slate-600 rounded-xl px-3 py-2 text-xs font-semibold text-emerald-300 focus:outline-none focus:border-emerald-500">
+                    <option value="sparkle">✨ Sparkle Dust</option>
+                    <option value="bubble">🫧 Neon Bubbles</option>
+                    <option value="fire">🔥 Fire Embers</option>
+                    <option value="matrix">💻 Digital Matrix</option>
+                </select>
+            </div>
+
             <!-- Skin Selector -->
             <div>
-                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Select Head Skin (Ensure /heads/ folder exists)</label>
-                <div id="skinSelectorGrid" class="grid grid-cols-4 gap-2 max-h-28 overflow-y-auto pr-1"></div>
+                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Select Head Skin</label>
+                <div id="skinSelectorGrid" class="grid grid-cols-4 gap-2 max-h-24 overflow-y-auto pr-1"></div>
             </div>
         </div>
 
@@ -110,9 +128,13 @@
         </div>
         <div class="space-y-1 text-xs text-slate-300">
             <div>Online Players: <span id="adminPlayerCount" class="font-mono font-bold text-emerald-400">1</span></div>
+            <div>Active AI Bots: <span id="adminBotCount" class="font-mono font-bold text-amber-400">0</span></div>
             <div>Your Score: <span id="adminScoreVal" class="font-mono font-bold text-emerald-400">10</span></div>
         </div>
         <div class="space-y-2 pt-2 border-t border-slate-800">
+            <button id="adminSpawnBotBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
+                <i class="fa-solid fa-robot mr-2"></i> Spawn AI Bot Near Me
+            </button>
             <button id="adminSpawnFoodBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
                 <i class="fa-solid fa-cookie-bite mr-2"></i> Spawn +50 Food Pellets
             </button>
@@ -145,7 +167,7 @@
                 </button>
             </div>
             <button id="adminZeroScoreBtn" class="w-full bg-rose-950/50 hover:bg-rose-900/60 border border-rose-700 text-rose-300 font-semibold py-1.5 rounded-xl text-xs transition">
-                <i class="fa-solid fa-trash-can mr-1"></i> Reset Score to 10 (Clear Food)
+                <i class="fa-solid fa-trash-can mr-1"></i> Reset Score to 10
             </button>
         </div>
     </div>
@@ -185,9 +207,15 @@
     </div>
 
     <!-- LEADERBOARD -->
-    <div id="leaderboard" class="hidden absolute top-4 right-4 z-10 pointer-events-none bg-slate-900/80 backdrop-blur border border-slate-700 p-3 rounded-2xl shadow-lg w-48">
+    <div id="leaderboard" class="hidden absolute top-4 right-52 z-10 pointer-events-none bg-slate-900/80 backdrop-blur border border-slate-700 p-3 rounded-2xl shadow-lg w-48">
         <div class="text-xs font-bold text-teal-400 border-b border-slate-700 pb-1 mb-2"><i class="fa-solid fa-trophy mr-1"></i> Top Worms</div>
         <div id="leaderboardList" class="space-y-1 text-xs text-slate-300 font-mono"></div>
+    </div>
+
+    <!-- KILL FEED CONTAINER -->
+    <div id="killFeedContainer" class="hidden absolute top-4 right-4 z-20 pointer-events-none flex flex-col space-y-1.5 w-48 overflow-hidden">
+        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 px-1"><i class="fa-solid fa-skull mr-1"></i> Kill Feed</div>
+        <div id="killFeedList" class="space-y-1.5 flex flex-col"></div>
     </div>
 
     <!-- MINIMAP CONTAINER -->
@@ -233,7 +261,9 @@
         let godMode = false;
         let superSpeedActive = false;
 
-        // Available Skins configuration loading from heads/ folder
+        let screenShakeTime = 0;
+        let screenShakeIntensity = 0;
+
         const AVAILABLE_SKINS = [
             { id: 'none', name: 'Default Head', url: '' },
             { id: 'skin1', name: 'Classic Green', url: 'heads/skin1.png' },
@@ -264,29 +294,56 @@
             score: 10,
             color: '#10b981',
             skin: 'none',
-            isDead: false,
-            deathAnimProgress: 1
+            trailStyle: 'sparkle',
+            isDead: false
         };
 
         let remotePlayers = {}; 
+        let aiBots = {};
         let foodPellets = [];    
+        let particles = [];
         let mouseX = window.innerWidth / 2;
         let mouseY = window.innerHeight / 2;
         let gameActive = false;
         let isBoosting = false;
+
+        function addKillFeedMessage(killer, victim) {
+            let list = document.getElementById('killFeedList');
+            let item = document.createElement('div');
+            item.className = 'kill-feed-item bg-slate-900/90 backdrop-blur border border-slate-700/80 px-2.5 py-1.5 rounded-xl text-[10px] text-slate-300 shadow flex items-center justify-between space-x-1';
+            item.innerHTML = `
+                <span class="font-bold text-amber-300 truncate max-w-[70px]">${killer}</span>
+                <i class="fa-solid fa-skull text-red-400 text-[9px]"></i>
+                <span class="font-bold text-rose-300 truncate max-w-[70px]">${victim}</span>
+            `;
+            list.prepend(item);
+
+            // Limit kill feed items to max 4 entries
+            if (list.children.length > 4) {
+                list.removeChild(list.lastChild);
+            }
+
+            setTimeout(() => {
+                if (item && item.parentNode) {
+                    item.style.transition = 'opacity 0.4s ease';
+                    item.style.opacity = '0';
+                    setTimeout(() => item.remove(), 400);
+                }
+            }, 4000);
+        }
 
         function buildSkinSelector() {
             const grid = document.getElementById('skinSelectorGrid');
             grid.innerHTML = '';
             AVAILABLE_SKINS.forEach(skin => {
                 let btn = document.createElement('div');
-                btn.className = `cursor-pointer border-2 rounded-xl p-1.5 flex flex-col items-center justify-center transition bg-slate-900 ${me.skin === skin.id ? 'border-emerald-400 bg-emerald-950/40' : 'border-slate-700 hover:border-slate-500'}`;
+                btn.className = `cursor-pointer border-2 rounded-xl p-1 flex flex-col items-center justify-center transition bg-slate-900 ${me.skin === skin.id ? 'border-emerald-400 bg-emerald-950/40' : 'border-slate-700 hover:border-slate-500'}`;
                 let hasImg = skin.url && loadedSkinImages[skin.id];
                 btn.innerHTML = `
-                    <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-600 mb-1">
+                    <div class="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-600 mb-0.5">
                         ${hasImg ? `<img src="${skin.url}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-worm text-emerald-400 text-xs"></i>'}
                     </div>
-                    <span class="text-[9px] text-slate-300 font-semibold truncate w-full text-center">${skin.name.split(' ')[0]}</span>
+                    <span class="text-[8px] text-slate-300 font-semibold truncate w-full text-center">${skin.name.split(' ')[0]}</span>
                 `;
                 btn.onclick = () => {
                     me.skin = skin.id;
@@ -306,6 +363,10 @@
                 me.color = btn.getAttribute('data-color');
                 colorPicker.value = me.color;
             });
+        });
+
+        document.getElementById('trailStyleSelect').addEventListener('change', (e) => {
+            me.trailStyle = e.target.value;
         });
 
         function renderPreview() {
@@ -354,6 +415,7 @@
                 id: 'food_' + i,
                 x: seededRandom(i * 3 + 1) * WORLD_SIZE,
                 y: seededRandom(i * 3 + 2) * WORLD_SIZE,
+                vx: 0, vy: 0,
                 color: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'][Math.floor(seededRandom(i * 3 + 3) * 5)]
             });
         }
@@ -399,12 +461,47 @@
             document.getElementById('adminConsole').classList.add('hidden');
         });
 
+        document.getElementById('adminSpawnBotBtn').addEventListener('click', () => {
+            let botId = 'bot_' + Math.random().toString(36).substring(2, 9);
+            let botColors = ['#f43f5e', '#a855f7', '#3b82f6', '#f59e0b', '#06b6d4', '#ec4899'];
+            let botNames = ['SlitherBot', 'Worminator', 'CyberSlither', 'ByteWorm', 'VenomBot', 'ApexPredator'];
+            
+            let bX = me.x + (Math.random() * 600 - 300);
+            let bY = me.y + (Math.random() * 600 - 300);
+            bX = Math.max(100, Math.min(WORLD_SIZE - 100, bX));
+            bY = Math.max(100, Math.min(WORLD_SIZE - 100, bY));
+
+            let bot = {
+                id: botId,
+                name: botNames[Math.floor(Math.random() * botNames.length)] + Math.floor(Math.random() * 99),
+                x: bX,
+                y: bY,
+                angle: Math.random() * Math.PI * 2,
+                speed: 3.2,
+                score: 30 + Math.floor(Math.random() * 100),
+                color: botColors[Math.floor(Math.random() * botColors.length)],
+                skin: 'none',
+                trail: []
+            };
+
+            for(let i=0; i<bot.score * 4; i++) {
+                bot.trail.push({ x: bot.x, y: bot.y });
+            }
+
+            aiBots[botId] = bot;
+            updateAdminTargetDropdown();
+        });
+
         document.getElementById('adminSpawnFoodBtn').addEventListener('click', () => {
             for(let i=0; i<50; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * 8 + 2;
                 let f = {
                     id: 'admin_drop_' + Math.random().toString(36).substring(2, 9),
-                    x: me.x + (Math.random() * 400 - 200),
-                    y: me.y + (Math.random() * 400 - 200),
+                    x: me.x,
+                    y: me.y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
                     color: '#f59e0b'
                 };
                 foodPellets.push(f);
@@ -423,6 +520,7 @@
                 me.trail.push({ x: me.x, y: me.y });
             }
             document.getElementById('scoreDisplay').innerText = me.score;
+            triggerScreenShake(20, 15);
         });
 
         document.getElementById('adminSpeedBtn').addEventListener('click', () => {
@@ -436,7 +534,6 @@
             me.y = WORLD_SIZE / 2;
         });
 
-        // Targeted Player Score Modification Handlers
         document.getElementById('adminAddScoreBtn').addEventListener('click', () => {
             let targetId = document.getElementById('adminTargetSelect').value;
             if (targetId === 'self') {
@@ -445,6 +542,8 @@
             } else if (remotePlayers[targetId]) {
                 remotePlayers[targetId].score = (remotePlayers[targetId].score || 10) + 500;
                 broadcastScoreAdjustment(targetId, remotePlayers[targetId].score);
+            } else if (aiBots[targetId]) {
+                aiBots[targetId].score += 500;
             }
         });
 
@@ -456,6 +555,8 @@
             } else if (remotePlayers[targetId]) {
                 remotePlayers[targetId].score = Math.max(10, (remotePlayers[targetId].score || 10) - 500);
                 broadcastScoreAdjustment(targetId, remotePlayers[targetId].score);
+            } else if (aiBots[targetId]) {
+                aiBots[targetId].score = Math.max(10, aiBots[targetId].score - 500);
             }
         });
 
@@ -469,6 +570,9 @@
             } else if (remotePlayers[targetId]) {
                 remotePlayers[targetId].score = 10;
                 broadcastScoreAdjustment(targetId, 10);
+            } else if (aiBots[targetId]) {
+                aiBots[targetId].score = 10;
+                aiBots[targetId].trail = [];
             }
         });
 
@@ -498,6 +602,7 @@
             document.getElementById('deathScreen').classList.add('hidden');
             document.getElementById('hud').classList.remove('hidden');
             document.getElementById('leaderboard').classList.remove('hidden');
+            document.getElementById('killFeedContainer').classList.remove('hidden');
             document.getElementById('minimapContainer').classList.remove('hidden');
 
             respawnPlayer();
@@ -512,24 +617,41 @@
             me.score = 10;
             me.trail = [];
             me.isDead = false;
-            me.deathAnimProgress = 1;
             for(let i=0; i<me.score*4; i++) {
                 me.trail.push({ x: me.x, y: me.y });
             }
             document.getElementById('scoreDisplay').innerText = me.score;
         }
 
+        function triggerScreenShake(duration, intensity) {
+            screenShakeTime = duration;
+            screenShakeIntensity = intensity;
+        }
+
         function triggerDeath(killerName) {
             if (me.isDead || godMode) return;
             me.isDead = true;
-            me.deathAnimProgress = 1;
+            triggerScreenShake(30, 22);
+
+            addKillFeedMessage(killerName, playerName);
+            if (globalChannel) {
+                globalChannel.send({
+                    type: 'broadcast',
+                    event: 'player_died',
+                    payload: { killer: killerName, victim: playerName }
+                });
+            }
 
             me.trail.forEach((segment, idx) => {
-                if (idx % 3 === 0) {
+                if (idx % 2 === 0) {
+                    let angle = Math.random() * Math.PI * 2;
+                    let speed = Math.random() * 12 + 3;
                     let droppedFood = {
                         id: 'drop_' + Math.random().toString(36).substring(2, 9),
-                        x: segment.x + (Math.random() * 20 - 10),
-                        y: segment.y + (Math.random() * 20 - 10),
+                        x: segment.x,
+                        y: segment.y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
                         color: me.color
                     };
                     foodPellets.push(droppedFood);
@@ -543,6 +665,7 @@
                 gameActive = false;
                 document.getElementById('hud').classList.add('hidden');
                 document.getElementById('leaderboard').classList.add('hidden');
+                document.getElementById('killFeedContainer').classList.add('hidden');
                 document.getElementById('minimapContainer').classList.add('hidden');
                 document.getElementById('finalScoreDisplay').innerText = me.score;
                 document.getElementById('deathReasonText').innerText = "You crashed into " + killerName + "'s body!";
@@ -553,13 +676,17 @@
         function initGlobalMultiplayer() {
             if (!supabaseClient || globalChannel) return;
 
-            globalChannel = supabaseClient.channel('global_slither_room_v4', {
+            globalChannel = supabaseClient.channel('global_slither_room_v5', {
                 config: { broadcast: { self: false } }
             });
 
             globalChannel.on('broadcast', { event: 'worm_sync' }, payload => {
                 remotePlayers[payload.payload.id] = payload.payload;
                 updateAdminTargetDropdown();
+            });
+
+            globalChannel.on('broadcast', { event: 'player_died' }, payload => {
+                addKillFeedMessage(payload.payload.killer, payload.payload.victim);
             });
 
             globalChannel.on('broadcast', { event: 'admin_score_adjust' }, payload => {
@@ -574,6 +701,8 @@
                 if(idx !== -1) {
                     foodPellets[idx].x = payload.payload.newX;
                     foodPellets[idx].y = payload.payload.newY;
+                    foodPellets[idx].vx = 0;
+                    foodPellets[idx].vy = 0;
                 }
             });
 
@@ -617,6 +746,15 @@
                 opt.text = `${p.name || 'Worm'} (Score: ${p.score || 10})`;
                 select.appendChild(opt);
             }
+
+            for (let id in aiBots) {
+                let b = aiBots[id];
+                let opt = document.createElement('option');
+                opt.value = id;
+                opt.text = `[BOT] ${b.name} (Score: ${b.score})`;
+                select.appendChild(opt);
+            }
+
             select.value = currentVal;
         }
 
@@ -660,10 +798,9 @@
         function gameLoop() {
             if (!gameActive) return;
 
-            let centerX = canvas.width / 2;
-            let centerY = canvas.height / 2;
-
             if (!me.isDead) {
+                let centerX = canvas.width / 2;
+                let centerY = canvas.height / 2;
                 let dx = mouseX - centerX;
                 let dy = mouseY - centerY;
                 if (Math.hypot(dx, dy) > 5) {
@@ -691,15 +828,73 @@
                 while(me.trail.length > maxTrailLength) {
                     me.trail.pop();
                 }
-            } else {
-                me.deathAnimProgress = Math.max(0, me.deathAnimProgress - 0.05);
+
+                if (Math.random() < 0.6) {
+                    let backSegment = me.trail[me.trail.length - 1] || me;
+                    particles.push({
+                        x: backSegment.x + (Math.random() * 10 - 5),
+                        y: backSegment.y + (Math.random() * 10 - 5),
+                        vx: (Math.random() - 0.5) * 1.5,
+                        vy: (Math.random() - 0.5) * 1.5,
+                        life: 1.0,
+                        decay: Math.random() * 0.03 + 0.02,
+                        style: me.trailStyle,
+                        color: me.color
+                    });
+                }
+            }
+
+            for (let bId in aiBots) {
+                let bot = aiBots[bId];
+                bot.angle += (Math.random() - 0.5) * 0.3;
+                bot.x += Math.cos(bot.angle) * bot.speed;
+                bot.y += Math.sin(bot.angle) * bot.speed;
+
+                if (bot.x < 200 || bot.x > WORLD_SIZE - 200 || bot.y < 200 || bot.y > WORLD_SIZE - 200) {
+                    bot.angle += Math.PI;
+                }
+
+                bot.trail.unshift({ x: bot.x, y: bot.y });
+                let botMaxTrail = bot.score * 4;
+                while (bot.trail.length > botMaxTrail) bot.trail.pop();
+
+                let botWidth = 10 + Math.floor(bot.score / 15);
+                for (let i = 0; i < foodPellets.length; i++) {
+                    let f = foodPellets[i];
+                    if (Math.hypot(bot.x - f.x, bot.y - f.y) < botWidth + 6) {
+                        bot.score += 1;
+                        f.x = Math.random() * WORLD_SIZE;
+                        f.y = Math.random() * WORLD_SIZE;
+                        f.vx = 0; f.vy = 0;
+                        break;
+                    }
+                }
+
+                if (!me.isDead && bot.trail.length > 5) {
+                    for (let tIdx = 4; tIdx < bot.trail.length; tIdx += 2) {
+                        let seg = bot.trail[tIdx];
+                        if (Math.hypot(me.x - seg.x, me.y - seg.y) < (10 + Math.floor(me.score / 15)) + botWidth - 4) {
+                            triggerDeath(bot.name);
+                            break;
+                        }
+                    }
+                }
             }
 
             let currentWidth = 10 + Math.floor(me.score / 15);
 
-            if (!me.isDead) {
-                for (let i = 0; i < foodPellets.length; i++) {
-                    let f = foodPellets[i];
+            for (let i = 0; i < foodPellets.length; i++) {
+                let f = foodPellets[i];
+                if (f.vx || f.vy) {
+                    f.x += f.vx;
+                    f.y += f.vy;
+                    f.vx *= 0.92;
+                    f.vy *= 0.92;
+                    f.x = Math.max(10, Math.min(WORLD_SIZE - 10, f.x));
+                    f.y = Math.max(10, Math.min(WORLD_SIZE - 10, f.y));
+                }
+
+                if (!me.isDead) {
                     let dist = Math.hypot(me.x - f.x, me.y - f.y);
                     if (dist < currentWidth + 6) {
                         me.score += 1;
@@ -709,6 +904,8 @@
                         let newY = Math.random() * WORLD_SIZE;
                         f.x = newX;
                         f.y = newY;
+                        f.vx = 0;
+                        f.vy = 0;
 
                         if(globalChannel) {
                             globalChannel.send({
@@ -719,7 +916,17 @@
                         }
                     }
                 }
+            }
 
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let pt = particles[i];
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.life -= pt.decay;
+                if (pt.life <= 0) particles.splice(i, 1);
+            }
+
+            if (!me.isDead) {
                 for (let id in remotePlayers) {
                     let p = remotePlayers[id];
                     if (p.trail && p.trail.length > 5) {
@@ -739,23 +946,58 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
-            ctx.translate(centerX - me.x, centerY - me.y);
+
+            let shakeX = 0, shakeY = 0;
+            if (screenShakeTime > 0) {
+                shakeX = (Math.random() - 0.5) * screenShakeIntensity;
+                shakeY = (Math.random() - 0.5) * screenShakeIntensity;
+                screenShakeTime--;
+            }
+
+            let zoom = Math.max(0.35, 1 / (1 + (currentWidth - 10) * 0.03));
+            ctx.translate(canvas.width / 2 + shakeX, canvas.height / 2 + shakeY);
+            ctx.scale(zoom, zoom);
+            ctx.translate(-me.x, -me.y);
 
             ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 1;
             let gridSize = 80;
-            let startX = Math.floor((me.x - centerX) / gridSize) * gridSize;
-            let startY = Math.floor((me.y - centerY) / gridSize) * gridSize;
-            for (let x = startX; x < startX + canvas.width + gridSize * 2; x += gridSize) {
-                ctx.beginPath(); ctx.moveTo(x, me.y - centerY - 100); ctx.lineTo(x, me.y + centerY + canvas.height); ctx.stroke();
+            let startX = Math.floor((me.x - (canvas.width / 2) / zoom) / gridSize) * gridSize;
+            let startY = Math.floor((me.y - (canvas.height / 2) / zoom) / gridSize) * gridSize;
+            let viewRangeX = (canvas.width / zoom);
+            let viewRangeY = (canvas.height / zoom);
+
+            for (let x = startX; x < startX + viewRangeX + gridSize * 2; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, me.y - viewRangeY); ctx.lineTo(x, me.y + viewRangeY * 2); ctx.stroke();
             }
-            for (let y = startY; y < startY + canvas.height + gridSize * 2; y += gridSize) {
-                ctx.beginPath(); ctx.moveTo(me.x - centerX - 100, y); ctx.lineTo(me.x + centerX + canvas.width, y); ctx.stroke();
+            for (let y = startY; y < startY + viewRangeY + gridSize * 2; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(me.x - viewRangeX, y); ctx.lineTo(me.x + viewRangeX * 2, y); ctx.stroke();
             }
 
             ctx.strokeStyle = '#ef4444';
             ctx.lineWidth = 8;
             ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+
+            particles.forEach(pt => {
+                ctx.save();
+                ctx.globalAlpha = pt.life;
+                if (pt.style === 'sparkle') {
+                    ctx.fillStyle = '#fde047';
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2); ctx.fill();
+                } else if (pt.style === 'bubble') {
+                    ctx.strokeStyle = pt.color;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2); ctx.stroke();
+                } else if (pt.style === 'fire') {
+                    ctx.fillStyle = Math.random() < 0.5 ? '#f97316' : '#ef4444';
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2); ctx.fill();
+                } else if (pt.style === 'matrix') {
+                    ctx.fillStyle = '#22c55e';
+                    ctx.font = '10px monospace';
+                    ctx.fillText('1', pt.x, pt.y);
+                }
+                ctx.restore();
+            });
 
             foodPellets.forEach(f => {
                 ctx.fillStyle = f.color;
@@ -763,6 +1005,22 @@
                 ctx.arc(f.x, f.y, 6, 0, Math.PI * 2);
                 ctx.fill();
             });
+
+            for (let bId in aiBots) {
+                let bot = aiBots[bId];
+                let bWidth = 10 + Math.floor(bot.score / 15);
+                bot.trail.forEach(t => {
+                    ctx.fillStyle = bot.color;
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, bWidth, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                drawSnakeHead(ctx, bot.x, bot.y, bot.angle, bWidth, bot.color, bot.skin);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '12px Fredoka, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(bot.name, bot.x, bot.y - bWidth - 12);
+            }
 
             for (let id in remotePlayers) {
                 let p = remotePlayers[id];
@@ -806,6 +1064,7 @@
 
             if (isAdmin) {
                 document.getElementById('adminPlayerCount').innerText = Object.keys(remotePlayers).length + 1;
+                document.getElementById('adminBotCount').innerText = Object.keys(aiBots).length;
                 document.getElementById('adminScoreVal').innerText = me.score;
             }
 
@@ -823,6 +1082,14 @@
             foodPellets.forEach(f => {
                 minimapCtx.fillRect(f.x * scaleX, f.y * scaleY, 1.5, 1.5);
             });
+
+            for (let bId in aiBots) {
+                let b = aiBots[bId];
+                minimapCtx.fillStyle = b.color;
+                minimapCtx.beginPath();
+                minimapCtx.arc(b.x * scaleX, b.y * scaleY, 2, 0, Math.PI * 2);
+                minimapCtx.fill();
+            }
 
             for (let id in remotePlayers) {
                 let p = remotePlayers[id];
@@ -844,6 +1111,10 @@
             
             for (let id in remotePlayers) {
                 allPlayers.push({ name: remotePlayers[id].name || 'Worm', score: remotePlayers[id].score || 10 });
+            }
+
+            for (let id in aiBots) {
+                allPlayers.push({ name: aiBots[id].name, score: aiBots[id].score });
             }
 
             allPlayers.sort((a, b) => b.score - a.score);
