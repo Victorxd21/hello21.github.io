@@ -103,12 +103,12 @@
     </div>
 
     <!-- ADMIN CONSOLE OVERLAY -->
-    <div id="adminConsole" class="hidden absolute z-40 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 rounded-2xl p-5 shadow-2xl text-left space-y-3">
+    <div id="adminConsole" class="hidden absolute z-40 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 rounded-2xl p-5 shadow-2xl text-left space-y-3 max-h-[85vh] overflow-y-auto">
         <div class="flex justify-between items-center border-b border-slate-700 pb-2">
             <h3 class="text-sm font-bold text-amber-400"><i class="fa-solid fa-shield-halved mr-1"></i> Server Admin Console</h3>
             <button id="closeAdminBtn" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div class="space-y-2 text-xs text-slate-300">
+        <div class="space-y-1 text-xs text-slate-300">
             <div>Online Players: <span id="adminPlayerCount" class="font-mono font-bold text-emerald-400">1</span></div>
             <div>Your Score: <span id="adminScoreVal" class="font-mono font-bold text-emerald-400">10</span></div>
         </div>
@@ -118,6 +118,34 @@
             </button>
             <button id="adminGodModeBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
                 <i class="fa-solid fa-bolt mr-2"></i> Toggle God Mode (Invincible)
+            </button>
+            <button id="adminGiantBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-purple-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
+                <i class="fa-solid fa-expand mr-2"></i> Grow Massive (+1,000 Score)
+            </button>
+            <button id="adminSpeedBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-teal-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
+                <i class="fa-solid fa-gauge-high mr-2"></i> Toggle Super Speed (2x)
+            </button>
+            <button id="adminTeleportBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-blue-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
+                <i class="fa-solid fa-location-crosshairs mr-2"></i> Teleport to Map Center
+            </button>
+        </div>
+
+        <!-- TARGETED PLAYER SCORE CONTROLS -->
+        <div class="space-y-2 pt-2 border-t border-slate-800">
+            <label class="block text-[10px] font-semibold uppercase tracking-wider text-amber-400">Target Player Controls</label>
+            <select id="adminTargetSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                <option value="self">-- Select Player --</option>
+            </select>
+            <div class="flex space-x-1">
+                <button id="adminAddScoreBtn" class="flex-1 bg-emerald-600/40 hover:bg-emerald-600/60 border border-emerald-500 text-emerald-300 font-semibold py-1.5 rounded-xl text-xs transition">
+                    <i class="fa-solid fa-plus mr-1"></i> +500 Pts
+                </button>
+                <button id="adminSubScoreBtn" class="flex-1 bg-red-600/40 hover:bg-red-600/60 border border-red-500 text-red-300 font-semibold py-1.5 rounded-xl text-xs transition">
+                    <i class="fa-solid fa-minus mr-1"></i> -500 Pts
+                </button>
+            </div>
+            <button id="adminZeroScoreBtn" class="w-full bg-rose-950/50 hover:bg-rose-900/60 border border-rose-700 text-rose-300 font-semibold py-1.5 rounded-xl text-xs transition">
+                <i class="fa-solid fa-trash-can mr-1"></i> Reset Score to 10 (Clear Food)
             </button>
         </div>
     </div>
@@ -197,12 +225,13 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        const WORLD_SIZE = 3000; 
+        const WORLD_SIZE = 30000; 
         let playerId = 'worm_' + Math.random().toString(36).substring(2, 9);
         let playerName = 'SlitherPro';
         let globalChannel = null;
         let isAdmin = false;
         let godMode = false;
+        let superSpeedActive = false;
 
         // Available Skins configuration loading from heads/ folder
         const AVAILABLE_SKINS = [
@@ -320,7 +349,7 @@
             return x - Math.floor(x);
         }
 
-        for(let i=0; i<400; i++) {
+        for(let i=0; i<4000; i++) {
             foodPellets.push({
                 id: 'food_' + i,
                 x: seededRandom(i * 3 + 1) * WORLD_SIZE,
@@ -387,6 +416,71 @@
             godMode = !godMode;
             document.getElementById('adminGodModeBtn').classList.toggle('bg-emerald-900', godMode);
         });
+
+        document.getElementById('adminGiantBtn').addEventListener('click', () => {
+            me.score += 1000;
+            for(let i=0; i<4000; i++) {
+                me.trail.push({ x: me.x, y: me.y });
+            }
+            document.getElementById('scoreDisplay').innerText = me.score;
+        });
+
+        document.getElementById('adminSpeedBtn').addEventListener('click', () => {
+            superSpeedActive = !superSpeedActive;
+            me.speed = superSpeedActive ? 8.0 : 3.5;
+            document.getElementById('adminSpeedBtn').classList.toggle('bg-teal-900', superSpeedActive);
+        });
+
+        document.getElementById('adminTeleportBtn').addEventListener('click', () => {
+            me.x = WORLD_SIZE / 2;
+            me.y = WORLD_SIZE / 2;
+        });
+
+        // Targeted Player Score Modification Handlers
+        document.getElementById('adminAddScoreBtn').addEventListener('click', () => {
+            let targetId = document.getElementById('adminTargetSelect').value;
+            if (targetId === 'self') {
+                me.score += 500;
+                document.getElementById('scoreDisplay').innerText = me.score;
+            } else if (remotePlayers[targetId]) {
+                remotePlayers[targetId].score = (remotePlayers[targetId].score || 10) + 500;
+                broadcastScoreAdjustment(targetId, remotePlayers[targetId].score);
+            }
+        });
+
+        document.getElementById('adminSubScoreBtn').addEventListener('click', () => {
+            let targetId = document.getElementById('adminTargetSelect').value;
+            if (targetId === 'self') {
+                me.score = Math.max(10, me.score - 500);
+                document.getElementById('scoreDisplay').innerText = me.score;
+            } else if (remotePlayers[targetId]) {
+                remotePlayers[targetId].score = Math.max(10, (remotePlayers[targetId].score || 10) - 500);
+                broadcastScoreAdjustment(targetId, remotePlayers[targetId].score);
+            }
+        });
+
+        document.getElementById('adminZeroScoreBtn').addEventListener('click', () => {
+            let targetId = document.getElementById('adminTargetSelect').value;
+            if (targetId === 'self') {
+                me.score = 10;
+                me.trail = [];
+                for(let i=0; i<40; i++) me.trail.push({ x: me.x, y: me.y });
+                document.getElementById('scoreDisplay').innerText = me.score;
+            } else if (remotePlayers[targetId]) {
+                remotePlayers[targetId].score = 10;
+                broadcastScoreAdjustment(targetId, 10);
+            }
+        });
+
+        function broadcastScoreAdjustment(targetId, newScore) {
+            if (globalChannel) {
+                globalChannel.send({
+                    type: 'broadcast',
+                    event: 'admin_score_adjust',
+                    payload: { targetId: targetId, newScore: newScore }
+                });
+            }
+        }
 
         document.getElementById('playBtn').addEventListener('click', startGame);
         document.getElementById('respawnBtn').addEventListener('click', startGame);
@@ -465,6 +559,14 @@
 
             globalChannel.on('broadcast', { event: 'worm_sync' }, payload => {
                 remotePlayers[payload.payload.id] = payload.payload;
+                updateAdminTargetDropdown();
+            });
+
+            globalChannel.on('broadcast', { event: 'admin_score_adjust' }, payload => {
+                if (payload.payload.targetId === playerId) {
+                    me.score = payload.payload.newScore;
+                    document.getElementById('scoreDisplay').innerText = me.score;
+                }
             });
 
             globalChannel.on('broadcast', { event: 'food_eaten' }, payload => {
@@ -503,6 +605,21 @@
             });
         }
 
+        function updateAdminTargetDropdown() {
+            let select = document.getElementById('adminTargetSelect');
+            let currentVal = select.value;
+            select.innerHTML = `<option value="self">You (${playerName})</option>`;
+            
+            for (let id in remotePlayers) {
+                let p = remotePlayers[id];
+                let opt = document.createElement('option');
+                opt.value = id;
+                opt.text = `${p.name || 'Worm'} (Score: ${p.score || 10})`;
+                select.appendChild(opt);
+            }
+            select.value = currentVal;
+        }
+
         function drawSnakeHead(context, x, y, angle, radius, color, skinId) {
             let img = skinId !== 'none' ? loadedSkinImages[skinId] : null;
             if (img && img.complete && img.naturalWidth !== 0) {
@@ -533,7 +650,6 @@
             }
         }
 
-        // Helper function for smoothly interpolating angles without snapping artifacts
         function lerpAngle(current, target, amount) {
             let diff = target - current;
             while (diff < -Math.PI) diff += Math.PI * 2;
@@ -552,13 +668,12 @@
                 let dy = mouseY - centerY;
                 if (Math.hypot(dx, dy) > 5) {
                     let targetAngle = Math.atan2(dy, dx);
-                    // Smoothly rotate towards target angle (adjust 0.12 for faster/slower turning speed)
                     me.angle = lerpAngle(me.angle, targetAngle, 0.12);
                 }
 
                 let currentSpeed = me.speed;
                 if (isBoosting && me.score > 15) {
-                    currentSpeed = 6.5;
+                    currentSpeed = superSpeedActive ? 12.0 : 6.5;
                     if (Math.random() < 0.2) {
                         me.score -= 1;
                         document.getElementById('scoreDisplay').innerText = me.score;
@@ -580,7 +695,7 @@
                 me.deathAnimProgress = Math.max(0, me.deathAnimProgress - 0.05);
             }
 
-            let currentWidth = Math.min(22, 10 + Math.floor(me.score / 15));
+            let currentWidth = 10 + Math.floor(me.score / 15);
 
             if (!me.isDead) {
                 for (let i = 0; i < foodPellets.length; i++) {
@@ -608,7 +723,7 @@
                 for (let id in remotePlayers) {
                     let p = remotePlayers[id];
                     if (p.trail && p.trail.length > 5) {
-                        let remoteWidth = Math.min(22, 10 + Math.floor(p.score / 15));
+                        let remoteWidth = 10 + Math.floor(p.score / 15);
                         for (let tIdx = 4; tIdx < p.trail.length; tIdx += 2) {
                             let segment = p.trail[tIdx];
                             let hitDist = Math.hypot(me.x - segment.x, me.y - segment.y);
@@ -652,7 +767,7 @@
             for (let id in remotePlayers) {
                 let p = remotePlayers[id];
                 if (p.trail && p.trail.length > 0) {
-                    let rWidth = Math.min(22, 10 + Math.floor(p.score / 15));
+                    let rWidth = 10 + Math.floor(p.score / 15);
                     p.trail.forEach((t) => {
                         ctx.fillStyle = p.color || '#3b82f6';
                         ctx.beginPath();
@@ -660,74 +775,90 @@
                         ctx.fill();
                     });
                     
-                    drawSnakeHead(ctx, p.x, p.y, p.angle || 0, rWidth, p.color || '#3b82f6', p.skin);
+                    drawSnakeHead(ctx, p.x, p.y, p.angle || 0, rWidth, p.color, p.skin);
 
                     ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 12px Fredoka';
+                    ctx.font = '12px Fredoka, sans-serif';
                     ctx.textAlign = 'center';
-                    ctx.fillText(p.name + ` (${p.score})`, p.x, p.y - (rWidth + 12));
+                    ctx.fillText(p.name, p.x, p.y - rWidth - 12);
                 }
             }
 
-            ctx.globalAlpha = me.deathAnimProgress;
-            me.trail.forEach((t) => {
-                ctx.fillStyle = me.color;
-                ctx.beginPath();
-                ctx.arc(t.x, t.y, currentWidth, 0, Math.PI * 2);
-                ctx.fill();
-            });
+            if (me.trail.length > 0) {
+                me.trail.forEach((t) => {
+                    ctx.fillStyle = me.color;
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, currentWidth, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                
+                drawSnakeHead(ctx, me.x, me.y, me.angle, currentWidth, me.color, me.skin);
 
-            drawSnakeHead(ctx, me.x, me.y, me.angle, currentWidth, me.color, me.skin);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 13px Fredoka, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(playerName + (godMode ? ' [GOD MODE]' : ''), me.x, me.y - currentWidth - 14);
+            }
 
             ctx.restore();
 
-            renderMinimap();
-            updateLeaderboardUI();
+            drawMinimap();
 
             if (isAdmin) {
                 document.getElementById('adminPlayerCount').innerText = Object.keys(remotePlayers).length + 1;
                 document.getElementById('adminScoreVal').innerText = me.score;
             }
 
-            if (gameActive) {
-                requestAnimationFrame(gameLoop);
-            }
+            updateLeaderboard();
+
+            requestAnimationFrame(gameLoop);
         }
 
-        function renderMinimap() {
+        function drawMinimap() {
             minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-            let scale = minimapCanvas.width / WORLD_SIZE;
+            let scaleX = minimapCanvas.width / WORLD_SIZE;
+            let scaleY = minimapCanvas.height / WORLD_SIZE;
 
-            minimapCtx.strokeStyle = '#334155';
-            minimapCtx.lineWidth = 1;
-            minimapCtx.strokeRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+            minimapCtx.fillStyle = '#334155';
+            foodPellets.forEach(f => {
+                minimapCtx.fillRect(f.x * scaleX, f.y * scaleY, 1.5, 1.5);
+            });
 
             for (let id in remotePlayers) {
                 let p = remotePlayers[id];
                 minimapCtx.fillStyle = p.color || '#3b82f6';
                 minimapCtx.beginPath();
-                minimapCtx.arc(p.x * scale, p.y * scale, 2.5, 0, Math.PI * 2);
+                minimapCtx.arc(p.x * scaleX, p.y * scaleY, 2, 0, Math.PI * 2);
                 minimapCtx.fill();
             }
 
             minimapCtx.fillStyle = '#10b981';
             minimapCtx.beginPath();
-            minimapCtx.arc(me.x * scale, me.y * scale, 3.5, 0, Math.PI * 2);
+            minimapCtx.arc(me.x * scaleX, me.y * scaleY, 3.5, 0, Math.PI * 2);
             minimapCtx.fill();
         }
 
-        function updateLeaderboardUI() {
-            let allWorms = [{ name: playerName, score: me.score }];
-            for(let id in remotePlayers) {
-                allWorms.push({ name: remotePlayers[id].name, score: remotePlayers[id].score || 10 });
+        function updateLeaderboard() {
+            let listEl = document.getElementById('leaderboardList');
+            let allPlayers = [{ name: playerName + ' (You)', score: me.score }];
+            
+            for (let id in remotePlayers) {
+                allPlayers.push({ name: remotePlayers[id].name || 'Worm', score: remotePlayers[id].score || 10 });
             }
-            allWorms.sort((a,b) => b.score - a.score);
 
-            let html = '';
-            allWorms.slice(0, 5).forEach((w, idx) => {
-                html += `<div class="flex justify-between"><span>#${idx+1} ${w.name}</span><span class="font-bold text-emerald-400">${w.score}</span></div>`;
+            allPlayers.sort((a, b) => b.score - a.score);
+            let top5 = allPlayers.slice(0, 5);
+
+            listEl.innerHTML = '';
+            top5.forEach((p, index) => {
+                let row = document.createElement('div');
+                row.className = 'flex justify-between items-center';
+                row.innerHTML = `
+                    <span class="truncate pr-2">${index + 1}. ${p.name}</span>
+                    <span class="font-bold text-emerald-400">${p.score}</span>
+                `;
+                listEl.appendChild(row);
             });
-            document.getElementById('leaderboardList').innerHTML = html;
         }
     </script>
 </body>
