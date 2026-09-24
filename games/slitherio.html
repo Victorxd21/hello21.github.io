@@ -3,305 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slither.io - Battle Royale with Guns</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Fredoka -->
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Supabase JS SDK -->
+    <title>Slither Global - Multiplayer</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body {
-            font-family: 'Fredoka', sans-serif;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
             user-select: none;
-            background: #0f172a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
             overflow: hidden;
+            background-color: #0f172a;
+            color: #fff;
         }
-        .retro-shadow {
-            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.3);
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: block;
+            background-color: #0b0f19;
+            cursor: crosshair;
         }
-        .retro-shadow:active {
-            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
-            transform: translateY(4px);
+
+        .overlay-screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 10;
         }
-        ::-webkit-scrollbar {
-            width: 6px;
+
+        .hidden {
+            display: none !important;
         }
-        ::-webkit-scrollbar-track {
+
+        .card {
             background: #1e293b;
+            border: 1px solid #334155;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            width: 360px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: #38bdf8;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: #fff;
+            margin-bottom: 1rem;
+            outline: none;
+            text-align: center;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #0284c7;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0369a1;
+        }
+
+        .btn-br {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-br:hover {
+            background: #b91c1c;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .hud-item {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-bottom: 8px;
+            font-weight: bold;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #leaderboard {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 12px;
             border-radius: 8px;
+            min-width: 180px;
+            z-index: 5;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        ::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 8px;
+
+        #leaderboard h3 {
+            font-size: 0.9rem;
+            color: #38bdf8;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 4px;
+            margin-bottom: 6px;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .kill-feed-item {
-            animation: fadeIn 0.3s ease-out forwards;
+
+        .lb-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
         }
     </style>
 </head>
-<body class="text-white h-screen w-screen flex flex-col items-center justify-center bg-slate-950">
+<body>
 
-    <!-- START & CUSTOMIZATION MENU SCREEN -->
-    <div id="menuScreen" class="absolute z-20 max-w-md w-full bg-slate-900/95 backdrop-blur-md border-4 border-emerald-500 rounded-3xl p-6 shadow-2xl text-center space-y-4 max-h-[90vh] overflow-y-auto">
-        <div class="inline-block bg-emerald-600/30 p-3 rounded-full border-2 border-emerald-400 animate-bounce">
-            <i class="fa-solid fa-worm text-4xl text-emerald-400"></i>
-        </div>
-        <div>
-            <h1 class="text-2xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-400">SLITHER GLOBAL</h1>
-            <p class="text-[11px] text-slate-300 mt-0.5">Customize your worm, particle trail, skin, and battle!</p>
-        </div>
+    <canvas id="gameCanvas"></canvas>
 
-        <!-- LIVE PREVIEW CONTAINER -->
-        <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-3 flex flex-col items-center justify-center relative overflow-hidden h-28">
-            <div class="absolute top-2 left-3 text-[10px] uppercase font-bold text-slate-400 tracking-wider">Live Preview</div>
-            <canvas id="previewCanvas" width="200" height="70" class="mt-4"></canvas>
-        </div>
-
-        <div class="space-y-3 bg-slate-800/60 p-4 rounded-2xl border border-slate-700 text-left">
-            <div>
-                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Your Worm Name</label>
-                <input type="text" id="playerNameInput" maxlength="12" value="SlitherPro" class="w-full bg-slate-900 border-2 border-slate-600 rounded-xl px-4 py-2 text-center text-md font-bold text-emerald-300 focus:outline-none focus:border-emerald-500 transition">
-            </div>
-
-            <!-- Color Picker & Presets -->
-            <div>
-                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Body Color</label>
-                <div class="flex items-center space-x-2">
-                    <input type="color" id="playerColorPicker" value="#10b981" class="w-10 h-10 rounded-xl bg-slate-900 border-2 border-slate-600 cursor-pointer p-1">
-                    <div class="flex space-x-1.5 flex-1 justify-around">
-                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-emerald-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#10b981"></button>
-                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-blue-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#3b82f6"></button>
-                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-purple-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#a855f7"></button>
-                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-amber-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#f59e0b"></button>
-                        <button type="button" class="color-preset w-7 h-7 rounded-full bg-rose-500 border-2 border-slate-700 hover:scale-110 transition" data-color="#f43f5e"></button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Particle Trail Selector -->
-            <div>
-                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Particle Trail Effect</label>
-                <select id="trailStyleSelect" class="w-full bg-slate-900 border-2 border-slate-600 rounded-xl px-3 py-2 text-xs font-semibold text-emerald-300 focus:outline-none focus:border-emerald-500">
-                    <option value="sparkle">✨ Sparkle Dust</option>
-                    <option value="bubble">🫧 Neon Bubbles</option>
-                    <option value="fire">🔥 Fire Embers</option>
-                    <option value="matrix">💻 Digital Matrix</option>
-                </select>
-            </div>
-
-            <!-- Skin Selector -->
-            <div>
-                <label class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Select Head Skin</label>
-                <div id="skinSelectorGrid" class="grid grid-cols-4 gap-2 max-h-24 overflow-y-auto pr-1"></div>
-            </div>
-        </div>
-
-        <div class="flex space-x-2">
-            <button id="playBtn" class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-4 rounded-2xl text-md retro-shadow transition transform active:scale-95">
-                <i class="fa-solid fa-play mr-1"></i> Play Normal
-            </button>
-            <button id="brPlayBtn" class="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-2xl text-md retro-shadow transition transform active:scale-95">
-                <i class="fa-solid fa-gun mr-1"></i> Battle Royale (Guns)
-            </button>
-        </div>
-        <div class="text-[10px] text-slate-500">Press `~` (tilde) in-game to open Admin Console</div>
-    </div>
-
-    <!-- ADMIN LOGIN MODAL -->
-    <div id="adminLoginModal" class="hidden absolute z-50 max-w-xs w-full bg-slate-900 border-2 border-amber-500 rounded-2xl p-5 shadow-2xl text-center space-y-3">
-        <h3 class="text-md font-bold text-amber-400"><i class="fa-solid fa-lock mr-1"></i> Admin Login</h3>
-        <p class="text-[11px] text-slate-400">Enter admin password to access server controls.</p>
-        <input type="password" id="adminPasswordInput" placeholder="Password" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-center text-sm text-white focus:outline-none focus:border-amber-500">
-        <div class="flex space-x-2">
-            <button id="adminLoginSubmit" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition">Login</button>
-            <button id="adminLoginClose" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs transition">Cancel</button>
-        </div>
-    </div>
-
-    <!-- ADMIN CONSOLE OVERLAY -->
-    <div id="adminConsole" class="hidden absolute z-40 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 rounded-2xl p-5 shadow-2xl text-left space-y-3 max-h-[85vh] overflow-y-auto">
-        <div class="flex justify-between items-center border-b border-slate-700 pb-2">
-            <h3 class="text-sm font-bold text-amber-400"><i class="fa-solid fa-shield-halved mr-1"></i> Server Admin Console</h3>
-            <button id="closeAdminBtn" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="space-y-1 text-xs text-slate-300">
-            <div>Online Players: <span id="adminPlayerCount" class="font-mono font-bold text-emerald-400">1</span></div>
-            <div>Active AI Bots: <span id="adminBotCount" class="font-mono font-bold text-amber-400">0</span></div>
-            <div>Your Score: <span id="adminScoreVal" class="font-mono font-bold text-emerald-400">10</span></div>
-        </div>
-        <div class="space-y-2 pt-2 border-t border-slate-800">
-            <button id="adminSpawnBotBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
-                <i class="fa-solid fa-robot mr-2"></i> Spawn AI Bot Near Me
-            </button>
-            <button id="adminSpawnFoodBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
-                <i class="fa-solid fa-cookie-bite mr-2"></i> Spawn +50 Food Pellets
-            </button>
-            <button id="adminGodModeBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
-                <i class="fa-solid fa-bolt mr-2"></i> Toggle God Mode (Invincible)
-            </button>
-            <button id="adminGiantBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-purple-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
-                <i class="fa-solid fa-expand mr-2"></i> Grow Massive (+1,000 Score)
-            </button>
-            <button id="adminSpeedBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-teal-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
-                <i class="fa-solid fa-gauge-high mr-2"></i> Toggle Super Speed (2x)
-            </button>
-            <button id="adminTeleportBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-blue-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
-                <i class="fa-solid fa-location-crosshairs mr-2"></i> Teleport to Map Center
-            </button>
-        </div>
-
-        <!-- Admin BR Controls -->
-        <div class="space-y-2 pt-2 border-t border-slate-800">
-            <label class="block text-[10px] font-semibold uppercase tracking-wider text-purple-400">Battle Royale Host Controls</label>
-            <button id="adminStartBRBtn" class="w-full bg-purple-600/40 hover:bg-purple-600/60 border border-purple-500 text-purple-300 font-semibold py-2 px-3 rounded-xl text-xs transition text-left">
-                <i class="fa-solid fa-play mr-2"></i> Start BR Match Now
-            </button>
-        </div>
-
-        <!-- TARGETED PLAYER SCORE CONTROLS -->
-        <div class="space-y-2 pt-2 border-t border-slate-800">
-            <label class="block text-[10px] font-semibold uppercase tracking-wider text-amber-400">Target Player Controls</label>
-            <select id="adminTargetSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
-                <option value="self">-- Select Player --</option>
-            </select>
-            <div class="flex space-x-1">
-                <button id="adminAddScoreBtn" class="flex-1 bg-emerald-600/40 hover:bg-emerald-600/60 border border-emerald-500 text-emerald-300 font-semibold py-1.5 rounded-xl text-xs transition">
-                    <i class="fa-solid fa-plus mr-1"></i> +500 Pts
-                </button>
-                <button id="adminSubScoreBtn" class="flex-1 bg-red-600/40 hover:bg-red-600/60 border border-red-500 text-red-300 font-semibold py-1.5 rounded-xl text-xs transition">
-                    <i class="fa-solid fa-minus mr-1"></i> -500 Pts
-                </button>
-            </div>
-            <button id="adminZeroScoreBtn" class="w-full bg-rose-950/50 hover:bg-rose-900/60 border border-rose-700 text-rose-300 font-semibold py-1.5 rounded-xl text-xs transition">
-                <i class="fa-solid fa-trash-can mr-1"></i> Reset Score to 10
-            </button>
-        </div>
-    </div>
-
-    <!-- IN-UI DEATH SCREEN OVERLAY -->
-    <div id="deathScreen" class="hidden absolute z-30 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-4 border-red-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
-        <div class="inline-block bg-red-600/30 p-3 rounded-full border-2 border-red-400">
-            <i class="fa-solid fa-skull-crossbones text-4xl text-red-400"></i>
-        </div>
-        <div>
-            <h2 class="text-2xl font-bold text-red-400">YOU DIED</h2>
-            <p class="text-xs text-slate-300 mt-1" id="deathReasonText">You crashed into another worm's body!</p>
-        </div>
-        <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700 flex justify-around items-center">
-            <div>
-                <div class="text-[10px] uppercase text-slate-400 font-bold">Final Score</div>
-                <div id="finalScoreDisplay" class="text-xl font-extrabold text-emerald-400 font-mono">0</div>
-            </div>
-        </div>
-        <div class="space-y-2">
-            <button id="respawnBtn" class="w-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold py-3 px-6 rounded-xl text-md retro-shadow transition transform active:scale-95">
-                <i class="fa-solid fa-rotate-right mr-2"></i> Play Again
-            </button>
-            <button id="menuBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 px-6 rounded-xl text-sm transition">
-                <i class="fa-solid fa-gear mr-1"></i> Change Customization
-            </button>
-        </div>
-    </div>
-
-    <!-- MATCH STATISTICS SCREEN OVERLAY -->
-    <div id="statsScreen" class="hidden absolute z-30 max-w-md w-full bg-slate-900/95 backdrop-blur-md border-4 border-purple-500 rounded-3xl p-6 shadow-2xl text-center space-y-4">
-        <div class="inline-block bg-purple-600/30 p-3 rounded-full border-2 border-purple-400">
-            <i class="fa-solid fa-flag-checkered text-4xl text-purple-400"></i>
-        </div>
-        <div>
-            <h2 class="text-2xl font-bold text-purple-400">MATCH SUMMARY</h2>
-            <p class="text-xs text-slate-300 mt-1" id="statsSubText">You survived the Battle Royale!</p>
-        </div>
-        <div class="grid grid-cols-2 gap-3 text-left">
-            <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700">
-                <div class="text-[10px] uppercase text-slate-400 font-bold">Time Survived</div>
-                <div id="statTimeSurvived" class="text-lg font-extrabold text-emerald-400 font-mono">0s</div>
-            </div>
-            <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700">
-                <div class="text-[10px] uppercase text-slate-400 font-bold">Food Eaten</div>
-                <div id="statFoodEaten" class="text-lg font-extrabold text-amber-400 font-mono">0</div>
-            </div>
-            <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700">
-                <div class="text-[10px] uppercase text-slate-400 font-bold">Peak Length</div>
-                <div id="statPeakScore" class="text-lg font-extrabold text-purple-400 font-mono">10</div>
-            </div>
-            <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700">
-                <div class="text-[10px] uppercase text-slate-400 font-bold">Worms Defeated</div>
-                <div id="statKills" class="text-lg font-extrabold text-rose-400 font-mono">0</div>
-            </div>
-        </div>
-        <div class="space-y-2 pt-2">
-            <button id="spectateBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-teal-300 font-bold py-2.5 px-6 rounded-xl text-sm transition">
-                <i class="fa-solid fa-eye mr-1"></i> Spectate Match
-            </button>
-            <button id="statsMenuBtn" class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-xl text-md retro-shadow transition">
-                <i class="fa-solid fa-house mr-2"></i> Return to Menu
-            </button>
-        </div>
-    </div>
-
-    <!-- LOBBY WAITING BANNER -->
-    <div id="lobbyBanner" class="hidden absolute top-16 left-1/2 transform -translate-x-1/2 z-20 bg-indigo-900/90 border-2 border-indigo-500 backdrop-blur px-6 py-3 rounded-2xl shadow-xl text-center pointer-events-none">
-        <div class="text-xs font-bold uppercase tracking-wider text-indigo-300">Battle Royale Lobby</div>
-        <div class="text-sm font-extrabold text-white mt-0.5">Waiting for Host/Admin to start match...</div>
-    </div>
-
-    <!-- HUD OVERLAY -->
-    <div id="hud" class="hidden absolute top-4 left-4 z-10 pointer-events-none flex flex-col space-y-2">
-        <div class="bg-slate-900/80 backdrop-blur border border-slate-700 px-4 py-2 rounded-2xl shadow-lg">
-            <div class="text-[10px] uppercase font-bold text-slate-400">Length / Score</div>
-            <div id="scoreDisplay" class="text-2xl font-extrabold text-emerald-400 font-mono">10</div>
-        </div>
-        <div class="text-[10px] text-slate-400 bg-slate-900/60 px-3 py-1 rounded-xl">Hold <b class="text-amber-400">SPACE</b> to Boost</div>
-        <div id="gunHudHint" class="hidden text-[10px] text-purple-300 bg-purple-950/80 border border-purple-600 px-3 py-1 rounded-xl">Press <b class="text-amber-400">E</b> to Shoot Gun</div>
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+        <div class="hud-item">Score: <span id="scoreDisplay">10</span></div>
+        <div class="hud-item hidden" id="gunHudHint">Press [E] to Shoot Guns</div>
     </div>
 
     <!-- LEADERBOARD -->
-    <div id="leaderboard" class="hidden absolute top-4 right-52 z-10 pointer-events-none bg-slate-900/80 backdrop-blur border border-slate-700 p-3 rounded-2xl shadow-lg w-48">
-        <div class="text-xs font-bold text-teal-400 border-b border-slate-700 pb-1 mb-2"><i class="fa-solid fa-trophy mr-1"></i> Top Worms</div>
-        <div id="leaderboardList" class="space-y-1 text-xs text-slate-300 font-mono"></div>
+    <div id="leaderboard" class="hidden">
+        <h3>Top Slithers</h3>
+        <div id="lbList"></div>
     </div>
 
-    <!-- KILL FEED CONTAINER -->
-    <div id="killFeedContainer" class="hidden absolute top-4 right-4 z-20 pointer-events-none flex flex-col space-y-1.5 w-48 overflow-hidden">
-        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 px-1"><i class="fa-solid fa-skull mr-1"></i> Kill Feed</div>
-        <div id="killFeedList" class="space-y-1.5 flex flex-col"></div>
+    <!-- MAIN MENU -->
+    <div id="menuScreen" class="overlay-screen">
+        <div class="card">
+            <h1>Slither Global</h1>
+            <input type="text" id="playerNameInput" placeholder="Enter Nickname" maxlength="15">
+            <div>
+                <label style="font-size: 0.85rem; color: #94a3b8;">Choose Color:</label>
+                <input type="color" id="colorPicker" value="#00ffcc" style="margin-left: 10px; cursor: pointer;">
+            </div>
+            <div class="btn-group">
+                <button class="btn-primary" id="playNormalBtn">Normal Game</button>
+                <button class="btn-br" id="playBRBtn">Battle Royale</button>
+            </div>
+        </div>
     </div>
 
-    <!-- MINIMAP CONTAINER -->
-    <div id="minimapContainer" class="hidden absolute bottom-4 left-4 z-10 bg-slate-900/90 backdrop-blur border-2 border-slate-700 p-2 rounded-2xl shadow-xl pointer-events-none w-36 h-36 flex items-center justify-center">
-        <canvas id="minimapCanvas" width="120" height="120" class="rounded-xl bg-slate-950"></canvas>
+    <!-- DEATH SCREEN -->
+    <div id="deathScreen" class="overlay-screen hidden">
+        <div class="card">
+            <h1 style="color: #ef4444;">Eliminated</h1>
+            <p id="deathReasonText" style="margin-bottom: 1rem; color: #cbd5e1;">You collided with another player!</p>
+            <p style="margin-bottom: 1.5rem;">Final Score: <span id="finalScoreDisplay" style="color: #38bdf8; font-weight: bold;">0</span></p>
+            <button class="btn-primary" id="respawnBtn" style="width: 100%;">Play Again</button>
+        </div>
     </div>
 
-    <!-- GAME CANVAS -->
-    <canvas id="gameCanvas" class="block w-full h-full cursor-crosshair"></canvas>
-
-    <!-- GAME SCRIPT LOGIC -->
     <script>
-        const SUPABASE_URL = 'https://degilckgjfdnekszsbry.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_ym_oqKIyxwk7ixxCvwNCmA_w2VtnpdP';
+        const SUPABASE_URL = "YOUR_SUPABASE_URL";
+        const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
         let supabaseClient = null;
-        try {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        } catch(e) {
-            console.error("Supabase init error:", e);
+        if (SUPABASE_URL !== "YOUR_SUPABASE_URL") {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-
-        const previewCanvas = document.getElementById('previewCanvas');
-        const previewCtx = previewCanvas.getContext('2d');
-
-        const minimapCanvas = document.getElementById('minimapCanvas');
-        const minimapCtx = minimapCanvas.getContext('2d');
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
@@ -310,1024 +217,300 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        const WORLD_SIZE = 30000; 
-        let playerId = 'worm_' + Math.random().toString(36).substring(2, 9);
+        const WORLD_SIZE = 10000;
+        let gameActive = false;
+        let gameMode = 'normal'; // 'normal' or 'battleroyale'
+        let playerId = 'player_' + Math.random().toString(36).substring(2, 9);
         let playerName = 'SlitherPro';
         let globalChannel = null;
-        let isAdmin = false;
-        let godMode = false;
-        let superSpeedActive = false;
-
-        let gameMode = 'normal'; // 'normal' or 'battleroyale'
-        let isLobby = false;
-        let isSpectating = false;
-        
-        let matchStartTime = 0;
-        let statsFoodEaten = 0;
-        let statsPeakScore = 10;
-        let statsKills = 0;
-
-        let brZone = {
-            x: WORLD_SIZE / 2,
-            y: WORLD_SIZE / 2,
-            radius: WORLD_SIZE * 0.6,
-            targetX: WORLD_SIZE / 2,
-            targetY: WORLD_SIZE / 2,
-            targetRadius: WORLD_SIZE * 0.6,
-            active: false,
-            shrinkTimer: 120
-        };
-
-        let obstacleCubes = [];
-        for (let i = 0; i < 40; i++) {
-            obstacleCubes.push({
-                x: Math.random() * (WORLD_SIZE - 2000) + 1000,
-                y: Math.random() * (WORLD_SIZE - 2000) + 1000,
-                size: 150 + Math.random() * 250,
-                color: '#1e293b'
-            });
-        }
-
-        let bullets = []; // Array to track active gun projectiles in BR mode
-
-        let screenShakeTime = 0;
-        let screenShakeIntensity = 0;
-
-        const AVAILABLE_SKINS = [
-            { id: 'none', name: 'Default Head', url: '' },
-            { id: 'skin1', name: 'Classic Green', url: 'heads/skin1.png' },
-            { id: 'skin2', name: 'Neon Cyber', url: 'heads/skin2.png' },
-            { id: 'skin3', name: 'Golden Crown', url: 'heads/skin3.png' },
-            { id: 'skin4', name: 'Fire Demon', url: 'heads/skin4.png' },
-            { id: 'skin5', name: 'Galaxy Star', url: 'heads/skin5.png' },
-            { id: 'skin6', name: 'Royal Diamond', url: 'heads/skin6.png' },
-            { id: 'skin7', name: 'Toxic Skull', url: 'heads/skin7.png' }
-        ];
-
-        let loadedSkinImages = {};
-        AVAILABLE_SKINS.forEach(skin => {
-            if (skin.url) {
-                let img = new Image();
-                img.src = skin.url;
-                img.onload = () => { loadedSkinImages[skin.id] = img; };
-                img.onerror = () => { loadedSkinImages[skin.id] = null; }; 
-            }
-        });
 
         let me = {
             x: WORLD_SIZE / 2,
             y: WORLD_SIZE / 2,
             angle: 0,
             speed: 3.5,
-            trail: [],
             score: 10,
-            color: '#10b981',
-            skin: 'none',
-            trailStyle: 'sparkle',
-            isDead: false
+            color: '#00ffcc',
+            isDead: false,
+            trail: []
         };
 
-        let remotePlayers = {}; 
-        let aiBots = {};
-        let foodPellets = [];    
-        let particles = [];
         let mouseX = window.innerWidth / 2;
         let mouseY = window.innerHeight / 2;
-        let gameActive = false;
         let isBoosting = false;
 
-        function addKillFeedMessage(killer, victim) {
-            let list = document.getElementById('killFeedList');
-            let item = document.createElement('div');
-            item.className = 'kill-feed-item bg-slate-900/90 backdrop-blur border border-slate-700/80 px-2.5 py-1.5 rounded-xl text-[10px] text-slate-300 shadow flex items-center justify-between space-x-1';
-            item.innerHTML = `
-                <span class="font-bold text-amber-300 truncate max-w-[70px]">${killer}</span>
-                <i class="fa-solid fa-skull text-red-400 text-[9px]"></i>
-                <span class="font-bold text-rose-300 truncate max-w-[70px]">${victim}</span>
-            `;
-            list.prepend(item);
+        let remotePlayers = {};
+        let aiBots = {};
+        let foodPellets = [];
+        let bullets = [];
 
-            if (list.children.length > 4) {
-                list.removeChild(list.lastChild);
-            }
-
-            setTimeout(() => {
-                if (item && item.parentNode) {
-                    item.style.transition = 'opacity 0.4s ease';
-                    item.style.opacity = '0';
-                    setTimeout(() => item.remove(), 400);
-                }
-            }, 4000);
-        }
-
-        function buildSkinSelector() {
-            const grid = document.getElementById('skinSelectorGrid');
-            grid.innerHTML = '';
-            AVAILABLE_SKINS.forEach(skin => {
-                let btn = document.createElement('div');
-                btn.className = `cursor-pointer border-2 rounded-xl p-1 flex flex-col items-center justify-center transition bg-slate-900 ${me.skin === skin.id ? 'border-emerald-400 bg-emerald-950/40' : 'border-slate-700 hover:border-slate-500'}`;
-                let hasImg = skin.url && loadedSkinImages[skin.id];
-                btn.innerHTML = `
-                    <div class="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-600 mb-0.5">
-                        ${hasImg ? `<img src="${skin.url}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-worm text-emerald-400 text-xs"></i>'}
-                    </div>
-                    <span class="text-[8px] text-slate-300 font-semibold truncate w-full text-center">${skin.name.split(' ')[0]}</span>
-                `;
-                btn.onclick = () => {
-                    me.skin = skin.id;
-                    buildSkinSelector();
-                };
-                grid.appendChild(btn);
-            });
-        }
-
-        buildSkinSelector();
-
-        const colorPicker = document.getElementById('playerColorPicker');
-        colorPicker.addEventListener('input', (e) => { me.color = e.target.value; });
-
-        document.querySelectorAll('.color-preset').forEach(btn => {
-            btn.addEventListener('click', () => {
-                me.color = btn.getAttribute('data-color');
-                colorPicker.value = me.color;
-            });
-        });
-
-        document.getElementById('trailStyleSelect').addEventListener('change', (e) => {
-            me.trailStyle = e.target.value;
-        });
-
-        function renderPreview() {
-            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-            for(let i=3; i>=0; i--) {
-                let px = 40 + i * 25;
-                let py = 35 + Math.sin(Date.now() * 0.005 + i * 0.5) * 6;
-                previewCtx.fillStyle = me.color;
-                previewCtx.beginPath();
-                previewCtx.arc(px, py, 12, 0, Math.PI * 2);
-                previewCtx.fill();
-            }
-            let hx = 140;
-            let hy = 35 + Math.sin(Date.now() * 0.005) * 6;
-            
-            if (me.skin !== 'none' && loadedSkinImages[me.skin]) {
-                previewCtx.save();
-                previewCtx.translate(hx, hy);
-                previewCtx.beginPath();
-                previewCtx.arc(0, 0, 16, 0, Math.PI * 2);
-                previewCtx.clip();
-                previewCtx.drawImage(loadedSkinImages[me.skin], -16, -16, 32, 32);
-                previewCtx.restore();
-                previewCtx.strokeStyle = me.color;
-                previewCtx.lineWidth = 2;
-                previewCtx.beginPath();
-                previewCtx.arc(hx, hy, 16, 0, Math.PI * 2);
-                previewCtx.stroke();
-            } else {
-                previewCtx.fillStyle = me.color;
-                previewCtx.beginPath();
-                previewCtx.arc(hx, hy, 15, 0, Math.PI * 2);
-                previewCtx.fill();
-            }
-            requestAnimationFrame(renderPreview);
-        }
-        renderPreview();
-
-        function seededRandom(seed) {
-            let x = Math.sin(seed++) * 10000;
-            return x - Math.floor(x);
-        }
-
-        for(let i=0; i<4000; i++) {
+        // Generate initial food pellets
+        for (let i = 0; i < 300; i++) {
             foodPellets.push({
                 id: 'food_' + i,
-                x: seededRandom(i * 3 + 1) * WORLD_SIZE,
-                y: seededRandom(i * 3 + 2) * WORLD_SIZE,
-                vx: 0, vy: 0,
-                color: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'][Math.floor(seededRandom(i * 3 + 3) * 5)]
+                x: Math.random() * WORLD_SIZE,
+                y: Math.random() * WORLD_SIZE,
+                color: `hsl(${Math.random() * 360}, 100%, 50%)`
             });
         }
 
-        document.addEventListener('mousemove', (e) => {
+        window.addEventListener('mousemove', (e) => {
             mouseX = e.clientX;
             mouseY = e.clientY;
         });
 
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') isBoosting = true;
-            
-            // Shoot gun in Battle Royale mode when pressing 'E'
-            if ((e.key === 'e' || e.key === 'E') && gameMode === 'battleroyale' && gameActive && !isLobby && !isSpectating) {
-                shootGun();
-            }
+        window.addEventListener('mousedown', () => isBoosting = true);
+        window.addEventListener('mouseup', () => isBoosting = false);
 
-            if (e.key === '`' || e.key === '~') {
-                e.preventDefault();
-                if (isAdmin) {
-                    document.getElementById('adminConsole').classList.toggle('hidden');
-                } else {
-                    document.getElementById('adminLoginModal').classList.remove('hidden');
-                    document.getElementById('adminPasswordInput').focus();
+        // Shooting Gun Mechanic (Bypassed entirely in Normal mode)
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'e' && gameMode === 'battleroyale' && !me.isDead && gameActive) {
+                let bullet = {
+                    id: 'b_' + Math.random().toString(36).substring(2, 7),
+                    ownerId: playerId,
+                    x: me.x,
+                    y: me.y,
+                    vx: Math.cos(me.angle) * 12,
+                    vy: Math.sin(me.angle) * 12,
+                    life: 100
+                };
+                bullets.push(bullet);
+
+                if (globalChannel) {
+                    globalChannel.send({
+                        type: 'broadcast',
+                        event: 'player_shoot',
+                        payload: bullet
+                    });
                 }
             }
         });
 
-        window.addEventListener('keyup', (e) => {
-            if (e.code === 'Space') isBoosting = false;
-        });
-
-        function shootGun() {
-            if (me.score <= 15) return; // Cost length to shoot
-            me.score -= 3;
-            document.getElementById('scoreDisplay').innerText = me.score;
-
-            let bullet = {
-                id: 'bullet_' + Math.random().toString(36).substring(2, 9),
-                ownerId: playerId,
-                ownerName: playerName,
-                x: me.x + Math.cos(me.angle) * 20,
-                y: me.y + Math.sin(me.angle) * 20,
-                vx: Math.cos(me.angle) * 16,
-                vy: Math.sin(me.angle) * 16,
-                life: 60 // Frames before bullet expires
-            };
-
-            bullets.push(bullet);
-
-            if (globalChannel) {
-                globalChannel.send({
-                    type: 'broadcast',
-                    event: 'player_shoot',
-                    payload: bullet
-                });
-            }
-        }
-
-        document.getElementById('adminLoginSubmit').addEventListener('click', () => {
-            let pass = document.getElementById('adminPasswordInput').value;
-            if (pass === 'papivictor') {
-                isAdmin = true;
-                document.getElementById('adminLoginModal').classList.add('hidden');
-                document.getElementById('adminConsole').classList.remove('hidden');
-            } else {
-                alert('Incorrect password!');
-            }
-        });
-
-        document.getElementById('adminLoginClose').addEventListener('click', () => {
-            document.getElementById('adminLoginModal').classList.add('hidden');
-        });
-
-        document.getElementById('closeAdminBtn').addEventListener('click', () => {
-            document.getElementById('adminConsole').classList.add('hidden');
-        });
-
-        document.getElementById('adminSpawnBotBtn').addEventListener('click', () => {
-            let botId = 'bot_' + Math.random().toString(36).substring(2, 9);
-            let botColors = ['#f43f5e', '#a855f7', '#3b82f6', '#f59e0b', '#06b6d4', '#ec4899'];
-            let botNames = ['SlitherBot', 'Worminator', 'CyberSlither', 'ByteWorm', 'VenomBot', 'ApexPredator'];
-            
-            let bX = me.x + (Math.random() * 600 - 300);
-            let bY = me.y + (Math.random() * 600 - 300);
-            bX = Math.max(100, Math.min(WORLD_SIZE - 100, bX));
-            bY = Math.max(100, Math.min(WORLD_SIZE - 100, bY));
-
-            let bot = {
-                id: botId,
-                name: botNames[Math.floor(Math.random() * botNames.length)] + Math.floor(Math.random() * 99),
-                x: bX,
-                y: bY,
-                angle: Math.random() * Math.PI * 2,
-                speed: 3.2,
-                score: 30 + Math.floor(Math.random() * 100),
-                color: botColors[Math.floor(Math.random() * botColors.length)],
-                skin: 'none',
-                trail: []
-            };
-
-            for(let i=0; i<bot.score * 4; i++) {
-                bot.trail.push({ x: bot.x, y: bot.y });
-            }
-
-            aiBots[botId] = bot;
-            updateAdminTargetDropdown();
-        });
-
-        document.getElementById('adminSpawnFoodBtn').addEventListener('click', () => {
-            for(let i=0; i<50; i++) {
-                let angle = Math.random() * Math.PI * 2;
-                let speed = Math.random() * 8 + 2;
-                let f = {
-                    id: 'admin_drop_' + Math.random().toString(36).substring(2, 9),
-                    x: me.x,
-                    y: me.y,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    color: '#f59e0b'
-                };
-                foodPellets.push(f);
-                if(globalChannel) globalChannel.send({ type: 'broadcast', event: 'food_spawn', payload: f });
-            }
-        });
-
-        document.getElementById('adminGodModeBtn').addEventListener('click', () => {
-            godMode = !godMode;
-            document.getElementById('adminGodModeBtn').classList.toggle('bg-emerald-900', godMode);
-        });
-
-        document.getElementById('adminGiantBtn').addEventListener('click', () => {
-            me.score += 1000;
-            for(let i=0; i<4000; i++) {
-                me.trail.push({ x: me.x, y: me.y });
-            }
-            document.getElementById('scoreDisplay').innerText = me.score;
-            triggerScreenShake(20, 15);
-        });
-
-        document.getElementById('adminSpeedBtn').addEventListener('click', () => {
-            superSpeedActive = !superSpeedActive;
-            me.speed = superSpeedActive ? 8.0 : 3.5;
-            document.getElementById('adminSpeedBtn').classList.toggle('bg-teal-900', superSpeedActive);
-        });
-
-        document.getElementById('adminTeleportBtn').addEventListener('click', () => {
-            me.x = WORLD_SIZE / 2;
-            me.y = WORLD_SIZE / 2;
-        });
-
-        document.getElementById('adminAddScoreBtn').addEventListener('click', () => {
-            let targetId = document.getElementById('adminTargetSelect').value;
-            if (targetId === 'self') {
-                me.score += 500;
-                document.getElementById('scoreDisplay').innerText = me.score;
-            } else if (remotePlayers[targetId]) {
-                remotePlayers[targetId].score = (remotePlayers[targetId].score || 10) + 500;
-                broadcastScoreAdjustment(targetId, remotePlayers[targetId].score);
-            } else if (aiBots[targetId]) {
-                aiBots[targetId].score += 500;
-            }
-        });
-
-        document.getElementById('adminSubScoreBtn').addEventListener('click', () => {
-            let targetId = document.getElementById('adminTargetSelect').value;
-            if (targetId === 'self') {
-                me.score = Math.max(10, me.score - 500);
-                document.getElementById('scoreDisplay').innerText = me.score;
-            } else if (remotePlayers[targetId]) {
-                remotePlayers[targetId].score = Math.max(10, (remotePlayers[targetId].score || 10) - 500);
-                broadcastScoreAdjustment(targetId, remotePlayers[targetId].score);
-            } else if (aiBots[targetId]) {
-                aiBots[targetId].score = Math.max(10, aiBots[targetId].score - 500);
-            }
-        });
-
-        document.getElementById('adminZeroScoreBtn').addEventListener('click', () => {
-            let targetId = document.getElementById('adminTargetSelect').value;
-            if (targetId === 'self') {
-                me.score = 10;
-                me.trail = [];
-                for(let i=0; i<40; i++) me.trail.push({ x: me.x, y: me.y });
-                document.getElementById('scoreDisplay').innerText = me.score;
-            } else if (remotePlayers[targetId]) {
-                remotePlayers[targetId].score = 10;
-                broadcastScoreAdjustment(targetId, 10);
-            } else if (aiBots[targetId]) {
-                aiBots[targetId].score = 10;
-                aiBots[targetId].trail = [];
-            }
-        });
-
-        function broadcastScoreAdjustment(targetId, newScore) {
-            if (globalChannel) {
-                globalChannel.send({
-                    type: 'broadcast',
-                    event: 'admin_score_adjust',
-                    payload: { targetId: targetId, newScore: newScore }
-                });
-            }
-        }
-
-        document.getElementById('playBtn').addEventListener('click', () => startGame('normal'));
-        document.getElementById('brPlayBtn').addEventListener('click', () => startGame('battleroyale'));
-        document.getElementById('respawnBtn').addEventListener('click', () => startGame(gameMode));
-        document.getElementById('adminStartBRBtn').addEventListener('click', triggerAdminStartBR);
-        document.getElementById('spectateBtn').addEventListener('click', enableSpectatorMode);
-        document.getElementById('statsMenuBtn').addEventListener('click', returnToMenu);
-
-        document.getElementById('menuBtn').addEventListener('click', () => {
-            document.getElementById('deathScreen').classList.add('hidden');
-            document.getElementById('menuScreen').classList.remove('hidden');
-        });
-
         function startGame(mode) {
-            const val = document.getElementById('playerNameInput').value.trim();
-            if(val) playerName = val;
-
             gameMode = mode;
-            isSpectating = false;
+            playerName = document.getElementById('playerNameInput').value || 'SlitherPro';
+            me.color = document.getElementById('colorPicker').value;
+            me.score = 10;
+            me.isDead = false;
+            me.x = Math.random() * (WORLD_SIZE - 2000) + 1000;
+            me.y = Math.random() * (WORLD_SIZE - 2000) + 1000;
+            me.trail = [];
+            remotePlayers = {};
+
             document.getElementById('menuScreen').classList.add('hidden');
             document.getElementById('deathScreen').classList.add('hidden');
-            document.getElementById('statsScreen').classList.add('hidden');
-
-            if (gameMode === 'battleroyale') {
-                isLobby = true;
-                godMode = true;
-                document.getElementById('lobbyBanner').classList.remove('hidden');
-                document.getElementById('gunHudHint').classList.remove('hidden');
-                me.x = WORLD_SIZE / 2;
-                me.y = WORLD_SIZE / 2;
-            } else {
-                isLobby = false;
-                godMode = false;
-                document.getElementById('lobbyBanner').classList.add('hidden');
-                document.getElementById('gunHudHint').classList.add('hidden');
-                respawnPlayer();
-            }
-
             document.getElementById('hud').classList.remove('hidden');
             document.getElementById('leaderboard').classList.remove('hidden');
-            document.getElementById('killFeedContainer').classList.remove('hidden');
-            document.getElementById('minimapContainer').classList.remove('hidden');
 
-            initGlobalMultiplayer();
+            if (gameMode === 'battleroyale') {
+                document.getElementById('gunHudHint').classList.remove('hidden');
+            } else {
+                document.getElementById('gunHudHint').classList.add('hidden');
+            }
+
             gameActive = true;
-            matchStartTime = Date.now();
-            statsFoodEaten = 0;
-            statsPeakScore = me.score;
-            statsKills = 0;
-
+            initSupabaseSync();
             requestAnimationFrame(gameLoop);
         }
 
-        function triggerAdminStartBR() {
-            if (!isAdmin) return;
-            isLobby = false;
-            godMode = false;
-            document.getElementById('lobbyBanner').classList.add('hidden');
-            
-            me.x = Math.random() * (WORLD_SIZE - 4000) + 2000;
-            me.y = Math.random() * (WORLD_SIZE - 4000) + 2000;
-            brZone.active = true;
+        document.getElementById('playNormalBtn').onclick = () => startGame('normal');
+        document.getElementById('playBRBtn').onclick = () => startGame('battleroyale');
+        document.getElementById('respawnBtn').onclick = () => startGame(gameMode);
 
-            if (globalChannel) {
-                globalChannel.send({
-                    type: 'broadcast',
-                    event: 'start_br_match',
-                    payload: {}
-                });
-            }
-        }
-
-        function enableSpectatorMode() {
-            document.getElementById('statsScreen').classList.add('hidden');
-            document.getElementById('hud').classList.remove('hidden');
-            document.getElementById('minimapContainer').classList.remove('hidden');
-            isSpectating = true;
-            gameActive = true;
-            requestAnimationFrame(gameLoop);
-        }
-
-        function returnToMenu() {
-            isSpectating = false;
-            isLobby = false;
-            document.getElementById('statsScreen').classList.add('hidden');
-            document.getElementById('hud').classList.add('hidden');
-            document.getElementById('leaderboard').classList.add('hidden');
-            document.getElementById('killFeedContainer').classList.add('hidden');
-            document.getElementById('minimapContainer').classList.add('hidden');
-            document.getElementById('menuScreen').classList.remove('hidden');
-        }
-
-        function showMatchStats(reason) {
-            gameActive = false;
-            let timeSurvivedSec = Math.floor((Date.now() - matchStartTime) / 1000);
-            
-            document.getElementById('statTimeSurvived').innerText = timeSurvivedSec + 's';
-            document.getElementById('statFoodEaten').innerText = statsFoodEaten;
-            document.getElementById('statPeakScore').innerText = statsPeakScore;
-            document.getElementById('statKills').innerText = statsKills;
-            document.getElementById('statsSubText').innerText = reason;
-
-            document.getElementById('hud').classList.add('hidden');
-            document.getElementById('leaderboard').classList.add('hidden');
-            document.getElementById('killFeedContainer').classList.add('hidden');
-            document.getElementById('minimapContainer').classList.add('hidden');
-            document.getElementById('adminConsole').classList.add('hidden');
-
-            document.getElementById('statsScreen').classList.remove('hidden');
-        }
-
-        function respawnPlayer() {
-            me.x = 500 + Math.random() * (WORLD_SIZE - 1000);
-            me.y = 500 + Math.random() * (WORLD_SIZE - 1000);
-            me.score = 10;
-            me.trail = [];
-            me.isDead = false;
-            for(let i=0; i<me.score*4; i++) {
-                me.trail.push({ x: me.x, y: me.y });
-            }
-            document.getElementById('scoreDisplay').innerText = me.score;
-        }
-
-        function initGlobalMultiplayer() {
+        function initSupabaseSync() {
             if (!supabaseClient) return;
+
             if (globalChannel) {
                 supabaseClient.removeChannel(globalChannel);
             }
 
-            globalChannel = supabaseClient.channel('slither_global_room', {
+            // Room Channel separation based on selected mode
+            const channelName = gameMode === 'battleroyale' ? 'slither_room_br' : 'slither_room_normal';
+
+            globalChannel = supabaseClient.channel(channelName, {
                 config: { broadcast: { self: false } }
             });
 
-            globalChannel
-                .on('broadcast', { event: 'player_sync' }, (payload) => {
-                    let p = payload.payload;
-                    if (p.id !== playerId) {
-                        remotePlayers[p.id] = p;
-                        updateAdminTargetDropdown();
-                    }
-                })
-                .on('broadcast', { event: 'player_shoot' }, (payload) => {
-                    let b = payload.payload;
-                    if (b.ownerId !== playerId) {
-                        bullets.push(b);
-                    }
-                })
-                .on('broadcast', { event: 'player_death' }, (payload) => {
-                    let p = payload.payload;
-                    if (remotePlayers[p.id]) {
-                        addKillFeedMessage(p.killer || 'Someone', remotePlayers[p.id].name);
-                        delete remotePlayers[p.id];
-                        updateAdminTargetDropdown();
-                    }
-                })
-                .on('broadcast', { event: 'food_spawn' }, (payload) => {
-                    foodPellets.push(payload.payload);
-                })
-                .on('broadcast', { event: 'start_br_match' }, () => {
-                    if (gameMode === 'battleroyale' && isLobby) {
-                        isLobby = false;
-                        godMode = false;
-                        document.getElementById('lobbyBanner').classList.add('hidden');
-                        brZone.active = true;
-                        me.x = Math.random() * (WORLD_SIZE - 4000) + 2000;
-                        me.y = Math.random() * (WORLD_SIZE - 4000) + 2000;
-                    }
-                })
-                .on('broadcast', { event: 'admin_score_adjust' }, (payload) => {
-                    if (payload.payload.targetId === playerId) {
-                        me.score = payload.payload.newScore;
-                        document.getElementById('scoreDisplay').innerText = me.score;
-                    }
-                })
-                .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        setInterval(() => {
-                            if (gameActive && !me.isDead) {
-                                globalChannel.send({
-                                    type: 'broadcast',
-                                    event: 'player_sync',
-                                    payload: {
-                                        id: playerId,
-                                        name: playerName,
-                                        x: me.x,
-                                        y: me.y,
-                                        angle: me.angle,
-                                        score: me.score,
-                                        color: me.color,
-                                        skin: me.skin,
-                                        trail: me.trail.slice(0, 30)
-                                    }
-                                });
-                            }
-                        }, 50);
-                    }
-                });
+            globalChannel.on('broadcast', { event: 'player_update' }, ({ payload }) => {
+                remotePlayers[payload.id] = payload;
+            }).on('broadcast', { event: 'player_shoot' }, ({ payload }) => {
+                if (gameMode === 'battleroyale') {
+                    bullets.push(payload);
+                }
+            }).subscribe();
         }
 
-        function updateAdminTargetDropdown() {
-            let select = document.getElementById('adminTargetSelect');
-            let currentVal = select.value;
-            select.innerHTML = '<option value="self">-- Myself (' + playerName + ') --</option>';
-
-            for (let id in remotePlayers) {
-                let rp = remotePlayers[id];
-                let opt = document.createElement('option');
-                opt.value = id;
-                opt.innerText = `Player: ${rp.name || id}`;
-                select.appendChild(opt);
-            }
-
-            for (let id in aiBots) {
-                let bot = aiBots[id];
-                let opt = document.createElement('option');
-                opt.value = id;
-                opt.innerText = `Bot: ${bot.name}`;
-                select.appendChild(opt);
-            }
-
-            select.value = currentVal;
-            document.getElementById('adminPlayerCount').innerText = Object.keys(remotePlayers).length + 1;
-            document.getElementById('adminBotCount').innerText = Object.keys(aiBots).length;
-            document.getElementById('adminScoreVal').innerText = me.score;
-        }
-
-        function triggerScreenShake(duration, intensity) {
-            screenShakeTime = duration;
-            screenShakeIntensity = intensity;
-        }
-
-        function spawnParticles(x, y, color, count = 10) {
-            for (let i = 0; i < count; i++) {
-                let angle = Math.random() * Math.PI * 2;
-                let speed = Math.random() * 6 + 2;
-                particles.push({
-                    x: x,
-                    y: y,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    color: color,
-                    life: 1.0,
-                    decay: Math.random() * 0.03 + 0.02
-                });
-            }
-        }
-
-        function handleDeath(reason, killerName = 'Another Worm') {
-            if (me.isDead || godMode) return;
+        function triggerDeath(killerName) {
+            if (me.isDead) return;
             me.isDead = true;
             gameActive = false;
 
-            triggerScreenShake(30, 20);
-            spawnParticles(me.x, me.y, me.color, 40);
+            document.getElementById('deathReasonText').innerText = `You crashed into ${killerName || "another worm"}!`;
+            document.getElementById('finalScoreDisplay').innerText = Math.floor(me.score);
+            document.getElementById('deathScreen').classList.remove('hidden');
+        }
 
-            if (globalChannel) {
-                globalChannel.send({
-                    type: 'broadcast',
-                    event: 'player_death',
-                    payload: { id: playerId, killer: killerName }
-                });
-            }
+        function checkWormCollisions() {
+            if (me.isDead) return;
+            const headRadius = 12;
 
-            addKillFeedMessage(killerName, playerName);
+            // Check body collisions against remote players
+            Object.values(remotePlayers).forEach(player => {
+                if (!player.trail || player.trail.length < 5) return;
+                for (let i = 5; i < player.trail.length; i++) {
+                    let seg = player.trail[i];
+                    let dist = Math.hypot(me.x - seg.x, me.y - seg.y);
+                    if (dist < headRadius + 8) {
+                        triggerDeath(player.name || "another player");
+                        return;
+                    }
+                }
+            });
 
-            if (gameMode === 'battleroyale') {
-                showMatchStats(reason);
-            } else {
-                document.getElementById('hud').classList.add('hidden');
-                document.getElementById('leaderboard').classList.add('hidden');
-                document.getElementById('killFeedContainer').classList.add('hidden');
-                document.getElementById('minimapContainer').classList.add('hidden');
-                document.getElementById('adminConsole').classList.add('hidden');
-
-                document.getElementById('deathReasonText').innerText = reason;
-                document.getElementById('finalScoreDisplay').innerText = me.score;
-                document.getElementById('deathScreen').classList.remove('hidden');
-            }
+            // Check body collisions against AI Bots
+            Object.values(aiBots).forEach(bot => {
+                if (!bot.trail || bot.trail.length < 5) return;
+                for (let i = 5; i < bot.trail.length; i++) {
+                    let seg = bot.trail[i];
+                    let dist = Math.hypot(me.x - seg.x, me.y - seg.y);
+                    if (dist < headRadius + 8) {
+                        triggerDeath(bot.name || "an AI bot");
+                        return;
+                    }
+                }
+            });
         }
 
         function gameLoop() {
             if (!gameActive) return;
 
-            if (isSpectating) {
-                let targetX = WORLD_SIZE / 2;
-                let targetY = WORLD_SIZE / 2;
-                let maxScore = -1;
-                for(let id in remotePlayers) {
-                    if ((remotePlayers[id].score || 10) > maxScore) {
-                        maxScore = remotePlayers[id].score;
-                        targetX = remotePlayers[id].x;
-                        targetY = remotePlayers[id].y;
-                    }
-                }
-                me.x += (targetX - me.x) * 0.1;
-                me.y += (targetY - me.y) * 0.1;
-            } else {
-                let targetAngle = Math.atan2(mouseY - window.innerHeight / 2, mouseX - window.innerWidth / 2);
-                let angleDiff = targetAngle - me.angle;
-                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                me.angle += angleDiff * 0.15;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                let currentSpeed = me.speed;
+            // Movement & Trail Updating
+            if (!me.isDead) {
+                let targetAngle = Math.atan2(mouseY - canvas.height / 2, mouseX - canvas.width / 2);
+                let currentSpeed = me.speed * (isBoosting && me.score > 15 ? 1.8 : 1.0);
+                
                 if (isBoosting && me.score > 15) {
-                    currentSpeed *= 1.6;
-                    if (Math.random() < 0.3) {
-                        me.score--;
-                        document.getElementById('scoreDisplay').innerText = me.score;
-                        foodPellets.push({
-                            id: 'drop_' + Math.random(),
-                            x: me.x - Math.cos(me.angle) * 20,
-                            y: me.y - Math.sin(me.angle) * 20,
-                            vx: (Math.random() - 0.5) * 4,
-                            vy: (Math.random() - 0.5) * 4,
-                            color: me.color
-                        });
-                    }
+                    me.score -= 0.05;
+                    document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
                 }
 
-                if (!isLobby) {
-                    me.x += Math.cos(me.angle) * currentSpeed;
-                    me.y += Math.sin(me.angle) * currentSpeed;
-                }
-
-                if (me.x < 50 || me.x > WORLD_SIZE - 50 || me.y < 50 || me.y > WORLD_SIZE - 50) {
-                    if (!godMode) {
-                        handleDeath("You hit the outer boundary wall!");
-                        return;
-                    } else {
-                        me.x = Math.max(50, Math.min(WORLD_SIZE - 50, me.x));
-                        me.y = Math.max(50, Math.min(WORLD_SIZE - 50, me.y));
-                    }
-                }
+                me.angle = targetAngle;
+                me.x += Math.cos(me.angle) * currentSpeed;
+                me.y += Math.sin(me.angle) * currentSpeed;
 
                 me.trail.unshift({ x: me.x, y: me.y });
-                let maxTrailLength = Math.max(40, me.score * 4);
-                while (me.trail.length > maxTrailLength) {
+                let maxTrailLength = Math.floor(me.score * 3);
+                if (me.trail.length > maxTrailLength) {
                     me.trail.pop();
                 }
-            }
 
-            // Update Bullets
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                let b = bullets[i];
-                b.x += b.vx;
-                b.y += b.vy;
-                b.life--;
+                checkWormCollisions();
 
-                // Check bullet collision with local player (in BR mode)
-                if (gameMode === 'battleroyale' && b.ownerId !== playerId && !isLobby && !godMode) {
-                    let hitDist = Math.hypot(me.x - b.x, me.y - b.y);
-                    if (hitDist < 20) {
-                        me.score = Math.max(10, me.score - 15);
-                        document.getElementById('scoreDisplay').innerText = me.score;
-                        triggerScreenShake(10, 8);
-                        bullets.splice(i, 1);
-                        if (me.score <= 15) {
-                            handleDeath("Shot down by " + b.ownerName + "!", b.ownerName);
-                            return;
+                if (globalChannel) {
+                    globalChannel.send({
+                        type: 'broadcast',
+                        event: 'player_update',
+                        payload: {
+                            id: playerId,
+                            name: playerName,
+                            x: me.x,
+                            y: me.y,
+                            angle: me.angle,
+                            score: me.score,
+                            color: me.color,
+                            trail: me.trail
                         }
-                        continue;
-                    }
-                }
-
-                // Check bullet collision with AI Bots
-                for (let botId in aiBots) {
-                    let bot = aiBots[botId];
-                    let hitBotDist = Math.hypot(bot.x - b.x, bot.y - b.y);
-                    if (hitBotDist < 20) {
-                        bot.score = Math.max(10, bot.score - 15);
-                        bullets.splice(i, 1);
-                        if (bot.score <= 15) {
-                            statsKills++;
-                            delete aiBots[botId];
-                            updateAdminTargetDropdown();
-                        }
-                        break;
-                    }
-                }
-
-                if (b && (b.life <= 0 || b.x < 0 || b.x > WORLD_SIZE || b.y < 0 || b.y > WORLD_SIZE)) {
-                    bullets.splice(i, 1);
-                }
-            }
-
-            for (let id in aiBots) {
-                let bot = aiBots[id];
-                bot.angle += (Math.random() - 0.5) * 0.2;
-                bot.x += Math.cos(bot.angle) * bot.speed;
-                bot.y += Math.sin(bot.angle) * bot.speed;
-
-                if (bot.x < 100 || bot.x > WORLD_SIZE - 100) bot.angle = Math.PI - bot.angle;
-                if (bot.y < 100 || bot.y > WORLD_SIZE - 100) bot.angle = -bot.angle;
-
-                bot.trail.unshift({ x: bot.x, y: bot.y });
-                let bMaxLen = Math.max(40, bot.score * 4);
-                while (bot.trail.length > bMaxLen) bot.trail.pop();
-            }
-
-            for (let i = foodPellets.length - 1; i >= 0; i--) {
-                let f = foodPellets[i];
-                f.x += f.vx;
-                f.y += f.vy;
-                f.vx *= 0.92;
-                f.vy *= 0.92;
-
-                let dist = Math.hypot(me.x - f.x, me.y - f.y);
-                if (dist < 22 && !isLobby) {
-                    me.score += 1;
-                    statsFoodEaten++;
-                    document.getElementById('scoreDisplay').innerText = me.score;
-                    foodPellets.splice(i, 1);
-                }
-            }
-
-            if (foodPellets.length < 2500) {
-                for (let i = 0; i < 50; i++) {
-                    foodPellets.push({
-                        id: 'gen_' + Math.random(),
-                        x: me.x + (Math.random() * 4000 - 2000),
-                        y: me.y + (Math.random() * 4000 - 2000),
-                        vx: 0, vy: 0,
-                        color: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'][Math.floor(Math.random() * 5)]
                     });
                 }
             }
 
-            if (gameMode === 'battleroyale' && brZone.active && !isLobby) {
-                brZone.radius += (brZone.targetRadius - brZone.radius) * 0.001;
-                brZone.x += (brZone.targetX - brZone.x) * 0.001;
-                brZone.y += (brZone.targetY - brZone.y) * 0.001;
-
-                if (Math.random() < 0.0005) {
-                    brZone.targetX = WORLD_SIZE / 2 + (Math.random() - 0.5) * 8000;
-                    brZone.targetY = WORLD_SIZE / 2 + (Math.random() - 0.5) * 8000;
-                    brZone.targetRadius = Math.max(1500, brZone.targetRadius * 0.85);
-                }
-
-                let distFromZoneCenter = Math.hypot(me.x - brZone.x, me.y - brZone.y);
-                if (distFromZoneCenter > brZone.radius && !godMode) {
-                    me.score = Math.max(10, me.score - 0.2);
-                    document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
-                    if (me.score <= 15) {
-                        showMatchStats("Eliminated by the shrinking storm zone!");
-                        return;
-                    }
-                }
-            }
-
-            for (let obs of obstacleCubes) {
-                let dx = me.x - obs.x;
-                let dy = me.y - obs.y;
-                let minDist = obs.size / 2 + 20;
-                let currentDist = Math.hypot(dx, dy);
-                if (currentDist < minDist && !isLobby) {
-                    let angle = Math.atan2(dy, dx);
-                    me.x = obs.x + Math.cos(angle) * minDist;
-                    me.y = obs.y + Math.sin(angle) * minDist;
-                }
-            }
-
-            if (me.score > statsPeakScore) statsPeakScore = Math.floor(me.score);
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+            // Camera Transformation
             ctx.save();
-            if (screenShakeTime > 0) {
-                let shakeX = (Math.random() - 0.5) * screenShakeIntensity;
-                let shakeY = (Math.random() - 0.5) * screenShakeIntensity;
-                ctx.translate(shakeX, shakeY);
-                screenShakeTime--;
-            }
+            ctx.translate(canvas.width / 2 - me.x, canvas.height / 2 - me.y);
 
-            let camX = canvas.width / 2 - me.x;
-            let camY = canvas.height / 2 - me.y;
-
-            ctx.save();
-            ctx.translate(camX, camY);
-
+            // Draw Background Grid
             ctx.strokeStyle = '#1e293b';
-            ctx.lineWidth = 1.5;
+            ctx.lineWidth = 2;
             let gridSize = 100;
-            let startX = Math.floor(me.x - canvas.width / 2 / gridSize) * gridSize - gridSize;
-            let endX = startX + canvas.width + gridSize * 2;
-            let startY = Math.floor(me.y - canvas.height / 2 / gridSize) * gridSize - gridSize;
-            let endY = startY + canvas.height + gridSize * 2;
+            let startX = Math.floor((me.x - canvas.width) / gridSize) * gridSize;
+            let endX = Math.floor((me.x + canvas.width) / gridSize) * gridSize;
+            let startY = Math.floor((me.y - canvas.height) / gridSize) * gridSize;
+            let endY = Math.floor((me.y + canvas.height) / gridSize) * gridSize;
 
             for (let x = startX; x <= endX; x += gridSize) {
                 ctx.beginPath();
-                ctx.moveTo(x, Math.max(0, startY));
-                ctx.lineTo(x, Math.min(WORLD_SIZE, endY));
+                ctx.moveTo(x, startY);
+                ctx.lineTo(x, endY);
                 ctx.stroke();
             }
             for (let y = startY; y <= endY; y += gridSize) {
                 ctx.beginPath();
-                ctx.moveTo(Math.max(0, startX), y);
-                ctx.lineTo(Math.min(WORLD_SIZE, endX), y);
+                ctx.moveTo(startX, y);
+                ctx.lineTo(endX, y);
                 ctx.stroke();
             }
 
-            for (let obs of obstacleCubes) {
-                if (Math.abs(obs.x - me.x) < canvas.width && Math.abs(obs.y - me.y) < canvas.height) {
-                    ctx.fillStyle = obs.color;
-                    ctx.fillRect(obs.x - obs.size / 2, obs.y - obs.size / 2, obs.size, obs.size);
-                    ctx.strokeStyle = '#334155';
-                    ctx.lineWidth = 4;
-                    ctx.strokeRect(obs.x - obs.size / 2, obs.y - obs.size / 2, obs.size, obs.size);
-                }
-            }
-
-            if (gameMode === 'battleroyale' && brZone.active) {
-                ctx.strokeStyle = 'rgba(168, 85, 247, 0.7)';
-                ctx.lineWidth = 8;
+            // Render Food Pellets
+            foodPellets.forEach(pellet => {
+                ctx.fillStyle = pellet.color;
                 ctx.beginPath();
-                ctx.arc(brZone.x, brZone.y, brZone.radius, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-
-            for (let f of foodPellets) {
-                if (Math.abs(f.x - me.x) < canvas.width / 2 + 100 && Math.abs(f.y - me.y) < canvas.height / 2 + 100) {
-                    ctx.fillStyle = f.color;
-                    ctx.beginPath();
-                    ctx.arc(f.x, f.y, 5, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-
-            // Render Bullets
-            for (let b of bullets) {
-                ctx.fillStyle = '#f59e0b';
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, 6, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            for (let id in aiBots) {
-                let bot = aiBots[id];
-                for (let i = bot.trail.length - 1; i >= 0; i--) {
-                    let pt = bot.trail[i];
-                    ctx.fillStyle = bot.color;
-                    ctx.beginPath();
-                    ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                ctx.fillStyle = bot.color;
-                ctx.beginPath();
-                ctx.arc(bot.x, bot.y, 14, 0, Math.PI * 2);
+                ctx.arc(pellet.x, pellet.y, 6, 0, Math.PI * 2);
                 ctx.fill();
 
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '10px Fredoka, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(bot.name, bot.x, bot.y - 20);
-            }
-
-            for (let id in remotePlayers) {
-                let rp = remotePlayers[id];
-                if (rp.trail) {
-                    for (let pt of rp.trail) {
-                        ctx.fillStyle = rp.color || '#3b82f6';
-                        ctx.beginPath();
-                        ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
-                        ctx.fill();
+                if (!me.isDead) {
+                    let dist = Math.hypot(me.x - pellet.x, me.y - pellet.y);
+                    if (dist < 20) {
+                        pellet.x = Math.random() * WORLD_SIZE;
+                        pellet.y = Math.random() * WORLD_SIZE;
+                        me.score += 1;
+                        document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
                     }
                 }
-                ctx.fillStyle = rp.color || '#3b82f6';
-                ctx.beginPath();
-                ctx.arc(rp.x, rp.y, 14, 0, Math.PI * 2);
-                ctx.fill();
+            });
 
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '10px Fredoka, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(rp.name || 'Player', rp.x, rp.y - 20);
-            }
-
-            for (let i = me.trail.length - 1; i >= 0; i--) {
-                let pt = me.trail[i];
-                ctx.fillStyle = me.color;
-                ctx.beginPath();
-                ctx.arc(pt.x, pt.y, 12, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            ctx.fillStyle = me.color;
-            ctx.beginPath();
-            ctx.arc(me.x, me.y, 15, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Draw a tiny weapon barrel graphic if in Battle Royale mode
+            // Bullets (Battle Royale mode only)
             if (gameMode === 'battleroyale') {
-                ctx.fillStyle = '#94a3b8';
-                ctx.beginPath();
-                ctx.arc(me.x + Math.cos(me.angle) * 14, me.y + Math.sin(me.angle) * 14, 5, 0, Math.PI * 2);
-                ctx.fill();
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    let b = bullets[i];
+                    b.x += b.vx;
+                    b.y += b.vy;
+                    b.life--;
+
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    if (b.life <= 0) {
+                        bullets.splice(i, 1);
+                    }
+                }
             }
 
-            ctx.fillStyle = '#10b981';
-            ctx.font = 'bold 11px Fredoka, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(isSpectating ? '👁️ SPECTATING' : playerName, me.x, me.y - 22);
-
-            ctx.restore();
-            ctx.restore();
-
-            minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-            let scaleX = minimapCanvas.width / WORLD_SIZE;
-            let scaleY = minimapCanvas.height / WORLD_SIZE;
-
-            minimapCtx.fillStyle = '#10b981';
-            minimapCtx.beginPath();
-            minimapCtx.arc(me.x * scaleX, me.y * scaleY, 3, 0, Math.PI * 2);
-            minimapCtx.fill();
-
-            for (let id in remotePlayers) {
-                let rp = remotePlayers[id];
-                minimapCtx.fillStyle = '#3b82f6';
-                minimapCtx.beginPath();
-                minimapCtx.arc(rp.x * scaleX, rp.y * scaleY, 2, 0, Math.PI * 2);
-                minimapCtx.fill();
+            // Draw Local Player Body
+            if (!me.isDead) {
+                me.trail.forEach((pt, idx) => {
+                    ctx.fillStyle = me.color;
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, Math.max(4, 12 - idx * 0.03), 0, Math.PI * 2);
+                    ctx.fill();
+                });
             }
+
+            // Draw Remote Players Body
+            Object.values(remotePlayers).forEach(player => {
+                if (!player.trail) return;
+                player.trail.forEach((pt, idx) => {
+                    ctx.fillStyle = player.color || '#ff0055';
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, Math.max(4, 12 - idx * 0.03), 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            });
+
+            ctx.restore();
 
             requestAnimationFrame(gameLoop);
         }
