@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slither Global - Multiplayer</title>
+    <title>Slither Global - Ultimate Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
@@ -38,7 +38,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(9, 13, 22, 0.82);
+            background: rgba(9, 13, 22, 0.85);
             backdrop-filter: blur(12px);
             z-index: 10;
         }
@@ -53,7 +53,7 @@
             padding: 2.5rem;
             border-radius: 16px;
             box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7), 0 0 20px rgba(56, 189, 248, 0.1);
-            width: 380px;
+            width: 400px;
             text-align: center;
         }
 
@@ -68,7 +68,7 @@
             font-weight: 800;
         }
 
-        input[type="text"] {
+        input[type="text"], input[type="password"], select {
             width: 100%;
             padding: 0.85rem;
             border-radius: 8px;
@@ -82,9 +82,33 @@
             transition: border-color 0.2s;
         }
 
-        input[type="text"]:focus {
+        input[type="text"]:focus, input[type="password"]:focus, select:focus {
             border-color: #38bdf8;
             box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+        }
+
+        select option {
+            background: #0f172a;
+            color: #fff;
+        }
+
+        .config-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .config-row > div {
+            flex: 1;
+        }
+
+        .config-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 4px;
+            text-align: left;
         }
 
         .color-picker-wrapper {
@@ -92,7 +116,7 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             background: rgba(15, 23, 42, 0.5);
             padding: 8px;
             border-radius: 8px;
@@ -146,7 +170,6 @@
         .btn-primary:hover {
             background: linear-gradient(135deg, #0369a1, #075985);
             transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(2, 132, 199, 0.6);
         }
 
         .btn-br {
@@ -158,7 +181,6 @@
         .btn-br:hover {
             background: linear-gradient(135deg, #b91c1c, #991b1b);
             transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.6);
         }
 
         .btn-secondary {
@@ -170,6 +192,82 @@
         .btn-secondary:hover {
             background: rgba(71, 85, 105, 1);
             color: #fff;
+        }
+
+        /* ADMIN CONSOLE UI */
+        #adminConsole {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 560px;
+            background: rgba(15, 23, 42, 0.98);
+            backdrop-filter: blur(16px);
+            border: 2px solid #a855f7;
+            border-radius: 16px;
+            padding: 2rem;
+            z-index: 100;
+            box-shadow: 0 25px 50px -12px rgba(168, 85, 247, 0.4);
+        }
+
+        #adminConsole h2 {
+            color: #c084fc;
+            margin-bottom: 1rem;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 1.4rem;
+        }
+
+        .target-box {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .target-box label {
+            font-size: 0.8rem;
+            color: #c084fc;
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .admin-grid::-webkit-scrollbar {
+            width: 6px;
+        }
+        .admin-grid::-webkit-scrollbar-thumb {
+            background: rgba(168, 85, 247, 0.4);
+            border-radius: 3px;
+        }
+
+        .btn-admin {
+            background: linear-gradient(135deg, #7e22ce, #6b21a8);
+            color: #fff;
+            font-size: 0.78rem;
+            padding: 0.6rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-admin:hover {
+            background: linear-gradient(135deg, #6b21a8, #581c87);
+        }
+
+        .btn-target {
+            background: linear-gradient(135deg, #be185d, #9d174d);
         }
 
         #hud {
@@ -191,6 +289,26 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
+        #locationBanner {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #38bdf8;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            z-index: 6;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            transition: opacity 0.5s ease;
+        }
+
         #stormWarning {
             position: absolute;
             top: 15%;
@@ -207,12 +325,39 @@
             text-align: center;
             z-index: 6;
             box-shadow: 0 0 25px rgba(220, 38, 38, 0.6);
-            animation: pulseWarning 1s infinite alternate;
         }
 
-        @keyframes pulseWarning {
-            from { transform: translateX(-50%) scale(1); }
-            to { transform: translateX(-50%) scale(1.05); }
+        /* KILL FEED TICKER */
+        #killFeed {
+            position: absolute;
+            top: 20px;
+            right: 240px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-end;
+            z-index: 6;
+            pointer-events: none;
+        }
+
+        .kill-msg {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(6px);
+            border-left: 4px solid #ef4444;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #f8fafc;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            animation: fadeInOut 4s forwards;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-10px); }
+            15% { opacity: 1; transform: translateY(0); }
+            85% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
         }
 
         #leaderboard {
@@ -264,6 +409,55 @@
 
     <canvas id="gameCanvas"></canvas>
 
+    <div id="locationBanner" class="hidden">📍 Tilted Towers</div>
+    <div id="killFeed"></div>
+
+    <!-- ADMIN CONSOLE OVERLAY (22 OPTIONS + BLACK HOLE BOMB) -->
+    <div id="adminConsole" class="hidden">
+        <h2>🛠️ 22-Option Admin Console</h2>
+        <div id="adminLoginView">
+            <p style="margin-bottom: 10px; font-size: 0.9rem; color: #cbd5e1; text-align: center;">Enter security passphrase:</p>
+            <input type="password" id="adminPassInput" placeholder="Password...">
+            <button class="btn-primary" id="adminLoginBtn">Authenticate</button>
+        </div>
+        <div id="adminControlsView" class="hidden">
+            <div class="target-box">
+                <label for="targetSelect">Target Online Player:</label>
+                <select id="targetSelect">
+                    <option value="self">-- Self (Me) --</option>
+                </select>
+            </div>
+
+            <div class="admin-grid">
+                <button class="btn-admin" id="admAddScore">1. +100 Score</button>
+                <button class="btn-admin" id="admMassScore">2. +1,000 Score</button>
+                <button class="btn-admin" id="admBombScore">3. +10,000 Score</button>
+                <button class="btn-admin" id="admGodMode">4. God Mode: OFF</button>
+                <button class="btn-admin" id="admInvis">5. Invisibility: OFF</button>
+                <button class="btn-admin" id="admSpeedBoost">6. Super Speed: OFF</button>
+                <button class="btn-admin" id="admGiant">7. Giant Size: OFF</button>
+                <button class="btn-admin" id="admTeleportCenter">8. Teleport Center</button>
+                <button class="btn-admin" id="admMagnetFood">9. Magnet Food Surge</button>
+                <button class="btn-admin" id="admDoubleShoot">10. Give Double Shot</button>
+
+                <button class="btn-admin btn-target" id="admTargetKill">11. Kill Target</button>
+                <button class="btn-admin btn-target" id="admTargetScore">12. Give Target +5k</button>
+                <button class="btn-admin btn-target" id="admTargetFreeze">13. Freeze Target: OFF</button>
+                <button class="btn-admin btn-target" id="admTargetTpToMe">14. Pull Target To You</button>
+                <button class="btn-admin btn-target" id="admTargetKick">15. Kick Target</button>
+
+                <button class="btn-admin" id="admClearBullets">16. Clear Bullets</button>
+                <button class="btn-admin" id="admClearObstacles">17. Clear Obstacles</button>
+                <button class="btn-admin" id="admResetZone">18. Reset BR Zone</button>
+                <button class="btn-admin" id="admSpawnFood">19. Spawn 100 Foods</button>
+                <button class="btn-admin" id="admNukeAll">20. Nuke All Players</button>
+                <button class="btn-admin" id="admSplitCell">21. Split-Cell Division</button>
+                <button class="btn-admin" id="admBlackHole" style="background: linear-gradient(135deg, #0284c7, #7e22ce);">22. Black Hole Bomb</button>
+            </div>
+            <button class="btn-secondary" id="adminCloseBtn" style="margin-top: 12px;">Close Console (`)</button>
+        </div>
+    </div>
+
     <!-- STORM WARNING BANNER -->
     <div id="stormWarning" class="hidden">
         ⚠️ Outside Game Zone! Return inside: <span id="stormTimer">5.0</span>s
@@ -274,6 +468,8 @@
         <div class="hud-item">Score: <span id="scoreDisplay">10</span></div>
         <div class="hud-item hidden" id="gunHudHint">Press [E] to Shoot Guns</div>
         <div class="hud-item hidden" id="powerupHud" style="color: #fbbf24;">⚡ Double Shot Active!</div>
+        <div class="hud-item hidden" id="godModeHud" style="color: #a855f7;">🛡️ GOD MODE ACTIVE</div>
+        <div class="hud-item hidden" id="invisHud" style="color: #38bdf8;">👻 INVISIBLE CLOAK ACTIVE</div>
     </div>
 
     <!-- LEADERBOARD -->
@@ -290,9 +486,31 @@
         <div class="card">
             <h1>Slither Global</h1>
             <input type="text" id="playerNameInput" placeholder="Enter Nickname" maxlength="15">
-            <div class="color-picker-wrapper">
-                <label style="font-size: 0.9rem; color: #94a3b8; font-weight: 600;">Worm Color:</label>
-                <input type="color" id="colorPicker" value="#00ffcc">
+            <div class="config-row">
+                <div>
+                    <label class="config-label">Base Color</label>
+                    <div class="color-picker-wrapper" style="margin: 0;">
+                        <input type="color" id="colorPicker" value="#00ffcc">
+                    </div>
+                </div>
+                <div>
+                    <label class="config-label">Skin Pattern</label>
+                    <select id="skinPatternSelect">
+                        <option value="solid">Solid Flat</option>
+                        <option value="neon">Neon Glow</option>
+                        <option value="rainbow">Rainbow Gradient</option>
+                        <option value="stripe">Electric Stripe</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-bottom: 1.5rem; text-align: left;">
+                <label class="config-label">Headwear / Hat</label>
+                <select id="hatSelect">
+                    <option value="none">None</option>
+                    <option value="crown">👑 Golden Crown</option>
+                    <option value="viking">🛡️ Viking Helmet</option>
+                    <option value="halo">😇 Glowing Halo</option>
+                </select>
             </div>
             <div class="btn-group">
                 <button class="btn-primary" id="playNormalBtn">Normal Game</button>
@@ -349,22 +567,38 @@
             speed: 3.5,
             score: 10,
             color: '#00ffcc',
+            skinPattern: 'solid',
+            hat: 'none',
             isDead: false,
             trail: [],
-            doubleShootTimer: 0
+            doubleShootTimer: 0,
+            godMode: false,
+            superSpeed: false,
+            invisible: false,
+            giantMode: false,
+            frozen: false,
+            splitWorms: []
         };
+
+        const MAP_ZONES = [
+            { name: "Tilted Neon Towers", x: 2500, y: 2500, radius: 2000, color: 'rgba(56, 189, 248, 0.03)' },
+            { name: "Frozen Greasy Grove", x: 7500, y: 2500, radius: 2000, color: 'rgba(147, 197, 253, 0.05)', ice: true },
+            { name: "Loot Lake", x: 5000, y: 7500, radius: 2500, color: 'rgba(16, 185, 129, 0.04)' }
+        ];
 
         let mouseX = window.innerWidth / 2;
         let mouseY = window.innerHeight / 2;
         let isBoosting = false;
         let outsideStormTime = 0;
-        const MAX_STORM_TIME = 5.0; // 5 seconds grace period outside storm
+        const MAX_STORM_TIME = 5.0;
+        let currentBiomeName = "";
 
         let remotePlayers = {};
         let foodPellets = [];
         let bullets = [];
         let obstacles = [];
         let powerUps = [];
+        let activeBlackHoles = [];
 
         let brZone = {
             x: WORLD_SIZE / 2,
@@ -372,7 +606,7 @@
             radius: WORLD_SIZE * 0.45
         };
 
-        for (let i = 0; i < 400; i++) {
+        for (let i = 0; i < 450; i++) {
             foodPellets.push({
                 id: 'food_' + i,
                 x: Math.random() * WORLD_SIZE,
@@ -381,19 +615,183 @@
             });
         }
 
-        for (let i = 0; i < 25; i++) {
+        for (let i = 0; i < 30; i++) {
             obstacles.push({
                 x: Math.random() * (WORLD_SIZE - 2000) + 1000,
                 y: Math.random() * (WORLD_SIZE - 2000) + 1000,
-                radius: 50 + Math.random() * 70
+                radius: 40 + Math.random() * 60
             });
         }
 
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 6; i++) {
             powerUps.push({
                 id: 'pw_' + i,
                 x: Math.random() * (WORLD_SIZE - 2000) + 1000,
                 y: Math.random() * (WORLD_SIZE - 2000) + 1000
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === '`') {
+                const consoleEl = document.getElementById('adminConsole');
+                consoleEl.classList.toggle('hidden');
+                if (!consoleEl.classList.contains('hidden')) {
+                    updateTargetDropdown();
+                }
+            }
+        });
+
+        document.getElementById('adminLoginBtn').onclick = () => {
+            const pass = document.getElementById('adminPassInput').value;
+            if (pass === 'papivictor') {
+                document.getElementById('adminLoginView').classList.add('hidden');
+                document.getElementById('adminControlsView').classList.remove('hidden');
+                updateTargetDropdown();
+            } else {
+                alert('Invalid Admin Passphrase!');
+            }
+        };
+
+        document.getElementById('adminCloseBtn').onclick = () => {
+            document.getElementById('adminConsole').classList.add('hidden');
+        };
+
+        function updateTargetDropdown() {
+            const select = document.getElementById('targetSelect');
+            let currentVal = select.value;
+            select.innerHTML = '<option value="self">-- Self (Me) --</option>';
+            
+            Object.keys(remotePlayers).forEach(id => {
+                let p = remotePlayers[id];
+                let opt = document.createElement('option');
+                opt.value = id;
+                opt.innerText = p.name || ('Player ' + id.substring(0, 4));
+                select.appendChild(opt);
+            });
+            select.value = currentVal;
+        }
+
+        function getTargetId() {
+            return document.getElementById('targetSelect').value;
+        }
+
+        // --- 22 ADMIN POWERS ---
+        document.getElementById('admAddScore').onclick = () => {
+            let tId = getTargetId();
+            if (tId === 'self') { me.score += 100; document.getElementById('scoreDisplay').innerText = Math.floor(me.score); }
+            else sendAdminCommand(tId, 'add_score', 100);
+        };
+        document.getElementById('admMassScore').onclick = () => {
+            let tId = getTargetId();
+            if (tId === 'self') { me.score += 1000; document.getElementById('scoreDisplay').innerText = Math.floor(me.score); }
+            else sendAdminCommand(tId, 'add_score', 1000);
+        };
+        document.getElementById('admBombScore').onclick = () => {
+            let tId = getTargetId();
+            if (tId === 'self') { me.score += 10000; document.getElementById('scoreDisplay').innerText = Math.floor(me.score); }
+            else sendAdminCommand(tId, 'add_score', 10000);
+        };
+        document.getElementById('admGodMode').onclick = (e) => {
+            me.godMode = !me.godMode;
+            e.target.innerText = `4. God Mode: ${me.godMode ? 'ON' : 'OFF'}`;
+            document.getElementById('godModeHud').classList.toggle('hidden', !me.godMode);
+        };
+        document.getElementById('admInvis').onclick = (e) => {
+            me.invisible = !me.invisible;
+            e.target.innerText = `5. Invisibility: ${me.invisible ? 'ON' : 'OFF'}`;
+            document.getElementById('invisHud').classList.toggle('hidden', !me.invisible);
+        };
+        document.getElementById('admSpeedBoost').onclick = (e) => {
+            me.superSpeed = !me.superSpeed;
+            e.target.innerText = `6. Super Speed: ${me.superSpeed ? 'ON' : 'OFF'}`;
+        };
+        document.getElementById('admGiant').onclick = (e) => {
+            me.giantMode = !me.giantMode;
+            e.target.innerText = `7. Giant Size: ${me.giantMode ? 'ON' : 'OFF'}`;
+            if (me.giantMode) me.score = Math.max(me.score, 500);
+            document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
+        };
+        document.getElementById('admTeleportCenter').onclick = () => {
+            me.x = WORLD_SIZE / 2; me.y = WORLD_SIZE / 2;
+        };
+        document.getElementById('admMagnetFood').onclick = () => {
+            foodPellets.forEach(pellet => {
+                pellet.x = me.x + (Math.random() * 300 - 150);
+                pellet.y = me.y + (Math.random() * 300 - 150);
+            });
+        };
+        document.getElementById('admDoubleShoot').onclick = () => { me.doubleShootTimer = 3000; };
+
+        document.getElementById('admTargetKill').onclick = () => {
+            let tId = getTargetId();
+            if (tId !== 'self') sendAdminCommand(tId, 'kill');
+        };
+        document.getElementById('admTargetScore').onclick = () => {
+            let tId = getTargetId();
+            if (tId !== 'self') sendAdminCommand(tId, 'add_score', 5000);
+        };
+        document.getElementById('admTargetFreeze').onclick = () => {
+            let tId = getTargetId();
+            if (tId !== 'self') sendAdminCommand(tId, 'toggle_freeze');
+        };
+        document.getElementById('admTargetTpToMe').onclick = () => {
+            let tId = getTargetId();
+            if (tId !== 'self') sendAdminCommand(tId, 'teleport', { x: me.x, y: me.y });
+        };
+        document.getElementById('admTargetKick').onclick = () => {
+            let tId = getTargetId();
+            if (tId !== 'self') sendAdminCommand(tId, 'kick');
+        };
+
+        document.getElementById('admClearBullets').onclick = () => { bullets = []; };
+        document.getElementById('admClearObstacles').onclick = () => { obstacles = []; };
+        document.getElementById('admResetZone').onclick = () => {
+            brZone.radius = WORLD_SIZE * 0.45; outsideStormTime = 0;
+            document.getElementById('stormWarning').classList.add('hidden');
+        };
+        document.getElementById('admSpawnFood').onclick = () => {
+            for (let i = 0; i < 100; i++) {
+                foodPellets.push({
+                    id: 'food_spawn_' + Math.random(),
+                    x: me.x + (Math.random() * 400 - 200),
+                    y: me.y + (Math.random() * 400 - 200),
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`
+                });
+            }
+        };
+        document.getElementById('admNukeAll').onclick = () => {
+            if (globalChannel) {
+                globalChannel.send({ type: 'broadcast', event: 'admin_nuke', payload: {} });
+            }
+        };
+        document.getElementById('admSplitCell').onclick = () => {
+            if (me.score > 30) {
+                let halfScore = Math.floor(me.score / 2);
+                me.score = halfScore;
+                me.splitWorms.push({
+                    x: me.x + Math.cos(me.angle + Math.PI/2) * 60,
+                    y: me.y + Math.sin(me.angle + Math.PI/2) * 60,
+                    angle: me.angle,
+                    score: halfScore,
+                    trail: []
+                });
+                document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
+            }
+        };
+        document.getElementById('admBlackHole').onclick = () => {
+            let bh = { x: me.x, y: me.y, radius: 10, life: 300 };
+            activeBlackHoles.push(bh);
+            if (globalChannel) {
+                globalChannel.send({ type: 'broadcast', event: 'spawn_blackhole', payload: bh });
+            }
+        };
+
+        function sendAdminCommand(targetId, action, value = null) {
+            if (!globalChannel) return;
+            globalChannel.send({
+                type: 'broadcast',
+                event: 'admin_command',
+                payload: { targetId, action, value }
             });
         }
 
@@ -406,14 +804,13 @@
         window.addEventListener('mouseup', () => isBoosting = false);
 
         window.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'e' && gameMode === 'battleroyale' && !me.isDead && gameActive) {
+            if (e.key.toLowerCase() === 'e' && gameMode === 'battleroyale' && !me.isDead && gameActive && !me.frozen) {
                 let generatedBullets = [];
                 if (me.doubleShootTimer > 0) {
                     generatedBullets.push({
                         id: 'b_' + Math.random().toString(36).substring(2, 7),
                         ownerId: playerId,
-                        x: me.x,
-                        y: me.y,
+                        x: me.x, y: me.y,
                         vx: Math.cos(me.angle - 0.15) * 12,
                         vy: Math.sin(me.angle - 0.15) * 12,
                         life: 100
@@ -421,8 +818,7 @@
                     generatedBullets.push({
                         id: 'b_' + Math.random().toString(36).substring(2, 7),
                         ownerId: playerId,
-                        x: me.x,
-                        y: me.y,
+                        x: me.x, y: me.y,
                         vx: Math.cos(me.angle + 0.15) * 12,
                         vy: Math.sin(me.angle + 0.15) * 12,
                         life: 100
@@ -431,8 +827,7 @@
                     generatedBullets.push({
                         id: 'b_' + Math.random().toString(36).substring(2, 7),
                         ownerId: playerId,
-                        x: me.x,
-                        y: me.y,
+                        x: me.x, y: me.y,
                         vx: Math.cos(me.angle) * 12,
                         vy: Math.sin(me.angle) * 12,
                         life: 100
@@ -442,11 +837,7 @@
                 generatedBullets.forEach(b => {
                     bullets.push(b);
                     if (globalChannel) {
-                        globalChannel.send({
-                            type: 'broadcast',
-                            event: 'player_shoot',
-                            payload: b
-                        });
+                        globalChannel.send({ type: 'broadcast', event: 'player_shoot', payload: b });
                     }
                 });
             }
@@ -456,8 +847,12 @@
             gameMode = mode;
             playerName = document.getElementById('playerNameInput').value || 'SlitherPro';
             me.color = document.getElementById('colorPicker').value;
+            me.skinPattern = document.getElementById('skinPatternSelect').value;
+            me.hat = document.getElementById('hatSelect').value;
             me.score = 10;
             me.isDead = false;
+            me.frozen = false;
+            me.splitWorms = [];
             me.x = WORLD_SIZE / 2 + (Math.random() * 1000 - 500);
             me.y = WORLD_SIZE / 2 + (Math.random() * 1000 - 500);
             me.trail = [];
@@ -490,12 +885,22 @@
         document.getElementById('mainMenuBtn').onclick = () => {
             document.getElementById('deathScreen').classList.add('hidden');
             document.getElementById('stormWarning').classList.add('hidden');
+            document.getElementById('locationBanner').classList.add('hidden');
             document.getElementById('menuScreen').classList.remove('hidden');
             document.getElementById('hud').classList.add('hidden');
             document.getElementById('leaderboard').classList.add('hidden');
             document.getElementById('minimapCanvas').classList.add('hidden');
             gameActive = false;
         };
+
+        function addKillFeedMessage(msg) {
+            const feed = document.getElementById('killFeed');
+            const el = document.createElement('div');
+            el.className = 'kill-msg';
+            el.innerText = msg;
+            feed.appendChild(el);
+            setTimeout(() => { el.remove(); }, 4000);
+        }
 
         function initSupabaseSync() {
             if (!supabaseClient) return;
@@ -504,7 +909,7 @@
                 supabaseClient.removeChannel(globalChannel);
             }
 
-            const channelName = gameMode === 'battleroyale' ? 'slither_room_br' : 'slither_room_normal';
+            const channelName = gameMode === 'battleroyale' ? 'slither_room_br_v4' : 'slither_room_normal_v4';
 
             globalChannel = supabaseClient.channel(channelName, {
                 config: { broadcast: { self: false } }
@@ -515,22 +920,56 @@
                     remotePlayers[payload.id] = { ...payload, lastSeen: Date.now() };
                 })
                 .on('broadcast', { event: 'player_shoot' }, ({ payload }) => {
-                    if (gameMode === 'battleroyale') {
-                        bullets.push(payload);
+                    if (gameMode === 'battleroyale') bullets.push(payload);
+                })
+                .on('broadcast', { event: 'spawn_blackhole' }, ({ payload }) => {
+                    activeBlackHoles.push(payload);
+                })
+                .on('broadcast', { event: 'player_eliminated' }, ({ payload }) => {
+                    addKillFeedMessage(`${payload.victim} was eliminated by ${payload.killer}!`);
+                })
+                .on('broadcast', { event: 'admin_command' }, ({ payload }) => {
+                    if (payload.targetId === playerId) {
+                        if (payload.action === 'kill') triggerDeath("an admin power");
+                        if (payload.action === 'add_score') {
+                            me.score += payload.value;
+                            document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
+                        }
+                        if (payload.action === 'toggle_freeze') me.frozen = !me.frozen;
+                        if (payload.action === 'teleport') {
+                            me.x = payload.value.x; me.y = payload.value.y;
+                        }
+                        if (payload.action === 'kick') {
+                            alert("You have been kicked by the admin!");
+                            location.reload();
+                        }
                     }
+                })
+                .on('broadcast', { event: 'admin_nuke' }, () => {
+                    triggerDeath("an absolute global server nuke");
                 })
                 .subscribe();
         }
 
         function triggerDeath(killerName) {
-            if (me.isDead) return;
+            if (me.isDead || me.godMode) return;
             me.isDead = true;
             gameActive = false;
 
-            document.getElementById('deathReasonText').innerText = `You eliminated because of ${killerName || "another player"}!`;
+            if (globalChannel) {
+                globalChannel.send({
+                    type: 'broadcast',
+                    event: 'player_eliminated',
+                    payload: { victim: playerName, killer: killerName || "another player" }
+                });
+            }
+            addKillFeedMessage(`${playerName} was eliminated by ${killerName || "another player"}!`);
+
+            document.getElementById('deathReasonText').innerText = `You were eliminated by ${killerName || "another player"}!`;
             document.getElementById('finalScoreDisplay').innerText = Math.floor(me.score);
             document.getElementById('deathScreen').classList.remove('hidden');
             document.getElementById('stormWarning').classList.add('hidden');
+            document.getElementById('locationBanner').classList.add('hidden');
             document.getElementById('minimapCanvas').classList.add('hidden');
         }
 
@@ -542,8 +981,8 @@
         }
 
         function checkEnvironmentCollisions() {
-            if (me.isDead) return;
-            const headRadius = 12;
+            if (me.isDead || me.godMode) return;
+            const headRadius = me.giantMode ? 40 : 12;
 
             obstacles.forEach(obs => {
                 let dist = Math.hypot(me.x - obs.x, me.y - obs.y);
@@ -567,7 +1006,7 @@
             if (gameMode === 'battleroyale') {
                 let distFromCenter = Math.hypot(me.x - brZone.x, me.y - brZone.y);
                 if (distFromCenter > brZone.radius) {
-                    outsideStormTime += 1 / 60; // 60fps tracking
+                    outsideStormTime += 1 / 60;
                     let timeLeft = Math.max(0, MAX_STORM_TIME - outsideStormTime);
                     document.getElementById('stormWarning').classList.remove('hidden');
                     document.getElementById('stormTimer').innerText = timeLeft.toFixed(1);
@@ -584,10 +1023,37 @@
                     }
                 }
 
-                if (brZone.radius > 300) {
-                    brZone.radius -= 0.1;
-                }
+                if (brZone.radius > 300) brZone.radius -= 0.1;
             }
+        }
+
+        function checkBiomes() {
+            let foundBiome = "";
+            MAP_ZONES.forEach(zone => {
+                let dist = Math.hypot(me.x - zone.x, me.y - zone.y);
+                if (dist < zone.radius) {
+                    foundBiome = zone.name;
+                }
+            });
+
+            const banner = document.getElementById('locationBanner');
+            if (foundBiome && foundBiome !== currentBiomeName) {
+                currentBiomeName = foundBiome;
+                banner.innerText = "📍 " + currentBiomeName;
+                banner.classList.remove('hidden');
+                banner.style.opacity = '1';
+                setTimeout(() => { banner.style.opacity = '0'; }, 3000);
+            }
+        }
+
+        function isInIceBiome() {
+            let inIce = false;
+            MAP_ZONES.forEach(zone => {
+                if (zone.ice && Math.hypot(me.x - zone.x, me.y - zone.y) < zone.radius) {
+                    inIce = true;
+                }
+            });
+            return inIce;
         }
 
         function updateLeaderboard() {
@@ -619,6 +1085,13 @@
             minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
             let scale = minimapCanvas.width / WORLD_SIZE;
 
+            MAP_ZONES.forEach(zone => {
+                minimapCtx.fillStyle = zone.ice ? 'rgba(147, 197, 253, 0.2)' : 'rgba(56, 189, 248, 0.15)';
+                minimapCtx.beginPath();
+                minimapCtx.arc(zone.x * scale, zone.y * scale, zone.radius * scale, 0, Math.PI * 2);
+                minimapCtx.fill();
+            });
+
             if (gameMode === 'battleroyale') {
                 minimapCtx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
                 minimapCtx.lineWidth = 1.5;
@@ -649,51 +1122,96 @@
             }
         }
 
-        function drawRealisticWorm(trail, color, isLocal, angle) {
+        function getSegmentColor(baseColor, pattern, idx) {
+            if (pattern === 'neon') return '#38bdf8';
+            if (pattern === 'rainbow') return `hsl(${(idx * 15) % 360}, 100%, 50%)`;
+            if (pattern === 'stripe') return idx % 2 === 0 ? baseColor : '#ffffff';
+            return baseColor;
+        }
+
+        function drawRealisticWorm(trail, color, pattern, isLocal, angle, hatType) {
             if (!trail || trail.length === 0) return;
 
-            // Draw Body Segments (Tapered)
+            let sizeMultiplier = (isLocal && me.giantMode) ? 3.0 : 1.0;
+
             trail.forEach((pt, idx) => {
-                let radius = Math.max(5, 14 - (idx * 0.04));
-                ctx.fillStyle = color;
+                let radius = Math.max(5, (14 - (idx * 0.04))) * sizeMultiplier;
+                ctx.fillStyle = getSegmentColor(color, pattern, idx);
                 ctx.beginPath();
                 ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Add inner detail ring for realism
                 ctx.strokeStyle = 'rgba(0,0,0,0.15)';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
             });
 
-            // Draw Head Segment with Eyes
             let head = trail[0];
             if (head) {
-                ctx.fillStyle = color;
+                ctx.fillStyle = getSegmentColor(color, pattern, 0);
                 ctx.beginPath();
-                ctx.arc(head.x, head.y, 15, 0, Math.PI * 2);
+                ctx.arc(head.x, head.y, 15 * sizeMultiplier, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.strokeStyle = 'rgba(255,255,255,0.3)';
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
-                // Eyes setup based on angle
-                let eyeOffset = 6;
-                let eyeSpacing = 5;
+                if (hatType && hatType !== 'none') {
+                    ctx.save();
+                    ctx.translate(head.x, head.y);
+                    ctx.rotate(angle + Math.PI/2);
+                    if (hatType === 'crown') {
+                        ctx.fillStyle = '#fbbf24';
+                        ctx.beginPath();
+                        ctx.moveTo(-10, -18);
+                        ctx.lineTo(-12, -30);
+                        ctx.lineTo(-4, -22);
+                        ctx.lineTo(0, -32);
+                        ctx.lineTo(4, -22);
+                        ctx.lineTo(12, -30);
+                        ctx.lineTo(10, -18);
+                        ctx.closePath();
+                        ctx.fill();
+                    } else if (hatType === 'viking') {
+                        ctx.fillStyle = '#64748b';
+                        ctx.beginPath();
+                        ctx.arc(0, -20, 10, Math.PI, 0, false);
+                        ctx.fill();
+                        ctx.fillStyle = '#f8fafc';
+                        ctx.beginPath();
+                        ctx.moveTo(-8, -22);
+                        ctx.lineTo(-16, -32);
+                        ctx.lineTo(-4, -26);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.moveTo(8, -22);
+                        ctx.lineTo(16, -32);
+                        ctx.lineTo(4, -26);
+                        ctx.fill();
+                    } else if (hatType === 'halo') {
+                        ctx.strokeStyle = '#fde047';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.ellipse(0, -28, 12, 5, 0, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
+
+                let eyeOffset = 6 * sizeMultiplier;
+                let eyeSpacing = 5 * sizeMultiplier;
                 let leftEyeX = head.x + Math.cos(angle) * eyeOffset - Math.sin(angle) * eyeSpacing;
                 let leftEyeY = head.y + Math.sin(angle) * eyeOffset + Math.cos(angle) * eyeSpacing;
                 let rightEyeX = head.x + Math.cos(angle) * eyeOffset + Math.sin(angle) * eyeSpacing;
                 let rightEyeY = head.y + Math.sin(angle) * eyeOffset - Math.cos(angle) * eyeSpacing;
 
-                // White eye balls
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
-                ctx.arc(leftEyeX, leftEyeY, 3.5, 0, Math.PI * 2);
-                ctx.arc(rightEyeX, rightEyeY, 3.5, 0, Math.PI * 2);
+                ctx.arc(leftEyeX, leftEyeY, 3.5 * sizeMultiplier, 0, Math.PI * 2);
+                ctx.arc(rightEyeX, rightEyeY, 3.5 * sizeMultiplier, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Black pupils facing looking direction
-                let pupilDist = 1.2;
+                let pupilDist = 1.2 * sizeMultiplier;
                 let pupilLeftX = leftEyeX + Math.cos(angle) * pupilDist;
                 let pupilLeftY = leftEyeY + Math.sin(angle) * pupilDist;
                 let pupilRightX = rightEyeX + Math.cos(angle) * pupilDist;
@@ -701,8 +1219,8 @@
 
                 ctx.fillStyle = '#0f172a';
                 ctx.beginPath();
-                ctx.arc(pupilLeftX, pupilLeftY, 1.8, 0, Math.PI * 2);
-                ctx.arc(pupilRightX, pupilRightY, 1.8, 0, Math.PI * 2);
+                ctx.arc(pupilLeftX, pupilLeftY, 1.8 * sizeMultiplier, 0, Math.PI * 2);
+                ctx.arc(pupilRightX, pupilRightY, 1.8 * sizeMultiplier, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
@@ -718,13 +1236,19 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (!me.isDead) {
+            if (!me.isDead && !me.frozen) {
                 let targetAngle = Math.atan2(mouseY - canvas.height / 2, mouseX - canvas.width / 2);
-                me.angle = lerpAngle(me.angle, targetAngle, 0.12);
-
-                let currentSpeed = me.speed * (isBoosting && me.score > 15 ? 1.8 : 1.0);
                 
-                if (isBoosting && me.score > 15) {
+                if (isInIceBiome()) {
+                    me.angle = lerpAngle(me.angle, targetAngle, 0.03);
+                } else {
+                    me.angle = lerpAngle(me.angle, targetAngle, 0.12);
+                }
+
+                let speedMultiplier = me.superSpeed ? 3.0 : 1.0;
+                let currentSpeed = me.speed * speedMultiplier * (isBoosting && me.score > 15 ? 1.8 : 1.0);
+                
+                if (isBoosting && me.score > 15 && !me.superSpeed) {
                     me.score -= 0.05;
                     document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
                 }
@@ -741,11 +1265,18 @@
 
                 me.trail.unshift({ x: me.x, y: me.y });
                 let maxTrailLength = Math.floor(me.score * 3);
-                if (me.trail.length > maxTrailLength) {
-                    me.trail.pop();
-                }
+                if (me.trail.length > maxTrailLength) me.trail.pop();
+
+                me.splitWorms.forEach((sw) => {
+                    sw.angle = lerpAngle(sw.angle, targetAngle, 0.1);
+                    sw.x += Math.cos(sw.angle) * currentSpeed;
+                    sw.y += Math.sin(sw.angle) * currentSpeed;
+                    sw.trail.unshift({ x: sw.x, y: sw.y });
+                    if (sw.trail.length > Math.floor(sw.score * 3)) sw.trail.pop();
+                });
 
                 checkEnvironmentCollisions();
+                checkBiomes();
 
                 if (globalChannel) {
                     globalChannel.send({
@@ -759,17 +1290,27 @@
                             angle: me.angle,
                             score: me.score,
                             color: me.color,
-                            trail: me.trail
+                            skinPattern: me.skinPattern,
+                            hat: me.hat,
+                            trail: me.invisible ? [] : me.trail
                         }
                     });
                 }
             }
 
-            // Camera Transformation
             ctx.save();
             ctx.translate(canvas.width / 2 - me.x, canvas.height / 2 - me.y);
 
-            // Draw Background Grid
+            MAP_ZONES.forEach(zone => {
+                ctx.fillStyle = zone.color;
+                ctx.beginPath();
+                ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = zone.ice ? 'rgba(147, 197, 253, 0.2)' : 'rgba(56, 189, 248, 0.15)';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            });
+
             ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 2;
             let gridSize = 100;
@@ -779,19 +1320,12 @@
             let endY = Math.floor((me.y + canvas.height) / gridSize) * gridSize;
 
             for (let x = startX; x <= endX; x += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(x, startY);
-                ctx.lineTo(x, endY);
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke();
             }
             for (let y = startY; y <= endY; y += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(startX, y);
-                ctx.lineTo(endX, y);
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(endX, y); ctx.stroke();
             }
 
-            // Draw Battle Royale Shrinking Safe Zone
             if (gameMode === 'battleroyale') {
                 ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
                 ctx.lineWidth = 8;
@@ -800,18 +1334,45 @@
                 ctx.stroke();
             }
 
-            // Draw Obstacles
             obstacles.forEach(obs => {
                 ctx.fillStyle = '#334155';
                 ctx.strokeStyle = '#475569';
                 ctx.lineWidth = 4;
                 ctx.beginPath();
                 ctx.arc(obs.x, obs.y, obs.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
+                ctx.fill(); ctx.stroke();
             });
 
-            // Draw Power-ups
+            // Update & Render Black Hole Bombs
+            for (let i = activeBlackHoles.length - 1; i >= 0; i--) {
+                let bh = activeBlackHoles[i];
+                bh.life--;
+                bh.radius = Math.min(250, bh.radius + 0.8);
+
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                ctx.beginPath();
+                ctx.arc(bh.x, bh.y, bh.radius * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#c084fc';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                foodPellets.forEach(pellet => {
+                    let d = Math.hypot(bh.x - pellet.x, bh.y - pellet.y);
+                    if (d < bh.radius) {
+                        pellet.x += (bh.x - pellet.x) * 0.1;
+                        pellet.y += (bh.y - pellet.y) * 0.1;
+                    }
+                });
+
+                if (!me.isDead && Math.hypot(bh.x - me.x, bh.y - me.y) < bh.radius) {
+                    me.x += (bh.x - me.x) * 0.03;
+                    me.y += (bh.y - me.y) * 0.03;
+                }
+
+                if (bh.life <= 0) activeBlackHoles.splice(i, 1);
+            }
+
             powerUps.forEach((pw) => {
                 ctx.fillStyle = '#fbbf24';
                 ctx.beginPath();
@@ -828,7 +1389,6 @@
                 }
             });
 
-            // Render Food Pellets
             foodPellets.forEach(pellet => {
                 ctx.fillStyle = pellet.color;
                 ctx.beginPath();
@@ -846,47 +1406,37 @@
                 }
             });
 
-            // Bullets
             if (gameMode === 'battleroyale') {
                 for (let i = bullets.length - 1; i >= 0; i--) {
                     let b = bullets[i];
-                    b.x += b.vx;
-                    b.y += b.vy;
-                    b.life--;
+                    b.x += b.vx; b.y += b.vy; b.life--;
 
                     ctx.fillStyle = '#f59e0b';
-                    ctx.beginPath();
-                    ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI * 2); ctx.fill();
 
                     obstacles.forEach(obs => {
-                        let hitObs = Math.hypot(b.x - obs.x, b.y - obs.y);
-                        if (hitObs < obs.radius) {
-                            b.life = 0;
-                        }
+                        if (Math.hypot(b.x - obs.x, b.y - obs.y) < obs.radius) b.life = 0;
                     });
 
-                    if (b.ownerId !== playerId && !me.isDead) {
-                        let hitDist = Math.hypot(me.x - b.x, me.y - b.y);
-                        if (hitDist < 15) {
-                            triggerDeath("a bullet");
-                        }
+                    if (b.ownerId !== playerId && !me.isDead && Math.hypot(me.x - b.x, me.y - b.y) < 15) {
+                        triggerDeath("a bullet");
                     }
 
-                    if (b.life <= 0) {
-                        bullets.splice(i, 1);
-                    }
+                    if (b.life <= 0) bullets.splice(i, 1);
                 }
             }
 
-            // Draw Local Player Realistic Worm
-            if (!me.isDead) {
-                drawRealisticWorm(me.trail, me.color, true, me.angle);
+            if (!me.isDead && !me.invisible) {
+                drawRealisticWorm(me.trail, me.color, me.skinPattern, true, me.angle, me.hat);
+                me.splitWorms.forEach(sw => {
+                    drawRealisticWorm(sw.trail, me.color, me.skinPattern, true, sw.angle, me.hat);
+                });
             }
 
-            // Draw Remote Players Realistic Worms
             Object.values(remotePlayers).forEach(player => {
-                drawRealisticWorm(player.trail, player.color || '#ff0055', false, player.angle || 0);
+                if (player.trail && player.trail.length > 0) {
+                    drawRealisticWorm(player.trail, player.color || '#ff0055', player.skinPattern || 'solid', false, player.angle || 0, player.hat || 'none');
+                }
             });
 
             ctx.restore();
