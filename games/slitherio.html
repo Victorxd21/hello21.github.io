@@ -11,14 +11,14 @@
             padding: 0;
             box-sizing: border-box;
             user-select: none;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         body, html {
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #0f172a;
+            background-color: #090d16;
             color: #fff;
         }
 
@@ -38,8 +38,8 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(8px);
+            background: rgba(9, 13, 22, 0.82);
+            backdrop-filter: blur(12px);
             z-index: 10;
         }
 
@@ -48,67 +48,128 @@
         }
 
         .card {
-            background: #1e293b;
-            border: 1px solid #334155;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-            width: 360px;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7), 0 0 20px rgba(56, 189, 248, 0.1);
+            width: 380px;
             text-align: center;
         }
 
         h1 {
-            font-size: 2rem;
-            color: #38bdf8;
-            margin-bottom: 1rem;
+            font-size: 2.2rem;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1.5rem;
             text-transform: uppercase;
             letter-spacing: 2px;
+            font-weight: 800;
         }
 
         input[type="text"] {
             width: 100%;
-            padding: 0.75rem;
-            border-radius: 6px;
-            border: 1px solid #475569;
-            background: #0f172a;
+            padding: 0.85rem;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: rgba(15, 23, 42, 0.8);
             color: #fff;
             margin-bottom: 1rem;
             outline: none;
             text-align: center;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+        }
+
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+            background: rgba(15, 23, 42, 0.5);
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        input[type="color"] {
+            appearance: none;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: none;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch {
+            border: 2px solid #38bdf8;
+            border-radius: 50%;
         }
 
         .btn-group {
             display: flex;
-            gap: 10px;
+            flex-direction: column;
+            gap: 12px;
             margin-top: 1rem;
         }
 
         button {
-            flex: 1;
-            padding: 0.75rem;
+            width: 100%;
+            padding: 0.85rem;
             border: none;
-            border-radius: 6px;
-            font-weight: bold;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1rem;
             cursor: pointer;
             transition: all 0.2s ease;
+            letter-spacing: 0.5px;
         }
 
         .btn-primary {
-            background: #0284c7;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
             color: white;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
         }
 
         .btn-primary:hover {
-            background: #0369a1;
+            background: linear-gradient(135deg, #0369a1, #075985);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(2, 132, 199, 0.6);
         }
 
         .btn-br {
-            background: #dc2626;
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
             color: white;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
         }
 
         .btn-br:hover {
-            background: #b91c1c;
+            background: linear-gradient(135deg, #b91c1c, #991b1b);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.6);
+        }
+
+        .btn-secondary {
+            background: rgba(51, 65, 85, 0.8);
+            color: #cbd5e1;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(71, 85, 105, 1);
+            color: #fff;
         }
 
         #hud {
@@ -120,56 +181,93 @@
         }
 
         .hud-item {
-            background: rgba(15, 23, 42, 0.6);
-            padding: 8px 16px;
-            border-radius: 20px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(6px);
+            padding: 10px 18px;
+            border-radius: 24px;
             margin-bottom: 8px;
-            font-weight: bold;
+            font-weight: 700;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        #stormWarning {
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(220, 38, 38, 0.85);
+            backdrop-filter: blur(8px);
+            border: 2px solid #f87171;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #fff;
+            text-align: center;
+            z-index: 6;
+            box-shadow: 0 0 25px rgba(220, 38, 38, 0.6);
+            animation: pulseWarning 1s infinite alternate;
+        }
+
+        @keyframes pulseWarning {
+            from { transform: translateX(-50%) scale(1); }
+            to { transform: translateX(-50%) scale(1.05); }
         }
 
         #leaderboard {
             position: absolute;
             top: 20px;
             right: 20px;
-            background: rgba(15, 23, 42, 0.6);
-            padding: 12px;
-            border-radius: 8px;
-            min-width: 180px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(6px);
+            padding: 14px;
+            border-radius: 12px;
+            min-width: 200px;
             z-index: 5;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         #leaderboard h3 {
             font-size: 0.9rem;
             color: #38bdf8;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 4px;
-            margin-bottom: 6px;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .lb-item {
             display: flex;
             justify-content: space-between;
             font-size: 0.85rem;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+            font-weight: 600;
         }
 
         #minimapCanvas {
             position: absolute;
             bottom: 20px;
             right: 20px;
-            background: rgba(15, 23, 42, 0.75);
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(6px);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
+            border-radius: 12px;
             z-index: 5;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
         }
     </style>
 </head>
 <body>
 
     <canvas id="gameCanvas"></canvas>
+
+    <!-- STORM WARNING BANNER -->
+    <div id="stormWarning" class="hidden">
+        ⚠️ Outside Game Zone! Return inside: <span id="stormTimer">5.0</span>s
+    </div>
 
     <!-- HUD -->
     <div id="hud" class="hidden">
@@ -192,9 +290,9 @@
         <div class="card">
             <h1>Slither Global</h1>
             <input type="text" id="playerNameInput" placeholder="Enter Nickname" maxlength="15">
-            <div>
-                <label style="font-size: 0.85rem; color: #94a3b8;">Choose Color:</label>
-                <input type="color" id="colorPicker" value="#00ffcc" style="margin-left: 10px; cursor: pointer;">
+            <div class="color-picker-wrapper">
+                <label style="font-size: 0.9rem; color: #94a3b8; font-weight: 600;">Worm Color:</label>
+                <input type="color" id="colorPicker" value="#00ffcc">
             </div>
             <div class="btn-group">
                 <button class="btn-primary" id="playNormalBtn">Normal Game</button>
@@ -206,10 +304,13 @@
     <!-- DEATH SCREEN -->
     <div id="deathScreen" class="overlay-screen hidden">
         <div class="card">
-            <h1 style="color: #ef4444;">Eliminated</h1>
-            <p id="deathReasonText" style="margin-bottom: 1rem; color: #cbd5e1;">You collided with another player!</p>
+            <h1 style="color: #ef4444; -webkit-text-fill-color: #ef4444;">Eliminated</h1>
+            <p id="deathReasonText" style="margin-bottom: 1rem; color: #cbd5e1; font-weight: 500;">You collided with another player!</p>
             <p style="margin-bottom: 1.5rem;">Final Score: <span id="finalScoreDisplay" style="color: #38bdf8; font-weight: bold;">0</span></p>
-            <button class="btn-primary" id="respawnBtn" style="width: 100%;">Play Again</button>
+            <div class="btn-group">
+                <button class="btn-primary" id="respawnBtn">Play Again</button>
+                <button class="btn-secondary" id="mainMenuBtn">Main Menu</button>
+            </div>
         </div>
     </div>
 
@@ -256,6 +357,8 @@
         let mouseX = window.innerWidth / 2;
         let mouseY = window.innerHeight / 2;
         let isBoosting = false;
+        let outsideStormTime = 0;
+        const MAX_STORM_TIME = 5.0; // 5 seconds grace period outside storm
 
         let remotePlayers = {};
         let foodPellets = [];
@@ -269,7 +372,6 @@
             radius: WORLD_SIZE * 0.45
         };
 
-        // Generate map environment elements
         for (let i = 0; i < 400; i++) {
             foodPellets.push({
                 id: 'food_' + i,
@@ -360,11 +462,13 @@
             me.y = WORLD_SIZE / 2 + (Math.random() * 1000 - 500);
             me.trail = [];
             me.doubleShootTimer = 0;
+            outsideStormTime = 0;
             brZone.radius = WORLD_SIZE * 0.45;
             remotePlayers = {};
 
             document.getElementById('menuScreen').classList.add('hidden');
             document.getElementById('deathScreen').classList.add('hidden');
+            document.getElementById('stormWarning').classList.add('hidden');
             document.getElementById('hud').classList.remove('hidden');
             document.getElementById('leaderboard').classList.remove('hidden');
             document.getElementById('minimapCanvas').classList.remove('hidden');
@@ -383,6 +487,15 @@
         document.getElementById('playNormalBtn').onclick = () => startGame('normal');
         document.getElementById('playBRBtn').onclick = () => startGame('battleroyale');
         document.getElementById('respawnBtn').onclick = () => startGame(gameMode);
+        document.getElementById('mainMenuBtn').onclick = () => {
+            document.getElementById('deathScreen').classList.add('hidden');
+            document.getElementById('stormWarning').classList.add('hidden');
+            document.getElementById('menuScreen').classList.remove('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('leaderboard').classList.add('hidden');
+            document.getElementById('minimapCanvas').classList.add('hidden');
+            gameActive = false;
+        };
 
         function initSupabaseSync() {
             if (!supabaseClient) return;
@@ -414,9 +527,10 @@
             me.isDead = true;
             gameActive = false;
 
-            document.getElementById('deathReasonText').innerText = `You crashed into ${killerName || "another worm"}!`;
+            document.getElementById('deathReasonText').innerText = `You eliminated because of ${killerName || "another player"}!`;
             document.getElementById('finalScoreDisplay').innerText = Math.floor(me.score);
             document.getElementById('deathScreen').classList.remove('hidden');
+            document.getElementById('stormWarning').classList.add('hidden');
             document.getElementById('minimapCanvas').classList.add('hidden');
         }
 
@@ -431,7 +545,6 @@
             if (me.isDead) return;
             const headRadius = 12;
 
-            // Check Obstacle collisions
             obstacles.forEach(obs => {
                 let dist = Math.hypot(me.x - obs.x, me.y - obs.y);
                 if (dist < headRadius + obs.radius) {
@@ -439,7 +552,6 @@
                 }
             });
 
-            // Check Remote Player collisions
             Object.values(remotePlayers).forEach(player => {
                 if (!player.trail || player.trail.length < 5) return;
                 for (let i = 5; i < player.trail.length; i++) {
@@ -452,15 +564,28 @@
                 }
             });
 
-            // Check Battle Royale safe zone boundary
             if (gameMode === 'battleroyale') {
                 let distFromCenter = Math.hypot(me.x - brZone.x, me.y - brZone.y);
                 if (distFromCenter > brZone.radius) {
-                    triggerDeath("the shrinking storm zone");
+                    outsideStormTime += 1 / 60; // 60fps tracking
+                    let timeLeft = Math.max(0, MAX_STORM_TIME - outsideStormTime);
+                    document.getElementById('stormWarning').classList.remove('hidden');
+                    document.getElementById('stormTimer').innerText = timeLeft.toFixed(1);
+
+                    if (outsideStormTime >= MAX_STORM_TIME) {
+                        triggerDeath("the shrinking storm zone");
+                    }
+                } else {
+                    if (outsideStormTime > 0) {
+                        outsideStormTime = Math.max(0, outsideStormTime - 0.05);
+                        if (outsideStormTime === 0) {
+                            document.getElementById('stormWarning').classList.add('hidden');
+                        }
+                    }
                 }
-                // Shrink zone over time safely
+
                 if (brZone.radius > 300) {
-                    brZone.radius -= 0.15;
+                    brZone.radius -= 0.1;
                 }
             }
         }
@@ -494,7 +619,6 @@
             minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
             let scale = minimapCanvas.width / WORLD_SIZE;
 
-            // Draw BR zone circle on minimap if active
             if (gameMode === 'battleroyale') {
                 minimapCtx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
                 minimapCtx.lineWidth = 1.5;
@@ -503,7 +627,6 @@
                 minimapCtx.stroke();
             }
 
-            // Draw obstacles on minimap
             minimapCtx.fillStyle = '#475569';
             obstacles.forEach(obs => {
                 minimapCtx.beginPath();
@@ -511,7 +634,6 @@
                 minimapCtx.fill();
             });
 
-            // Draw remote players
             Object.values(remotePlayers).forEach(p => {
                 minimapCtx.fillStyle = p.color || '#ff0055';
                 minimapCtx.beginPath();
@@ -519,12 +641,69 @@
                 minimapCtx.fill();
             });
 
-            // Draw local player
             if (!me.isDead) {
                 minimapCtx.fillStyle = me.color;
                 minimapCtx.beginPath();
                 minimapCtx.arc(me.x * scale, me.y * scale, 3.5, 0, Math.PI * 2);
                 minimapCtx.fill();
+            }
+        }
+
+        function drawRealisticWorm(trail, color, isLocal, angle) {
+            if (!trail || trail.length === 0) return;
+
+            // Draw Body Segments (Tapered)
+            trail.forEach((pt, idx) => {
+                let radius = Math.max(5, 14 - (idx * 0.04));
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Add inner detail ring for realism
+                ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            });
+
+            // Draw Head Segment with Eyes
+            let head = trail[0];
+            if (head) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(head.x, head.y, 15, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Eyes setup based on angle
+                let eyeOffset = 6;
+                let eyeSpacing = 5;
+                let leftEyeX = head.x + Math.cos(angle) * eyeOffset - Math.sin(angle) * eyeSpacing;
+                let leftEyeY = head.y + Math.sin(angle) * eyeOffset + Math.cos(angle) * eyeSpacing;
+                let rightEyeX = head.x + Math.cos(angle) * eyeOffset + Math.sin(angle) * eyeSpacing;
+                let rightEyeY = head.y + Math.sin(angle) * eyeOffset - Math.cos(angle) * eyeSpacing;
+
+                // White eye balls
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(leftEyeX, leftEyeY, 3.5, 0, Math.PI * 2);
+                ctx.arc(rightEyeX, rightEyeY, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Black pupils facing looking direction
+                let pupilDist = 1.2;
+                let pupilLeftX = leftEyeX + Math.cos(angle) * pupilDist;
+                let pupilLeftY = leftEyeY + Math.sin(angle) * pupilDist;
+                let pupilRightX = rightEyeX + Math.cos(angle) * pupilDist;
+                let pupilRightY = rightEyeY + Math.sin(angle) * pupilDist;
+
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(pupilLeftX, pupilLeftY, 1.8, 0, Math.PI * 2);
+                ctx.arc(pupilRightX, pupilRightY, 1.8, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
 
@@ -541,7 +720,7 @@
 
             if (!me.isDead) {
                 let targetAngle = Math.atan2(mouseY - canvas.height / 2, mouseX - canvas.width / 2);
-                me.angle = lerpAngle(me.angle, targetAngle, 0.12); // Smooth turning interpolation
+                me.angle = lerpAngle(me.angle, targetAngle, 0.12);
 
                 let currentSpeed = me.speed * (isBoosting && me.score > 15 ? 1.8 : 1.0);
                 
@@ -633,7 +812,7 @@
             });
 
             // Draw Power-ups
-            powerUps.forEach((pw, index) => {
+            powerUps.forEach((pw) => {
                 ctx.fillStyle = '#fbbf24';
                 ctx.beginPath();
                 ctx.arc(pw.x, pw.y, 12, 0, Math.PI * 2);
@@ -642,7 +821,7 @@
                 if (!me.isDead) {
                     let dist = Math.hypot(me.x - pw.x, me.y - pw.y);
                     if (dist < 25) {
-                        me.doubleShootTimer = 600; // ~10 seconds of double shot
+                        me.doubleShootTimer = 600; 
                         pw.x = Math.random() * (WORLD_SIZE - 2000) + 1000;
                         pw.y = Math.random() * (WORLD_SIZE - 2000) + 1000;
                     }
@@ -667,7 +846,7 @@
                 }
             });
 
-            // Bullets (Battle Royale mode only)
+            // Bullets
             if (gameMode === 'battleroyale') {
                 for (let i = bullets.length - 1; i >= 0; i--) {
                     let b = bullets[i];
@@ -680,7 +859,6 @@
                     ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // Check bullet collision with obstacles
                     obstacles.forEach(obs => {
                         let hitObs = Math.hypot(b.x - obs.x, b.y - obs.y);
                         if (hitObs < obs.radius) {
@@ -701,25 +879,14 @@
                 }
             }
 
-            // Draw Local Player Body
+            // Draw Local Player Realistic Worm
             if (!me.isDead) {
-                me.trail.forEach((pt, idx) => {
-                    ctx.fillStyle = me.color;
-                    ctx.beginPath();
-                    ctx.arc(pt.x, pt.y, Math.max(4, 12 - idx * 0.03), 0, Math.PI * 2);
-                    ctx.fill();
-                });
+                drawRealisticWorm(me.trail, me.color, true, me.angle);
             }
 
-            // Draw Remote Players Body
+            // Draw Remote Players Realistic Worms
             Object.values(remotePlayers).forEach(player => {
-                if (!player.trail) return;
-                player.trail.forEach((pt, idx) => {
-                    ctx.fillStyle = player.color || '#ff0055';
-                    ctx.beginPath();
-                    ctx.arc(pt.x, pt.y, Math.max(4, 12 - idx * 0.03), 0, Math.PI * 2);
-                    ctx.fill();
-                });
+                drawRealisticWorm(player.trail, player.color || '#ff0055', false, player.angle || 0);
             });
 
             ctx.restore();
