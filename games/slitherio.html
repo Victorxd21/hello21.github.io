@@ -154,6 +154,17 @@
             font-size: 0.85rem;
             margin-bottom: 4px;
         }
+
+        #minimapCanvas {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            z-index: 5;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -164,6 +175,7 @@
     <div id="hud" class="hidden">
         <div class="hud-item">Score: <span id="scoreDisplay">10</span></div>
         <div class="hud-item hidden" id="gunHudHint">Press [E] to Shoot Guns</div>
+        <div class="hud-item hidden" id="powerupHud" style="color: #fbbf24;">⚡ Double Shot Active!</div>
     </div>
 
     <!-- LEADERBOARD -->
@@ -171,6 +183,9 @@
         <h3>Top Slithers</h3>
         <div id="lbList"></div>
     </div>
+
+    <!-- MINIMAP -->
+    <canvas id="minimapCanvas" width="150" height="150" class="hidden"></canvas>
 
     <!-- MAIN MENU -->
     <div id="menuScreen" class="overlay-screen">
@@ -199,8 +214,8 @@
     </div>
 
     <script>
-        const SUPABASE_URL = "YOUR_SUPABASE_URL";
-        const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+        const SUPABASE_URL = "https://degilckgjfdnekszsbry.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_ym_oqKIyxwk7ixxCvwNCmA_w2VtnpdP";
 
         let supabaseClient = null;
         if (SUPABASE_URL !== "YOUR_SUPABASE_URL") {
@@ -209,6 +224,8 @@
 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
@@ -219,7 +236,7 @@
 
         const WORLD_SIZE = 10000;
         let gameActive = false;
-        let gameMode = 'normal'; // 'normal' or 'battleroyale'
+        let gameMode = 'normal';
         let playerId = 'player_' + Math.random().toString(36).substring(2, 9);
         let playerName = 'SlitherPro';
         let globalChannel = null;
@@ -232,7 +249,8 @@
             score: 10,
             color: '#00ffcc',
             isDead: false,
-            trail: []
+            trail: [],
+            doubleShootTimer: 0
         };
 
         let mouseX = window.innerWidth / 2;
@@ -240,17 +258,40 @@
         let isBoosting = false;
 
         let remotePlayers = {};
-        let aiBots = {};
         let foodPellets = [];
         let bullets = [];
+        let obstacles = [];
+        let powerUps = [];
 
-        // Generate initial food pellets
-        for (let i = 0; i < 300; i++) {
+        let brZone = {
+            x: WORLD_SIZE / 2,
+            y: WORLD_SIZE / 2,
+            radius: WORLD_SIZE * 0.45
+        };
+
+        // Generate map environment elements
+        for (let i = 0; i < 400; i++) {
             foodPellets.push({
                 id: 'food_' + i,
                 x: Math.random() * WORLD_SIZE,
                 y: Math.random() * WORLD_SIZE,
                 color: `hsl(${Math.random() * 360}, 100%, 50%)`
+            });
+        }
+
+        for (let i = 0; i < 25; i++) {
+            obstacles.push({
+                x: Math.random() * (WORLD_SIZE - 2000) + 1000,
+                y: Math.random() * (WORLD_SIZE - 2000) + 1000,
+                radius: 50 + Math.random() * 70
+            });
+        }
+
+        for (let i = 0; i < 5; i++) {
+            powerUps.push({
+                id: 'pw_' + i,
+                x: Math.random() * (WORLD_SIZE - 2000) + 1000,
+                y: Math.random() * (WORLD_SIZE - 2000) + 1000
             });
         }
 
@@ -262,27 +303,50 @@
         window.addEventListener('mousedown', () => isBoosting = true);
         window.addEventListener('mouseup', () => isBoosting = false);
 
-        // Shooting Gun Mechanic (Bypassed entirely in Normal mode)
         window.addEventListener('keydown', (e) => {
             if (e.key.toLowerCase() === 'e' && gameMode === 'battleroyale' && !me.isDead && gameActive) {
-                let bullet = {
-                    id: 'b_' + Math.random().toString(36).substring(2, 7),
-                    ownerId: playerId,
-                    x: me.x,
-                    y: me.y,
-                    vx: Math.cos(me.angle) * 12,
-                    vy: Math.sin(me.angle) * 12,
-                    life: 100
-                };
-                bullets.push(bullet);
-
-                if (globalChannel) {
-                    globalChannel.send({
-                        type: 'broadcast',
-                        event: 'player_shoot',
-                        payload: bullet
+                let generatedBullets = [];
+                if (me.doubleShootTimer > 0) {
+                    generatedBullets.push({
+                        id: 'b_' + Math.random().toString(36).substring(2, 7),
+                        ownerId: playerId,
+                        x: me.x,
+                        y: me.y,
+                        vx: Math.cos(me.angle - 0.15) * 12,
+                        vy: Math.sin(me.angle - 0.15) * 12,
+                        life: 100
+                    });
+                    generatedBullets.push({
+                        id: 'b_' + Math.random().toString(36).substring(2, 7),
+                        ownerId: playerId,
+                        x: me.x,
+                        y: me.y,
+                        vx: Math.cos(me.angle + 0.15) * 12,
+                        vy: Math.sin(me.angle + 0.15) * 12,
+                        life: 100
+                    });
+                } else {
+                    generatedBullets.push({
+                        id: 'b_' + Math.random().toString(36).substring(2, 7),
+                        ownerId: playerId,
+                        x: me.x,
+                        y: me.y,
+                        vx: Math.cos(me.angle) * 12,
+                        vy: Math.sin(me.angle) * 12,
+                        life: 100
                     });
                 }
+
+                generatedBullets.forEach(b => {
+                    bullets.push(b);
+                    if (globalChannel) {
+                        globalChannel.send({
+                            type: 'broadcast',
+                            event: 'player_shoot',
+                            payload: b
+                        });
+                    }
+                });
             }
         });
 
@@ -292,15 +356,18 @@
             me.color = document.getElementById('colorPicker').value;
             me.score = 10;
             me.isDead = false;
-            me.x = Math.random() * (WORLD_SIZE - 2000) + 1000;
-            me.y = Math.random() * (WORLD_SIZE - 2000) + 1000;
+            me.x = WORLD_SIZE / 2 + (Math.random() * 1000 - 500);
+            me.y = WORLD_SIZE / 2 + (Math.random() * 1000 - 500);
             me.trail = [];
+            me.doubleShootTimer = 0;
+            brZone.radius = WORLD_SIZE * 0.45;
             remotePlayers = {};
 
             document.getElementById('menuScreen').classList.add('hidden');
             document.getElementById('deathScreen').classList.add('hidden');
             document.getElementById('hud').classList.remove('hidden');
             document.getElementById('leaderboard').classList.remove('hidden');
+            document.getElementById('minimapCanvas').classList.remove('hidden');
 
             if (gameMode === 'battleroyale') {
                 document.getElementById('gunHudHint').classList.remove('hidden');
@@ -324,20 +391,22 @@
                 supabaseClient.removeChannel(globalChannel);
             }
 
-            // Room Channel separation based on selected mode
             const channelName = gameMode === 'battleroyale' ? 'slither_room_br' : 'slither_room_normal';
 
             globalChannel = supabaseClient.channel(channelName, {
                 config: { broadcast: { self: false } }
             });
 
-            globalChannel.on('broadcast', { event: 'player_update' }, ({ payload }) => {
-                remotePlayers[payload.id] = payload;
-            }).on('broadcast', { event: 'player_shoot' }, ({ payload }) => {
-                if (gameMode === 'battleroyale') {
-                    bullets.push(payload);
-                }
-            }).subscribe();
+            globalChannel
+                .on('broadcast', { event: 'player_update' }, ({ payload }) => {
+                    remotePlayers[payload.id] = { ...payload, lastSeen: Date.now() };
+                })
+                .on('broadcast', { event: 'player_shoot' }, ({ payload }) => {
+                    if (gameMode === 'battleroyale') {
+                        bullets.push(payload);
+                    }
+                })
+                .subscribe();
         }
 
         function triggerDeath(killerName) {
@@ -348,13 +417,29 @@
             document.getElementById('deathReasonText').innerText = `You crashed into ${killerName || "another worm"}!`;
             document.getElementById('finalScoreDisplay').innerText = Math.floor(me.score);
             document.getElementById('deathScreen').classList.remove('hidden');
+            document.getElementById('minimapCanvas').classList.add('hidden');
         }
 
-        function checkWormCollisions() {
+        function lerpAngle(a, b, t) {
+            let diff = (b - a) % (Math.PI * 2);
+            if (diff < -Math.PI) diff += Math.PI * 2;
+            if (diff > Math.PI) diff -= Math.PI * 2;
+            return a + diff * t;
+        }
+
+        function checkEnvironmentCollisions() {
             if (me.isDead) return;
             const headRadius = 12;
 
-            // Check body collisions against remote players
+            // Check Obstacle collisions
+            obstacles.forEach(obs => {
+                let dist = Math.hypot(me.x - obs.x, me.y - obs.y);
+                if (dist < headRadius + obs.radius) {
+                    triggerDeath("a rocky obstacle");
+                }
+            });
+
+            // Check Remote Player collisions
             Object.values(remotePlayers).forEach(player => {
                 if (!player.trail || player.trail.length < 5) return;
                 for (let i = 5; i < player.trail.length; i++) {
@@ -367,18 +452,86 @@
                 }
             });
 
-            // Check body collisions against AI Bots
-            Object.values(aiBots).forEach(bot => {
-                if (!bot.trail || bot.trail.length < 5) return;
-                for (let i = 5; i < bot.trail.length; i++) {
-                    let seg = bot.trail[i];
-                    let dist = Math.hypot(me.x - seg.x, me.y - seg.y);
-                    if (dist < headRadius + 8) {
-                        triggerDeath(bot.name || "an AI bot");
-                        return;
-                    }
+            // Check Battle Royale safe zone boundary
+            if (gameMode === 'battleroyale') {
+                let distFromCenter = Math.hypot(me.x - brZone.x, me.y - brZone.y);
+                if (distFromCenter > brZone.radius) {
+                    triggerDeath("the shrinking storm zone");
                 }
+                // Shrink zone over time safely
+                if (brZone.radius > 300) {
+                    brZone.radius -= 0.15;
+                }
+            }
+        }
+
+        function updateLeaderboard() {
+            const listEl = document.getElementById('lbList');
+            let allPlayers = [{ name: playerName, score: Math.floor(me.score) }];
+
+            const now = Date.now();
+            Object.keys(remotePlayers).forEach(id => {
+                let p = remotePlayers[id];
+                if (now - p.lastSeen > 4000) {
+                    delete remotePlayers[id];
+                    return;
+                }
+                allPlayers.push({ name: p.name || 'Anonymous', score: Math.floor(p.score || 10) });
             });
+
+            allPlayers.sort((a, b) => b.score - a.score);
+            let top5 = allPlayers.slice(0, 5);
+
+            listEl.innerHTML = top5.map((p, index) => `
+                <div class="lb-item">
+                    <span>${index + 1}. ${escapeHtml(p.name)}</span>
+                    <span>${p.score}</span>
+                </div>
+            `).join('');
+        }
+
+        function drawMinimap() {
+            minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+            let scale = minimapCanvas.width / WORLD_SIZE;
+
+            // Draw BR zone circle on minimap if active
+            if (gameMode === 'battleroyale') {
+                minimapCtx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+                minimapCtx.lineWidth = 1.5;
+                minimapCtx.beginPath();
+                minimapCtx.arc(brZone.x * scale, brZone.y * scale, brZone.radius * scale, 0, Math.PI * 2);
+                minimapCtx.stroke();
+            }
+
+            // Draw obstacles on minimap
+            minimapCtx.fillStyle = '#475569';
+            obstacles.forEach(obs => {
+                minimapCtx.beginPath();
+                minimapCtx.arc(obs.x * scale, obs.y * scale, obs.radius * scale, 0, Math.PI * 2);
+                minimapCtx.fill();
+            });
+
+            // Draw remote players
+            Object.values(remotePlayers).forEach(p => {
+                minimapCtx.fillStyle = p.color || '#ff0055';
+                minimapCtx.beginPath();
+                minimapCtx.arc(p.x * scale, p.y * scale, 2.5, 0, Math.PI * 2);
+                minimapCtx.fill();
+            });
+
+            // Draw local player
+            if (!me.isDead) {
+                minimapCtx.fillStyle = me.color;
+                minimapCtx.beginPath();
+                minimapCtx.arc(me.x * scale, me.y * scale, 3.5, 0, Math.PI * 2);
+                minimapCtx.fill();
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
         }
 
         function gameLoop() {
@@ -386,9 +539,10 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Movement & Trail Updating
             if (!me.isDead) {
                 let targetAngle = Math.atan2(mouseY - canvas.height / 2, mouseX - canvas.width / 2);
+                me.angle = lerpAngle(me.angle, targetAngle, 0.12); // Smooth turning interpolation
+
                 let currentSpeed = me.speed * (isBoosting && me.score > 15 ? 1.8 : 1.0);
                 
                 if (isBoosting && me.score > 15) {
@@ -396,7 +550,13 @@
                     document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
                 }
 
-                me.angle = targetAngle;
+                if (me.doubleShootTimer > 0) {
+                    me.doubleShootTimer--;
+                    document.getElementById('powerupHud').classList.remove('hidden');
+                } else {
+                    document.getElementById('powerupHud').classList.add('hidden');
+                }
+
                 me.x += Math.cos(me.angle) * currentSpeed;
                 me.y += Math.sin(me.angle) * currentSpeed;
 
@@ -406,7 +566,7 @@
                     me.trail.pop();
                 }
 
-                checkWormCollisions();
+                checkEnvironmentCollisions();
 
                 if (globalChannel) {
                     globalChannel.send({
@@ -452,6 +612,43 @@
                 ctx.stroke();
             }
 
+            // Draw Battle Royale Shrinking Safe Zone
+            if (gameMode === 'battleroyale') {
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.arc(brZone.x, brZone.y, brZone.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Draw Obstacles
+            obstacles.forEach(obs => {
+                ctx.fillStyle = '#334155';
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(obs.x, obs.y, obs.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            });
+
+            // Draw Power-ups
+            powerUps.forEach((pw, index) => {
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                ctx.arc(pw.x, pw.y, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (!me.isDead) {
+                    let dist = Math.hypot(me.x - pw.x, me.y - pw.y);
+                    if (dist < 25) {
+                        me.doubleShootTimer = 600; // ~10 seconds of double shot
+                        pw.x = Math.random() * (WORLD_SIZE - 2000) + 1000;
+                        pw.y = Math.random() * (WORLD_SIZE - 2000) + 1000;
+                    }
+                }
+            });
+
             // Render Food Pellets
             foodPellets.forEach(pellet => {
                 ctx.fillStyle = pellet.color;
@@ -483,6 +680,21 @@
                     ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
                     ctx.fill();
 
+                    // Check bullet collision with obstacles
+                    obstacles.forEach(obs => {
+                        let hitObs = Math.hypot(b.x - obs.x, b.y - obs.y);
+                        if (hitObs < obs.radius) {
+                            b.life = 0;
+                        }
+                    });
+
+                    if (b.ownerId !== playerId && !me.isDead) {
+                        let hitDist = Math.hypot(me.x - b.x, me.y - b.y);
+                        if (hitDist < 15) {
+                            triggerDeath("a bullet");
+                        }
+                    }
+
                     if (b.life <= 0) {
                         bullets.splice(i, 1);
                     }
@@ -512,6 +724,8 @@
 
             ctx.restore();
 
+            updateLeaderboard();
+            drawMinimap();
             requestAnimationFrame(gameLoop);
         }
     </script>
