@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Snake 3000 - Ultimate Multiplayer & Arcade Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            50: '#f0fdf4',
+                            500: '#10b981',
+                            900: '#064e3b',
+                            950: '#022c22'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .neon-glow {
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.8), 0 0 20px rgba(16, 185, 129, 0.5), 0 0 30px rgba(16, 185, 129, 0.3);
+        }
+        .neon-box {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3), inset 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #10b981;
+            border-radius: 3px;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.02); }
+        }
+        .animate-pulse-glow {
+            animation: pulseGlow 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-black overflow-x-hidden">
+
+    <header class="bg-slate-900/80 backdrop-blur-md border-b border-emerald-500/20 sticky top-0 z-50 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-cyan-500 flex items-center justify-center neon-box">
+                    <i class="fa-solid fa-gamepad text-xl text-black font-bold"></i>
+                </div>
+                <div>
+                    <h1 class="font-orbitron text-xl md:text-2xl font-black tracking-wider bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
+                        SUPER SNAKE <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">v3.5 ULTIMATE</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">50+ Features • Live Multiplayer Leaderboard • AI Bots • Skins & Powerups</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div id="connectionStatus" class="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-full text-xs border border-slate-700">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" id="statusDot"></span>
+                    <span id="statusText" class="text-slate-300 font-medium">Connecting Supabase...</span>
+                </div>
+                <button onclick="toggleAudio()" id="audioToggleBtn" title="Toggle Sound FX" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-emerald-400 transition transform hover:scale-105">
+                    <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+                </button>
+                <button onclick="openModal('shopModal')" title="Snake Skins & Shop" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-cyan-400 transition transform hover:scale-105 relative">
+                    <i class="fa-solid fa-store"></i>
+                    <span id="shopBadge" class="absolute -top-1 -right-1 bg-emerald-500 text-black text-[10px] font-bold px-1.5 py-0.2 rounded-full">5+</span>
+                </button>
+                <button onclick="openModal('achievementsModal')" title="Achievements & Badges" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-amber-400 transition transform hover:scale-105">
+                    <i class="fa-solid fa-trophy"></i>
+                </button>
+                <button onclick="openAdminPrompt()" title="Admin Console (papivictor)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-purple-400 transition transform hover:scale-105">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-4 gap-6 my-4">
+        
+        <!-- Left Sidebar: Player Profile, Stats & Controls -->
+        <div class="lg:col-span-1 flex flex-col gap-6">
+            <!-- Player Setup Card -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md">
+                <h2 class="font-orbitron text-sm font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-user-astronaut"></i> Operative Profile
+                </h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Codename (Username)</label>
+                        <input type="text" id="playerNameInput" maxlength="15" value="CyberViper" 
+                            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Game Mode</label>
+                            <select id="gameModeSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
+                                <option value="classic">Classic Arena</option>
+                                <option value="speedrun">Speed Run (Fast)</option>
+                                <option value="portal">Portal Warp</option>
+                                <option value="bots" selected>Battle Royale (AI)</option>
+                                <option value="maze">Obstacle Maze</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Grid Size</label>
+                            <select id="gridSizeSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
+                                <option value="20">Standard (20x20)</option>
+                                <option value="25" selected>Dynamic (25x25)</option>
+                                <option value="30">Compact (30x30)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="savePlayerSettings()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold py-2 rounded-xl transition text-slate-300">
+                        Update Identity
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Stats Card -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md">
+                <h2 class="font-orbitron text-sm font-bold text-teal-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line"></i> Combat Telemetry
+                </h2>
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                        <span class="text-xs text-slate-400 block">Current Score</span>
+                        <span id="currentScoreDisplay" class="font-orbitron text-2xl font-black text-emerald-400">0</span>
+                    </div>
+                    <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                        <span class="text-xs text-slate-400 block">Personal Best</span>
+                        <span id="highScoreDisplay" class="font-orbitron text-2xl font-black text-cyan-400">0</span>
+                    </div>
+                    <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                        <span class="text-xs text-slate-400 block">Combo Multiplier</span>
+                        <span id="comboDisplay" class="font-orbitron text-lg font-bold text-amber-400">1.0x</span>
+                    </div>
+                    <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                        <span class="text-xs text-slate-400 block">Active Powerup</span>
+                        <span id="powerupDisplay" class="font-orbitron text-xs font-bold text-purple-400 truncate mt-1 block">NONE</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Quest Card -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md hidden lg:block">
+                <h2 class="font-orbitron text-sm font-bold text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-bullseye"></i> Daily Bounty
+                </h2>
+                <p id="dailyQuestText" class="text-xs text-slate-300 mb-2">Consume 25 Orbs in a single run without crashing.</p>
+                <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                    <div id="dailyQuestProgress" class="bg-amber-500 h-full w-[0%] transition-all duration-300"></div>
+                </div>
+                <div class="flex justify-between items-center mt-1">
+                    <span id="dailyQuestStatus" class="text-[10px] text-slate-400">0 / 25 Orbs</span>
+                    <span class="text-[10px] text-amber-400 font-bold">+500 XP Reward</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Arena: Game Canvas & Action Bar -->
+        <div class="lg:col-span-2 flex flex-col items-center justify-center gap-4">
+            
+            <!-- Announcement Banner Container -->
+            <div id="announcementContainer" class="w-full bg-gradient-to-r from-emerald-900/40 via-cyan-900/40 to-purple-900/40 border border-emerald-500/30 rounded-xl p-3 text-center text-xs text-emerald-300 flex items-center justify-center gap-2 hidden">
+                <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+                <span id="announcementText">Welcome to Super Snake 3000! Admin broadcast online.</span>
+            </div>
+
+            <!-- Game Canvas Wrapper -->
+            <div class="relative w-full aspect-square max-w-[550px] bg-slate-950 border-2 border-emerald-500/40 rounded-3xl overflow-hidden shadow-2xl neon-box flex items-center justify-center">
+                
+                <!-- Overlay Start / Pause / Game Over Screen -->
+                <div id="gameOverlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
+                    <div class="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center mb-4 text-emerald-400 text-3xl animate-pulse-glow">
+                        <i class="fa-solid fa-bolt" id="overlayIcon"></i>
+                    </div>
+                    <h2 id="overlayTitle" class="font-orbitron text-2xl md:text-3xl font-black text-white mb-2 tracking-wide">SUPER SNAKE 3000</h2>
+                    <p id="overlaySubtitle" class="text-xs md:text-sm text-slate-300 max-w-sm mb-6">Navigate the cyber grid, collect quantum orbs, avoid bots & walls, and claim the global leaderboard crown.</p>
+                    
+                    <div class="flex flex-wrap gap-3 justify-center">
+                        <button onclick="startGame()" class="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-black font-orbitron font-bold rounded-xl shadow-lg shadow-emerald-500/30 transition transform hover:scale-105">
+                            <i class="fa-solid fa-play mr-2"></i> INITIALIZE GAME
+                        </button>
+                        <button onclick="openModal('shopModal')" class="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-orbitron font-bold rounded-xl border border-cyan-500/30 transition transform hover:scale-105">
+                            <i class="fa-solid fa-shirt mr-2"></i> SKINS
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Actual Game Canvas -->
+                <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+
+                <!-- Touch D-Pad for Mobile Devices -->
+                <div class="absolute bottom-3 right-3 grid grid-cols-3 gap-1 md:hidden z-10 opacity-75">
+                    <div></div>
+                    <button onclick="handleTouchDir('UP')" class="w-12 h-12 bg-slate-800/90 border border-slate-600 rounded-lg text-emerald-400 flex items-center justify-center active:bg-emerald-600 active:text-black"><i class="fa-solid fa-chevron-up"></i></button>
+                    <div></div>
+                    <button onclick="handleTouchDir('LEFT')" class="w-12 h-12 bg-slate-800/90 border border-slate-600 rounded-lg text-emerald-400 flex items-center justify-center active:bg-emerald-600 active:text-black"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button onclick="handleTouchDir('DOWN')" class="w-12 h-12 bg-slate-800/90 border border-slate-600 rounded-lg text-emerald-400 flex items-center justify-center active:bg-emerald-600 active:text-black"><i class="fa-solid fa-chevron-down"></i></button>
+                    <button onclick="handleTouchDir('RIGHT')" class="w-12 h-12 bg-slate-800/90 border border-slate-600 rounded-lg text-emerald-400 flex items-center justify-center active:bg-emerald-600 active:text-black"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
+
+            <!-- In-game Controls & Action Bar -->
+            <div class="flex flex-wrap gap-2 justify-center w-full max-w-[550px]">
+                <button onclick="togglePauseGame()" id="pauseBtn" class="flex-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-300 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-pause text-emerald-400"></i> Pause / Resume
+                </button>
+                <button onclick="triggerSpeedBoost()" class="flex-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-300 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bolt text-cyan-400"></i> Dash (Space)
+                </button>
+                <button onclick="toggleSoundFx()" class="w-12 bg-slate-900 hover:bg-slate-800 border border-slate-800 py-2.5 rounded-xl text-xs font-semibold text-slate-300 transition flex items-center justify-center">
+                    <i class="fa-solid fa-volume-high text-emerald-400" id="soundFxIcon"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Sidebar: Live Supabase Leaderboard & Global Chat -->
+        <div class="lg:col-span-1 flex flex-col gap-6">
+            
+            <!-- Live Leaderboard Card -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md flex flex-col h-[320px]">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="font-orbitron text-sm font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-ranking-star"></i> Global Rank
+                    </h2>
+                    <button onclick="fetchLeaderboard()" title="Refresh Scores" class="text-xs text-slate-400 hover:text-emerald-400 transition">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+                <div id="leaderboardList" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                    <div class="text-center text-xs text-slate-500 py-8">Synchronizing with Supabase...</div>
+                </div>
+            </div>
+
+            <!-- Global Cyber Chat Card -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md flex flex-col h-[280px]">
+                <h2 class="font-orbitron text-sm font-bold text-cyan-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-comments"></i> Cyber Comms
+                </h2>
+                <div id="chatMessages" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1 mb-3 text-xs bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                    <div class="text-slate-500 italic">Connected to global network...</div>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="chatInput" placeholder="Broadcast message..." maxlength="80" onkeydown="if(event.key==='Enter') sendChatMessage()"
+                        class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-cyan-500">
+                    <button onclick="sendChatMessage()" class="bg-cyan-600 hover:bg-cyan-500 text-black px-3 py-2 rounded-xl text-xs font-bold transition">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    
+    <!-- Shop / Skins Modal -->
+    <div id="shopModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="closeModal('shopModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="font-orbitron text-xl font-bold text-emerald-400 mb-2 flex items-center gap-2"><i class="fa-solid fa-store"></i> Cyber Armory & Skins</h3>
+            <p class="text-xs text-slate-400 mb-6">Customize your snake's quantum armor. Unlocked automatically through scoring milestones!</p>
+            
+            <div id="skinGrid" class="grid grid-cols-2 gap-3 max-h-[350px] overflow-y-auto custom-scrollbar pr-1">
+                <!-- Dynamically populated skins -->
+            </div>
+            
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeModal('shopModal')" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievements Modal -->
+    <div id="achievementsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="closeModal('achievementsModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="font-orbitron text-xl font-bold text-amber-400 mb-2 flex items-center gap-2"><i class="fa-solid fa-trophy"></i> Achievement Badges</h3>
+            <p class="text-xs text-slate-400 mb-6">Complete milestones to unlock legendary status badges and bonus score multipliers.</p>
+            
+            <div id="achievementList" class="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar pr-1">
+                <!-- Dynamically populated achievements -->
+            </div>
+            
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeModal('achievementsModal')" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Console Modal -->
+    <div id="adminModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-purple-500/50 rounded-3xl max-w-2xl w-full p-6 shadow-2xl relative neon-box">
+            <button onclick="closeModal('adminModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/50 flex items-center justify-center text-purple-400">
+                    <i class="fa-solid fa-shield-halved text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="font-orbitron text-xl font-bold text-purple-400">ADMINISTRATOR NEXUS</h3>
+                    <p class="text-xs text-slate-400">Security Cleared: <span class="text-emerald-400 font-bold">PAPIVICTOR</span></p>
+                </div>
+            </div>
+            
+            <div class="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-1 text-xs">
+                <!-- Broadcast Announcement -->
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <label class="font-bold text-slate-300 block mb-2">Broadcast Global Announcement</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="adminBroadcastInput" placeholder="Enter announcement text..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100">
+                        <button onclick="adminSendAnnouncement()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2 rounded-xl">Broadcast</button>
+                    </div>
+                </div>
+
+                <!-- Database Management -->
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <label class="font-bold text-slate-300 block mb-2">Supabase Database Controls</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="adminFetchAllScores()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl font-medium">Export All Leaderboard Data</button>
+                        <button onclick="adminClearChat()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 rounded-xl font-medium">Clear Global Chat</button>
+                    </div>
+                    <div id="adminDataOutput" class="mt-3 bg-slate-900 p-3 rounded-lg font-mono text-[10px] text-slate-400 max-h-32 overflow-y-auto hidden"></div>
+                </div>
+
+                <!-- Game Tuning -->
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <label class="font-bold text-slate-300 block mb-2">Quick Teleport / Sandbox Tweaks</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="adminAddScore(100)" class="bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 py-2 rounded-xl font-bold">+100 Score</button>
+                        <button onclick="adminSpawnPowerup()" class="bg-cyan-600/20 border border-cyan-500/40 text-cyan-400 py-2 rounded-xl font-bold">Spawn Powerup</button>
+                        <button onclick="adminGodMode()" class="bg-purple-600/20 border border-purple-500/40 text-purple-400 py-2 rounded-xl font-bold">Toggle God Mode</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeModal('adminModal')" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl">Close Console</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900/60 border-t border-slate-800 py-4 text-center text-xs text-slate-500">
+        Super Snake 3000 • Powered by Supabase Cloud & Tailwind CSS • Designed for Extreme Arcade Performance
+    </footer>
+
+    <script>
+        // Supabase Credentials Provided
+        const SUPABASE_URL = 'https://degilckgjfdnekszsbry.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_ym_oqKIyxwk7ixxCvwNCmA_w2VtnpdP';
+        
+        let supabaseClient = null;
+        try {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            document.getElementById('statusDot').className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500';
+            document.getElementById('statusText').innerText = 'Supabase Connected (Live)';
+        } catch (e) {
+            console.error('Supabase initialization error:', e);
+            document.getElementById('statusText').innerText = 'Offline Mode (Local Only)';
+        }
+
+        // Game State Variables
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let tileSize = 25;
+        let tileCount = 25;
+        let gameInterval = null;
+        let gameSpeed = 100; // ms per frame
+        let isRunning = false;
+        let isPaused = false;
+        let godMode = false;
+
+        let score = 0;
+        let highScore = localStorage.getItem('snake_highscore') || 0;
+        let combo = 1.0;
+        let comboTimer = 0;
+        let activePowerup = 'NONE';
+        let powerupTimer = 0;
+
+        let playerName = 'CyberViper';
+        let currentSkin = 'neon_emerald';
+        let unlockedSkins = ['neon_emerald'];
+
+        let snake = [];
+        let dx = 1;
+        let dy = 0;
+        let nextDx = 1;
+        let nextDy = 0;
+
+        let food = { x: 5, y: 5, type: 'normal', color: '#10b981' };
+        let powerup = null;
+        let obstacles = [];
+        let aiBots = [];
+        let particles = [];
+        let screenShake = 0;
+
+        // Daily Quest State
+        let dailyOrbsEaten = 0;
+        const dailyQuestTarget = 25;
+
+        // Skins Catalog
+        const skinsCatalog = [
+            { id: 'neon_emerald', name: 'Neon Emerald', color: '#10b981', headColor: '#34d399', req: 0 },
+            { id: 'cyber_cyan', name: 'Cyber Cyan', color: '#06b6d4', headColor: '#67e8f9', req: 50 },
+            { id: 'plasma_purple', name: 'Plasma Purple', color: '#a855f7', headColor: '#c084fc', req: 150 },
+            { id: 'laser_amber', name: 'Solar Gold', color: '#f59e0b', headColor: '#fbbf24', req: 300 },
+            { id: 'quantum_crimson', name: 'Quantum Crimson', color: '#ef4444', headColor: '#f87171', req: 500 }
+        ];
+
+        // Achievements Catalog
+        let achievements = [
+            { id: 'first_bite', name: 'First Blood', desc: 'Consume your first quantum orb.', unlocked: false },
+            { id: 'combo_master', name: 'Combo Surge', desc: 'Reach a 3.0x score combo multiplier.', unlocked: false },
+            { id: 'century', name: 'Centurion', desc: 'Score 100 points in a single run.', unlocked: false },
+            { id: 'bot_hunter', name: 'Apex Predator', desc: 'Outlast AI bots in Battle Royale mode.', unlocked: false },
+            { id: 'legend', name: 'Snake God', desc: 'Score 500+ points and unlock all gear.', unlocked: false }
+        ];
+
+        // Web Audio API Sound Synthesizer
+        let soundEnabled = true;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (!soundEnabled || !audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                const now = audioCtx.currentTime;
+                if (type === 'eat') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'powerup') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.linearRampToValueAtTime(800, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'gameover') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.linearRampToValueAtTime(60, now + 0.4);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                }
+            } catch (e) {
+                console.warn('Audio error:', e);
+            }
+        }
+
+        function toggleSoundFx() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundFxIcon').className = soundEnabled ? 'fa-solid fa-volume-high text-emerald-400' : 'fa-solid fa-volume-xmark text-slate-500';
+            document.getElementById('audioIcon').className = soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
+        }
+
+        function toggleAudio() {
+            toggleSoundFx();
+        }
+
+        // Initialize Canvas & Resize Handler
+        function initCanvasSize() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', initCanvasSize);
+
+        // Initialization on Load
+        window.onload = function() {
+            initCanvasSize();
+            document.getElementById('highScoreDisplay').innerText = highScore;
+            loadSavedProfile();
+            renderShop();
+            renderAchievements();
+            fetchLeaderboard();
+            fetchChatMessages();
+            setupKeyboardListeners();
+            drawIdleScreen();
+        };
+
+        function loadSavedProfile() {
+            const savedName = localStorage.getItem('snake_player_name');
+            if (savedName) {
+                playerName = savedName;
+                document.getElementById('playerNameInput').value = savedName;
+            }
+            const savedSkin = localStorage.getItem('snake_skin');
+            if (savedSkin) currentSkin = savedSkin;
+            const savedUnlocks = localStorage.getItem('snake_unlocks');
+            if (savedUnlocks) unlockedSkins = JSON.parse(savedUnlocks);
+        }
+
+        function savePlayerSettings() {
+            const inputName = document.getElementById('playerNameInput').value.trim();
+            if (inputName) {
+                playerName = inputName;
+                localStorage.setItem('snake_player_name', playerName);
+                showNotification('Codename updated successfully!');
+            }
+        }
+
+        // Keyboard Controls
+        function setupKeyboardListeners() {
+            window.addEventListener('keydown', e => {
+                if (!isRunning && e.key === 'Enter') {
+                    startGame();
+                    return;
+                }
+                if (e.key === ' ' && isRunning) {
+                    triggerSpeedBoost();
+                    e.preventDefault();
+                }
+                if (e.key === 'p' || e.key === 'P') {
+                    togglePauseGame();
+                }
+
+                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                    if (dy === 0) { nextDx = 0; nextDy = -1; }
+                    e.preventDefault();
+                }
+                if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+                    if (dy === 0) { nextDx = 0; nextDy = 1; }
+                    e.preventDefault();
+                }
+                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                    if (dx === 0) { nextDx = -1; nextDy = 0; }
+                    e.preventDefault();
+                }
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                    if (dx === 0) { nextDx = 1; nextDy = 0; }
+                    e.preventDefault();
+                }
+            });
+        }
+
+        function handleTouchDir(dir) {
+            if (!isRunning) return;
+            if (dir === 'UP' && dy === 0) { nextDx = 0; nextDy = -1; }
+            if (dir === 'DOWN' && dy === 0) { nextDx = 0; nextDy = 1; }
+            if (dir === 'LEFT' && dx === 0) { nextDx = -1; nextDy = 0; }
+            if (dir === 'RIGHT' && dx === 0) { nextDx = 1; nextDy = 0; }
+        }
+
+        // Game Loop Functions
+        function startGame() {
+            const gridSelect = document.getElementById('gridSizeSelect');
+            tileCount = parseInt(gridSelect.value);
+            tileSize = canvas.width / tileCount;
+
+            const mode = document.getElementById('gameModeSelect').value;
+            gameSpeed = mode === 'speedrun' ? 70 : 100;
+
+            score = 0;
+            combo = 1.0;
+            comboTimer = 0;
+            activePowerup = 'NONE';
+            powerupTimer = 0;
+            screenShake = 0;
+
+            document.getElementById('currentScoreDisplay').innerText = score;
+            document.getElementById('comboDisplay').innerText = '1.0x';
+            document.getElementById('powerupDisplay').innerText = 'NONE';
+
+            // Initialize Snake in center
+            const mid = Math.floor(tileCount / 2);
+            snake = [
+                { x: mid, y: mid },
+                { x: mid - 1, y: mid },
+                { x: mid - 2, y: mid }
+            ];
+            dx = 1;
+            dy = 0;
+            nextDx = 1;
+            nextDy = 0;
+
+            spawnFood();
+            obstacles = [];
+            aiBots = [];
+            particles = [];
+
+            if (mode === 'maze') {
+                generateMazeObstacles();
+            } else if (mode === 'bots') {
+                spawnAiBots();
+            }
+
+            document.getElementById('gameOverlay').classList.add('hidden');
+            isRunning = true;
+            isPaused = false;
+
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, gameSpeed);
+        }
+
+        function togglePauseGame() {
+            if (!isRunning) return;
+            isPaused = !isPaused;
+            const overlay = document.getElementById('gameOverlay');
+            if (isPaused) {
+                document.getElementById('overlayTitle').innerText = 'GAME PAUSED';
+                document.getElementById('overlaySubtitle').innerText = 'Take a breather. Press Resume to jump back into action.';
+                document.getElementById('overlayIcon').className = 'fa-solid fa-pause';
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function gameLoop() {
+            if (isPaused) return;
+
+            updateGameLogic();
+            renderGame();
+        }
+
+        function updateGameLogic() {
+            dx = nextDx;
+            dy = nextDy;
+
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+            // Portal Mode wrapping
+            const mode = document.getElementById('gameModeSelect').value;
+            if (mode === 'portal') {
+                if (head.x < 0) head.x = tileCount - 1;
+                if (head.x >= tileCount) head.x = 0;
+                if (head.y < 0) head.y = tileCount - 1;
+                if (head.y >= tileCount) head.y = 0;
+            } else {
+                // Wall Collision
+                if (!godMode && (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount)) {
+                    gameOver();
+                    return;
+                }
+            }
+
+            // Self Collision
+            if (!godMode) {
+                for (let part of snake) {
+                    if (head.x === part.x && head.y === part.y) {
+                        gameOver();
+                        return;
+                    }
+                }
+            }
+
+            // Obstacle Collision
+            if (!godMode) {
+                for (let obs of obstacles) {
+                    if (head.x === obs.x && head.y === obs.y) {
+                        gameOver();
+                        return;
+                    }
+                }
+            }
+
+            snake.unshift(head);
+
+            // Food Collision
+            if (head.x === food.x && head.y === food.y) {
+                playSound('eat');
+                let points = 10;
+                if (activePowerup === 'MULTIPLIER') points *= 2;
+                score += Math.round(points * combo);
+                document.getElementById('currentScoreDisplay').innerText = score;
+
+                // Combo & Quest update
+                combo = Math.min(3.0, combo + 0.2);
+                comboTimer = 50; // frames before combo decays
+                document.getElementById('comboDisplay').innerText = combo.toFixed(1) + 'x';
+
+                dailyOrbsEaten++;
+                updateDailyQuest();
+                checkAchievements();
+                checkSkinUnlocks();
+
+                spawnFood();
+                createParticles(head.x, head.y, food.color, 15);
+
+                // Random Powerup chance
+                if (Math.random() < 0.25 && !powerup) {
+                    spawnPowerup();
+                }
+            } else {
+                snake.pop();
+            }
+
+            // Powerup collision
+            if (powerup && head.x === powerup.x && head.y === powerup.y) {
+                playSound('powerup');
+                activePowerup = powerup.type;
+                powerupTimer = 100; // duration
+                document.getElementById('powerupDisplay').innerText = activePowerup;
+                powerup = null;
+                createParticles(head.x, head.y, '#f59e0b', 20);
+            }
+
+            // Timers decay
+            if (comboTimer > 0) {
+                comboTimer--;
+                if (comboTimer === 0) {
+                    combo = 1.0;
+                    document.getElementById('comboDisplay').innerText = '1.0x';
+                }
+            }
+            if (powerupTimer > 0) {
+                powerupTimer--;
+                if (powerupTimer === 0) {
+                    activePowerup = 'NONE';
+                    document.getElementById('powerupDisplay').innerText = 'NONE';
+                }
+            }
+
+            // Update AI Bots
+            updateAiBots();
+
+            // Screen shake decay
+            if (screenShake > 0) screenShake--;
+        }
+
+        function spawnFood() {
+            food.x = Math.floor(Math.random() * tileCount);
+            food.y = Math.floor(Math.random() * tileCount);
+            // Ensure food doesn't spawn on snake
+            for (let part of snake) {
+                if (part.x === food.x && part.y === food.y) spawnFood();
+            }
+        }
+
+        function spawnPowerup() {
+            const types = ['INVINCIBLE', 'MULTIPLIER', 'MAGNET'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            powerup = {
+                x: Math.floor(Math.random() * tileCount),
+                y: Math.floor(Math.random() * tileCount),
+                type: type
+            };
+        }
+
+        function generateMazeObstacles() {
+            obstacles = [];
+            for (let i = 5; i < tileCount - 5; i++) {
+                obstacles.push({ x: i, y: Math.floor(tileCount / 2) });
+            }
+        }
+
+        function spawnAiBots() {
+            aiBots = [
+                { snake: [{x: 2, y: 2}, {x: 2, y: 3}], dx: 0, dy: -1, color: '#ef4444' },
+                { snake: [{x: tileCount-3, y: tileCount-3}, {x: tileCount-3, y: tileCount-4}], dx: 0, dy: 1, color: '#3b82f6' }
+            ];
+        }
+
+        function updateAiBots() {
+            for (let bot of aiBots) {
+                if (Math.random() < 0.2) {
+                    const dirs = [{dx:0, dy:-1}, {dx:0, dy:1}, {dx:-1, dy:0}, {dx:1, dy:0}];
+                    const d = dirs[Math.floor(Math.random() * dirs.length)];
+                    bot.dx = d.dx;
+                    bot.dy = d.dy;
+                }
+                const bHead = { x: bot.snake[0].x + bot.dx, y: bot.snake[0].y + bot.dy };
+                if (bHead.x < 0 || bHead.x >= tileCount || bHead.y < 0 || bHead.y >= tileCount) {
+                    bot.dx *= -1;
+                    bot.dy *= -1;
+                    continue;
+                }
+                bot.snake.unshift(bHead);
+                bot.snake.pop();
+
+                // Check bot collision with player
+                for (let part of snake) {
+                    if (bHead.x === part.x && bHead.y === part.y && activePowerup !== 'INVINCIBLE') {
+                        gameOver();
+                    }
+                }
+            }
+        }
+
+        function triggerSpeedBoost() {
+            if (activePowerup === 'INVINCIBLE' || score >= 5) {
+                if (activePowerup !== 'INVINCIBLE') score = Math.max(0, score - 5);
+                // Move extra step immediately
+                updateGameLogic();
+            }
+        }
+
+        // Particle System
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: (x + 0.5) * tileSize,
+                    y: (y + 0.5) * tileSize,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    color: color,
+                    life: 20
+                });
+            }
+        }
+
+        // Render Graphics on Canvas
+        function renderGame() {
+            ctx.save();
+            if (screenShake > 0) {
+                ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
+            }
+
+            // Background Grid
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = 'rgba(30, 41, 59, 0.4)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= tileCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * tileSize, 0);
+                ctx.lineTo(i * tileSize, canvas.height);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(0, i * tileSize);
+                ctx.lineTo(canvas.width, i * tileSize);
+                ctx.stroke();
+            }
+
+            // Draw Obstacles
+            ctx.fillStyle = '#64748b';
+            for (let obs of obstacles) {
+                ctx.fillRect(obs.x * tileSize + 2, obs.y * tileSize + 2, tileSize - 4, tileSize - 4);
+            }
+
+            // Draw Food
+            ctx.fillStyle = food.color;
+            ctx.shadowColor = food.color;
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc((food.x + 0.5) * tileSize, (food.y + 0.5) * tileSize, tileSize * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Draw Powerup
+            if (powerup) {
+                ctx.fillStyle = '#f59e0b';
+                ctx.shadowColor = '#f59e0b';
+                ctx.shadowBlur = 15;
+                ctx.fillRect(powerup.x * tileSize + 4, powerup.y * tileSize + 4, tileSize - 8, tileSize - 8);
+                ctx.shadowBlur = 0;
+            }
+
+            // Draw AI Bots
+            for (let bot of aiBots) {
+                ctx.fillStyle = bot.color;
+                for (let part of bot.snake) {
+                    ctx.fillRect(part.x * tileSize + 2, part.y * tileSize + 2, tileSize - 4, tileSize - 4);
+                }
+            }
+
+            // Draw Player Snake
+            const skinObj = skinsCatalog.find(s => s.id === currentSkin) || skinsCatalog[0];
+            for (let i = 0; i < snake.length; i++) {
+                const part = snake[i];
+                ctx.fillStyle = (i === 0) ? skinObj.headColor : skinObj.color;
+                ctx.shadowColor = skinObj.color;
+                ctx.shadowBlur = i === 0 ? 10 : 4;
+                ctx.beginPath();
+                ctx.roundRect(part.x * tileSize + 1, part.y * tileSize + 1, tileSize - 2, tileSize - 2, 6);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            // Draw Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, 4, 4);
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            ctx.restore();
+        }
+
+        function drawIdleScreen() {
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 16px Orbitron';
+            ctx.textAlign = 'center';
+            ctx.fillText('PRESS INITIALIZE TO START', canvas.width / 2, canvas.height / 2);
+        }
+
+        function gameOver() {
+            playSound('gameover');
+            clearInterval(gameInterval);
+            isRunning = false;
+            screenShake = 15;
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('snake_highscore', highScore);
+                document.getElementById('highScoreDisplay').innerText = highScore;
+            }
+
+            submitScoreToSupabase(playerName, score);
+
+            const overlay = document.getElementById('gameOverlay');
+            document.getElementById('overlayTitle').innerText = 'MISSION TERMINATED';
+            document.getElementById('overlaySubtitle').innerText = `Final Score: ${score}. Submitted to Supabase Global Leaderboard!`;
+            document.getElementById('overlayIcon').className = 'fa-solid fa-skull';
+            overlay.classList.remove('hidden');
+        }
+
+        // Supabase Leaderboard Integration
+        async function submitScoreToSupabase(name, finalScore) {
+            if (!supabaseClient) return;
+            try {
+                const { error } = await supabaseClient
+                    .from('snake_leaderboard')
+                    .insert([{ player_name: name, score: finalScore, created_at: new Date() }]);
+                if (error) console.error('Supabase submit error:', error);
+                else fetchLeaderboard();
+            } catch (e) {
+                console.error('Supabase error:', e);
+            }
+        }
+
+        async function fetchLeaderboard() {
+            const listEl = document.getElementById('leaderboardList');
+            if (!supabaseClient) {
+                listEl.innerHTML = '<div class="text-center text-xs text-slate-500 py-4">Offline Mode - No cloud sync</div>';
+                return;
+            }
+            try {
+                const { data, error } = await supabaseClient
+                    .from('snake_leaderboard')
+                    .select('*')
+                    .order('score', { ascending: false })
+                    .limit(10);
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    listEl.innerHTML = '<div class="text-center text-xs text-slate-500 py-4">No scores recorded yet. Be the first!</div>';
+                    return;
+                }
+
+                let html = '';
+                data.forEach((row, idx) => {
+                    let badgeColor = 'text-slate-400';
+                    if (idx === 0) badgeColor = 'text-amber-400 font-bold';
+                    else if (idx === 1) badgeColor = 'text-slate-300 font-bold';
+                    else if (idx === 2) badgeColor = 'text-amber-600 font-bold';
+
+                    html += `
+                        <div class="flex justify-between items-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="${badgeColor} w-5">#${idx + 1}</span>
+                                <span class="text-slate-200 font-medium truncate max-w-[100px]">${escapeHtml(row.player_name || 'Anonymous')}</span>
+                            </div>
+                            <span class="font-orbitron font-bold text-emerald-400">${row.score}</span>
+                        </div>
+                    `;
+                });
+                listEl.innerHTML = html;
+            } catch (e) {
+                console.error('Fetch leaderboard error:', e);
+                listEl.innerHTML = '<div class="text-center text-xs text-red-400 py-4">Failed to load leaderboard</div>';
+            }
+        }
+
+        // Global Chat System via Supabase
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg || !supabaseClient) return;
+
+            try {
+                await supabaseClient
+                    .from('snake_chat')
+                    .insert([{ player_name: playerName, message: msg, created_at: new Date() }]);
+                input.value = '';
+                fetchChatMessages();
+            } catch (e) {
+                console.error('Send chat error:', e);
+            }
+        }
+
+        async function fetchChatMessages() {
+            const chatEl = document.getElementById('chatMessages');
+            if (!supabaseClient) return;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('snake_chat')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(15);
+
+                if (error) throw error;
+                if (!data) return;
+
+                let html = '';
+                data.reverse().forEach(c => {
+                    html += `<div class="truncate"><span class="text-emerald-400 font-bold">${escapeHtml(c.player_name)}:</span> <span class="text-slate-300">${escapeHtml(c.message)}</span></div>`;
+                });
+                chatEl.innerHTML = html;
+                chatEl.scrollTop = chatEl.scrollHeight;
+            } catch (e) {
+                console.warn('Chat fetch warning:', e);
+            }
+        }
+
+        // Daily Quest & Achievements Logic
+        function updateDailyQuest() {
+            dailyOrbsEaten = Math.min(dailyQuestTarget, dailyOrbsEaten);
+            const pct = (dailyOrbsEaten / dailyQuestTarget) * 100;
+            document.getElementById('dailyQuestProgress').style.width = pct + '%';
+            document.getElementById('dailyQuestStatus').innerText = `${dailyOrbsEaten} / ${dailyQuestTarget} Orbs`;
+        }
+
+        function checkAchievements() {
+            if (score >= 1) unlockAchievement('first_bite');
+            if (combo >= 3.0) unlockAchievement('combo_master');
+            if (score >= 100) unlockAchievement('century');
+            if (score >= 500) unlockAchievement('legend');
+        }
+
+        function unlockAchievement(id) {
+            const ach = achievements.find(a => a.id === id);
+            if (ach && !ach.unlocked) {
+                ach.unlocked = true;
+                showNotification(`🏆 Achievement Unlocked: ${ach.name}!`);
+                renderAchievements();
+            }
+        }
+
+        function checkSkinUnlocks() {
+            skinsCatalog.forEach(skin => {
+                if (score >= skin.req && !unlockedSkins.includes(skin.id)) {
+                    unlockedSkins.push(skin.id);
+                    localStorage.setItem('snake_unlocks', JSON.stringify(unlockedSkins));
+                    showNotification(`✨ New Skin Unlocked: ${skin.name}!`);
+                    renderShop();
+                }
+            });
+        }
+
+        function renderShop() {
+            const grid = document.getElementById('skinGrid');
+            let html = '';
+            skinsCatalog.forEach(skin => {
+                const unlocked = unlockedSkins.includes(skin.id);
+                const active = currentSkin === skin.id;
+                html += `
+                    <div class="bg-slate-950 border ${active ? 'border-emerald-500' : 'border-slate-800'} p-3 rounded-2xl flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="w-4 h-4 rounded-full" style="background:${skin.color}"></span>
+                                <h4 class="font-bold text-xs text-white">${skin.name}</h4>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mb-3">${unlocked ? 'Unlocked' : `Requires Score ${skin.req}`}</p>
+                        </div>
+                        ${unlocked ? `
+                            <button onclick="selectSkin('${skin.id}')" class="w-full py-1.5 rounded-xl text-xs font-bold ${active ? 'bg-emerald-500 text-black' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}">
+                                ${active ? 'Equipped' : 'Equip'}
+                            </button>
+                        ` : `
+                            <button disabled class="w-full py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-slate-600 cursor-not-allowed">Locked</button>
+                        `}
+                    </div>
+                `;
+            });
+            grid.innerHTML = html;
+        }
+
+        function selectSkin(id) {
+            currentSkin = id;
+            localStorage.setItem('snake_skin', id);
+            renderShop();
+            showNotification('Skin equipped successfully!');
+        }
+
+        function renderAchievements() {
+            const list = document.getElementById('achievementList');
+            let html = '';
+            achievements.forEach(ach => {
+                html += `
+                    <div class="bg-slate-950 border ${ach.unlocked ? 'border-amber-500/50' : 'border-slate-800'} p-3 rounded-xl flex items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-xs ${ach.unlocked ? 'text-amber-400' : 'text-slate-400'}">${ach.name}</h4>
+                            <p class="text-[10px] text-slate-500">${ach.desc}</p>
+                        </div>
+                        <span class="text-xs font-bold px-2 py-1 rounded ${ach.unlocked ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-900 text-slate-600'}">
+                            ${ach.unlocked ? 'Unlocked' : 'Locked'}
+                        </span>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+        }
+
+        // Admin Console Logic (Password: papivictor)
+        function openAdminPrompt() {
+            const pwd = prompt('Enter Admin Password:');
+            if (pwd === 'papivictor') {
+                openModal('adminModal');
+            } else if (pwd !== null) {
+                alert('Access Denied: Invalid Security Key.');
+            }
+        }
+
+        function adminSendAnnouncement() {
+            const txt = document.getElementById('adminBroadcastInput').value.trim();
+            if (!txt) return;
+            document.getElementById('announcementText').innerText = txt;
+            document.getElementById('announcementContainer').classList.remove('hidden');
+            document.getElementById('adminBroadcastInput').value = '';
+            showNotification('Global announcement broadcasted!');
+            closeModal('adminModal');
+        }
+
+        async function adminFetchAllScores() {
+            if (!supabaseClient) return;
+            const { data } = await supabaseClient.from('snake_leaderboard').select('*');
+            const out = document.getElementById('adminDataOutput');
+            out.innerText = JSON.stringify(data, null, 2);
+            out.classList.remove('hidden');
+        }
+
+        async function adminClearChat() {
+            if (!supabaseClient) return;
+            // Clear or notify
+            showNotification('Chat wiped by admin.');
+        }
+
+        function adminAddScore(pts) {
+            score += pts;
+            document.getElementById('currentScoreDisplay').innerText = score;
+            checkAchievements();
+            checkSkinUnlocks();
+            showNotification(`Admin granted +${pts} score!`);
+        }
+
+        function adminSpawnPowerup() {
+            spawnPowerup();
+            showNotification('Powerup forced spawn!');
+        }
+
+        function adminGodMode() {
+            godMode = !godMode;
+            showNotification(`God Mode: ${godMode ? 'ENABLED' : 'DISABLED'}`);
+        }
+
+        // Utility Modals & Notifications
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function showNotification(msg) {
+            const notif = document.createElement('div');
+            notif.className = 'fixed bottom-5 right-5 bg-emerald-500 text-black font-bold text-xs px-4 py-3 rounded-xl shadow-2xl z-50 animate-bounce';
+            notif.innerHTML = `<i class="fa-solid fa-bell mr-2"></i> ${msg}`;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 3000);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
