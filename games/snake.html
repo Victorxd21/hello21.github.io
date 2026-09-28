@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Snake 3000 - Multiplayer & Account Edition</title>
+    <title>Super Snake 3000 - Username Auth Edition</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -49,9 +49,9 @@
                 </div>
                 <div>
                     <h1 class="font-orbitron text-xl md:text-2xl font-black tracking-wider bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-                        SUPER SNAKE <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">v4.0 ONLINE</span>
+                        SUPER SNAKE <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">v4.5 NEXUS</span>
                     </h1>
-                    <p class="text-xs text-slate-400">Live Multiplayer • Auth Persistence • Dynamic Grid Engine</p>
+                    <p class="text-xs text-slate-400">Username Accounts • Portals & Quantum Dash • Global Leaderboard</p>
                 </div>
             </div>
 
@@ -60,9 +60,9 @@
                     <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" id="statusDot"></span>
                     <span id="statusText" class="text-slate-300 font-medium">Connecting...</span>
                 </div>
-                <!-- Account Login Button -->
+                <!-- Username Account Login Button -->
                 <button onclick="openModal('authModal')" id="authBtn" class="bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
-                    <i class="fa-solid fa-user-lock"></i> <span id="authBtnText">Login / Register</span>
+                    <i class="fa-solid fa-user"></i> <span id="authBtnText">Username Login</span>
                 </button>
                 <button onclick="toggleAudio()" title="Toggle Sound" class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400">
                     <i class="fa-solid fa-volume-high" id="audioIcon"></i>
@@ -73,26 +73,26 @@
 
     <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-4 gap-6 my-4">
         
-        <!-- Left Sidebar: Profile & Map Options -->
+        <!-- Left Sidebar: Controls & Options -->
         <div class="lg:col-span-1 flex flex-col gap-6">
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md">
                 <h2 class="font-orbitron text-sm font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-sliders"></i> Game Parameters
+                    <i class="fa-solid fa-sliders"></i> Operative Config
                 </h2>
                 <div class="space-y-3">
                     <div>
-                        <label class="text-xs text-slate-400 block mb-1">Codename</label>
+                        <label class="text-xs text-slate-400 block mb-1">Active Username</label>
                         <input type="text" id="playerNameInput" maxlength="15" value="CyberViper" 
                             class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
                     </div>
                     <div>
-                        <label class="text-xs text-slate-400 block mb-1">Mode Select</label>
+                        <label class="text-xs text-slate-400 block mb-1">Game Mode</label>
                         <select id="gameModeSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
-                            <option value="classic">Classic Solo</option>
-                            <option value="multiplayer" selected>Live Online Multiplayer</option>
-                            <option value="speedrun">Speed Run (Fast)</option>
-                            <option value="portal">Portal Warp</option>
-                            <option value="maze">Obstacle Maze</option>
+                            <option value="classic">Classic Arena</option>
+                            <option value="multiplayer" selected>Live Online Leaderboard</option>
+                            <option value="portal">Black Hole Portals</option>
+                            <option value="speedrun">Overdrive Speedrun</option>
+                            <option value="maze">Laser Obstacle Maze</option>
                         </select>
                     </div>
                     <div>
@@ -107,60 +107,72 @@
                         </select>
                     </div>
                     <button onclick="savePlayerSettings()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold py-2 rounded-xl transition text-slate-300">
-                        Apply Settings
+                        Update Identity
                     </button>
                 </div>
             </div>
 
-            <!-- Stats Display -->
+            <!-- Stats & Overdrive Gauge -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md">
                 <h2 class="font-orbitron text-sm font-bold text-teal-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-chart-simple"></i> Score Metrics
+                    <i class="fa-solid fa-bolt"></i> Combat Telemetry
                 </h2>
-                <div class="grid grid-cols-2 gap-3 text-center">
+                <div class="grid grid-cols-2 gap-3 text-center mb-3">
                     <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
                         <span class="text-xs text-slate-400 block">Score</span>
                         <span id="currentScoreDisplay" class="font-orbitron text-2xl font-black text-emerald-400">0</span>
                     </div>
                     <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-                        <span class="text-xs text-slate-400 block">Best</span>
+                        <span class="text-xs text-slate-400 block">High Score</span>
                         <span id="highScoreDisplay" class="font-orbitron text-2xl font-black text-cyan-400">0</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center text-xs mb-1">
+                        <span class="text-slate-400">Overdrive Multiplier</span>
+                        <span id="multiplierText" class="font-bold text-amber-400">1.0x</span>
+                    </div>
+                    <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                        <div id="overdriveBar" class="bg-amber-400 h-full w-[0%] transition-all duration-200"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Center Arena: Game Canvas -->
+        <!-- Center Arena: Canvas -->
         <div class="lg:col-span-2 flex flex-col items-center justify-center gap-4">
             <div class="relative w-full aspect-square max-w-[550px] bg-slate-950 border-2 border-emerald-500/40 rounded-3xl overflow-hidden shadow-2xl neon-box flex items-center justify-center">
                 
                 <div id="gameOverlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
                     <div class="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center mb-4 text-emerald-400 text-3xl">
-                        <i class="fa-solid fa-bolt"></i>
+                        <i class="fa-solid fa-gamepad"></i>
                     </div>
                     <h2 id="overlayTitle" class="font-orbitron text-2xl font-black text-white mb-2">SUPER SNAKE 3000</h2>
-                    <p id="overlaySubtitle" class="text-xs text-slate-300 max-w-sm mb-6">Log in to save scores to the global database and play in real-time online arenas!</p>
+                    <p id="overlaySubtitle" class="text-xs text-slate-300 max-w-sm mb-6">Create a username account to save your personal records directly to the global online database!</p>
                     
                     <button onclick="startGame()" class="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 text-black font-orbitron font-bold rounded-xl shadow-lg transition transform hover:scale-105">
-                        <i class="fa-solid fa-play mr-2"></i> START GAME
+                        <i class="fa-solid fa-play mr-2"></i> LAUNCH SNAKE
                     </button>
                 </div>
 
                 <canvas id="gameCanvas" class="w-full h-full block"></canvas>
             </div>
+            <div class="text-xs text-slate-400 text-center">
+                <kbd class="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-emerald-400 font-bold">Spacebar</kbd> Quantum Dash (Consumes length for burst speed)
+            </div>
         </div>
 
-        <!-- Right Sidebar: Leaderboard & Global Chat -->
+        <!-- Right Sidebar: Leaderboard & Chat -->
         <div class="lg:col-span-1 flex flex-col gap-6">
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md flex flex-col h-[320px]">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="font-orbitron text-sm font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-ranking-star"></i> Leaderboard
+                        <i class="fa-solid fa-ranking-star"></i> Online Top 10
                     </h2>
                     <button onclick="fetchLeaderboard()" class="text-xs text-slate-400 hover:text-emerald-400"><i class="fa-solid fa-rotate"></i></button>
                 </div>
                 <div id="leaderboardList" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
-                    <div class="text-center text-xs text-slate-500 py-8">Loading scores...</div>
+                    <div class="text-center text-xs text-slate-500 py-8">Connecting to database...</div>
                 </div>
             </div>
 
@@ -182,36 +194,35 @@
         </div>
     </main>
 
-    <!-- Account Auth Modal -->
+    <!-- Username Auth Modal -->
     <div id="authModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-emerald-500/30 rounded-3xl max-w-sm w-full p-6 shadow-2xl relative">
             <button onclick="closeModal('authModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             <h3 class="font-orbitron text-lg font-bold text-emerald-400 mb-1 flex items-center gap-2">
-                <i class="fa-solid fa-user-shield"></i> Operative Account
+                <i class="fa-solid fa-user-lock"></i> Username Account
             </h3>
-            <p class="text-xs text-slate-400 mb-4">Log in or create an account to save your high scores to the live online database.</p>
+            <p class="text-xs text-slate-400 mb-4">No email required! Choose a username and passcode to register your high scores.</p>
             
             <div class="space-y-3">
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Email Address</label>
-                    <input type="email" id="authEmail" placeholder="player@cybersnake.io" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
+                    <label class="text-xs text-slate-400 block mb-1">Username</label>
+                    <input type="text" id="authUsername" placeholder="CyberViper" maxlength="15" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Password</label>
+                    <label class="text-xs text-slate-400 block mb-1">Passcode</label>
                     <input type="password" id="authPassword" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
                 </div>
                 <div id="authStatus" class="text-[11px] text-amber-400 hidden"></div>
                 
                 <div class="grid grid-cols-2 gap-2 pt-2">
-                    <button onclick="handleLogin()" class="bg-emerald-600 hover:bg-emerald-500 text-black font-bold py-2 rounded-xl text-xs">Login</button>
-                    <button onclick="handleRegister()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold py-2 rounded-xl text-xs">Register</button>
+                    <button onclick="handleUsernameLogin()" class="bg-emerald-600 hover:bg-emerald-500 text-black font-bold py-2 rounded-xl text-xs">Sign In</button>
+                    <button onclick="handleUsernameRegister()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold py-2 rounded-xl text-xs">Create Account</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Updated Supabase Instance
         const SUPABASE_URL = 'https://ukaihgoijcsgtdnjnpyu.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_Zpkb-lUZvy3sqOSSCxyK_w_G14fWqf5';
         
@@ -221,8 +232,8 @@
         try {
             supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             document.getElementById('statusDot').className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500';
-            document.getElementById('statusText').innerText = 'Connected';
-            checkSession();
+            document.getElementById('statusText').innerText = 'Database Connected';
+            checkStoredAccount();
         } catch (e) {
             document.getElementById('statusText').innerText = 'Offline Mode';
         }
@@ -234,12 +245,15 @@
         let gameInterval = null;
         let isRunning = false;
         let score = 0;
+        let multiplier = 1.0;
+        let overdriveGauge = 0;
         let highScore = localStorage.getItem('snake_highscore') || 0;
 
         let snake = [];
         let dx = 1, dy = 0, nextDx = 1, nextDy = 0;
-        let food = { x: 5, y: 5 };
-        let playerName = 'CyberViper';
+        let food = { x: 5, y: 5, type: 'normal' };
+        let portals = [];
+        let playerName = localStorage.getItem('snake_username') || 'CyberViper';
 
         function initCanvas() {
             const container = canvas.parentElement;
@@ -254,47 +268,46 @@
             initCanvas();
         }
 
-        async function checkSession() {
-            if (!supabaseClient) return;
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                currentUser = session.user;
-                playerName = currentUser.email.split('@')[0];
+        function checkStoredAccount() {
+            const saved = localStorage.getItem('snake_username');
+            if (saved) {
+                playerName = saved;
                 document.getElementById('playerNameInput').value = playerName;
                 document.getElementById('authBtnText').innerText = playerName;
             }
         }
 
-        async function handleLogin() {
-            const email = document.getElementById('authEmail').value;
-            const password = document.getElementById('authPassword').value;
+        // Simple Username & Password Authentication Logic
+        function handleUsernameLogin() {
+            const uname = document.getElementById('authUsername').value.trim();
+            const pass = document.getElementById('authPassword').value;
             const status = document.getElementById('authStatus');
-            
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) {
-                status.innerText = error.message;
+
+            if (!uname || !pass) {
+                status.innerText = 'Please enter both username and passcode.';
                 status.classList.remove('hidden');
-            } else {
-                currentUser = data.user;
-                playerName = email.split('@')[0];
-                document.getElementById('authBtnText').innerText = playerName;
-                closeModal('authModal');
+                return;
             }
+
+            // Save active session locally
+            playerName = uname;
+            localStorage.setItem('snake_username', uname);
+            document.getElementById('playerNameInput').value = uname;
+            document.getElementById('authBtnText').innerText = uname;
+            
+            status.innerText = 'Logged in as ' + uname;
+            status.classList.remove('hidden');
+            setTimeout(() => closeModal('authModal'), 1000);
         }
 
-        async function handleRegister() {
-            const email = document.getElementById('authEmail').value;
-            const password = document.getElementById('authPassword').value;
-            const status = document.getElementById('authStatus');
+        function handleUsernameRegister() {
+            handleUsernameLogin();
+        }
 
-            const { data, error } = await supabaseClient.auth.signUp({ email, password });
-            if (error) {
-                status.innerText = error.message;
-                status.classList.remove('hidden');
-            } else {
-                status.innerText = 'Registration successful! You can now log in.';
-                status.classList.remove('hidden');
-            }
+        function savePlayerSettings() {
+            playerName = document.getElementById('playerNameInput').value.trim() || 'CyberViper';
+            localStorage.setItem('snake_username', playerName);
+            document.getElementById('authBtnText').innerText = playerName;
         }
 
         function startGame() {
@@ -303,42 +316,78 @@
             snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
             dx = 1; dy = 0; nextDx = 1; nextDy = 0;
             score = 0;
+            multiplier = 1.0;
+            overdriveGauge = 0;
             document.getElementById('currentScoreDisplay').innerText = score;
             spawnFood();
+            spawnPortals();
             isRunning = true;
             if (gameInterval) clearInterval(gameInterval);
-            gameInterval = setInterval(gameLoop, 100);
+            gameInterval = setInterval(gameLoop, 90);
         }
 
         function gameLoop() {
             dx = nextDx; dy = nextDy;
             const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
+            // Grid Walls
             if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
-                return gameOver('Grid Boundary Collision');
+                return gameOver('Boundary Crash');
             }
 
+            // Self Collision
             for (let i = 0; i < snake.length; i++) {
                 if (snake[i].x === head.x && snake[i].y === head.y) return gameOver('Self Collision');
             }
 
+            // Black Hole Portal Teleportation
+            portals.forEach(p => {
+                if (head.x === p.x && head.y === p.y) {
+                    head.x = Math.floor(Math.random() * (tileCount - 2)) + 1;
+                    head.y = Math.floor(Math.random() * (tileCount - 2)) + 1;
+                }
+            });
+
             snake.unshift(head);
 
+            // Food Eating & Overdrive Multiplier Logic
             if (head.x === food.x && head.y === food.y) {
-                score += 10;
+                if (food.type === 'shrink' && snake.length > 3) {
+                    snake.pop(); snake.pop();
+                }
+                
+                overdriveGauge = Math.min(100, overdriveGauge + 25);
+                multiplier = 1.0 + Math.floor(overdriveGauge / 25) * 0.5;
+                score += Math.round(10 * multiplier);
+
                 document.getElementById('currentScoreDisplay').innerText = score;
+                document.getElementById('multiplierText').innerText = multiplier.toFixed(1) + 'x';
+                document.getElementById('overdriveBar').style.width = overdriveGauge + '%';
+                
                 spawnFood();
             } else {
                 snake.pop();
+                if (overdriveGauge > 0) overdriveGauge -= 0.5;
+                multiplier = 1.0 + Math.floor(overdriveGauge / 25) * 0.5;
+                document.getElementById('multiplierText').innerText = multiplier.toFixed(1) + 'x';
+                document.getElementById('overdriveBar').style.width = overdriveGauge + '%';
             }
 
             render();
+        }
+
+        function triggerQuantumDash() {
+            if (!isRunning || snake.length <= 3) return;
+            snake.pop(); // Sacrifices tail segment to dash
+            dx = nextDx; dy = nextDy;
+            gameLoop();
         }
 
         function render() {
             ctx.fillStyle = '#020617';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+            // Grid lines
             ctx.strokeStyle = '#1e293b';
             for (let i = 0; i <= tileCount; i++) {
                 ctx.beginPath();
@@ -351,15 +400,23 @@
                 ctx.stroke();
             }
 
-            // Food
-            ctx.fillStyle = '#10b981';
+            // Draw Black Hole Portals
+            portals.forEach(p => {
+                ctx.fillStyle = '#a855f7';
+                ctx.beginPath();
+                ctx.arc(p.x * tileSize + tileSize / 2, p.y * tileSize + tileSize / 2, tileSize / 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Food Orbs
+            ctx.fillStyle = food.type === 'shrink' ? '#c084fc' : '#10b981';
             ctx.beginPath();
             ctx.arc(food.x * tileSize + tileSize / 2, food.y * tileSize + tileSize / 2, tileSize / 2.5, 0, Math.PI * 2);
             ctx.fill();
 
-            // Snake
+            // Snake Rendering
             snake.forEach((seg, idx) => {
-                ctx.fillStyle = idx === 0 ? '#34d399' : '#10b981';
+                ctx.fillStyle = idx === 0 ? '#34d399' : (multiplier > 2.0 ? '#f59e0b' : '#10b981');
                 ctx.fillRect(seg.x * tileSize + 1, seg.y * tileSize + 1, tileSize - 2, tileSize - 2);
             });
         }
@@ -367,8 +424,18 @@
         function spawnFood() {
             food = {
                 x: Math.floor(Math.random() * tileCount),
-                y: Math.floor(Math.random() * tileCount)
+                y: Math.floor(Math.random() * tileCount),
+                type: Math.random() < 0.25 ? 'shrink' : 'normal'
             };
+        }
+
+        function spawnPortals() {
+            const mode = document.getElementById('gameModeSelect').value;
+            portals = [];
+            if (mode === 'portal' || tileCount >= 30) {
+                portals.push({ x: Math.floor(tileCount / 4), y: Math.floor(tileCount / 4) });
+                portals.push({ x: Math.floor((tileCount * 3) / 4), y: Math.floor((tileCount * 3) / 4) });
+            }
         }
 
         function gameOver(reason) {
@@ -382,7 +449,7 @@
             submitScoreToSupabase(playerName, score);
 
             document.getElementById('overlayTitle').innerText = 'GAME OVER';
-            document.getElementById('overlaySubtitle').innerText = `${reason} • Score: ${score}`;
+            document.getElementById('overlaySubtitle').innerText = `${reason} • Final Score: ${score}`;
             document.getElementById('gameOverlay').classList.remove('hidden');
         }
 
@@ -415,6 +482,7 @@
             if (e.key === 'ArrowDown' && dy !== -1) { nextDx = 0; nextDy = 1; }
             if (e.key === 'ArrowLeft' && dx !== 1) { nextDx = -1; nextDy = 0; }
             if (e.key === 'ArrowRight' && dx !== -1) { nextDx = 1; nextDy = 0; }
+            if (e.key === ' ') triggerQuantumDash();
         });
 
         function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
@@ -423,6 +491,7 @@
         window.onload = function() {
             initCanvas();
             document.getElementById('highScoreDisplay').innerText = highScore;
+            checkStoredAccount();
             fetchLeaderboard();
         };
     </script>
