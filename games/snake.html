@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber Snake - Minimal Edition</title>
+    <title>Cyber Snake - Expanded Arena Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -30,66 +30,82 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4 selection:bg-emerald-500">
 
-    <!-- Minimalist Game Frame -->
-    <div class="w-full max-w-[620px] bg-slate-900 border border-emerald-500/30 rounded-2xl overflow-hidden neon-border flex flex-col shadow-2xl relative">
-        
-        <!-- Top Bar (Score & Config Buttons) -->
-        <div class="bg-slate-900/90 px-5 py-3 border-b border-emerald-500/20 flex justify-between items-center text-sm font-bold z-10">
-            <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2 text-emerald-400">
-                    <i class="fa-solid fa-gamepad text-lg"></i>
-                    <span id="scoreDisplay" class="text-xl">0</span>
-                </div>
-                <div class="flex items-center gap-2 text-cyan-400 text-xs">
-                    <i class="fa-solid fa-trophy"></i>
-                    <span id="topScoreDisplay">0</span>
-                </div>
-            </div>
+    <!-- Main Container Grid -->
+    <div class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
 
-            <div class="flex items-center gap-3">
-                <button onclick="openModal('settingsModal')" class="text-xs text-slate-400 hover:text-emerald-400 transition" title="Settings">
-                    <i class="fa-solid fa-gear text-base"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Canvas Container -->
-        <div class="relative w-full aspect-square bg-slate-950 flex items-center justify-center overflow-hidden">
+        <!-- Game Area (3 Columns) -->
+        <div class="md:col-span-3 bg-slate-900 border border-emerald-500/30 rounded-2xl overflow-hidden neon-border flex flex-col shadow-2xl relative">
             
-            <!-- Live Top-Right Leaderboard Overlay -->
-            <div class="absolute top-3 right-3 z-10 w-44 bg-slate-900/80 backdrop-blur-md border border-emerald-500/20 rounded-xl p-2.5 shadow-lg">
-                <div class="flex items-center justify-between border-b border-slate-800 pb-1 mb-1.5">
-                    <span id="lbTitle" class="text-[10px] font-bold text-emerald-400 tracking-wider uppercase">TOP SCORES</span>
-                    <i class="fa-solid fa-ranking-star text-[10px] text-emerald-400"></i>
+            <!-- Top Bar -->
+            <div class="bg-slate-900/90 px-5 py-3 border-b border-emerald-500/20 flex justify-between items-center text-sm font-bold z-10">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 text-emerald-400">
+                        <i class="fa-solid fa-gamepad text-lg"></i>
+                        <span id="scoreDisplay" class="text-xl">0</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-cyan-400 text-xs">
+                        <i class="fa-solid fa-trophy"></i>
+                        <span id="topScoreDisplay">0</span>
+                    </div>
+                    <div id="modeTag" class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full uppercase">
+                        CLASSIC
+                    </div>
                 </div>
-                <div id="leaderboardList" class="space-y-1 max-h-36 overflow-y-auto custom-scrollbar text-[11px]">
-                    <div class="text-slate-500 text-center py-1 text-[10px]">Loading...</div>
+
+                <div class="flex items-center gap-3">
+                    <button onclick="openModal('settingsModal')" class="text-xs text-slate-400 hover:text-emerald-400 transition" title="Settings">
+                        <i class="fa-solid fa-gear text-base"></i>
+                    </button>
                 </div>
             </div>
 
-            <!-- Start / Game Over Screen Overlay -->
-            <div id="gameOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
-                <div id="overlayContent" class="flex flex-col items-center gap-4">
-                    <div id="overlayIcon" class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-3xl mb-1">
-                        <i class="fa-solid fa-play"></i>
-                    </div>
-                    
-                    <h2 id="overlayTitle" class="text-2xl font-black text-white tracking-wider">CYBER SNAKE</h2>
-                    <p id="overlaySubtitle" class="text-xs text-slate-400 max-w-xs" data-i18n="instructions">Press PLAY, then hit an arrow key to start moving.</p>
+            <!-- Canvas Container -->
+            <div class="relative w-full aspect-square bg-slate-950 flex items-center justify-center overflow-hidden">
+                
+                <!-- Start / Game Over Overlay -->
+                <div id="gameOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
+                    <div id="overlayContent" class="flex flex-col items-center gap-4">
+                        <div id="overlayIcon" class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-3xl mb-1">
+                            <i class="fa-solid fa-play"></i>
+                        </div>
+                        
+                        <h2 id="overlayTitle" class="text-2xl font-black text-white tracking-wider">CYBER SNAKE</h2>
+                        <p id="overlaySubtitle" class="text-xs text-slate-400 max-w-xs" data-i18n="instructions">Choose a mode and press an arrow key to start moving.</p>
 
-                    <div class="flex flex-col gap-2.5 w-48 mt-2">
-                        <button id="playBtn" onclick="startGame()" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition text-sm flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-play"></i> <span data-i18n="play">PLAY</span>
-                        </button>
+                        <div class="flex flex-col gap-2.5 w-56 mt-2">
+                            <button onclick="startGame('classic')" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-play"></i> <span data-i18n="playClassic">PLAY CLASSIC</span>
+                            </button>
+                            <button onclick="startGame('multiplayer')" class="w-full py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-users"></i> <span data-i18n="playMulti">MULTIPLAYER MAP</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+                <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+            </div>
         </div>
+
+        <!-- Outside Right Leaderboard Container (1 Column) -->
+        <div class="md:col-span-1 bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 shadow-2xl flex flex-col h-full min-h-[420px]">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+                <span id="lbTitle" class="text-xs font-bold text-emerald-400 tracking-wider uppercase">TOP SCORES</span>
+                <i class="fa-solid fa-ranking-star text-xs text-emerald-400"></i>
+            </div>
+            
+            <div id="leaderboardList" class="space-y-2 flex-1 overflow-y-auto custom-scrollbar text-xs pr-1">
+                <div class="text-slate-500 text-center py-4">Loading...</div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-800/80 text-[10px] text-slate-500 text-center">
+                Live updates active
+            </div>
+        </div>
+
     </div>
 
-    <!-- Settings Modal with Language Switch -->
+    <!-- Settings Modal -->
     <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xs w-full p-5 shadow-2xl relative">
             <button onclick="closeModal('settingsModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
@@ -101,14 +117,6 @@
                 <div>
                     <label class="text-slate-400 block mb-1" data-i18n="usernameLabel">Username</label>
                     <input type="text" id="usernameInput" maxlength="15" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
-                </div>
-                <div>
-                    <label class="text-slate-400 block mb-1" data-i18n="gridSizeLabel">Map Size</label>
-                    <select id="gridSizeSelect" onchange="updateGridSize()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
-                        <option value="15">Micro (15x15)</option>
-                        <option value="20" selected>Standard (20x20)</option>
-                        <option value="25">Large (25x25)</option>
-                    </select>
                 </div>
                 <div>
                     <label class="text-slate-400 block mb-1" data-i18n="languageLabel">Language / Idioma</label>
@@ -136,11 +144,11 @@
         const translations = {
             en: {
                 lbTitle: 'TOP SCORES',
-                instructions: 'Press PLAY, then hit an arrow key to start moving.',
-                play: 'PLAY',
+                instructions: 'Choose a mode and press an arrow key to start moving.',
+                playClassic: 'PLAY CLASSIC',
+                playMulti: 'MULTIPLAYER MAP',
                 settings: 'Settings',
                 usernameLabel: 'Username',
-                gridSizeLabel: 'Map Size',
                 languageLabel: 'Language / Idioma',
                 saveBtn: 'Save',
                 gameOverTitle: 'SCORE: ',
@@ -149,11 +157,11 @@
             },
             es: {
                 lbTitle: 'TOP JUGADORES',
-                instructions: 'Presiona JUGAR y luego una flecha para moverte.',
-                play: 'JUGAR',
+                instructions: 'Elige un modo y presiona una flecha para moverte.',
+                playClassic: 'JUGAR CLÁSICO',
+                playMulti: 'MAPA MULTIJUGADOR',
                 settings: 'Configuración',
                 usernameLabel: 'Nombre de usuario',
-                gridSizeLabel: 'Tamaño del mapa',
                 languageLabel: 'Language / Idioma',
                 saveBtn: 'Guardar',
                 gameOverTitle: 'PUNTUACIÓN: ',
@@ -166,17 +174,19 @@
 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        
+        let currentGameMode = 'classic';
         let tileCount = 20;
         let tileSize = 20;
         let gameInterval = null;
         let isRunning = false;
-        let isMoving = false; // Controls the frozen state until arrow key is pressed
+        let isMoving = false;
         let score = 0;
         let highScore = localStorage.getItem('snake_highscore') || 0;
 
         let snake = [];
         let dx = 0, dy = 0, nextDx = 0, nextDy = 0;
-        let food = { x: 5, y: 5 };
+        let foods = []; // Array to support multiple apples on big map
         let username = localStorage.getItem('snake_username') || 'victor';
 
         function applyLanguage() {
@@ -214,34 +224,56 @@
         }
         window.addEventListener('resize', initCanvas);
 
-        function updateGridSize() {
-            tileCount = parseInt(document.getElementById('gridSizeSelect').value);
-            initCanvas();
-            if (!isRunning) render();
-        }
+        function startGame(mode = 'classic') {
+            currentGameMode = mode;
+            
+            if (mode === 'multiplayer') {
+                tileCount = 50; // Big map
+                document.getElementById('modeTag').innerText = 'MULTIPLAYER MAP (15 APPLES)';
+                document.getElementById('modeTag').className = 'text-[10px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full uppercase';
+            } else {
+                tileCount = 20; // Standard map
+                document.getElementById('modeTag').innerText = 'CLASSIC';
+                document.getElementById('modeTag').className = 'text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full uppercase';
+            }
 
-        function startGame() {
             initCanvas();
             document.getElementById('gameOverlay').classList.add('hidden');
-            snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
+            snake = [{ x: Math.floor(tileCount / 2), y: Math.floor(tileCount / 2) }];
             
-            // Snake starts frozen in place
             dx = 0; dy = 0; nextDx = 0; nextDy = 0;
             isMoving = false;
             
             score = 0;
             document.getElementById('scoreDisplay').innerText = score;
-            spawnFood();
+            
+            spawnAllFoods();
             isRunning = true;
             
-            render(); // Render initial frozen state immediately
+            render();
 
             if (gameInterval) clearInterval(gameInterval);
-            gameInterval = setInterval(gameLoop, 90);
+            const speed = mode === 'multiplayer' ? 65 : 90;
+            gameInterval = setInterval(gameLoop, speed);
+        }
+
+        function spawnAllFoods() {
+            foods = [];
+            const foodCount = currentGameMode === 'multiplayer' ? 15 : 1;
+            for (let i = 0; i < foodCount; i++) {
+                spawnSingleFood();
+            }
+        }
+
+        function spawnSingleFood() {
+            foods.push({
+                x: Math.floor(Math.random() * tileCount),
+                y: Math.floor(Math.random() * tileCount)
+            });
         }
 
         function gameLoop() {
-            if (!isMoving) return; // Remain frozen until arrow key input
+            if (!isMoving) return;
 
             dx = nextDx; dy = nextDy;
             const head = { x: snake[0].x + dx, y: snake[0].y + dy };
@@ -254,11 +286,14 @@
 
             snake.unshift(head);
 
-            if (head.x === food.x && head.y === food.y) {
+            let ateFoodIndex = foods.findIndex(f => f.x === head.x && f.y === head.y);
+
+            if (ateFoodIndex !== -1) {
                 score += 10;
                 document.getElementById('scoreDisplay').innerText = score;
-                saveScore(username, score); // Live update score to leaderboard
-                spawnFood();
+                saveScore(username, score);
+                foods.splice(ateFoodIndex, 1);
+                spawnSingleFood();
             } else {
                 snake.pop();
             }
@@ -279,24 +314,19 @@
                 ctx.moveTo(0, i * tileSize); ctx.lineTo(canvas.width, i * tileSize); ctx.stroke();
             }
 
-            // Food
-            ctx.fillStyle = '#10b981';
-            ctx.beginPath();
-            ctx.arc(food.x * tileSize + tileSize / 2, food.y * tileSize + tileSize / 2, tileSize / 2.5, 0, Math.PI * 2);
-            ctx.fill();
+            // Draw Apples
+            foods.forEach(f => {
+                ctx.fillStyle = currentGameMode === 'multiplayer' ? '#22d3ee' : '#10b981';
+                ctx.beginPath();
+                ctx.arc(f.x * tileSize + tileSize / 2, f.y * tileSize + tileSize / 2, Math.max(tileSize / 2.5, 2), 0, Math.PI * 2);
+                ctx.fill();
+            });
 
             // Snake
             snake.forEach((seg, idx) => {
                 ctx.fillStyle = idx === 0 ? '#34d399' : '#10b981';
-                ctx.fillRect(seg.x * tileSize + 1, seg.y * tileSize + 1, tileSize - 2, tileSize - 2);
+                ctx.fillRect(seg.x * tileSize, seg.y * tileSize, tileSize, tileSize);
             });
-        }
-
-        function spawnFood() {
-            food = {
-                x: Math.floor(Math.random() * tileCount),
-                y: Math.floor(Math.random() * tileCount)
-            };
         }
 
         function gameOver() {
@@ -339,7 +369,6 @@
                 } catch (e) {}
             }
 
-            // Group by user to display highest score per player
             const uniqueMap = new Map();
             data.forEach(item => {
                 if (!uniqueMap.has(item.username) || uniqueMap.get(item.username).score < item.score) {
@@ -347,15 +376,15 @@
                 }
             });
 
-            const uniqueList = Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score).slice(0, 5);
+            const uniqueList = Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score).slice(0, 10);
 
             const t = translations[currentLang];
             listContainer.innerHTML = uniqueList.map((item, index) => `
-                <div class="flex justify-between items-center bg-slate-950/70 px-1.5 py-1 rounded border border-slate-800/80">
-                    <span class="text-slate-300 font-bold truncate max-w-[90px]"><span class="text-emerald-400">#${index + 1}</span> ${item.username}</span>
+                <div class="flex justify-between items-center bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800">
+                    <span class="text-slate-300 font-bold truncate max-w-[100px]"><span class="text-emerald-400">#${index + 1}</span> ${item.username}</span>
                     <span class="font-bold text-teal-400">${item.score}</span>
                 </div>
-            `).join('') || `<div class="text-slate-500 text-center py-2 text-[10px]">${t.noScores}</div>`;
+            `).join('') || `<div class="text-slate-500 text-center py-4 text-xs">${t.noScores}</div>`;
         }
 
         function saveSettings() {
@@ -368,7 +397,7 @@
             if (!isRunning) return;
 
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                if (!isMoving) isMoving = true; // Unfreeze on first arrow key press
+                if (!isMoving) isMoving = true;
             }
 
             if (e.key === 'ArrowUp' && dy !== 1) { nextDx = 0; nextDy = -1; }
