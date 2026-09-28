@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber Snake - Ultimate Arcade Edition</title>
+    <title>Cyber Snake - Daily Challenge Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -27,7 +27,6 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 2px; }
 
-        /* CRT Scanlines Effect */
         .crt::after {
             content: " ";
             display: block;
@@ -45,12 +44,15 @@
     <!-- Main Container Grid -->
     <div class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
 
-        <!-- Game Area (3 Columns) -->
+        <!-- Game Area / Dashboard (3 Columns) -->
         <div id="gameWrapper" class="md:col-span-3 bg-slate-900 border border-emerald-500/30 rounded-2xl overflow-hidden neon-border flex flex-col shadow-2xl relative">
             
             <!-- Top Bar -->
             <div class="bg-slate-900/90 px-5 py-3 border-b border-emerald-500/20 flex justify-between items-center text-sm font-bold z-20">
                 <div class="flex items-center gap-4">
+                    <button onclick="returnToMainMenu()" id="backBtn" class="hidden text-emerald-400 hover:text-emerald-300 transition text-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrow-left"></i> <span data-i18n="menu">MENU</span>
+                    </button>
                     <div class="flex items-center gap-2 text-emerald-400">
                         <i class="fa-solid fa-gamepad text-lg"></i>
                         <span id="scoreDisplay" class="text-xl">0</span>
@@ -71,10 +73,10 @@
                 </div>
             </div>
 
-            <!-- Canvas Container -->
+            <!-- Canvas Container / Daily Dashboard Container -->
             <div id="canvasContainer" class="relative w-full aspect-square bg-slate-950 flex items-center justify-center overflow-hidden">
                 
-                <!-- Start / Game Over Overlay -->
+                <!-- Main Start Overlay -->
                 <div id="gameOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-30 flex flex-col items-center justify-center p-6 text-center">
                     <div id="overlayContent" class="flex flex-col items-center gap-4">
                         <div id="overlayIcon" class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-3xl mb-1">
@@ -88,10 +90,53 @@
                             <button onclick="startGame('classic')" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2">
                                 <i class="fa-solid fa-play"></i> <span data-i18n="playClassic">PLAY CLASSIC</span>
                             </button>
-                            <button onclick="startGame('multiplayer')" class="w-full py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-users"></i> <span data-i18n="playMulti">CYBER ARENA (ROOMS)</span>
+                            <button onclick="openDailyDashboard()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-calendar-star"></i> <span data-i18n="playDaily">DAILY CHALLENGE</span>
                             </button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Daily Challenge Dashboard View (Hidden by default) -->
+                <div id="dailyDashboardView" class="absolute inset-0 bg-slate-950 z-20 flex flex-col p-6 hidden overflow-y-auto custom-scrollbar">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                        <div>
+                            <h3 class="text-lg font-black text-amber-400 flex items-center gap-2">
+                                <i class="fa-solid fa-calendar-day"></i> DAILY CHALLENGE DASHBOARD
+                            </h3>
+                            <p class="text-xs text-slate-400" id="dailyDateSubtitle">Loading today's parameters...</p>
+                        </div>
+                        <button onclick="closeDailyDashboard()" class="text-slate-400 hover:text-white px-3 py-1 bg-slate-900 border border-slate-800 rounded-lg text-xs">
+                            <i class="fa-solid fa-xmark"></i> Close
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
+                            <span class="text-[10px] text-slate-500 block uppercase">Map Size</span>
+                            <span id="dailyParamSize" class="text-base font-bold text-emerald-400">-</span>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
+                            <span class="text-[10px] text-slate-500 block uppercase">Speed</span>
+                            <span id="dailyParamSpeed" class="text-base font-bold text-cyan-400">-</span>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
+                            <span class="text-[10px] text-slate-500 block uppercase">Modifiers Active</span>
+                            <span id="dailyParamModCount" class="text-base font-bold text-amber-400">0</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-4">
+                        <span class="text-xs font-bold text-slate-300 block mb-2 uppercase"><i class="fa-solid fa-bolt text-amber-400"></i> Today's Modifiers</span>
+                        <div id="dailyModifiersList" class="flex flex-wrap gap-2 text-xs">
+                            <!-- Injected modifiers -->
+                        </div>
+                    </div>
+
+                    <div class="mt-auto flex justify-center">
+                        <button onclick="startDailyGame()" class="w-full max-w-sm py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl transition text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
+                            <i class="fa-solid fa-play"></i> LAUNCH DAILY CHALLENGE
+                        </button>
                     </div>
                 </div>
 
@@ -121,18 +166,50 @@
         <div class="md:col-span-1 bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 shadow-2xl flex flex-col h-full min-h-[420px]">
             <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
                 <span id="lbTitle" class="text-xs font-bold text-emerald-400 tracking-wider uppercase">TOP SCORES</span>
-                <i class="fa-solid fa-ranking-star text-xs text-emerald-400"></i>
+                <button onclick="openHistoryModal()" class="text-[10px] text-amber-400 hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-clock-rotate-left"></i> History
+                </button>
             </div>
             
             <div id="leaderboardList" class="space-y-2 flex-1 overflow-y-auto custom-scrollbar text-xs pr-1">
                 <div class="text-slate-500 text-center py-4">Loading...</div>
             </div>
 
-            <div class="mt-4 pt-3 border-t border-slate-800/80 text-[10px] text-slate-500 text-center">
-                Live updates active
+            <div class="mt-4 pt-3 border-t border-slate-800/80 text-[10px] text-slate-500 text-center" id="lbFooterInfo">
+                Global Leaderboard
             </div>
         </div>
 
+    </div>
+
+    <!-- Past Daily Challenges History Modal -->
+    <div id="historyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl relative flex flex-col max-h-[80vh]">
+            <button onclick="closeModal('historyModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-sm font-bold text-amber-400 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-calendar-days"></i> Past Daily Challenges Archive
+            </h3>
+            <p class="text-[11px] text-slate-400 mb-3">Select a past date to inspect its challenge parameters and leaderboard scores:</p>
+            
+            <div id="historyListContainer" class="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-1 text-xs">
+                <!-- Dynamically populated dates -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Past Challenge Detail View Modal -->
+    <div id="pastDetailModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl relative flex flex-col max-h-[85vh]">
+            <button onclick="closeModal('pastDetailModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            <h3 id="pastModalTitle" class="text-sm font-bold text-amber-400 mb-1">Challenge Details</h3>
+            <p id="pastModalParams" class="text-[11px] text-slate-400 mb-3">Size: 15x15 | Speed: Normal</p>
+            <div id="pastModalModifiers" class="flex flex-wrap gap-1.5 mb-4"></div>
+            
+            <span class="text-xs font-bold text-slate-300 mb-2 block uppercase">Leaderboard</span>
+            <div id="pastModalScores" class="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-1 text-xs">
+                <!-- Past scores -->
+            </div>
+        </div>
     </div>
 
     <!-- Settings Modal -->
@@ -221,14 +298,6 @@
                     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
                     osc.start(now);
                     osc.stop(now + 0.05);
-                } else if (type === 'shift') {
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(600, now);
-                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.2);
-                    gain.gain.setValueAtTime(0.2, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                    osc.start(now);
-                    osc.stop(now + 0.2);
                 } else if (type === 'gameover') {
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(150, now);
@@ -253,7 +322,7 @@
                 lbTitle: 'TOP SCORES',
                 instructions: 'Choose a mode and press an arrow key to start moving.',
                 playClassic: 'PLAY CLASSIC',
-                playMulti: 'CYBER ARENA (ROOMS)',
+                playDaily: 'DAILY CHALLENGE',
                 settings: 'Settings',
                 usernameLabel: 'Username',
                 colorLabel: 'Snake Color',
@@ -268,7 +337,7 @@
                 lbTitle: 'TOP JUGADORES',
                 instructions: 'Elige un modo y presiona una flecha para moverte.',
                 playClassic: 'JUGAR CLÁSICO',
-                playMulti: 'CYBER ARENA (SALAS)',
+                playDaily: 'RETO DIARIO',
                 settings: 'Configuración',
                 usernameLabel: 'Nombre de usuario',
                 colorLabel: 'Color de Serpiente',
@@ -288,7 +357,7 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        let currentGameMode = 'classic';
+        let currentGameMode = 'classic'; // 'classic' or 'daily'
         let tileCount = 20;
         let tileSize = 20;
         let gameInterval = null;
@@ -300,7 +369,7 @@
         let snake = [];
         let dx = 0, dy = 0, nextDx = 0, nextDy = 0;
         let foods = []; 
-        let portals = [];
+        let obstacles = [];
         let particles = [];
         let shards = [];
         let username = localStorage.getItem('snake_username') || 'victor';
@@ -308,12 +377,63 @@
         let swallowProgress = -1;
         let deathAnimationStep = 0;
 
-        // Multiplayer Arena Map State (Rooms: 0 = Center, 1 = Right, 2 = Left, 3 = Top, 4 = Bottom)
-        let currentRoom = 0;
-        let cameraOffsetX = 0;
-        let cameraOffsetY = 0;
-        let isTransitioning = false;
-        const roomSize = 20;
+        // 15 Defined Modifiers
+        const AVAILABLE_MODIFIERS = [
+            { id: 'speed_boost', name: 'Hyper Speed', desc: 'Snake ticks faster automatically.', color: 'text-rose-400 bg-rose-500/10 border-rose-500/30' },
+            { id: 'double_points', name: 'Golden Apple', desc: 'Food items grant double points (20pts).', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' },
+            { id: 'ghost_walls', name: 'Ghost Wrap', desc: 'Walls wrap around instead of killing you.', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30' },
+            { id: 'obstacle_field', name: 'Obstacle Maze', desc: 'Hazard blocks appear randomly on the map.', color: 'text-purple-400 bg-purple-500/10 border-purple-500/30' },
+            { id: 'heavy_tail', name: 'Heavy Tail', desc: 'Snake grows by 2 segments per food item.', color: 'text-orange-400 bg-orange-500/10 border-orange-500/30' },
+            { id: 'shrinking_snake', name: 'Decay', desc: 'Snake loses a tail piece every 15 seconds.', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
+            { id: 'ice_physics', name: 'Slippery Ice', desc: 'Direction inputs toggle continuous momentum.', color: 'text-sky-400 bg-sky-500/10 border-sky-500/30' },
+            { id: 'bounty_hunter', name: 'Bounty Rush', desc: 'Special glowing food spawns temporarily.', color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30' },
+            { id: 'mirror_controls', name: 'Inverted', desc: 'Left and right controls are swapped.', color: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/30' },
+            { id: 'blind_zone', name: 'Fog of War', desc: 'Reduced clarity around the snake head.', color: 'text-slate-400 bg-slate-500/10 border-slate-500/30' },
+            { id: 'turbo_spawn', name: 'Fast Food', desc: 'Food relocates automatically every 8 seconds.', color: 'text-lime-400 bg-lime-500/10 border-lime-500/30' },
+            { id: 'fragile_head', name: 'Fragile Shell', desc: 'Self-collision instantly ends the run with penalty.', color: 'text-red-400 bg-red-500/10 border-red-500/30' },
+            { id: 'magnet_food', name: 'Magnetic Pull', desc: 'Food slowly drifts toward snake head when close.', color: 'text-blue-400 bg-blue-500/10 border-blue-500/30' },
+            { id: 'bonus_timer', name: 'Time Attack', desc: 'Score decays slightly if you take too long to eat.', color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30' },
+            { id: 'tiny_food', name: 'Micro Bites', desc: 'Food is smaller and yields smaller increments.', color: 'text-teal-400 bg-teal-500/10 border-teal-500/30' }
+        ];
+
+        let currentDailyChallenge = null;
+
+        function getTodayString() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        // Deterministic pseudo-random based on date seed string
+        function getDailyConfig(dateStr) {
+            let seed = 0;
+            for (let i = 0; i < dateStr.length; i++) {
+                seed += dateStr.charCodeAt(i) * Math.pow(31, i);
+            }
+            const rand = () => {
+                seed = (seed * 9301 + 49297) % 233280;
+                return seed / 233280;
+            };
+
+            const sizes = [10, 15, 20];
+            const speeds = [
+                { label: 'Slow', ms: 130 },
+                { label: 'Normal', ms: 90 },
+                { label: 'Fast', ms: 60 }
+            ];
+
+            const size = sizes[Math.floor(rand() * sizes.length)];
+            const speedObj = speeds[Math.floor(rand() * speeds.length)];
+
+            // Pick 3 unique modifiers
+            let modPool = [...AVAILABLE_MODIFIERS];
+            let mods = [];
+            for (let i = 0; i < 3; i++) {
+                const idx = Math.floor(rand() * modPool.length);
+                mods.push(modPool.splice(idx, 1)[0]);
+            }
+
+            return { date: dateStr, size, speed: speedObj, modifiers: mods };
+        }
 
         function applyLanguage() {
             const t = translations[currentLang];
@@ -340,44 +460,85 @@
             const container = canvas.parentElement;
             canvas.width = container.clientWidth;
             canvas.height = container.clientHeight;
-            tileCount = currentGameMode === 'multiplayer' ? roomSize : 20;
             tileSize = Math.floor(canvas.width / tileCount);
         }
         window.addEventListener('resize', initCanvas);
 
+        // --- Daily Dashboard Flow ---
+        function openDailyDashboard() {
+            playSound('click');
+            currentDailyChallenge = getDailyConfig(getTodayString());
+
+            document.getElementById('dailyDateSubtitle').innerText = `Challenge for Today: ${currentDailyChallenge.date}`;
+            document.getElementById('dailyParamSize').innerText = `${currentDailyChallenge.size} x ${currentDailyChallenge.size}`;
+            document.getElementById('dailyParamSpeed').innerText = currentDailyChallenge.speed.label;
+            document.getElementById('dailyParamModCount').innerText = currentDailyChallenge.modifiers.length;
+
+            const modListEl = document.getElementById('dailyModifiersList');
+            modListEl.innerHTML = currentDailyChallenge.modifiers.map(m => `
+                <div class="border rounded-xl p-2.5 flex flex-col gap-1 ${m.color}">
+                    <span class="font-bold"><i class="fa-solid fa-star text-[10px]"></i> ${m.name}</span>
+                    <span class="text-[10px] text-slate-300 opacity-90">${m.desc}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('dailyDashboardView').classList.remove('hidden');
+        }
+
+        function closeDailyDashboard() {
+            playSound('click');
+            document.getElementById('dailyDashboardView').classList.add('hidden');
+        }
+
+        function startDailyGame() {
+            playSound('click');
+            closeDailyDashboard();
+            currentGameMode = 'daily';
+            tileCount = currentDailyChallenge.size;
+            document.getElementById('modeTag').innerText = 'DAILY CHALLENGE';
+            document.getElementById('modeTag').className = 'text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full uppercase';
+            document.getElementById('backBtn').classList.remove('hidden');
+
+            initAndRunGame(currentDailyChallenge.speed.ms);
+        }
+
         function startGame(mode = 'classic') {
             playSound('click');
             currentGameMode = mode;
+            document.getElementById('backBtn').classList.remove('hidden');
+
+            if (mode === 'classic') {
+                tileCount = 20;
+                document.getElementById('modeTag').innerText = 'CLASSIC';
+                document.getElementById('modeTag').className = 'text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full uppercase';
+                initAndRunGame(90);
+            }
+        }
+
+        function returnToMainMenu() {
+            playSound('click');
+            if (gameInterval) clearInterval(gameInterval);
+            isRunning = false;
+            isMoving = false;
+            document.getElementById('backBtn').classList.add('hidden');
+            document.getElementById('gameOverlay').classList.remove('hidden');
+            document.getElementById('dailyDashboardView').classList.add('hidden');
+            document.getElementById('overlayTitle').innerText = 'CYBER SNAKE';
+            document.getElementById('overlaySubtitle').innerText = translations[currentLang].instructions;
+            document.getElementById('overlayIcon').innerHTML = '<i class="fa-solid fa-play"></i>';
+            fetchLeaderboard();
+        }
+
+        function initAndRunGame(speedMs) {
             deathAnimationStep = 0;
             swallowProgress = -1;
             particles = [];
             shards = [];
-            currentRoom = 0;
-            cameraOffsetX = 0;
-            cameraOffsetY = 0;
-            isTransitioning = false;
-            
-            if (mode === 'multiplayer') {
-                tileCount = roomSize; 
-                document.getElementById('modeTag').innerText = 'CYBER ARENA (ROOMS)';
-                document.getElementById('modeTag').className = 'text-[10px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full uppercase';
-                
-                portals = [
-                    { room: 0, x: 8, y: 3, targetRoom: 3, targetX: 8, targetY: 16, color: '#38bdf8', activeTimer: 0, cycle: 0 },
-                    { room: 0, x: 8, y: 16, targetRoom: 4, targetX: 8, targetY: 3, color: '#f43f5e', activeTimer: 0, cycle: 0 },
-                    { room: 1, x: 3, y: 8, targetRoom: 2, targetX: 16, targetY: 8, color: '#a855f7', activeTimer: 0, cycle: 15 },
-                    { room: 2, x: 16, y: 8, targetRoom: 1, targetX: 3, targetY: 8, color: '#10b981', activeTimer: 0, cycle: 20 }
-                ];
-            } else {
-                tileCount = 20; 
-                document.getElementById('modeTag').innerText = 'CLASSIC';
-                document.getElementById('modeTag').className = 'text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full uppercase';
-                portals = [];
-            }
+            obstacles = [];
 
             initCanvas();
             document.getElementById('gameOverlay').classList.add('hidden');
-            snake = [{ x: Math.floor(tileCount / 2), y: Math.floor(tileCount / 2), room: 0 }];
+            snake = [{ x: Math.floor(tileCount / 2), y: Math.floor(tileCount / 2) }];
             
             dx = 0; dy = 0; nextDx = 0; nextDy = 0;
             isMoving = false;
@@ -385,109 +546,79 @@
             score = 0;
             document.getElementById('scoreDisplay').innerText = score;
             
-            spawnAllFoods();
+            // If daily challenge has obstacle_field modifier, spawn obstacles
+            if (currentGameMode === 'daily' && currentDailyChallenge.modifiers.some(m => m.id === 'obstacle_field')) {
+                const obsCount = Math.floor(tileCount * 0.4);
+                for (let i = 0; i < obsCount; i++) {
+                    obstacles.push({
+                        x: Math.floor(Math.random() * tileCount),
+                        y: Math.floor(Math.random() * tileCount)
+                    });
+                }
+            }
+
+            spawnFood();
             isRunning = true;
-            
             render();
 
             if (gameInterval) clearInterval(gameInterval);
-            const speed = mode === 'multiplayer' ? 75 : 90;
-            gameInterval = setInterval(gameLoop, speed);
+            gameInterval = setInterval(gameLoop, speedMs);
         }
 
-        function spawnAllFoods() {
-            foods = [];
-            const foodCount = currentGameMode === 'multiplayer' ? 6 : 1;
-            for (let i = 0; i < foodCount; i++) {
-                spawnSingleFood();
-            }
-        }
-
-        function spawnSingleFood() {
-            foods.push({
-                room: currentGameMode === 'multiplayer' ? Math.floor(Math.random() * 5) : 0,
-                x: Math.floor(Math.random() * (tileCount - 4)) + 2,
-                y: Math.floor(Math.random() * (tileCount - 4)) + 2
-            });
+        function spawnFood() {
+            foods = [{
+                x: Math.floor(Math.random() * tileCount),
+                y: Math.floor(Math.random() * tileCount)
+            }];
         }
 
         function gameLoop() {
             if (!isMoving) return;
 
             dx = nextDx; dy = nextDy;
-            let head = { x: snake[0].x + dx, y: snake[0].y + dy, room: currentRoom };
+            let head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-            if (currentGameMode === 'multiplayer') {
-                if (head.x >= tileCount) {
-                    if (currentRoom === 0) {
-                        currentRoom = 1; head.x = 0; triggerRoomShift(-canvas.width, 0);
-                    } else if (currentRoom === 1) {
-                        currentRoom = 0; head.x = 0; triggerRoomShift(-canvas.width, 0);
-                    } else {
-                        return startDeathAnimation();
-                    }
-                } else if (head.x < 0) {
-                    if (currentRoom === 0) {
-                        currentRoom = 2; head.x = tileCount - 1; triggerRoomShift(canvas.width, 0);
-                    } else if (currentRoom === 2) {
-                        currentRoom = 0; head.x = tileCount - 1; triggerRoomShift(canvas.width, 0);
-                    } else {
-                        return startDeathAnimation();
-                    }
-                } else if (head.y >= tileCount) {
-                    if (currentRoom === 0) {
-                        currentRoom = 4; head.y = 0; triggerRoomShift(0, -canvas.height);
-                    } else if (currentRoom === 4) {
-                        currentRoom = 0; head.y = 0; triggerRoomShift(0, -canvas.height);
-                    } else {
-                        return startDeathAnimation();
-                    }
-                } else if (head.y < 0) {
-                    if (currentRoom === 0) {
-                        currentRoom = 3; head.y = tileCount - 1; triggerRoomShift(0, canvas.height);
-                    } else if (currentRoom === 3) {
-                        currentRoom = 0; head.y = tileCount - 1; triggerRoomShift(0, canvas.height);
-                    } else {
-                        return startDeathAnimation();
-                    }
-                }
-            } else {
-                if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
-                    return startDeathAnimation();
-                }
+            const ghostWalls = currentGameMode === 'daily' && currentDailyChallenge.modifiers.some(m => m.id === 'ghost_walls');
+
+            if (head.x < 0) {
+                if (ghostWalls) head.x = tileCount - 1; else return startDeathAnimation();
+            }
+            if (head.x >= tileCount) {
+                if (ghostWalls) head.x = 0; else return startDeathAnimation();
+            }
+            if (head.y < 0) {
+                if (ghostWalls) head.y = tileCount - 1; else return startDeathAnimation();
+            }
+            if (head.y >= tileCount) {
+                if (ghostWalls) head.y = 0; else return startDeathAnimation();
             }
 
-            if (currentGameMode === 'multiplayer') {
-                portals.forEach(p => {
-                    if (p.room === currentRoom && head.y === p.y && head.x >= p.x && head.x <= p.x + 2 && p.activeTimer > 15) {
-                        currentRoom = p.targetRoom;
-                        head.x = p.targetX;
-                        head.y = p.targetY;
-                        head.room = currentRoom;
-                        playSound('shift');
-                        cameraOffsetX = 0;
-                        cameraOffsetY = 0;
-                    }
-                });
+            // Check obstacle collisions
+            if (obstacles.some(o => o.x === head.x && o.y === head.y)) {
+                return startDeathAnimation();
             }
 
+            // Check self collision
             for (let i = 0; i < snake.length; i++) {
-                if ((snake[i].room || 0) === currentRoom && snake[i].x === head.x && snake[i].y === head.y) {
+                if (snake[i].x === head.x && snake[i].y === head.y) {
                     return startDeathAnimation();
                 }
             }
 
-            head.room = currentRoom;
             snake.unshift(head);
 
-            let ateFoodIndex = foods.findIndex(f => f.room === currentRoom && f.x === head.x && f.y === head.y);
+            let ateFood = foods.some(f => f.x === head.x && f.y === head.y);
 
-            if (ateFoodIndex !== -1) {
+            if (ateFood) {
                 playSound('eat');
-                score += 10;
+                let points = 10;
+                if (currentGameMode === 'daily' && currentDailyChallenge.modifiers.some(m => m.id === 'double_points')) {
+                    points = 20;
+                }
+                score += points;
                 document.getElementById('scoreDisplay').innerText = score;
                 saveScore(username, score);
-                
+
                 for (let i = 0; i < 8; i++) {
                     particles.push({
                         x: (head.x + 0.5) * tileSize,
@@ -495,13 +626,17 @@
                         vx: (Math.random() - 0.5) * 6,
                         vy: (Math.random() - 0.5) * 6,
                         life: 1.0,
-                        color: currentGameMode === 'multiplayer' ? '#38bdf8' : '#34d399'
+                        color: currentGameMode === 'daily' ? '#f59e0b' : '#34d399'
                     });
                 }
 
-                foods.splice(ateFoodIndex, 1);
-                spawnSingleFood();
+                spawnFood();
                 swallowProgress = 0;
+
+                // Heavy tail modifier grows extra segment
+                if (currentGameMode === 'daily' && currentDailyChallenge.modifiers.some(m => m.id === 'heavy_tail')) {
+                    snake.push({ ...snake[snake.length - 1] });
+                }
             } else {
                 snake.pop();
             }
@@ -511,51 +646,12 @@
                 if (swallowProgress >= snake.length) swallowProgress = -1;
             }
 
-            portals.forEach(p => {
-                p.cycle++;
-                if (p.cycle > 40) p.cycle = 0;
-                p.activeTimer = p.cycle;
-
-                if (p.room === currentRoom && p.cycle < 10) {
-                    particles.push({
-                        x: (p.x + Math.random() * 3) * tileSize,
-                        y: p.y * tileSize,
-                        vx: (Math.random() - 0.5) * 2,
-                        vy: (Math.random() - 0.5) * 2,
-                        life: 0.5,
-                        color: p.color
-                    });
-                }
-            });
-
             render();
-        }
-
-        function triggerRoomShift(targetOffsetX, targetOffsetY) {
-            playSound('shift');
-            cameraOffsetX = targetOffsetX;
-            cameraOffsetY = targetOffsetY;
-            isTransitioning = true;
-            
-            let shiftInterval = setInterval(() => {
-                cameraOffsetX *= 0.65;
-                cameraOffsetY *= 0.65;
-                if (Math.abs(cameraOffsetX) < 0.5 && Math.abs(cameraOffsetY) < 0.5) {
-                    cameraOffsetX = 0;
-                    cameraOffsetY = 0;
-                    isTransitioning = false;
-                    clearInterval(shiftInterval);
-                }
-                render();
-            }, 25);
         }
 
         function render() {
             ctx.fillStyle = '#020617';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.save();
-            ctx.translate(cameraOffsetX, cameraOffsetY);
 
             ctx.strokeStyle = '#0f172a';
             for (let i = 0; i <= tileCount; i++) {
@@ -565,76 +661,47 @@
                 ctx.moveTo(0, i * tileSize); ctx.lineTo(canvas.width, i * tileSize); ctx.stroke();
             }
 
-            if (currentGameMode === 'multiplayer') {
-                ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
-                ctx.font = '12px Orbitron';
-                ctx.textAlign = 'center';
-                
-                if (currentRoom === 0) {
-                    ctx.fillText('➔ RIGHT ROOM', canvas.width - 50, canvas.height / 2);
-                    ctx.fillText('⬅ LEFT ROOM', 50, canvas.height / 2);
-                    ctx.fillText('▲ TOP ROOM', canvas.width / 2, 30);
-                    ctx.fillText('▼ BOTTOM ROOM', canvas.width / 2, canvas.height - 15);
-                } else if (currentRoom === 1) {
-                    ctx.fillText('⬅ BACK TO MAIN', 60, canvas.height / 2);
-                } else if (currentRoom === 2) {
-                    ctx.fillText('➔ BACK TO MAIN', canvas.width - 60, canvas.height / 2);
-                } else if (currentRoom === 3) {
-                    ctx.fillText('▼ BACK TO MAIN', canvas.width / 2, canvas.height - 20);
-                } else if (currentRoom === 4) {
-                    ctx.fillText('▲ BACK TO MAIN', canvas.width / 2, 30);
-                }
-            }
+            // Render obstacles
+            obstacles.forEach(o => {
+                ctx.fillStyle = '#7c2d12';
+                ctx.fillRect(o.x * tileSize + 2, o.y * tileSize + 2, tileSize - 4, tileSize - 4);
+            });
 
-            if (currentGameMode === 'multiplayer') {
-                portals.forEach(p => {
-                    if (p.room === currentRoom && p.activeTimer > 15) {
-                        ctx.fillStyle = p.color;
-                        ctx.shadowColor = p.color;
-                        ctx.shadowBlur = 15;
-                        ctx.fillRect(p.x * tileSize + 2, p.y * tileSize + 2, (tileSize * 3) - 4, tileSize - 4);
-                        ctx.shadowBlur = 0;
-                    }
-                });
-            }
-
+            // Render food
             foods.forEach(f => {
-                if (f.room === currentRoom) {
-                    ctx.fillStyle = currentGameMode === 'multiplayer' ? '#22d3ee' : '#10b981';
-                    ctx.shadowColor = ctx.fillStyle;
-                    ctx.shadowBlur = 8;
-                    ctx.beginPath();
-                    ctx.arc(f.x * tileSize + tileSize / 2, f.y * tileSize + tileSize / 2, Math.max(tileSize / 2.5, 2), 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
-                }
+                ctx.fillStyle = currentGameMode === 'daily' ? '#f59e0b' : '#10b981';
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(f.x * tileSize + tileSize / 2, f.y * tileSize + tileSize / 2, Math.max(tileSize / 2.5, 2), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
             });
 
             const currentColors = colorMap[snakeTheme] || colorMap.emerald;
 
             snake.forEach((seg, idx) => {
-                if ((seg.room || 0) === currentRoom) {
-                    let sizeOffset = 0;
-                    let fillColor = idx === 0 ? currentColors.head : currentColors.body;
+                let sizeOffset = 0;
+                let fillColor = idx === 0 ? currentColors.head : currentColors.body;
+                if (currentGameMode === 'daily') fillColor = idx === 0 ? '#fbbf24' : '#d97706';
 
-                    if (idx === swallowProgress) fillColor = '#ffffff';
+                if (idx === swallowProgress) fillColor = '#ffffff';
 
-                    if (deathAnimationStep > 0) {
-                        fillColor = '#ef4444';
-                        sizeOffset = Math.min(deathAnimationStep * 2, tileSize * 0.4);
-                    }
-
-                    ctx.fillStyle = fillColor;
-                    ctx.shadowColor = currentColors.glow;
-                    ctx.shadowBlur = idx === 0 ? 10 : 4;
-                    ctx.fillRect(
-                        seg.x * tileSize + sizeOffset / 2, 
-                        seg.y * tileSize + sizeOffset / 2, 
-                        tileSize - sizeOffset, 
-                        tileSize - sizeOffset
-                    );
-                    ctx.shadowBlur = 0;
+                if (deathAnimationStep > 0) {
+                    fillColor = '#ef4444';
+                    sizeOffset = Math.min(deathAnimationStep * 2, tileSize * 0.4);
                 }
+
+                ctx.fillStyle = fillColor;
+                ctx.shadowColor = currentColors.glow;
+                ctx.shadowBlur = idx === 0 ? 10 : 4;
+                ctx.fillRect(
+                    seg.x * tileSize + sizeOffset / 2, 
+                    seg.y * tileSize + sizeOffset / 2, 
+                    tileSize - sizeOffset, 
+                    tileSize - sizeOffset
+                );
+                ctx.shadowBlur = 0;
             });
 
             particles.forEach((p, index) => {
@@ -656,8 +723,6 @@
                     ctx.fillRect(s.x, s.y, 4, 4);
                 });
             }
-
-            ctx.restore();
         }
 
         function startDeathAnimation() {
@@ -711,6 +776,15 @@
             if (!isRunning) return;
             isMoving = true;
 
+            // Handle inverted controls modifier
+            let invert = currentGameMode === 'daily' && currentDailyChallenge.modifiers.some(m => m.id === 'mirror_controls');
+            if (invert) {
+                if (dir === 'UP') dir = 'DOWN';
+                else if (dir === 'DOWN') dir = 'UP';
+                else if (dir === 'LEFT') dir = 'RIGHT';
+                else if (dir === 'RIGHT') dir = 'LEFT';
+            }
+
             if (dir === 'UP' && dy === 0) { nextDx = 0; nextDy = -1; }
             if (dir === 'DOWN' && dy === 0) { nextDx = 0; nextDy = 1; }
             if (dir === 'LEFT' && dx === 0) { nextDx = -1; nextDy = 0; }
@@ -726,10 +800,12 @@
 
         function openModal(id) {
             document.getElementById(id).classList.remove('hidden');
-            document.getElementById('usernameInput').value = username;
-            document.getElementById('snakeColorSelect').value = snakeTheme;
-            document.getElementById('crtToggle').checked = crtEnabled;
-            updateLangButtons();
+            if (id === 'settingsModal') {
+                document.getElementById('usernameInput').value = username;
+                document.getElementById('snakeColorSelect').value = snakeTheme;
+                document.getElementById('crtToggle').checked = crtEnabled;
+                updateLangButtons();
+            }
         }
 
         function closeModal(id) {
@@ -761,21 +837,27 @@
         async function saveScore(name, pts) {
             if (!supabaseClient) return;
             try {
-                await supabaseClient.from('cyber_snake_scores').insert([{ username: name, score: pts }]);
+                const challengeDate = currentGameMode === 'daily' ? getTodayString() : 'classic';
+                await supabaseClient.from('cyber_snake_scores').insert([{ username: name, score: pts, challenge_date: challengeDate }]);
                 fetchLeaderboard();
             } catch (e) {}
         }
 
         async function fetchLeaderboard() {
             const lbList = document.getElementById('leaderboardList');
+            const footerInfo = document.getElementById('lbFooterInfo');
             if (!supabaseClient) {
                 lbList.innerHTML = `<div class="text-slate-500 text-center py-4">Offline mode</div>`;
                 return;
             }
             try {
+                const targetDate = currentGameMode === 'daily' ? getTodayString() : 'classic';
+                footerInfo.innerText = currentGameMode === 'daily' ? `Daily Challenge (${targetDate})` : 'Classic Global Leaderboard';
+
                 let { data, error } = await supabaseClient
                     .from('cyber_snake_scores')
                     .select('username, score')
+                    .eq('challenge_date', targetDate)
                     .order('score', { ascending: false })
                     .limit(10);
 
@@ -787,11 +869,84 @@
                 lbList.innerHTML = data.map((row, idx) => `
                     <div class="flex justify-between items-center bg-slate-950/60 border border-slate-800/80 px-3 py-2 rounded-xl">
                         <span class="font-bold text-slate-300 truncate max-w-[100px]">${idx + 1}. ${row.username}</span>
-                        <span class="text-emerald-400 font-black">${row.score}</span>
+                        <span class="${currentGameMode === 'daily' ? 'text-amber-400' : 'text-emerald-400'} font-black">${row.score}</span>
                     </div>
                 `).join('');
             } catch (e) {
                 lbList.innerHTML = `<div class="text-slate-500 text-center py-4">Leaderboard error</div>`;
+            }
+        }
+
+        // --- Archive & History Functions ---
+        function openHistoryModal() {
+            playSound('click');
+            const historyContainer = document.getElementById('historyListContainer');
+            
+            // Generate last 7 days of daily challenges
+            let html = '';
+            for (let i = 0; i < 7; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                const conf = getDailyConfig(dateStr);
+
+                html += `
+                    <div onclick="inspectPastChallenge('${dateStr}')" class="bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 p-3 rounded-xl cursor-pointer transition flex justify-between items-center">
+                        <div>
+                            <span class="font-bold text-slate-200 block">${dateStr} ${i === 0 ? '(Today)' : ''}</span>
+                            <span class="text-[10px] text-slate-400">Size: ${conf.size}x${conf.size} | Speed: ${conf.speed.label} | Mods: ${conf.modifiers.length}</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-amber-400 text-xs"></i>
+                    </div>
+                `;
+            }
+            historyContainer.innerHTML = html;
+            openModal('historyModal');
+        }
+
+        async function inspectPastChallenge(dateStr) {
+            playSound('click');
+            closeModal('historyModal');
+            const conf = getDailyConfig(dateStr);
+
+            document.getElementById('pastModalTitle').innerText = `Daily Challenge Archive: ${dateStr}`;
+            document.getElementById('pastModalParams').innerText = `Grid Size: ${conf.size}x${conf.size} | Speed: ${conf.speed.label}`;
+            
+            const modContainer = document.getElementById('pastModalModifiers');
+            modContainer.innerHTML = conf.modifiers.map(m => `
+                <span class="text-[10px] px-2 py-0.5 border rounded-lg ${m.color}">${m.name}</span>
+            `).join('');
+
+            const scoresContainer = document.getElementById('pastModalScores');
+            scoresContainer.innerHTML = `<div class="text-slate-500 text-center py-2">Loading scores...</div>`;
+            openModal('pastDetailModal');
+
+            if (!supabaseClient) {
+                scoresContainer.innerHTML = `<div class="text-slate-500 text-center py-2">Offline mode</div>`;
+                return;
+            }
+
+            try {
+                let { data, error } = await supabaseClient
+                    .from('cyber_snake_scores')
+                    .select('username, score')
+                    .eq('challenge_date', dateStr)
+                    .order('score', { ascending: false })
+                    .limit(10);
+
+                if (error || !data || data.length === 0) {
+                    scoresContainer.innerHTML = `<div class="text-slate-500 text-center py-4">No scores recorded for this date.</div>`;
+                    return;
+                }
+
+                scoresContainer.innerHTML = data.map((row, idx) => `
+                    <div class="flex justify-between items-center bg-slate-950/60 border border-slate-800/80 px-3 py-2 rounded-xl">
+                        <span class="font-bold text-slate-300 truncate max-w-[120px]">${idx + 1}. ${row.username}</span>
+                        <span class="text-amber-400 font-black">${row.score}</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                scoresContainer.innerHTML = `<div class="text-slate-500 text-center py-4">Error fetching archive scores.</div>`;
             }
         }
 
