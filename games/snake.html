@@ -308,12 +308,12 @@
         let swallowProgress = -1;
         let deathAnimationStep = 0;
 
-        // Multiplayer Arena Camera & Rooms State
-        // Rooms: 0 = Center, 1 = Right Room, 2 = Left Room, 3 = Top Room, 4 = Bottom Room
+        // Multiplayer Arena Map State (Rooms: 0 = Center, 1 = Right, 2 = Left, 3 = Top, 4 = Bottom)
         let currentRoom = 0;
-        let cameraOffsetX = 0; // Smooth camera panning offset in pixels
+        let cameraOffsetX = 0;
         let cameraOffsetY = 0;
-        const roomSize = 20; // 20x20 tiles per room
+        let isTransitioning = false;
+        const roomSize = 20;
 
         function applyLanguage() {
             const t = translations[currentLang];
@@ -321,19 +321,7 @@
                 const key = el.getAttribute('data-i18n');
                 if (t[key]) el.innerText = t[key];
             });
-
             document.getElementById('lbTitle').innerText = t.lbTitle;
-
-            const enBtn = document.getElementById('langEnBtn');
-            const esBtn = document.getElementById('langEnBtn'); // fallback
-
-            if (currentLang === 'en') {
-                document.getElementById('langEnBtn').className = 'py-2 bg-emerald-500 text-slate-950 font-bold border-emerald-400 rounded-xl';
-                document.getElementById('langEsBtn').className = 'py-2 bg-slate-950 text-slate-400 border-slate-700 rounded-xl hover:text-white';
-            } else {
-                document.getElementById('langEsBtn').className = 'py-2 bg-emerald-500 text-slate-950 font-bold border-emerald-400 rounded-xl';
-                document.getElementById('langEnBtn').className = 'py-2 bg-slate-950 text-slate-400 border-slate-700 rounded-xl hover:text-white';
-            }
         }
 
         function setLanguage(lang) {
@@ -361,16 +349,19 @@
             currentRoom = 0;
             cameraOffsetX = 0;
             cameraOffsetY = 0;
+            isTransitioning = false;
             
             if (mode === 'multiplayer') {
                 tileCount = roomSize; 
-                document.getElementById('modeTag').innerText = 'CYBER ARENA (MULTI-ROOM)';
+                document.getElementById('modeTag').innerText = 'CYBER ARENA (ROOMS)';
                 document.getElementById('modeTag').className = 'text-[10px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full uppercase';
                 
-                // Setup 3-block wide dynamic portals in Center room (Room 0)
+                // Setup 3-block wide dynamic portals across different rooms
                 portals = [
-                    { x: 8, y: 3, targetRoom: 3, targetX: 8, targetY: 16, color: '#38bdf8', activeTimer: 0, cycle: 0 },
-                    { x: 8, y: 16, targetRoom: 4, targetX: 8, targetY: 3, color: '#f43f5e', activeTimer: 0, cycle: 0 }
+                    { room: 0, x: 8, y: 3, targetRoom: 3, targetX: 8, targetY: 16, color: '#38bdf8', activeTimer: 0, cycle: 0 },
+                    { room: 0, x: 8, y: 16, targetRoom: 4, targetX: 8, targetY: 3, color: '#f43f5e', activeTimer: 0, cycle: 0 },
+                    { room: 1, x: 3, y: 8, targetRoom: 2, targetX: 16, targetY: 8, color: '#a855f7', activeTimer: 0, cycle: 15 },
+                    { room: 2, x: 16, y: 8, targetRoom: 1, targetX: 3, targetY: 8, color: '#10b981', activeTimer: 0, cycle: 20 }
                 ];
             } else {
                 tileCount = 20; 
@@ -381,7 +372,7 @@
 
             initCanvas();
             document.getElementById('gameOverlay').classList.add('hidden');
-            snake = [{ x: Math.floor(tileCount / 2), y: Math.floor(tileCount / 2) }];
+            snake = [{ x: Math.floor(tileCount / 2), y: Math.floor(tileCount / 2), room: 0 }];
             
             dx = 0; dy = 0; nextDx = 0; nextDy = 0;
             isMoving = false;
@@ -419,94 +410,72 @@
             if (!isMoving) return;
 
             dx = nextDx; dy = nextDy;
-            let head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            let head = { x: snake[0].x + dx, y: snake[0].y + dy, room: currentRoom };
 
-            // Handle Multi-Room Border Transitions in Multiplayer Mode
+            // Handle Room Transitions cleanly
             if (currentGameMode === 'multiplayer') {
                 if (head.x >= tileCount) {
-                    // Hit right wall
                     if (currentRoom === 0) {
-                        // Center -> Right Room (Room 1)
-                        currentRoom = 1;
-                        head.x = 0;
-                        triggerRoomShift(-canvas.width, 0);
+                        currentRoom = 1; head.x = 0; triggerRoomShift(-canvas.width, 0);
                     } else if (currentRoom === 1) {
-                        // Right Room -> Back to Center (Room 0)
-                        currentRoom = 0;
-                        head.x = 0;
-                        triggerRoomShift(-canvas.width, 0);
+                        currentRoom = 0; head.x = 0; triggerRoomShift(-canvas.width, 0);
                     } else {
                         return startDeathAnimation();
                     }
                 } else if (head.x < 0) {
-                    // Hit left wall
                     if (currentRoom === 0) {
-                        // Center -> Left Room (Room 2)
-                        currentRoom = 2;
-                        head.x = tileCount - 1;
-                        triggerRoomShift(canvas.width, 0);
+                        currentRoom = 2; head.x = tileCount - 1; triggerRoomShift(canvas.width, 0);
                     } else if (currentRoom === 2) {
-                        // Left Room -> Back to Center (Room 0)
-                        currentRoom = 0;
-                        head.x = tileCount - 1;
-                        triggerRoomShift(canvas.width, 0);
+                        currentRoom = 0; head.x = tileCount - 1; triggerRoomShift(canvas.width, 0);
                     } else {
                         return startDeathAnimation();
                     }
                 } else if (head.y >= tileCount) {
-                    // Hit bottom wall
                     if (currentRoom === 0) {
-                        currentRoom = 4;
-                        head.y = 0;
-                        triggerRoomShift(0, -canvas.height);
+                        currentRoom = 4; head.y = 0; triggerRoomShift(0, -canvas.height);
                     } else if (currentRoom === 4) {
-                        currentRoom = 0;
-                        head.y = 0;
-                        triggerRoomShift(0, -canvas.height);
+                        currentRoom = 0; head.y = 0; triggerRoomShift(0, -canvas.height);
                     } else {
                         return startDeathAnimation();
                     }
                 } else if (head.y < 0) {
-                    // Hit top wall
                     if (currentRoom === 0) {
-                        currentRoom = 3;
-                        head.y = tileCount - 1;
-                        triggerRoomShift(0, canvas.height);
+                        currentRoom = 3; head.y = tileCount - 1; triggerRoomShift(0, canvas.height);
                     } else if (currentRoom === 3) {
-                        currentRoom = 0;
-                        head.y = tileCount - 1;
-                        triggerRoomShift(0, canvas.height);
+                        currentRoom = 0; head.y = tileCount - 1; triggerRoomShift(0, canvas.height);
                     } else {
                         return startDeathAnimation();
                     }
                 }
             } else {
-                // Classic standard boundary death
                 if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
                     return startDeathAnimation();
                 }
             }
 
-            // Portal Collision Check (Only in Center Room when active)
-            if (currentGameMode === 'multiplayer' && currentRoom === 0) {
+            // Portal Collision Check (3-blocks wide)
+            if (currentGameMode === 'multiplayer') {
                 portals.forEach(p => {
-                    // Portal is 3 blocks wide (x, x+1, x+2)
-                    if (head.y === p.y && head.x >= p.x && head.x <= p.x + 2 && p.activeTimer > 15) {
+                    if (p.room === currentRoom && head.y === p.y && head.x >= p.x && head.x <= p.x + 2 && p.activeTimer > 15) {
                         currentRoom = p.targetRoom;
-                        head = { x: p.targetX, y: p.targetY };
+                        head.x = p.targetX;
+                        head.y = p.targetY;
+                        head.room = currentRoom;
                         playSound('shift');
+                        // Center camera instantly on target room entry
+                        cameraOffsetX = 0;
+                        cameraOffsetY = 0;
                     }
                 });
             }
 
-            // Self collision check (only if same room)
+            // Self collision check (same room)
             for (let i = 0; i < snake.length; i++) {
-                if (currentRoom === (snake[i].room || 0) && snake[i].x === head.x && snake[i].y === head.y) {
+                if ((snake[i].room || 0) === currentRoom && snake[i].x === head.x && snake[i].y === head.y) {
                     return startDeathAnimation();
                 }
             }
 
-            // Add room property to head segment
             head.room = currentRoom;
             snake.unshift(head);
 
@@ -541,14 +510,13 @@
                 if (swallowProgress >= snake.length) swallowProgress = -1;
             }
 
-            // Update portal cycle timers
+            // Update portal cycle timers & warnings
             portals.forEach(p => {
                 p.cycle++;
                 if (p.cycle > 40) p.cycle = 0;
                 p.activeTimer = p.cycle;
 
-                // Pre-warning particle effect when portal is about to appear
-                if (p.cycle < 10) {
+                if (p.room === currentRoom && p.cycle < 10) {
                     particles.push({
                         x: (p.x + Math.random() * 3) * tileSize,
                         y: p.y * tileSize,
@@ -563,22 +531,24 @@
             render();
         }
 
-        function triggerRoomShift(offsetX, offsetY) {
+        function triggerRoomShift(targetOffsetX, targetOffsetY) {
             playSound('shift');
-            cameraOffsetX = offsetX;
-            cameraOffsetY = offsetY;
+            cameraOffsetX = targetOffsetX;
+            cameraOffsetY = targetOffsetY;
+            isTransitioning = true;
             
-            // Smoothly glide camera back to 0,0
-            let glideInterval = setInterval(() => {
-                cameraOffsetX *= 0.7;
-                cameraOffsetY *= 0.7;
-                if (Math.abs(cameraOffsetX) < 1 && Math.abs(cameraOffsetY) < 1) {
+            // Camera smoothly follows the shifting offset back to 0,0 center
+            let shiftInterval = setInterval(() => {
+                cameraOffsetX *= 0.65;
+                cameraOffsetY *= 0.65;
+                if (Math.abs(cameraOffsetX) < 0.5 && Math.abs(cameraOffsetY) < 0.5) {
                     cameraOffsetX = 0;
                     cameraOffsetY = 0;
-                    clearInterval(glideInterval);
+                    isTransitioning = false;
+                    clearInterval(shiftInterval);
                 }
                 render();
-            }, 20);
+            }, 25);
         }
 
         function render() {
@@ -619,21 +589,20 @@
                 }
             }
 
-            // 3-Block Wide Portals (Only in Room 0)
-            if (currentGameMode === 'multiplayer' && currentRoom === 0) {
+            // Render 3-block wide portals in current room
+            if (currentGameMode === 'multiplayer') {
                 portals.forEach(p => {
-                    if (p.activeTimer > 15) { // Active state
+                    if (p.room === currentRoom && p.activeTimer > 15) {
                         ctx.fillStyle = p.color;
                         ctx.shadowColor = p.color;
                         ctx.shadowBlur = 15;
-                        // Draw 3 blocks wide portal
                         ctx.fillRect(p.x * tileSize + 2, p.y * tileSize + 2, (tileSize * 3) - 4, tileSize - 4);
                         ctx.shadowBlur = 0;
                     }
                 });
             }
 
-            // Foods (Only render foods belonging to current room)
+            // Foods
             foods.forEach(f => {
                 if (f.room === currentRoom) {
                     ctx.fillStyle = currentGameMode === 'multiplayer' ? '#22d3ee' : '#10b981';
@@ -648,7 +617,7 @@
 
             const currentColors = colorMap[snakeTheme] || colorMap.emerald;
 
-            // Snake Body (Only render segments in current room)
+            // Snake Body
             snake.forEach((seg, idx) => {
                 if ((seg.room || 0) === currentRoom) {
                     let sizeOffset = 0;
@@ -807,19 +776,13 @@
 
         function applyCRTFilter() {
             const wrapper = document.getElementById('gameWrapper');
-            if (crtEnabled) {
-                wrapper.classList.add('crt');
-            } else {
-                wrapper.classList.remove('crt');
-            }
+            if (crtEnabled) wrapper.classList.add('crt');
+            else wrapper.classList.remove('crt');
         }
 
         window.addEventListener('keydown', e => {
             if (!isRunning) return;
-
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
-                e.preventDefault(); 
-            }
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault(); 
 
             if (e.key === 'ArrowUp') changeDirection('UP');
             if (e.key === 'ArrowDown') changeDirection('DOWN');
