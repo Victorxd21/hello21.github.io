@@ -328,6 +328,12 @@
             currentLang = lang;
             localStorage.setItem('snake_lang', lang);
             applyLanguage();
+            updateLangButtons();
+        }
+
+        function updateLangButtons() {
+            document.getElementById('langEnBtn').className = currentLang === 'en' ? 'py-2 border border-emerald-500 bg-emerald-500/20 text-emerald-400 rounded-xl font-bold transition' : 'py-2 border border-slate-700 text-slate-400 rounded-xl font-bold transition';
+            document.getElementById('langEsBtn').className = currentLang === 'es' ? 'py-2 border border-emerald-500 bg-emerald-500/20 text-emerald-400 rounded-xl font-bold transition' : 'py-2 border border-slate-700 text-slate-400 rounded-xl font-bold transition';
         }
 
         function initCanvas() {
@@ -356,7 +362,6 @@
                 document.getElementById('modeTag').innerText = 'CYBER ARENA (ROOMS)';
                 document.getElementById('modeTag').className = 'text-[10px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full uppercase';
                 
-                // Setup 3-block wide dynamic portals across different rooms
                 portals = [
                     { room: 0, x: 8, y: 3, targetRoom: 3, targetX: 8, targetY: 16, color: '#38bdf8', activeTimer: 0, cycle: 0 },
                     { room: 0, x: 8, y: 16, targetRoom: 4, targetX: 8, targetY: 3, color: '#f43f5e', activeTimer: 0, cycle: 0 },
@@ -412,7 +417,6 @@
             dx = nextDx; dy = nextDy;
             let head = { x: snake[0].x + dx, y: snake[0].y + dy, room: currentRoom };
 
-            // Handle Room Transitions cleanly
             if (currentGameMode === 'multiplayer') {
                 if (head.x >= tileCount) {
                     if (currentRoom === 0) {
@@ -453,7 +457,6 @@
                 }
             }
 
-            // Portal Collision Check (3-blocks wide)
             if (currentGameMode === 'multiplayer') {
                 portals.forEach(p => {
                     if (p.room === currentRoom && head.y === p.y && head.x >= p.x && head.x <= p.x + 2 && p.activeTimer > 15) {
@@ -462,14 +465,12 @@
                         head.y = p.targetY;
                         head.room = currentRoom;
                         playSound('shift');
-                        // Center camera instantly on target room entry
                         cameraOffsetX = 0;
                         cameraOffsetY = 0;
                     }
                 });
             }
 
-            // Self collision check (same room)
             for (let i = 0; i < snake.length; i++) {
                 if ((snake[i].room || 0) === currentRoom && snake[i].x === head.x && snake[i].y === head.y) {
                     return startDeathAnimation();
@@ -510,7 +511,6 @@
                 if (swallowProgress >= snake.length) swallowProgress = -1;
             }
 
-            // Update portal cycle timers & warnings
             portals.forEach(p => {
                 p.cycle++;
                 if (p.cycle > 40) p.cycle = 0;
@@ -537,7 +537,6 @@
             cameraOffsetY = targetOffsetY;
             isTransitioning = true;
             
-            // Camera smoothly follows the shifting offset back to 0,0 center
             let shiftInterval = setInterval(() => {
                 cameraOffsetX *= 0.65;
                 cameraOffsetY *= 0.65;
@@ -558,7 +557,6 @@
             ctx.save();
             ctx.translate(cameraOffsetX, cameraOffsetY);
 
-            // Grid lines
             ctx.strokeStyle = '#0f172a';
             for (let i = 0; i <= tileCount; i++) {
                 ctx.beginPath();
@@ -567,7 +565,6 @@
                 ctx.moveTo(0, i * tileSize); ctx.lineTo(canvas.width, i * tileSize); ctx.stroke();
             }
 
-            // Room Border Indicators & Directional Arrows
             if (currentGameMode === 'multiplayer') {
                 ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
                 ctx.font = '12px Orbitron';
@@ -589,7 +586,6 @@
                 }
             }
 
-            // Render 3-block wide portals in current room
             if (currentGameMode === 'multiplayer') {
                 portals.forEach(p => {
                     if (p.room === currentRoom && p.activeTimer > 15) {
@@ -602,7 +598,6 @@
                 });
             }
 
-            // Foods
             foods.forEach(f => {
                 if (f.room === currentRoom) {
                     ctx.fillStyle = currentGameMode === 'multiplayer' ? '#22d3ee' : '#10b981';
@@ -617,7 +612,6 @@
 
             const currentColors = colorMap[snakeTheme] || colorMap.emerald;
 
-            // Snake Body
             snake.forEach((seg, idx) => {
                 if ((seg.room || 0) === currentRoom) {
                     let sizeOffset = 0;
@@ -643,7 +637,6 @@
                 }
             });
 
-            // Particles update & render
             particles.forEach((p, index) => {
                 p.x += p.vx;
                 p.y += p.vy;
@@ -655,7 +648,6 @@
                 if (p.life <= 0) particles.splice(index, 1);
             });
 
-            // Death Shards update & render
             if (deathAnimationStep > 0) {
                 shards.forEach(s => {
                     s.x += s.vx;
@@ -695,70 +687,53 @@
             }
 
             deathAnimationStep = 1;
-            let shrinkInterval = setInterval(() => {
-                deathAnimationStep++;
+            let animStep = 0;
+            let deathInterval = setInterval(() => {
+                animStep++;
+                deathAnimationStep = animStep;
                 render();
-                if (deathAnimationStep > 10) {
-                    clearInterval(shrinkInterval);
+                if (animStep > 15) {
+                    clearInterval(deathInterval);
                     showGameOverOverlay();
                 }
-            }, 50);
+            }, 40);
         }
 
         function showGameOverOverlay() {
             const t = translations[currentLang];
-            document.getElementById('overlayIcon').innerHTML = '<i class="fa-solid fa-rotate-right"></i>';
-            document.getElementById('overlayTitle').innerText = t.gameOverTitle + score;
-            document.getElementById('overlaySubtitle').innerText = t.gameOverSub;
+            document.getElementById('overlayTitle').innerText = t.gameOverSub;
+            document.getElementById('overlaySubtitle').innerText = t.gameOverTitle + score;
+            document.getElementById('overlayIcon').innerHTML = '<i class="fa-solid fa-skull text-red-500"></i>';
             document.getElementById('gameOverlay').classList.remove('hidden');
-        }
-
-        async function saveScore(user, scoreVal) {
-            if (supabaseClient && scoreVal > 0) {
-                try {
-                    await supabaseClient.from('leaderboard').insert([{ username: user, score: scoreVal }]);
-                } catch (e) {}
-            }
-            fetchLeaderboard();
-        }
-
-        async function fetchLeaderboard() {
-            const listContainer = document.getElementById('leaderboardList');
-            let data = [];
-
-            if (supabaseClient) {
-                try {
-                    const res = await supabaseClient.from('leaderboard').select('*').order('score', { ascending: false });
-                    if (res.data) data = res.data;
-                } catch (e) {}
-            }
-
-            const uniqueMap = new Map();
-            data.forEach(item => {
-                if (!uniqueMap.has(item.username) || uniqueMap.get(item.username).score < item.score) {
-                    uniqueMap.set(item.username, item);
-                }
-            });
-
-            const uniqueList = Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score).slice(0, 10);
-
-            const t = translations[currentLang];
-            listContainer.innerHTML = uniqueList.map((item, index) => `
-                <div class="flex justify-between items-center bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800">
-                    <span class="text-slate-300 font-bold truncate max-w-[100px]"><span class="text-emerald-400">#${index + 1}</span> ${item.username}</span>
-                    <span class="font-bold text-teal-400">${item.score}</span>
-                </div>
-            `).join('') || `<div class="text-slate-500 text-center py-4 text-xs">${t.noScores}</div>`;
         }
 
         function changeDirection(dir) {
             if (!isRunning) return;
-            if (!isMoving) isMoving = true;
+            isMoving = true;
 
-            if (dir === 'UP' && dy !== 1) { nextDx = 0; nextDy = -1; }
-            if (dir === 'DOWN' && dy !== -1) { nextDx = 0; nextDy = 1; }
-            if (dir === 'LEFT' && dx !== 1) { nextDx = -1; nextDy = 0; }
-            if (dir === 'RIGHT' && dx !== -1) { nextDx = 1; nextDy = 0; }
+            if (dir === 'UP' && dy === 0) { nextDx = 0; nextDy = -1; }
+            if (dir === 'DOWN' && dy === 0) { nextDx = 0; nextDy = 1; }
+            if (dir === 'LEFT' && dx === 0) { nextDx = -1; nextDy = 0; }
+            if (dir === 'RIGHT' && dx === 0) { nextDx = 1; nextDy = 0; }
+        }
+
+        window.addEventListener('keydown', e => {
+            if (['ArrowUp', 'KeyW'].includes(e.code)) { changeDirection('UP'); e.preventDefault(); }
+            if (['ArrowDown', 'KeyS'].includes(e.code)) { changeDirection('DOWN'); e.preventDefault(); }
+            if (['ArrowLeft', 'KeyA'].includes(e.code)) { changeDirection('LEFT'); e.preventDefault(); }
+            if (['ArrowRight', 'KeyD'].includes(e.code)) { changeDirection('RIGHT'); e.preventDefault(); }
+        });
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById('usernameInput').value = username;
+            document.getElementById('snakeColorSelect').value = snakeTheme;
+            document.getElementById('crtToggle').checked = crtEnabled;
+            updateLangButtons();
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
         }
 
         function saveSettings() {
@@ -770,48 +745,65 @@
             localStorage.setItem('snake_color', snakeTheme);
             localStorage.setItem('snake_crt', crtEnabled);
 
-            applyCRTFilter();
+            applyCrtFilter();
             closeModal('settingsModal');
-        }
-
-        function applyCRTFilter() {
-            const wrapper = document.getElementById('gameWrapper');
-            if (crtEnabled) wrapper.classList.add('crt');
-            else wrapper.classList.remove('crt');
-        }
-
-        window.addEventListener('keydown', e => {
-            if (!isRunning) return;
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault(); 
-
-            if (e.key === 'ArrowUp') changeDirection('UP');
-            if (e.key === 'ArrowDown') changeDirection('DOWN');
-            if (e.key === 'ArrowLeft') changeDirection('LEFT');
-            if (e.key === 'ArrowRight') changeDirection('RIGHT');
-        });
-
-        function openModal(id) { 
             playSound('click');
-            document.getElementById('usernameInput').value = username;
-            document.getElementById('snakeColorSelect').value = snakeTheme;
-            document.getElementById('crtToggle').checked = crtEnabled;
-            document.getElementById(id).classList.remove('hidden'); 
-        }
-        function closeModal(id) { 
-            playSound('click');
-            document.getElementById(id).classList.add('hidden'); 
         }
 
-        window.onload = function() {
-            initCanvas();
+        function applyCrtFilter() {
+            if (crtEnabled) {
+                document.getElementById('gameWrapper').classList.add('crt');
+            } else {
+                document.getElementById('gameWrapper').classList.remove('crt');
+            }
+        }
+
+        async function saveScore(name, pts) {
+            if (!supabaseClient) return;
+            try {
+                await supabaseClient.from('cyber_snake_scores').insert([{ username: name, score: pts }]);
+                fetchLeaderboard();
+            } catch (e) {}
+        }
+
+        async function fetchLeaderboard() {
+            const lbList = document.getElementById('leaderboardList');
+            if (!supabaseClient) {
+                lbList.innerHTML = `<div class="text-slate-500 text-center py-4">Offline mode</div>`;
+                return;
+            }
+            try {
+                let { data, error } = await supabaseClient
+                    .from('cyber_snake_scores')
+                    .select('username, score')
+                    .order('score', { ascending: false })
+                    .limit(10);
+
+                if (error || !data || data.length === 0) {
+                    lbList.innerHTML = `<div class="text-slate-500 text-center py-4">${translations[currentLang].noScores}</div>`;
+                    return;
+                }
+
+                lbList.innerHTML = data.map((row, idx) => `
+                    <div class="flex justify-between items-center bg-slate-950/60 border border-slate-800/80 px-3 py-2 rounded-xl">
+                        <span class="font-bold text-slate-300 truncate max-w-[100px]">${idx + 1}. ${row.username}</span>
+                        <span class="text-emerald-400 font-black">${row.score}</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                lbList.innerHTML = `<div class="text-slate-500 text-center py-4">Leaderboard error</div>`;
+            }
+        }
+
+        // Initialize state on load
+        document.addEventListener('DOMContentLoaded', () => {
             applyLanguage();
-            applyCRTFilter();
+            applyCrtFilter();
             document.getElementById('topScoreDisplay').innerText = highScore;
-            document.getElementById('usernameInput').value = username;
-            document.getElementById('snakeColorSelect').value = snakeTheme;
-            document.getElementById('crtToggle').checked = crtEnabled;
+            initCanvas();
             fetchLeaderboard();
-        };
+            setInterval(fetchLeaderboard, 15000);
+        });
     </script>
 </body>
 </html>
