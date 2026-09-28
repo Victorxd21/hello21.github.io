@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,15 +23,18 @@
     <style>
         body { font-family: 'Orbitron', sans-serif; }
         .neon-border { box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 2px; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4 selection:bg-emerald-500">
 
-    <!-- Contenedor Estilo Google Snake Minimalista -->
-    <div class="w-full max-w-[560px] bg-slate-900 border border-emerald-500/30 rounded-2xl overflow-hidden neon-border flex flex-col shadow-2xl">
+    <!-- Minimalist Game Frame -->
+    <div class="w-full max-w-[620px] bg-slate-900 border border-emerald-500/30 rounded-2xl overflow-hidden neon-border flex flex-col shadow-2xl relative">
         
-        <!-- Barra Superior Minimalista (Puntuación y Estado) -->
-        <div class="bg-slate-900/90 px-5 py-3 border-b border-emerald-500/20 flex justify-between items-center text-sm font-bold">
+        <!-- Top Bar (Score & Config Buttons) -->
+        <div class="bg-slate-900/90 px-5 py-3 border-b border-emerald-500/20 flex justify-between items-center text-sm font-bold z-10">
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2 text-emerald-400">
                     <i class="fa-solid fa-gamepad text-lg"></i>
@@ -44,46 +47,41 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <button onclick="toggleLeaderboard()" class="text-xs text-slate-400 hover:text-emerald-400 transition" title="Tabla de Clasificación">
-                    <i class="fa-solid fa-ranking-star text-base"></i>
-                </button>
-                <button onclick="openModal('settingsModal')" class="text-xs text-slate-400 hover:text-emerald-400 transition" title="Ajustes">
+                <button onclick="openModal('settingsModal')" class="text-xs text-slate-400 hover:text-emerald-400 transition" title="Settings">
                     <i class="fa-solid fa-gear text-base"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Área de Juego (Canvas + Menú Superpuesto) -->
-        <div class="relative w-full aspect-square bg-slate-950 flex items-center justify-center">
+        <!-- Canvas Container -->
+        <div class="relative w-full aspect-square bg-slate-950 flex items-center justify-center overflow-hidden">
             
-            <!-- Menú Principal / Game Over (Superpuesto limpio estilo Google) -->
+            <!-- Live Top-Right Leaderboard Overlay -->
+            <div class="absolute top-3 right-3 z-10 w-44 bg-slate-900/80 backdrop-blur-md border border-emerald-500/20 rounded-xl p-2.5 shadow-lg">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-1 mb-1.5">
+                    <span id="lbTitle" class="text-[10px] font-bold text-emerald-400 tracking-wider uppercase">TOP SCORES</span>
+                    <i class="fa-solid fa-ranking-star text-[10px] text-emerald-400"></i>
+                </div>
+                <div id="leaderboardList" class="space-y-1 max-h-36 overflow-y-auto custom-scrollbar text-[11px]">
+                    <div class="text-slate-500 text-center py-1 text-[10px]">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Start / Game Over Screen Overlay -->
             <div id="gameOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
                 <div id="overlayContent" class="flex flex-col items-center gap-4">
-                    <div id="overlayIcon" class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-3xl mb-2">
+                    <div id="overlayIcon" class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-3xl mb-1">
                         <i class="fa-solid fa-play"></i>
                     </div>
                     
                     <h2 id="overlayTitle" class="text-2xl font-black text-white tracking-wider">CYBER SNAKE</h2>
-                    <p id="overlaySubtitle" class="text-xs text-slate-400 max-w-xs">Usa las flechas del teclado para moverte.</p>
+                    <p id="overlaySubtitle" class="text-xs text-slate-400 max-w-xs" data-i18n="instructions">Press PLAY, then hit an arrow key to start moving.</p>
 
                     <div class="flex flex-col gap-2.5 w-48 mt-2">
-                        <button onclick="startGame()" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition text-sm flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-play"></i> JUGAR
-                        </button>
-                        <button onclick="toggleLeaderboard()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2 border border-slate-700">
-                            <i class="fa-solid fa-ranking-star"></i> TOP 10
+                        <button id="playBtn" onclick="startGame()" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition text-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-play"></i> <span data-i18n="play">PLAY</span>
                         </button>
                     </div>
-                </div>
-
-                <!-- Panel de Tabla de Clasificación dentro del juego -->
-                <div id="leaderboardView" class="hidden w-full max-w-xs flex-col gap-3">
-                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                        <span class="text-xs font-bold text-emerald-400">TOP JUGADORES</span>
-                        <button onclick="hideLeaderboard()" class="text-xs text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-                    </div>
-                    <div id="leaderboardList" class="space-y-1.5 max-h-48 overflow-y-auto text-xs pr-1"></div>
-                    <button onclick="hideLeaderboard()" class="mt-2 py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs">Volver</button>
                 </div>
             </div>
 
@@ -91,29 +89,36 @@
         </div>
     </div>
 
-    <!-- Modal de Ajustes Minimalista -->
+    <!-- Settings Modal with Language Switch -->
     <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xs w-full p-5 shadow-2xl relative">
             <button onclick="closeModal('settingsModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             <h3 class="text-sm font-bold text-emerald-400 mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-sliders"></i> Configuración
+                <i class="fa-solid fa-sliders"></i> <span data-i18n="settings">Settings</span>
             </h3>
             
             <div class="space-y-3 text-xs">
                 <div>
-                    <label class="text-slate-400 block mb-1">Nombre de usuario</label>
+                    <label class="text-slate-400 block mb-1" data-i18n="usernameLabel">Username</label>
                     <input type="text" id="usernameInput" maxlength="15" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
-                    <label class="text-slate-400 block mb-1">Tamaño de Mapa</label>
+                    <label class="text-slate-400 block mb-1" data-i18n="gridSizeLabel">Map Size</label>
                     <select id="gridSizeSelect" onchange="updateGridSize()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
                         <option value="15">Micro (15x15)</option>
-                        <option value="20" selected>Estándar (20x20)</option>
-                        <option value="25">Grande (25x25)</option>
+                        <option value="20" selected>Standard (20x20)</option>
+                        <option value="25">Large (25x25)</option>
                     </select>
                 </div>
-                <button onclick="saveSettings()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 rounded-xl transition mt-2">
-                    Guardar
+                <div>
+                    <label class="text-slate-400 block mb-1" data-i18n="languageLabel">Language / Idioma</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="langEnBtn" onclick="setLanguage('en')" class="py-2 border rounded-xl font-bold transition">English</button>
+                        <button id="langEsBtn" onclick="setLanguage('es')" class="py-2 border rounded-xl font-bold transition">Español</button>
+                    </div>
+                </div>
+                <button onclick="saveSettings()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 rounded-xl transition mt-2" data-i18n="saveBtn">
+                    Save
                 </button>
             </div>
         </div>
@@ -128,19 +133,78 @@
             if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } catch (e) {}
 
+        const translations = {
+            en: {
+                lbTitle: 'TOP SCORES',
+                instructions: 'Press PLAY, then hit an arrow key to start moving.',
+                play: 'PLAY',
+                settings: 'Settings',
+                usernameLabel: 'Username',
+                gridSizeLabel: 'Map Size',
+                languageLabel: 'Language / Idioma',
+                saveBtn: 'Save',
+                gameOverTitle: 'SCORE: ',
+                gameOverSub: 'Game Over',
+                noScores: 'No scores yet'
+            },
+            es: {
+                lbTitle: 'TOP JUGADORES',
+                instructions: 'Presiona JUGAR y luego una flecha para moverte.',
+                play: 'JUGAR',
+                settings: 'Configuración',
+                usernameLabel: 'Nombre de usuario',
+                gridSizeLabel: 'Tamaño del mapa',
+                languageLabel: 'Language / Idioma',
+                saveBtn: 'Guardar',
+                gameOverTitle: 'PUNTUACIÓN: ',
+                gameOverSub: 'Juego Terminado',
+                noScores: 'Sin puntuaciones aún'
+            }
+        };
+
+        let currentLang = localStorage.getItem('snake_lang') || 'en';
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         let tileCount = 20;
         let tileSize = 20;
         let gameInterval = null;
         let isRunning = false;
+        let isMoving = false; // Controls the frozen state until arrow key is pressed
         let score = 0;
         let highScore = localStorage.getItem('snake_highscore') || 0;
 
         let snake = [];
-        let dx = 1, dy = 0, nextDx = 1, nextDy = 0;
+        let dx = 0, dy = 0, nextDx = 0, nextDy = 0;
         let food = { x: 5, y: 5 };
         let username = localStorage.getItem('snake_username') || 'victor';
+
+        function applyLanguage() {
+            const t = translations[currentLang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) el.innerText = t[key];
+            });
+
+            document.getElementById('lbTitle').innerText = t.lbTitle;
+
+            const enBtn = document.getElementById('langEnBtn');
+            const esBtn = document.getElementById('langEsBtn');
+
+            if (currentLang === 'en') {
+                enBtn.className = 'py-2 bg-emerald-500 text-slate-950 font-bold border-emerald-400 rounded-xl';
+                esBtn.className = 'py-2 bg-slate-950 text-slate-400 border-slate-700 rounded-xl hover:text-white';
+            } else {
+                esBtn.className = 'py-2 bg-emerald-500 text-slate-950 font-bold border-emerald-400 rounded-xl';
+                enBtn.className = 'py-2 bg-slate-950 text-slate-400 border-slate-700 rounded-xl hover:text-white';
+            }
+        }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('snake_lang', lang);
+            applyLanguage();
+        }
 
         function initCanvas() {
             const container = canvas.parentElement;
@@ -153,22 +217,32 @@
         function updateGridSize() {
             tileCount = parseInt(document.getElementById('gridSizeSelect').value);
             initCanvas();
+            if (!isRunning) render();
         }
 
         function startGame() {
             initCanvas();
             document.getElementById('gameOverlay').classList.add('hidden');
             snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
-            dx = 1; dy = 0; nextDx = 1; nextDy = 0;
+            
+            // Snake starts frozen in place
+            dx = 0; dy = 0; nextDx = 0; nextDy = 0;
+            isMoving = false;
+            
             score = 0;
             document.getElementById('scoreDisplay').innerText = score;
             spawnFood();
             isRunning = true;
+            
+            render(); // Render initial frozen state immediately
+
             if (gameInterval) clearInterval(gameInterval);
             gameInterval = setInterval(gameLoop, 90);
         }
 
         function gameLoop() {
+            if (!isMoving) return; // Remain frozen until arrow key input
+
             dx = nextDx; dy = nextDy;
             const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
@@ -183,6 +257,7 @@
             if (head.x === food.x && head.y === food.y) {
                 score += 10;
                 document.getElementById('scoreDisplay').innerText = score;
+                saveScore(username, score); // Live update score to leaderboard
                 spawnFood();
             } else {
                 snake.pop();
@@ -195,7 +270,7 @@
             ctx.fillStyle = '#020617';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Rejilla Cyber Minimalista
+            // Cyber Grid
             ctx.strokeStyle = '#0f172a';
             for (let i = 0; i <= tileCount; i++) {
                 ctx.beginPath();
@@ -204,13 +279,13 @@
                 ctx.moveTo(0, i * tileSize); ctx.lineTo(canvas.width, i * tileSize); ctx.stroke();
             }
 
-            // Comida
+            // Food
             ctx.fillStyle = '#10b981';
             ctx.beginPath();
             ctx.arc(food.x * tileSize + tileSize / 2, food.y * tileSize + tileSize / 2, tileSize / 2.5, 0, Math.PI * 2);
             ctx.fill();
 
-            // Serpiente
+            // Snake
             snake.forEach((seg, idx) => {
                 ctx.fillStyle = idx === 0 ? '#34d399' : '#10b981';
                 ctx.fillRect(seg.x * tileSize + 1, seg.y * tileSize + 1, tileSize - 2, tileSize - 2);
@@ -226,17 +301,21 @@
 
         function gameOver() {
             isRunning = false;
+            isMoving = false;
             clearInterval(gameInterval);
+            
             if (score > highScore) {
                 highScore = score;
                 localStorage.setItem('snake_highscore', highScore);
                 document.getElementById('topScoreDisplay').innerText = highScore;
             }
+            
             saveScore(username, score);
 
+            const t = translations[currentLang];
             document.getElementById('overlayIcon').innerHTML = '<i class="fa-solid fa-rotate-right"></i>';
-            document.getElementById('overlayTitle').innerText = 'PUNTUACIÓN: ' + score;
-            document.getElementById('overlaySubtitle').innerText = 'Partida finalizada';
+            document.getElementById('overlayTitle').innerText = t.gameOverTitle + score;
+            document.getElementById('overlaySubtitle').innerText = t.gameOverSub;
             document.getElementById('gameOverlay').classList.remove('hidden');
         }
 
@@ -249,7 +328,6 @@
             fetchLeaderboard();
         }
 
-        // Filtro para eliminar usuarios duplicados en el Leaderboard
         async function fetchLeaderboard() {
             const listContainer = document.getElementById('leaderboardList');
             let data = [];
@@ -261,7 +339,7 @@
                 } catch (e) {}
             }
 
-            // Eliminar duplicados manteniendo la puntuación más alta por usuario
+            // Group by user to display highest score per player
             const uniqueMap = new Map();
             data.forEach(item => {
                 if (!uniqueMap.has(item.username) || uniqueMap.get(item.username).score < item.score) {
@@ -269,28 +347,15 @@
                 }
             });
 
-            const uniqueList = Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score).slice(0, 10);
+            const uniqueList = Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score).slice(0, 5);
 
+            const t = translations[currentLang];
             listContainer.innerHTML = uniqueList.map((item, index) => `
-                <div class="flex justify-between items-center bg-slate-950 p-2 rounded-lg border border-slate-800">
-                    <span class="text-slate-300 font-bold"><span class="text-emerald-400">#${index + 1}</span> ${item.username}</span>
+                <div class="flex justify-between items-center bg-slate-950/70 px-1.5 py-1 rounded border border-slate-800/80">
+                    <span class="text-slate-300 font-bold truncate max-w-[90px]"><span class="text-emerald-400">#${index + 1}</span> ${item.username}</span>
                     <span class="font-bold text-teal-400">${item.score}</span>
                 </div>
-            `).join('') || '<div class="text-slate-500 text-center py-2">Sin puntuaciones aún</div>';
-        }
-
-        function toggleLeaderboard() {
-            document.getElementById('overlayContent').classList.add('hidden');
-            document.getElementById('leaderboardView').classList.remove('hidden');
-            document.getElementById('leaderboardView').classList.add('flex');
-            document.getElementById('gameOverlay').classList.remove('hidden');
-            fetchLeaderboard();
-        }
-
-        function hideLeaderboard() {
-            document.getElementById('leaderboardView').classList.add('hidden');
-            document.getElementById('leaderboardView').classList.remove('flex');
-            document.getElementById('overlayContent').classList.remove('hidden');
+            `).join('') || `<div class="text-slate-500 text-center py-2 text-[10px]">${t.noScores}</div>`;
         }
 
         function saveSettings() {
@@ -300,6 +365,12 @@
         }
 
         window.addEventListener('keydown', e => {
+            if (!isRunning) return;
+
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                if (!isMoving) isMoving = true; // Unfreeze on first arrow key press
+            }
+
             if (e.key === 'ArrowUp' && dy !== 1) { nextDx = 0; nextDy = -1; }
             if (e.key === 'ArrowDown' && dy !== -1) { nextDx = 0; nextDy = 1; }
             if (e.key === 'ArrowLeft' && dx !== 1) { nextDx = -1; nextDy = 0; }
@@ -311,6 +382,7 @@
 
         window.onload = function() {
             initCanvas();
+            applyLanguage();
             document.getElementById('topScoreDisplay').innerText = highScore;
             document.getElementById('usernameInput').value = username;
             fetchLeaderboard();
