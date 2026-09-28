@@ -89,7 +89,7 @@
                                 <i class="fa-solid fa-play"></i> <span data-i18n="playClassic">PLAY CLASSIC</span>
                             </button>
                             <button onclick="startGame('multiplayer')" class="w-full py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-users"></i> <span data-i18n="playMulti">MULTIPLAYER MAP</span>
+                                <i class="fa-solid fa-users"></i> <span data-i18n="playMulti">CYBER ARENA (ROOMS)</span>
                             </button>
                         </div>
                     </div>
@@ -221,6 +221,14 @@
                     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
                     osc.start(now);
                     osc.stop(now + 0.05);
+                } else if (type === 'shift') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
                 } else if (type === 'gameover') {
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(150, now);
@@ -245,7 +253,7 @@
                 lbTitle: 'TOP SCORES',
                 instructions: 'Choose a mode and press an arrow key to start moving.',
                 playClassic: 'PLAY CLASSIC',
-                playMulti: 'MULTIPLAYER MAP',
+                playMulti: 'CYBER ARENA (ROOMS)',
                 settings: 'Settings',
                 usernameLabel: 'Username',
                 colorLabel: 'Snake Color',
@@ -260,7 +268,7 @@
                 lbTitle: 'TOP JUGADORES',
                 instructions: 'Elige un modo y presiona una flecha para moverte.',
                 playClassic: 'JUGAR CLÁSICO',
-                playMulti: 'MAPA MULTIJUGADOR',
+                playMulti: 'CYBER ARENA (SALAS)',
                 settings: 'Configuración',
                 usernameLabel: 'Nombre de usuario',
                 colorLabel: 'Color de Serpiente',
@@ -300,6 +308,13 @@
         let swallowProgress = -1;
         let deathAnimationStep = 0;
 
+        // Multiplayer Arena Camera & Rooms State
+        // Rooms: 0 = Center, 1 = Right Room, 2 = Left Room, 3 = Top Room, 4 = Bottom Room
+        let currentRoom = 0;
+        let cameraOffsetX = 0; // Smooth camera panning offset in pixels
+        let cameraOffsetY = 0;
+        const roomSize = 20; // 20x20 tiles per room
+
         function applyLanguage() {
             const t = translations[currentLang];
             document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -310,14 +325,14 @@
             document.getElementById('lbTitle').innerText = t.lbTitle;
 
             const enBtn = document.getElementById('langEnBtn');
-            const esBtn = document.getElementById('langEsBtn');
+            const esBtn = document.getElementById('langEnBtn'); // fallback
 
             if (currentLang === 'en') {
-                enBtn.className = 'py-2 bg-emerald-500 text-slate-950 font-bold border-emerald-400 rounded-xl';
-                esBtn.className = 'py-2 bg-slate-950 text-slate-400 border-slate-700 rounded-xl hover:text-white';
+                document.getElementById('langEnBtn').className = 'py-2 bg-emerald-500 text-slate-950 font-bold border-emerald-400 rounded-xl';
+                document.getElementById('langEsBtn').className = 'py-2 bg-slate-950 text-slate-400 border-slate-700 rounded-xl hover:text-white';
             } else {
-                esBtn.className = 'py-2 bg-emerald-500 text-slate-950 font-bold border-emerald-400 rounded-xl';
-                enBtn.className = 'py-2 bg-slate-950 text-slate-400 border-slate-700 rounded-xl hover:text-white';
+                document.getElementById('langEsBtn').className = 'py-2 bg-emerald-500 text-slate-950 font-bold border-emerald-400 rounded-xl';
+                document.getElementById('langEnBtn').className = 'py-2 bg-slate-950 text-slate-400 border-slate-700 rounded-xl hover:text-white';
             }
         }
 
@@ -331,6 +346,7 @@
             const container = canvas.parentElement;
             canvas.width = container.clientWidth;
             canvas.height = container.clientHeight;
+            tileCount = currentGameMode === 'multiplayer' ? roomSize : 20;
             tileSize = Math.floor(canvas.width / tileCount);
         }
         window.addEventListener('resize', initCanvas);
@@ -342,16 +358,19 @@
             swallowProgress = -1;
             particles = [];
             shards = [];
+            currentRoom = 0;
+            cameraOffsetX = 0;
+            cameraOffsetY = 0;
             
             if (mode === 'multiplayer') {
-                tileCount = 40; 
-                document.getElementById('modeTag').innerText = 'CYBER ARENA (PORTALS)';
+                tileCount = roomSize; 
+                document.getElementById('modeTag').innerText = 'CYBER ARENA (MULTI-ROOM)';
                 document.getElementById('modeTag').className = 'text-[10px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full uppercase';
                 
-                // Setup 2 portal pairs
+                // Setup 3-block wide dynamic portals in Center room (Room 0)
                 portals = [
-                    { x: 5, y: 5, targetX: 35, targetY: 35, color: '#38bdf8' },
-                    { x: 35, y: 5, targetX: 5, targetY: 35, color: '#f43f5e' }
+                    { x: 8, y: 3, targetRoom: 3, targetX: 8, targetY: 16, color: '#38bdf8', activeTimer: 0, cycle: 0 },
+                    { x: 8, y: 16, targetRoom: 4, targetX: 8, targetY: 3, color: '#f43f5e', activeTimer: 0, cycle: 0 }
                 ];
             } else {
                 tileCount = 20; 
@@ -376,13 +395,13 @@
             render();
 
             if (gameInterval) clearInterval(gameInterval);
-            const speed = mode === 'multiplayer' ? 70 : 90;
+            const speed = mode === 'multiplayer' ? 75 : 90;
             gameInterval = setInterval(gameLoop, speed);
         }
 
         function spawnAllFoods() {
             foods = [];
-            const foodCount = currentGameMode === 'multiplayer' ? 10 : 1;
+            const foodCount = currentGameMode === 'multiplayer' ? 6 : 1;
             for (let i = 0; i < foodCount; i++) {
                 spawnSingleFood();
             }
@@ -390,8 +409,9 @@
 
         function spawnSingleFood() {
             foods.push({
-                x: Math.floor(Math.random() * tileCount),
-                y: Math.floor(Math.random() * tileCount)
+                room: currentGameMode === 'multiplayer' ? Math.floor(Math.random() * 5) : 0,
+                x: Math.floor(Math.random() * (tileCount - 4)) + 2,
+                y: Math.floor(Math.random() * (tileCount - 4)) + 2
             });
         }
 
@@ -401,26 +421,96 @@
             dx = nextDx; dy = nextDy;
             let head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-            // Wall collision check (or wrap around if portal map)
-            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
-                return startDeathAnimation();
-            }
-
-            // Portal teleport check
-            portals.forEach(p => {
-                if (head.x === p.x && head.y === p.y) {
-                    head = { x: p.targetX, y: p.targetY };
+            // Handle Multi-Room Border Transitions in Multiplayer Mode
+            if (currentGameMode === 'multiplayer') {
+                if (head.x >= tileCount) {
+                    // Hit right wall
+                    if (currentRoom === 0) {
+                        // Center -> Right Room (Room 1)
+                        currentRoom = 1;
+                        head.x = 0;
+                        triggerRoomShift(-canvas.width, 0);
+                    } else if (currentRoom === 1) {
+                        // Right Room -> Back to Center (Room 0)
+                        currentRoom = 0;
+                        head.x = 0;
+                        triggerRoomShift(-canvas.width, 0);
+                    } else {
+                        return startDeathAnimation();
+                    }
+                } else if (head.x < 0) {
+                    // Hit left wall
+                    if (currentRoom === 0) {
+                        // Center -> Left Room (Room 2)
+                        currentRoom = 2;
+                        head.x = tileCount - 1;
+                        triggerRoomShift(canvas.width, 0);
+                    } else if (currentRoom === 2) {
+                        // Left Room -> Back to Center (Room 0)
+                        currentRoom = 0;
+                        head.x = tileCount - 1;
+                        triggerRoomShift(canvas.width, 0);
+                    } else {
+                        return startDeathAnimation();
+                    }
+                } else if (head.y >= tileCount) {
+                    // Hit bottom wall
+                    if (currentRoom === 0) {
+                        currentRoom = 4;
+                        head.y = 0;
+                        triggerRoomShift(0, -canvas.height);
+                    } else if (currentRoom === 4) {
+                        currentRoom = 0;
+                        head.y = 0;
+                        triggerRoomShift(0, -canvas.height);
+                    } else {
+                        return startDeathAnimation();
+                    }
+                } else if (head.y < 0) {
+                    // Hit top wall
+                    if (currentRoom === 0) {
+                        currentRoom = 3;
+                        head.y = tileCount - 1;
+                        triggerRoomShift(0, canvas.height);
+                    } else if (currentRoom === 3) {
+                        currentRoom = 0;
+                        head.y = tileCount - 1;
+                        triggerRoomShift(0, canvas.height);
+                    } else {
+                        return startDeathAnimation();
+                    }
                 }
-            });
-
-            // Self collision check
-            for (let i = 0; i < snake.length; i++) {
-                if (snake[i].x === head.x && snake[i].y === head.y) return startDeathAnimation();
+            } else {
+                // Classic standard boundary death
+                if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                    return startDeathAnimation();
+                }
             }
 
+            // Portal Collision Check (Only in Center Room when active)
+            if (currentGameMode === 'multiplayer' && currentRoom === 0) {
+                portals.forEach(p => {
+                    // Portal is 3 blocks wide (x, x+1, x+2)
+                    if (head.y === p.y && head.x >= p.x && head.x <= p.x + 2 && p.activeTimer > 15) {
+                        currentRoom = p.targetRoom;
+                        head = { x: p.targetX, y: p.targetY };
+                        playSound('shift');
+                    }
+                });
+            }
+
+            // Self collision check (only if same room)
+            for (let i = 0; i < snake.length; i++) {
+                if (currentRoom === (snake[i].room || 0) && snake[i].x === head.x && snake[i].y === head.y) {
+                    return startDeathAnimation();
+                }
+            }
+
+            // Add room property to head segment
+            head.room = currentRoom;
             snake.unshift(head);
 
-            let ateFoodIndex = foods.findIndex(f => f.x === head.x && f.y === head.y);
+            let ateFoodIndex = foods.findIndex(f => f.room === currentRoom && f.x === head.x && f.y === head.y);
 
             if (ateFoodIndex !== -1) {
                 playSound('eat');
@@ -428,7 +518,6 @@
                 document.getElementById('scoreDisplay').innerText = score;
                 saveScore(username, score);
                 
-                // Spawn chomp particles
                 for (let i = 0; i < 8; i++) {
                     particles.push({
                         x: (head.x + 0.5) * tileSize,
@@ -452,12 +541,52 @@
                 if (swallowProgress >= snake.length) swallowProgress = -1;
             }
 
+            // Update portal cycle timers
+            portals.forEach(p => {
+                p.cycle++;
+                if (p.cycle > 40) p.cycle = 0;
+                p.activeTimer = p.cycle;
+
+                // Pre-warning particle effect when portal is about to appear
+                if (p.cycle < 10) {
+                    particles.push({
+                        x: (p.x + Math.random() * 3) * tileSize,
+                        y: p.y * tileSize,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: (Math.random() - 0.5) * 2,
+                        life: 0.5,
+                        color: p.color
+                    });
+                }
+            });
+
             render();
+        }
+
+        function triggerRoomShift(offsetX, offsetY) {
+            playSound('shift');
+            cameraOffsetX = offsetX;
+            cameraOffsetY = offsetY;
+            
+            // Smoothly glide camera back to 0,0
+            let glideInterval = setInterval(() => {
+                cameraOffsetX *= 0.7;
+                cameraOffsetY *= 0.7;
+                if (Math.abs(cameraOffsetX) < 1 && Math.abs(cameraOffsetY) < 1) {
+                    cameraOffsetX = 0;
+                    cameraOffsetY = 0;
+                    clearInterval(glideInterval);
+                }
+                render();
+            }, 20);
         }
 
         function render() {
             ctx.fillStyle = '#020617';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(cameraOffsetX, cameraOffsetY);
 
             // Grid lines
             ctx.strokeStyle = '#0f172a';
@@ -468,50 +597,81 @@
                 ctx.moveTo(0, i * tileSize); ctx.lineTo(canvas.width, i * tileSize); ctx.stroke();
             }
 
-            // Portals
-            portals.forEach(p => {
-                ctx.fillStyle = p.color;
-                ctx.shadowColor = p.color;
-                ctx.shadowBlur = 12;
-                ctx.fillRect(p.x * tileSize + 2, p.y * tileSize + 2, tileSize - 4, tileSize - 4);
-                ctx.shadowBlur = 0;
-            });
+            // Room Border Indicators & Directional Arrows
+            if (currentGameMode === 'multiplayer') {
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+                ctx.font = '12px Orbitron';
+                ctx.textAlign = 'center';
+                
+                if (currentRoom === 0) {
+                    ctx.fillText('➔ RIGHT ROOM', canvas.width - 50, canvas.height / 2);
+                    ctx.fillText('⬅ LEFT ROOM', 50, canvas.height / 2);
+                    ctx.fillText('▲ TOP ROOM', canvas.width / 2, 30);
+                    ctx.fillText('▼ BOTTOM ROOM', canvas.width / 2, canvas.height - 15);
+                } else if (currentRoom === 1) {
+                    ctx.fillText('⬅ BACK TO MAIN', 60, canvas.height / 2);
+                } else if (currentRoom === 2) {
+                    ctx.fillText('➔ BACK TO MAIN', canvas.width - 60, canvas.height / 2);
+                } else if (currentRoom === 3) {
+                    ctx.fillText('▼ BACK TO MAIN', canvas.width / 2, canvas.height - 20);
+                } else if (currentRoom === 4) {
+                    ctx.fillText('▲ BACK TO MAIN', canvas.width / 2, 30);
+                }
+            }
 
-            // Foods
+            // 3-Block Wide Portals (Only in Room 0)
+            if (currentGameMode === 'multiplayer' && currentRoom === 0) {
+                portals.forEach(p => {
+                    if (p.activeTimer > 15) { // Active state
+                        ctx.fillStyle = p.color;
+                        ctx.shadowColor = p.color;
+                        ctx.shadowBlur = 15;
+                        // Draw 3 blocks wide portal
+                        ctx.fillRect(p.x * tileSize + 2, p.y * tileSize + 2, (tileSize * 3) - 4, tileSize - 4);
+                        ctx.shadowBlur = 0;
+                    }
+                });
+            }
+
+            // Foods (Only render foods belonging to current room)
             foods.forEach(f => {
-                ctx.fillStyle = currentGameMode === 'multiplayer' ? '#22d3ee' : '#10b981';
-                ctx.shadowColor = ctx.fillStyle;
-                ctx.shadowBlur = 8;
-                ctx.beginPath();
-                ctx.arc(f.x * tileSize + tileSize / 2, f.y * tileSize + tileSize / 2, Math.max(tileSize / 2.5, 2), 0, Math.PI * 2);
-                ctx.fill();
-                ctx.shadowBlur = 0;
+                if (f.room === currentRoom) {
+                    ctx.fillStyle = currentGameMode === 'multiplayer' ? '#22d3ee' : '#10b981';
+                    ctx.shadowColor = ctx.fillStyle;
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath();
+                    ctx.arc(f.x * tileSize + tileSize / 2, f.y * tileSize + tileSize / 2, Math.max(tileSize / 2.5, 2), 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
             });
 
             const currentColors = colorMap[snakeTheme] || colorMap.emerald;
 
-            // Snake Trail Glow & Body
+            // Snake Body (Only render segments in current room)
             snake.forEach((seg, idx) => {
-                let sizeOffset = 0;
-                let fillColor = idx === 0 ? currentColors.head : currentColors.body;
+                if ((seg.room || 0) === currentRoom) {
+                    let sizeOffset = 0;
+                    let fillColor = idx === 0 ? currentColors.head : currentColors.body;
 
-                if (idx === swallowProgress) fillColor = '#ffffff';
+                    if (idx === swallowProgress) fillColor = '#ffffff';
 
-                if (deathAnimationStep > 0) {
-                    fillColor = '#ef4444';
-                    sizeOffset = Math.min(deathAnimationStep * 2, tileSize * 0.4);
+                    if (deathAnimationStep > 0) {
+                        fillColor = '#ef4444';
+                        sizeOffset = Math.min(deathAnimationStep * 2, tileSize * 0.4);
+                    }
+
+                    ctx.fillStyle = fillColor;
+                    ctx.shadowColor = currentColors.glow;
+                    ctx.shadowBlur = idx === 0 ? 10 : 4;
+                    ctx.fillRect(
+                        seg.x * tileSize + sizeOffset / 2, 
+                        seg.y * tileSize + sizeOffset / 2, 
+                        tileSize - sizeOffset, 
+                        tileSize - sizeOffset
+                    );
+                    ctx.shadowBlur = 0;
                 }
-
-                ctx.fillStyle = fillColor;
-                ctx.shadowColor = currentColors.glow;
-                ctx.shadowBlur = idx === 0 ? 10 : 4;
-                ctx.fillRect(
-                    seg.x * tileSize + sizeOffset / 2, 
-                    seg.y * tileSize + sizeOffset / 2, 
-                    tileSize - sizeOffset, 
-                    tileSize - sizeOffset
-                );
-                ctx.shadowBlur = 0;
             });
 
             // Particles update & render
@@ -535,6 +695,8 @@
                     ctx.fillRect(s.x, s.y, 4, 4);
                 });
             }
+
+            ctx.restore();
         }
 
         function startDeathAnimation() {
@@ -550,7 +712,6 @@
             }
             saveScore(username, score);
 
-            // Generate shards from snake head
             shards = [];
             if (snake.length > 0) {
                 const head = snake[0];
