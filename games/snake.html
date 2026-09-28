@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="es" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Snake 3000 - Fixed & Patch Edition</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Cyber Snake - Minimal Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -12,195 +11,110 @@
             theme: {
                 extend: {
                     colors: {
-                        cyber: {
-                            50: '#f0fdf4',
-                            500: '#10b981',
-                            900: '#064e3b',
-                            950: '#022c22'
-                        }
+                        cyber: { 500: '#10b981', 950: '#022c22' }
                     }
                 }
             }
         }
     </script>
-    <!-- FontAwesome & Google Fonts -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- Supabase JS Client -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .font-orbitron { font-family: 'Orbitron', sans-serif; }
-        .neon-box {
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3), inset 0 0 15px rgba(16, 185, 129, 0.1);
-        }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 3px; }
+        body { font-family: 'Orbitron', sans-serif; }
+        .neon-border { box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-black overflow-x-hidden">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4 selection:bg-emerald-500">
 
-    <header class="bg-slate-900/80 backdrop-blur-md border-b border-emerald-500/20 sticky top-0 z-50 px-4 py-3">
-        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-cyan-500 flex items-center justify-center neon-box">
-                    <i class="fa-solid fa-gamepad text-xl text-black font-bold"></i>
+    <!-- Contenedor Estilo Google Snake Minimalista -->
+    <div class="w-full max-w-[560px] bg-slate-900 border border-emerald-500/30 rounded-2xl overflow-hidden neon-border flex flex-col shadow-2xl">
+        
+        <!-- Barra Superior Minimalista (Puntuación y Estado) -->
+        <div class="bg-slate-900/90 px-5 py-3 border-b border-emerald-500/20 flex justify-between items-center text-sm font-bold">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 text-emerald-400">
+                    <i class="fa-solid fa-gamepad text-lg"></i>
+                    <span id="scoreDisplay" class="text-xl">0</span>
                 </div>
-                <div>
-                    <h1 class="font-orbitron text-xl md:text-2xl font-black tracking-wider bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-                        SUPER SNAKE <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">v4.6 FIXED</span>
-                    </h1>
-                    <p class="text-xs text-slate-400">Username Login • Live Chat • Resilient Leaderboards</p>
+                <div class="flex items-center gap-2 text-cyan-400 text-xs">
+                    <i class="fa-solid fa-trophy"></i>
+                    <span id="topScoreDisplay">0</span>
                 </div>
             </div>
 
             <div class="flex items-center gap-3">
-                <div id="connectionStatus" class="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-full text-xs border border-slate-700">
-                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" id="statusDot"></span>
-                    <span id="statusText" class="text-slate-300 font-medium">Connecting...</span>
-                </div>
-                <!-- Username Account Button -->
-                <button onclick="openModal('authModal')" id="authBtn" class="bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
-                    <i class="fa-solid fa-user"></i> <span id="authBtnText">Username Login</span>
+                <button onclick="toggleLeaderboard()" class="text-xs text-slate-400 hover:text-emerald-400 transition" title="Tabla de Clasificación">
+                    <i class="fa-solid fa-ranking-star text-base"></i>
+                </button>
+                <button onclick="openModal('settingsModal')" class="text-xs text-slate-400 hover:text-emerald-400 transition" title="Ajustes">
+                    <i class="fa-solid fa-gear text-base"></i>
                 </button>
             </div>
         </div>
-    </header>
 
-    <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-4 gap-6 my-4">
-        
-        <!-- Left Sidebar -->
-        <div class="lg:col-span-1 flex flex-col gap-6">
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md">
-                <h2 class="font-orbitron text-sm font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-sliders"></i> Operative Config
-                </h2>
-                <div class="space-y-3">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Active Username</label>
-                        <input type="text" id="playerNameInput" maxlength="15" value="CyberViper" 
-                            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Game Mode</label>
-                        <select id="gameModeSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
-                            <option value="classic">Classic Arena</option>
-                            <option value="multiplayer" selected>Live Online Leaderboard</option>
-                            <option value="portal">Black Hole Portals</option>
-                            <option value="speedrun">Overdrive Speedrun</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Map Size</label>
-                        <select id="gridSizeSelect" onchange="updateGridSize()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
-                            <option value="15">Micro (15x15)</option>
-                            <option value="20">Standard (20x20)</option>
-                            <option value="25" selected>Dynamic (25x25)</option>
-                            <option value="30">Compact (30x30)</option>
-                            <option value="40">Expanded (40x40)</option>
-                            <option value="50">Colossal (50x50)</option>
-                        </select>
-                    </div>
-                    <button onclick="savePlayerSettings()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold py-2 rounded-xl transition text-slate-300">
-                        Update Identity
-                    </button>
-                </div>
-            </div>
-
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md">
-                <h2 class="font-orbitron text-sm font-bold text-teal-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-bolt"></i> Combat Telemetry
-                </h2>
-                <div class="grid grid-cols-2 gap-3 text-center mb-3">
-                    <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-                        <span class="text-xs text-slate-400 block">Score</span>
-                        <span id="currentScoreDisplay" class="font-orbitron text-2xl font-black text-emerald-400">0</span>
-                    </div>
-                    <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-                        <span class="text-xs text-slate-400 block">High Score</span>
-                        <span id="highScoreDisplay" class="font-orbitron text-2xl font-black text-cyan-400">0</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Center Game Arena -->
-        <div class="lg:col-span-2 flex flex-col items-center justify-center gap-4">
-            <div class="relative w-full aspect-square max-w-[550px] bg-slate-950 border-2 border-emerald-500/40 rounded-3xl overflow-hidden shadow-2xl neon-box flex items-center justify-center">
-                
-                <div id="gameOverlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
-                    <div class="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center mb-4 text-emerald-400 text-3xl">
-                        <i class="fa-solid fa-gamepad"></i>
-                    </div>
-                    <h2 id="overlayTitle" class="font-orbitron text-2xl font-black text-white mb-2">SUPER SNAKE 3000</h2>
-                    <p id="overlaySubtitle" class="text-xs text-slate-300 max-w-sm mb-6">Play across multiple map sizes and save your high scores directly to the leaderboard!</p>
-                    
-                    <button onclick="startGame()" class="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 text-black font-orbitron font-bold rounded-xl shadow-lg transition transform hover:scale-105">
-                        <i class="fa-solid fa-play mr-2"></i> LAUNCH SNAKE
-                    </button>
-                </div>
-
-                <canvas id="gameCanvas" class="w-full h-full block"></canvas>
-            </div>
-        </div>
-
-        <!-- Right Sidebar -->
-        <div class="lg:col-span-1 flex flex-col gap-6">
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md flex flex-col h-[320px]">
-                <div class="flex justify-between items-center mb-3">
-                    <h2 class="font-orbitron text-sm font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-ranking-star"></i> Online Top 10
-                    </h2>
-                    <button onclick="fetchLeaderboard()" class="text-xs text-slate-400 hover:text-emerald-400"><i class="fa-solid fa-rotate"></i></button>
-                </div>
-                <div id="leaderboardList" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
-                    <div class="text-center text-xs text-slate-500 py-8">Loading scores...</div>
-                </div>
-            </div>
-
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md flex flex-col h-[280px]">
-                <h2 class="font-orbitron text-sm font-bold text-cyan-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-comments"></i> Cyber Comms
-                </h2>
-                <div id="chatMessages" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1 mb-3 text-xs bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
-                    <div class="text-slate-500 italic">Chat initialised...</div>
-                </div>
-                <div class="flex gap-2">
-                    <input type="text" id="chatInput" placeholder="Message..." maxlength="80" onkeydown="if(event.key==='Enter') sendChatMessage()"
-                        class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none">
-                    <button onclick="sendChatMessage()" class="bg-cyan-600 hover:bg-cyan-500 text-black px-3 py-2 rounded-xl text-xs font-bold transition">
-                        <i class="fa-solid fa-paper-plane"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Username Auth Modal -->
-    <div id="authModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-emerald-500/30 rounded-3xl max-w-sm w-full p-6 shadow-2xl relative">
-            <button onclick="closeModal('authModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            <h3 class="font-orbitron text-lg font-bold text-emerald-400 mb-1 flex items-center gap-2">
-                <i class="fa-solid fa-user-lock"></i> Username Login
-            </h3>
-            <p class="text-xs text-slate-400 mb-4">No email required! Choose a username to track scores.</p>
+        <!-- Área de Juego (Canvas + Menú Superpuesto) -->
+        <div class="relative w-full aspect-square bg-slate-950 flex items-center justify-center">
             
-            <div class="space-y-3">
+            <!-- Menú Principal / Game Over (Superpuesto limpio estilo Google) -->
+            <div id="gameOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
+                <div id="overlayContent" class="flex flex-col items-center gap-4">
+                    <div id="overlayIcon" class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-3xl mb-2">
+                        <i class="fa-solid fa-play"></i>
+                    </div>
+                    
+                    <h2 id="overlayTitle" class="text-2xl font-black text-white tracking-wider">CYBER SNAKE</h2>
+                    <p id="overlaySubtitle" class="text-xs text-slate-400 max-w-xs">Usa las flechas del teclado para moverte.</p>
+
+                    <div class="flex flex-col gap-2.5 w-48 mt-2">
+                        <button onclick="startGame()" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition text-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-play"></i> JUGAR
+                        </button>
+                        <button onclick="toggleLeaderboard()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2 border border-slate-700">
+                            <i class="fa-solid fa-ranking-star"></i> TOP 10
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Panel de Tabla de Clasificación dentro del juego -->
+                <div id="leaderboardView" class="hidden w-full max-w-xs flex-col gap-3">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="text-xs font-bold text-emerald-400">TOP JUGADORES</span>
+                        <button onclick="hideLeaderboard()" class="text-xs text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div id="leaderboardList" class="space-y-1.5 max-h-48 overflow-y-auto text-xs pr-1"></div>
+                    <button onclick="hideLeaderboard()" class="mt-2 py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs">Volver</button>
+                </div>
+            </div>
+
+            <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+        </div>
+    </div>
+
+    <!-- Modal de Ajustes Minimalista -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xs w-full p-5 shadow-2xl relative">
+            <button onclick="closeModal('settingsModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-sm font-bold text-emerald-400 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-sliders"></i> Configuración
+            </h3>
+            
+            <div class="space-y-3 text-xs">
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Username</label>
-                    <input type="text" id="authUsername" placeholder="CyberViper" maxlength="15" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
+                    <label class="text-slate-400 block mb-1">Nombre de usuario</label>
+                    <input type="text" id="usernameInput" maxlength="15" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Passcode</label>
-                    <input type="password" id="authPassword" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
+                    <label class="text-slate-400 block mb-1">Tamaño de Mapa</label>
+                    <select id="gridSizeSelect" onchange="updateGridSize()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+                        <option value="15">Micro (15x15)</option>
+                        <option value="20" selected>Estándar (20x20)</option>
+                        <option value="25">Grande (25x25)</option>
+                    </select>
                 </div>
-                <div id="authStatus" class="text-[11px] text-amber-400 hidden"></div>
-                
-                <div class="grid grid-cols-2 gap-2 pt-2">
-                    <button onclick="handleUsernameLogin()" class="bg-emerald-600 hover:bg-emerald-500 text-black font-bold py-2 rounded-xl text-xs">Sign In</button>
-                    <button onclick="handleUsernameRegister()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold py-2 rounded-xl text-xs">Register</button>
-                </div>
+                <button onclick="saveSettings()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 rounded-xl transition mt-2">
+                    Guardar
+                </button>
             </div>
         </div>
     </div>
@@ -208,23 +122,15 @@
     <script>
         const SUPABASE_URL = 'https://ukaihgoijcsgtdnjnpyu.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_Zpkb-lUZvy3sqOSSCxyK_w_G14fWqf5';
-        
         let supabaseClient = null;
-        let localLeaderboard = JSON.parse(localStorage.getItem('snake_local_scores') || '[{"username":"CyberViper","score":150},{"username":"NeonViper","score":120}]');
 
         try {
-            if (window.supabase) {
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                document.getElementById('statusDot').className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500';
-                document.getElementById('statusText').innerText = 'Connected';
-            }
-        } catch (e) {
-            document.getElementById('statusText').innerText = 'Local Storage Mode';
-        }
+            if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch (e) {}
 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        let tileCount = 25;
+        let tileCount = 20;
         let tileSize = 20;
         let gameInterval = null;
         let isRunning = false;
@@ -234,7 +140,7 @@
         let snake = [];
         let dx = 1, dy = 0, nextDx = 1, nextDy = 0;
         let food = { x: 5, y: 5 };
-        let playerName = localStorage.getItem('snake_username') || 'CyberViper';
+        let username = localStorage.getItem('snake_username') || 'victor';
 
         function initCanvas() {
             const container = canvas.parentElement;
@@ -249,48 +155,13 @@
             initCanvas();
         }
 
-        function handleUsernameLogin() {
-            const uname = document.getElementById('authUsername').value.trim();
-            if (!uname) return;
-            playerName = uname;
-            localStorage.setItem('snake_username', uname);
-            document.getElementById('playerNameInput').value = uname;
-            document.getElementById('authBtnText').innerText = uname;
-            closeModal('authModal');
-        }
-
-        function handleUsernameRegister() { handleUsernameLogin(); }
-
-        function savePlayerSettings() {
-            playerName = document.getElementById('playerNameInput').value.trim() || 'CyberViper';
-            localStorage.setItem('snake_username', playerName);
-            document.getElementById('authBtnText').innerText = playerName;
-        }
-
-        function sendChatMessage() {
-            const input = document.getElementById('chatInput');
-            const msg = input.value.trim();
-            if (!msg) return;
-            appendChatMessage(playerName, msg);
-            input.value = '';
-        }
-
-        function appendChatMessage(user, msg) {
-            const chatBox = document.getElementById('chatMessages');
-            const div = document.createElement('div');
-            div.className = 'text-slate-300 mb-1';
-            div.innerHTML = `<span class="font-bold text-emerald-400">${user}:</span> ${msg}`;
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
         function startGame() {
             initCanvas();
             document.getElementById('gameOverlay').classList.add('hidden');
             snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
             dx = 1; dy = 0; nextDx = 1; nextDy = 0;
             score = 0;
-            document.getElementById('currentScoreDisplay').innerText = score;
+            document.getElementById('scoreDisplay').innerText = score;
             spawnFood();
             isRunning = true;
             if (gameInterval) clearInterval(gameInterval);
@@ -301,19 +172,17 @@
             dx = nextDx; dy = nextDy;
             const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
-                return gameOver('Grid Boundary Crash');
-            }
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) return gameOver();
 
             for (let i = 0; i < snake.length; i++) {
-                if (snake[i].x === head.x && snake[i].y === head.y) return gameOver('Self Collision');
+                if (snake[i].x === head.x && snake[i].y === head.y) return gameOver();
             }
 
             snake.unshift(head);
 
             if (head.x === food.x && head.y === food.y) {
                 score += 10;
-                document.getElementById('currentScoreDisplay').innerText = score;
+                document.getElementById('scoreDisplay').innerText = score;
                 spawnFood();
             } else {
                 snake.pop();
@@ -326,7 +195,8 @@
             ctx.fillStyle = '#020617';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.strokeStyle = '#1e293b';
+            // Rejilla Cyber Minimalista
+            ctx.strokeStyle = '#0f172a';
             for (let i = 0; i <= tileCount; i++) {
                 ctx.beginPath();
                 ctx.moveTo(i * tileSize, 0); ctx.lineTo(i * tileSize, canvas.height); ctx.stroke();
@@ -334,11 +204,13 @@
                 ctx.moveTo(0, i * tileSize); ctx.lineTo(canvas.width, i * tileSize); ctx.stroke();
             }
 
+            // Comida
             ctx.fillStyle = '#10b981';
             ctx.beginPath();
             ctx.arc(food.x * tileSize + tileSize / 2, food.y * tileSize + tileSize / 2, tileSize / 2.5, 0, Math.PI * 2);
             ctx.fill();
 
+            // Serpiente
             snake.forEach((seg, idx) => {
                 ctx.fillStyle = idx === 0 ? '#34d399' : '#10b981';
                 ctx.fillRect(seg.x * tileSize + 1, seg.y * tileSize + 1, tileSize - 2, tileSize - 2);
@@ -352,52 +224,79 @@
             };
         }
 
-        function gameOver(reason) {
+        function gameOver() {
             isRunning = false;
             clearInterval(gameInterval);
             if (score > highScore) {
                 highScore = score;
                 localStorage.setItem('snake_highscore', highScore);
-                document.getElementById('highScoreDisplay').innerText = highScore;
+                document.getElementById('topScoreDisplay').innerText = highScore;
             }
-            saveScore(playerName, score);
+            saveScore(username, score);
 
-            document.getElementById('overlayTitle').innerText = 'GAME OVER';
-            document.getElementById('overlaySubtitle').innerText = `${reason} • Final Score: ${score}`;
+            document.getElementById('overlayIcon').innerHTML = '<i class="fa-solid fa-rotate-right"></i>';
+            document.getElementById('overlayTitle').innerText = 'PUNTUACIÓN: ' + score;
+            document.getElementById('overlaySubtitle').innerText = 'Partida finalizada';
             document.getElementById('gameOverlay').classList.remove('hidden');
         }
 
-        async function saveScore(username, scoreVal) {
-            localLeaderboard.push({ username, score: scoreVal });
-            localLeaderboard.sort((a, b) => b.score - a.score);
-            localLeaderboard = localLeaderboard.slice(0, 10);
-            localStorage.setItem('snake_local_scores', JSON.stringify(localLeaderboard));
-
-            if (supabaseClient) {
+        async function saveScore(user, scoreVal) {
+            if (supabaseClient && scoreVal > 0) {
                 try {
-                    await supabaseClient.from('leaderboard').insert([{ username, score: scoreVal }]);
+                    await supabaseClient.from('leaderboard').insert([{ username: user, score: scoreVal }]);
                 } catch (e) {}
             }
             fetchLeaderboard();
         }
 
+        // Filtro para eliminar usuarios duplicados en el Leaderboard
         async function fetchLeaderboard() {
             const listContainer = document.getElementById('leaderboardList');
-            let dataToShow = localLeaderboard;
+            let data = [];
 
             if (supabaseClient) {
                 try {
-                    const { data, error } = await supabaseClient.from('leaderboard').select('*').order('score', { ascending: false }).limit(10);
-                    if (!error && data && data.length > 0) dataToShow = data;
+                    const res = await supabaseClient.from('leaderboard').select('*').order('score', { ascending: false });
+                    if (res.data) data = res.data;
                 } catch (e) {}
             }
 
-            listContainer.innerHTML = dataToShow.map((item, index) => `
-                <div class="flex justify-between items-center bg-slate-950/80 p-2 rounded-xl border border-slate-800 text-xs">
-                    <span class="font-bold text-slate-300"><span class="text-emerald-400">#${index + 1}</span> ${item.username}</span>
-                    <span class="font-orbitron font-bold text-teal-400">${item.score}</span>
+            // Eliminar duplicados manteniendo la puntuación más alta por usuario
+            const uniqueMap = new Map();
+            data.forEach(item => {
+                if (!uniqueMap.has(item.username) || uniqueMap.get(item.username).score < item.score) {
+                    uniqueMap.set(item.username, item);
+                }
+            });
+
+            const uniqueList = Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score).slice(0, 10);
+
+            listContainer.innerHTML = uniqueList.map((item, index) => `
+                <div class="flex justify-between items-center bg-slate-950 p-2 rounded-lg border border-slate-800">
+                    <span class="text-slate-300 font-bold"><span class="text-emerald-400">#${index + 1}</span> ${item.username}</span>
+                    <span class="font-bold text-teal-400">${item.score}</span>
                 </div>
-            `).join('');
+            `).join('') || '<div class="text-slate-500 text-center py-2">Sin puntuaciones aún</div>';
+        }
+
+        function toggleLeaderboard() {
+            document.getElementById('overlayContent').classList.add('hidden');
+            document.getElementById('leaderboardView').classList.remove('hidden');
+            document.getElementById('leaderboardView').classList.add('flex');
+            document.getElementById('gameOverlay').classList.remove('hidden');
+            fetchLeaderboard();
+        }
+
+        function hideLeaderboard() {
+            document.getElementById('leaderboardView').classList.add('hidden');
+            document.getElementById('leaderboardView').classList.remove('flex');
+            document.getElementById('overlayContent').classList.remove('hidden');
+        }
+
+        function saveSettings() {
+            username = document.getElementById('usernameInput').value.trim() || 'victor';
+            localStorage.setItem('snake_username', username);
+            closeModal('settingsModal');
         }
 
         window.addEventListener('keydown', e => {
@@ -412,9 +311,8 @@
 
         window.onload = function() {
             initCanvas();
-            document.getElementById('highScoreDisplay').innerText = highScore;
-            document.getElementById('playerNameInput').value = playerName;
-            document.getElementById('authBtnText').innerText = playerName;
+            document.getElementById('topScoreDisplay').innerText = highScore;
+            document.getElementById('usernameInput').value = username;
             fetchLeaderboard();
         };
     </script>
