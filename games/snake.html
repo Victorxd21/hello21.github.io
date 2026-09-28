@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber Snake - Expanded Arena Edition</title>
+    <title>Cyber Snake - Ultimate Arcade Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -21,11 +21,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Orbitron', sans-serif; }
-        .neon-border { box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+        body { font-family: 'Orbitron', sans-serif; touch-action: manipulation; }
+        .neon-border { box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 2px; }
+
+        /* CRT Scanlines Effect */
+        .crt::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 15;
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4 selection:bg-emerald-500">
@@ -34,10 +46,10 @@
     <div class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
 
         <!-- Game Area (3 Columns) -->
-        <div class="md:col-span-3 bg-slate-900 border border-emerald-500/30 rounded-2xl overflow-hidden neon-border flex flex-col shadow-2xl relative">
+        <div id="gameWrapper" class="md:col-span-3 bg-slate-900 border border-emerald-500/30 rounded-2xl overflow-hidden neon-border flex flex-col shadow-2xl relative">
             
             <!-- Top Bar -->
-            <div class="bg-slate-900/90 px-5 py-3 border-b border-emerald-500/20 flex justify-between items-center text-sm font-bold z-10">
+            <div class="bg-slate-900/90 px-5 py-3 border-b border-emerald-500/20 flex justify-between items-center text-sm font-bold z-20">
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-2 text-emerald-400">
                         <i class="fa-solid fa-gamepad text-lg"></i>
@@ -60,10 +72,10 @@
             </div>
 
             <!-- Canvas Container -->
-            <div class="relative w-full aspect-square bg-slate-950 flex items-center justify-center overflow-hidden">
+            <div id="canvasContainer" class="relative w-full aspect-square bg-slate-950 flex items-center justify-center overflow-hidden">
                 
                 <!-- Start / Game Over Overlay -->
-                <div id="gameOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
+                <div id="gameOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-30 flex flex-col items-center justify-center p-6 text-center">
                     <div id="overlayContent" class="flex flex-col items-center gap-4">
                         <div id="overlayIcon" class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-3xl mb-1">
                             <i class="fa-solid fa-play"></i>
@@ -84,6 +96,24 @@
                 </div>
 
                 <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+            </div>
+
+            <!-- On-Screen Touch Controls (Mobile Friendly) -->
+            <div class="bg-slate-900/90 p-3 border-t border-slate-800 flex flex-col items-center justify-center gap-1 md:hidden">
+                <button onclick="changeDirection('UP')" class="w-12 h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl flex items-center justify-center text-lg active:scale-95 transition">
+                    <i class="fa-solid fa-arrow-up"></i>
+                </button>
+                <div class="flex gap-12">
+                    <button onclick="changeDirection('LEFT')" class="w-12 h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl flex items-center justify-center text-lg active:scale-95 transition">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <button onclick="changeDirection('RIGHT')" class="w-12 h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl flex items-center justify-center text-lg active:scale-95 transition">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+                <button onclick="changeDirection('DOWN')" class="w-12 h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl flex items-center justify-center text-lg active:scale-95 transition">
+                    <i class="fa-solid fa-arrow-down"></i>
+                </button>
             </div>
         </div>
 
@@ -119,6 +149,19 @@
                     <input type="text" id="usernameInput" maxlength="15" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
+                    <label class="text-slate-400 block mb-1" data-i18n="colorLabel">Snake Color</label>
+                    <select id="snakeColorSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+                        <option value="emerald">Emerald Neon</option>
+                        <option value="cyan">Cyber Cyan</option>
+                        <option value="fuchsia">Fuchsia Pulse</option>
+                        <option value="amber">Solar Amber</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                    <span class="text-slate-400" data-i18n="crtLabel">CRT Scanline Filter</span>
+                    <input type="checkbox" id="crtToggle" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+                </div>
+                <div>
                     <label class="text-slate-400 block mb-1" data-i18n="languageLabel">Language / Idioma</label>
                     <div class="grid grid-cols-2 gap-2">
                         <button id="langEnBtn" onclick="setLanguage('en')" class="py-2 border rounded-xl font-bold transition">English</button>
@@ -141,6 +184,62 @@
             if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } catch (e) {}
 
+        // --- Web Audio Synthesizer ---
+        let audioCtx = null;
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playSound(type) {
+            try {
+                const ctxAudio = getAudioContext();
+                const osc = ctxAudio.createOscillator();
+                const gain = ctxAudio.createGain();
+                osc.connect(gain);
+                gain.connect(ctxAudio.destination);
+
+                const now = ctxAudio.currentTime;
+
+                if (type === 'eat') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'click') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, now);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'gameover') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(40, now + 0.5);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                }
+            } catch (e) {}
+        }
+
+        const colorMap = {
+            emerald: { head: '#34d399', body: '#10b981', glow: 'rgba(16, 185, 129, 0.4)' },
+            cyan: { head: '#67e8f9', body: '#06b6d4', glow: 'rgba(6, 182, 212, 0.4)' },
+            fuchsia: { head: '#f472b6', body: '#ec4899', glow: 'rgba(236, 72, 153, 0.4)' },
+            amber: { head: '#fcd34d', body: '#f59e0b', glow: 'rgba(245, 158, 11, 0.4)' }
+        };
+
         const translations = {
             en: {
                 lbTitle: 'TOP SCORES',
@@ -149,6 +248,8 @@
                 playMulti: 'MULTIPLAYER MAP',
                 settings: 'Settings',
                 usernameLabel: 'Username',
+                colorLabel: 'Snake Color',
+                crtLabel: 'CRT Scanline Filter',
                 languageLabel: 'Language / Idioma',
                 saveBtn: 'Save',
                 gameOverTitle: 'SCORE: ',
@@ -162,6 +263,8 @@
                 playMulti: 'MAPA MULTIJUGADOR',
                 settings: 'Configuración',
                 usernameLabel: 'Nombre de usuario',
+                colorLabel: 'Color de Serpiente',
+                crtLabel: 'Filtro CRT de Líneas',
                 languageLabel: 'Language / Idioma',
                 saveBtn: 'Guardar',
                 gameOverTitle: 'PUNTUACIÓN: ',
@@ -171,6 +274,8 @@
         };
 
         let currentLang = localStorage.getItem('snake_lang') || 'en';
+        let snakeTheme = localStorage.getItem('snake_color') || 'emerald';
+        let crtEnabled = localStorage.getItem('snake_crt') === 'true';
 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -186,8 +291,14 @@
 
         let snake = [];
         let dx = 0, dy = 0, nextDx = 0, nextDy = 0;
-        let foods = []; // Array to support multiple apples on big map
+        let foods = []; 
+        let portals = [];
+        let particles = [];
+        let shards = [];
         let username = localStorage.getItem('snake_username') || 'victor';
+
+        let swallowProgress = -1;
+        let deathAnimationStep = 0;
 
         function applyLanguage() {
             const t = translations[currentLang];
@@ -225,16 +336,28 @@
         window.addEventListener('resize', initCanvas);
 
         function startGame(mode = 'classic') {
+            playSound('click');
             currentGameMode = mode;
+            deathAnimationStep = 0;
+            swallowProgress = -1;
+            particles = [];
+            shards = [];
             
             if (mode === 'multiplayer') {
-                tileCount = 50; // Big map
-                document.getElementById('modeTag').innerText = 'MULTIPLAYER MAP (15 APPLES)';
+                tileCount = 40; 
+                document.getElementById('modeTag').innerText = 'CYBER ARENA (PORTALS)';
                 document.getElementById('modeTag').className = 'text-[10px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full uppercase';
+                
+                // Setup 2 portal pairs
+                portals = [
+                    { x: 5, y: 5, targetX: 35, targetY: 35, color: '#38bdf8' },
+                    { x: 35, y: 5, targetX: 5, targetY: 35, color: '#f43f5e' }
+                ];
             } else {
-                tileCount = 20; // Standard map
+                tileCount = 20; 
                 document.getElementById('modeTag').innerText = 'CLASSIC';
                 document.getElementById('modeTag').className = 'text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full uppercase';
+                portals = [];
             }
 
             initCanvas();
@@ -253,13 +376,13 @@
             render();
 
             if (gameInterval) clearInterval(gameInterval);
-            const speed = mode === 'multiplayer' ? 65 : 90;
+            const speed = mode === 'multiplayer' ? 70 : 90;
             gameInterval = setInterval(gameLoop, speed);
         }
 
         function spawnAllFoods() {
             foods = [];
-            const foodCount = currentGameMode === 'multiplayer' ? 15 : 1;
+            const foodCount = currentGameMode === 'multiplayer' ? 10 : 1;
             for (let i = 0; i < foodCount; i++) {
                 spawnSingleFood();
             }
@@ -276,12 +399,23 @@
             if (!isMoving) return;
 
             dx = nextDx; dy = nextDy;
-            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            let head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) return gameOver();
+            // Wall collision check (or wrap around if portal map)
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                return startDeathAnimation();
+            }
 
+            // Portal teleport check
+            portals.forEach(p => {
+                if (head.x === p.x && head.y === p.y) {
+                    head = { x: p.targetX, y: p.targetY };
+                }
+            });
+
+            // Self collision check
             for (let i = 0; i < snake.length; i++) {
-                if (snake[i].x === head.x && snake[i].y === head.y) return gameOver();
+                if (snake[i].x === head.x && snake[i].y === head.y) return startDeathAnimation();
             }
 
             snake.unshift(head);
@@ -289,13 +423,33 @@
             let ateFoodIndex = foods.findIndex(f => f.x === head.x && f.y === head.y);
 
             if (ateFoodIndex !== -1) {
+                playSound('eat');
                 score += 10;
                 document.getElementById('scoreDisplay').innerText = score;
                 saveScore(username, score);
+                
+                // Spawn chomp particles
+                for (let i = 0; i < 8; i++) {
+                    particles.push({
+                        x: (head.x + 0.5) * tileSize,
+                        y: (head.y + 0.5) * tileSize,
+                        vx: (Math.random() - 0.5) * 6,
+                        vy: (Math.random() - 0.5) * 6,
+                        life: 1.0,
+                        color: currentGameMode === 'multiplayer' ? '#38bdf8' : '#34d399'
+                    });
+                }
+
                 foods.splice(ateFoodIndex, 1);
                 spawnSingleFood();
+                swallowProgress = 0;
             } else {
                 snake.pop();
+            }
+
+            if (swallowProgress !== -1) {
+                swallowProgress++;
+                if (swallowProgress >= snake.length) swallowProgress = -1;
             }
 
             render();
@@ -305,7 +459,7 @@
             ctx.fillStyle = '#020617';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Cyber Grid
+            // Grid lines
             ctx.strokeStyle = '#0f172a';
             for (let i = 0; i <= tileCount; i++) {
                 ctx.beginPath();
@@ -314,34 +468,114 @@
                 ctx.moveTo(0, i * tileSize); ctx.lineTo(canvas.width, i * tileSize); ctx.stroke();
             }
 
-            // Draw Apples
+            // Portals
+            portals.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 12;
+                ctx.fillRect(p.x * tileSize + 2, p.y * tileSize + 2, tileSize - 4, tileSize - 4);
+                ctx.shadowBlur = 0;
+            });
+
+            // Foods
             foods.forEach(f => {
                 ctx.fillStyle = currentGameMode === 'multiplayer' ? '#22d3ee' : '#10b981';
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.shadowBlur = 8;
                 ctx.beginPath();
                 ctx.arc(f.x * tileSize + tileSize / 2, f.y * tileSize + tileSize / 2, Math.max(tileSize / 2.5, 2), 0, Math.PI * 2);
                 ctx.fill();
+                ctx.shadowBlur = 0;
             });
 
-            // Snake
+            const currentColors = colorMap[snakeTheme] || colorMap.emerald;
+
+            // Snake Trail Glow & Body
             snake.forEach((seg, idx) => {
-                ctx.fillStyle = idx === 0 ? '#34d399' : '#10b981';
-                ctx.fillRect(seg.x * tileSize, seg.y * tileSize, tileSize, tileSize);
+                let sizeOffset = 0;
+                let fillColor = idx === 0 ? currentColors.head : currentColors.body;
+
+                if (idx === swallowProgress) fillColor = '#ffffff';
+
+                if (deathAnimationStep > 0) {
+                    fillColor = '#ef4444';
+                    sizeOffset = Math.min(deathAnimationStep * 2, tileSize * 0.4);
+                }
+
+                ctx.fillStyle = fillColor;
+                ctx.shadowColor = currentColors.glow;
+                ctx.shadowBlur = idx === 0 ? 10 : 4;
+                ctx.fillRect(
+                    seg.x * tileSize + sizeOffset / 2, 
+                    seg.y * tileSize + sizeOffset / 2, 
+                    tileSize - sizeOffset, 
+                    tileSize - sizeOffset
+                );
+                ctx.shadowBlur = 0;
             });
+
+            // Particles update & render
+            particles.forEach((p, index) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.05;
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = Math.max(p.life, 0);
+                ctx.fillRect(p.x, p.y, 3, 3);
+                ctx.globalAlpha = 1.0;
+                if (p.life <= 0) particles.splice(index, 1);
+            });
+
+            // Death Shards update & render
+            if (deathAnimationStep > 0) {
+                shards.forEach(s => {
+                    s.x += s.vx;
+                    s.y += s.vy;
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(s.x, s.y, 4, 4);
+                });
+            }
         }
 
-        function gameOver() {
+        function startDeathAnimation() {
             isRunning = false;
             isMoving = false;
             clearInterval(gameInterval);
-            
+            playSound('gameover');
+
             if (score > highScore) {
                 highScore = score;
                 localStorage.setItem('snake_highscore', highScore);
                 document.getElementById('topScoreDisplay').innerText = highScore;
             }
-            
             saveScore(username, score);
 
+            // Generate shards from snake head
+            shards = [];
+            if (snake.length > 0) {
+                const head = snake[0];
+                for (let i = 0; i < 20; i++) {
+                    shards.push({
+                        x: (head.x + 0.5) * tileSize,
+                        y: (head.y + 0.5) * tileSize,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8
+                    });
+                }
+            }
+
+            deathAnimationStep = 1;
+            let shrinkInterval = setInterval(() => {
+                deathAnimationStep++;
+                render();
+                if (deathAnimationStep > 10) {
+                    clearInterval(shrinkInterval);
+                    showGameOverOverlay();
+                }
+            }, 50);
+        }
+
+        function showGameOverOverlay() {
             const t = translations[currentLang];
             document.getElementById('overlayIcon').innerHTML = '<i class="fa-solid fa-rotate-right"></i>';
             document.getElementById('overlayTitle').innerText = t.gameOverTitle + score;
@@ -387,33 +621,71 @@
             `).join('') || `<div class="text-slate-500 text-center py-4 text-xs">${t.noScores}</div>`;
         }
 
+        function changeDirection(dir) {
+            if (!isRunning) return;
+            if (!isMoving) isMoving = true;
+
+            if (dir === 'UP' && dy !== 1) { nextDx = 0; nextDy = -1; }
+            if (dir === 'DOWN' && dy !== -1) { nextDx = 0; nextDy = 1; }
+            if (dir === 'LEFT' && dx !== 1) { nextDx = -1; nextDy = 0; }
+            if (dir === 'RIGHT' && dx !== -1) { nextDx = 1; nextDy = 0; }
+        }
+
         function saveSettings() {
             username = document.getElementById('usernameInput').value.trim() || 'victor';
+            snakeTheme = document.getElementById('snakeColorSelect').value;
+            crtEnabled = document.getElementById('crtToggle').checked;
+
             localStorage.setItem('snake_username', username);
+            localStorage.setItem('snake_color', snakeTheme);
+            localStorage.setItem('snake_crt', crtEnabled);
+
+            applyCRTFilter();
             closeModal('settingsModal');
+        }
+
+        function applyCRTFilter() {
+            const wrapper = document.getElementById('gameWrapper');
+            if (crtEnabled) {
+                wrapper.classList.add('crt');
+            } else {
+                wrapper.classList.remove('crt');
+            }
         }
 
         window.addEventListener('keydown', e => {
             if (!isRunning) return;
 
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                if (!isMoving) isMoving = true;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                e.preventDefault(); 
             }
 
-            if (e.key === 'ArrowUp' && dy !== 1) { nextDx = 0; nextDy = -1; }
-            if (e.key === 'ArrowDown' && dy !== -1) { nextDx = 0; nextDy = 1; }
-            if (e.key === 'ArrowLeft' && dx !== 1) { nextDx = -1; nextDy = 0; }
-            if (e.key === 'ArrowRight' && dx !== -1) { nextDx = 1; nextDy = 0; }
+            if (e.key === 'ArrowUp') changeDirection('UP');
+            if (e.key === 'ArrowDown') changeDirection('DOWN');
+            if (e.key === 'ArrowLeft') changeDirection('LEFT');
+            if (e.key === 'ArrowRight') changeDirection('RIGHT');
         });
 
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function openModal(id) { 
+            playSound('click');
+            document.getElementById('usernameInput').value = username;
+            document.getElementById('snakeColorSelect').value = snakeTheme;
+            document.getElementById('crtToggle').checked = crtEnabled;
+            document.getElementById(id).classList.remove('hidden'); 
+        }
+        function closeModal(id) { 
+            playSound('click');
+            document.getElementById(id).classList.add('hidden'); 
+        }
 
         window.onload = function() {
             initCanvas();
             applyLanguage();
+            applyCRTFilter();
             document.getElementById('topScoreDisplay').innerText = highScore;
             document.getElementById('usernameInput').value = username;
+            document.getElementById('snakeColorSelect').value = snakeTheme;
+            document.getElementById('crtToggle').checked = crtEnabled;
             fetchLeaderboard();
         };
     </script>
