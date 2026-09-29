@@ -523,6 +523,12 @@
                         <option value="neon">Neon Glow</option>
                         <option value="rainbow">Rainbow Gradient</option>
                         <option value="stripe">Electric Stripe</option>
+                        <option value="fire">🔥 Fire Trail</option>
+                        <option value="ice">❄️ Ice Crystal</option>
+                        <option value="matrix">🟢 Matrix Code</option>
+                        <option value="gold">✨ Golden Scales</option>
+                        <option value="shadow">🌑 Shadow Pulse</option>
+                        <option value="galaxy">🌌 Galaxy Swirl</option>
                     </select>
                 </div>
             </div>
@@ -533,6 +539,9 @@
                     <option value="crown">👑 Golden Crown</option>
                     <option value="viking">🛡️ Viking Helmet</option>
                     <option value="halo">😇 Glowing Halo</option>
+                    <option value="pirate">🏴‍☠️ Pirate Bandana</option>
+                    <option value="ninja">🥷 Ninja Mask</option>
+                    <option value="robot">🤖 Robot Visor</option>
                 </select>
             </div>
             <div class="btn-group">
@@ -633,19 +642,26 @@
 
             if (mode === 'battleroyale') {
                 MAP_ZONES = [
-                    { name: "Volcanic Caldera", x: 3000, y: 3000, radius: 2200, color: 'rgba(239, 68, 68, 0.04)', lava: true },
-                    { name: "Frozen Greasy Grove", x: 7000, y: 3000, radius: 2000, color: 'rgba(147, 197, 253, 0.05)', ice: true },
-                    { name: "Cyberpunk Alley", x: 5000, y: 7000, radius: 2400, color: 'rgba(168, 85, 247, 0.04)', speedBoost: true }
+                    { name: "Volcanic Caldera", x: 2500, y: 2500, radius: 1800, color: 'rgba(239, 68, 68, 0.05)', lava: true },
+                    { name: "Frozen Greasy Grove", x: 7500, y: 2500, radius: 1800, color: 'rgba(147, 197, 253, 0.05)', ice: true },
+                    { name: "Cyberpunk Alley", x: 5000, y: 7500, radius: 2000, color: 'rgba(168, 85, 247, 0.04)', speedBoost: true },
+                    { name: "Toxic Wasteland", x: 2000, y: 7000, radius: 1600, color: 'rgba(34, 197, 94, 0.05)', toxic: true },
+                    { name: "Crystal Caverns", x: 8000, y: 7000, radius: 1700, color: 'rgba(236, 72, 153, 0.04)', regen: true },
+                    { name: "Storm Eye", x: 5000, y: 5000, radius: 1200, color: 'rgba(251, 191, 36, 0.04)', speedBoost: true }
                 ];
             } else {
                 MAP_ZONES = [
-                    { name: "Tilted Neon Towers", x: 2500, y: 2500, radius: 2000, color: 'rgba(56, 189, 248, 0.03)', speedBoost: true },
-                    { name: "Frozen Greasy Grove", x: 7500, y: 2500, radius: 2000, color: 'rgba(147, 197, 253, 0.05)', ice: true },
-                    { name: "Loot Lake", x: 5000, y: 7500, radius: 2500, color: 'rgba(16, 185, 129, 0.04)', regen: true }
+                    { name: "Tilted Neon Towers", x: 2200, y: 2200, radius: 1800, color: 'rgba(56, 189, 248, 0.04)', speedBoost: true },
+                    { name: "Frozen Greasy Grove", x: 7800, y: 2200, radius: 1800, color: 'rgba(147, 197, 253, 0.05)', ice: true },
+                    { name: "Loot Lake", x: 5000, y: 7800, radius: 2000, color: 'rgba(16, 185, 129, 0.04)', regen: true },
+                    { name: "Sunny Steps", x: 2000, y: 7000, radius: 1600, color: 'rgba(251, 191, 36, 0.04)', regen: true },
+                    { name: "Shadow Dunes", x: 8000, y: 7000, radius: 1700, color: 'rgba(100, 116, 139, 0.05)', speedBoost: true },
+                    { name: "Plasma Fields", x: 5000, y: 5000, radius: 1500, color: 'rgba(192, 132, 252, 0.04)', speedBoost: true },
+                    { name: "Emerald Grove", x: 3500, y: 8500, radius: 1400, color: 'rgba(52, 211, 153, 0.04)', regen: true }
                 ];
             }
 
-            for (let i = 0; i < 450; i++) {
+            for (let i = 0; i < 550; i++) {
                 foodPellets.push({
                     id: 'food_' + i,
                     x: Math.random() * WORLD_SIZE,
@@ -654,7 +670,7 @@
                 });
             }
 
-            for (let i = 0; i < 35; i++) {
+            for (let i = 0; i < 40; i++) {
                 obstacles.push({
                     x: Math.random() * (WORLD_SIZE - 2000) + 1000,
                     y: Math.random() * (WORLD_SIZE - 2000) + 1000,
@@ -662,11 +678,12 @@
                 });
             }
 
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < 10; i++) {
                 powerUps.push({
                     id: 'pw_' + i,
                     x: Math.random() * (WORLD_SIZE - 2000) + 1000,
-                    y: Math.random() * (WORLD_SIZE - 2000) + 1000
+                    y: Math.random() * (WORLD_SIZE - 2000) + 1000,
+                    type: ['double', 'speed', 'shield'][Math.floor(Math.random() * 3)]
                 });
             }
         }
@@ -675,83 +692,151 @@
         class AIBot {
             constructor(id, mode) {
                 this.id = id;
-                this.name = ['SlitherBotX', 'ViperAI', 'Cobra99', 'NeonCrawler', 'ApexWorm', 'SlippyBot'][Math.floor(Math.random() * 6)] + '_' + Math.floor(Math.random()*900+100);
-                this.x = WORLD_SIZE / 2 + (Math.random() * 2000 - 1000);
-                this.y = WORLD_SIZE / 2 + (Math.random() * 2000 - 1000);
+                this.name = ['SlitherBotX', 'ViperAI', 'Cobra99', 'NeonCrawler', 'ApexWorm', 'SlippyBot', 'QuantumSerpent', 'PixelPython'][Math.floor(Math.random() * 8)] + '_' + Math.floor(Math.random() * 900 + 100);
+                this.x = WORLD_SIZE / 2 + (Math.random() * 3000 - 1500);
+                this.y = WORLD_SIZE / 2 + (Math.random() * 3000 - 1500);
                 this.angle = Math.random() * Math.PI * 2;
-                this.speed = 3.2;
-                this.score = 30 + Math.floor(Math.random() * 80);
+                this.speed = 3.0 + Math.random() * 0.6;
+                this.score = 25 + Math.floor(Math.random() * 90);
                 this.color = `hsl(${Math.random() * 360}, 90%, 60%)`;
-                this.skinPattern = ['solid', 'neon', 'stripe'][Math.floor(Math.random() * 3)];
-                this.hat = Math.random() > 0.5 ? ['crown', 'viking', 'halo'][Math.floor(Math.random() * 3)] : 'none';
+                this.skinPattern = ['solid', 'neon', 'stripe', 'fire', 'ice', 'matrix', 'gold'][Math.floor(Math.random() * 7)];
+                this.hat = Math.random() > 0.45 ? ['crown', 'viking', 'halo', 'pirate', 'ninja', 'robot'][Math.floor(Math.random() * 6)] : 'none';
                 this.trail = [];
                 this.mode = mode;
                 this.shootCooldown = 0;
+                this.isDead = false;
+                this.boostTimer = 0;
                 this.lastSeen = Date.now();
             }
 
+            die(killerName) {
+                if (this.isDead) return;
+                this.isDead = true;
+                // Drop food on death
+                const dropCount = Math.min(40, Math.floor(this.score / 2));
+                for (let i = 0; i < dropCount; i++) {
+                    const t = this.trail[Math.floor(Math.random() * Math.max(1, this.trail.length))] || { x: this.x, y: this.y };
+                    foodPellets.push({
+                        id: 'botfood_' + Math.random().toString(36).slice(2, 8),
+                        x: t.x + (Math.random() * 40 - 20),
+                        y: t.y + (Math.random() * 40 - 20),
+                        color: this.color
+                    });
+                }
+                addKillFeedMessage(`${this.name} was eliminated by ${killerName}!`);
+            }
+
             update() {
+                if (this.isDead) return;
                 this.lastSeen = Date.now();
                 let targetAngle = this.angle;
+                let currentSpeed = this.speed;
+
+                // Eat nearby food
+                for (let i = foodPellets.length - 1; i >= 0; i--) {
+                    const f = foodPellets[i];
+                    if (Math.hypot(f.x - this.x, f.y - this.y) < 18) {
+                        foodPellets.splice(i, 1);
+                        this.score += 1;
+                    }
+                }
+
+                // Seek nearest food (both modes)
+                let nearestFood = null;
+                let minFoodDist = 500;
+                for (const f of foodPellets) {
+                    const d = Math.hypot(f.x - this.x, f.y - this.y);
+                    if (d < minFoodDist) {
+                        minFoodDist = d;
+                        nearestFood = f;
+                    }
+                }
 
                 if (this.mode === 'battleroyale') {
-                    // BR Mode AI: Hunt player or shoot
-                    let targetX = me.x;
-                    let targetY = me.y;
-                    let distToPlayer = Math.hypot(targetX - this.x, targetY - this.y);
-
-                    if (distToPlayer < 600) {
-                        targetAngle = Math.atan2(targetY - this.y, targetX - this.x);
-                        // Shoot if close enough
-                        this.shootCooldown++;
-                        if (this.shootCooldown > 50) {
-                            this.shootCooldown = 0;
-                            bullets.push({
-                                id: 'bot_b_' + Math.random(),
-                                ownerId: this.id,
-                                x: this.x, y: this.y,
-                                vx: Math.cos(targetAngle) * 12,
-                                vy: Math.sin(targetAngle) * 12,
-                                life: 100
-                            });
-                        }
+                    // Stay inside the storm when possible
+                    const distFromCenter = Math.hypot(this.x - brZone.x, this.y - brZone.y);
+                    if (distFromCenter > brZone.radius - 200) {
+                        targetAngle = Math.atan2(brZone.y - this.y, brZone.x - this.x);
                     } else {
-                        // Wander aimlessly looking for action
-                        targetAngle += (Math.random() - 0.5) * 0.4;
+                        // Hunt player if close, otherwise food or wander
+                        const distToPlayer = Math.hypot(me.x - this.x, me.y - this.y);
+                        if (!me.isDead && distToPlayer < 700) {
+                            targetAngle = Math.atan2(me.y - this.y, me.x - this.x);
+                            this.shootCooldown++;
+                            if (this.shootCooldown > 45) {
+                                this.shootCooldown = 0;
+                                bullets.push({
+                                    id: 'bot_b_' + Math.random().toString(36).slice(2, 8),
+                                    ownerId: this.id,
+                                    x: this.x, y: this.y,
+                                    vx: Math.cos(targetAngle) * 12,
+                                    vy: Math.sin(targetAngle) * 12,
+                                    life: 100
+                                });
+                            }
+                        } else if (nearestFood) {
+                            targetAngle = Math.atan2(nearestFood.y - this.y, nearestFood.x - this.x);
+                        } else {
+                            targetAngle += (Math.random() - 0.5) * 0.35;
+                        }
                     }
                 } else {
-                    // Normal Mode AI: Slither.io style food collector
-                    let nearestFood = null;
-                    let minDist = 400;
-                    foodPellets.forEach(f => {
-                        let d = Math.hypot(f.x - this.x, f.y - this.y);
-                        if (d < minDist) {
-                            minDist = d;
-                            nearestFood = f;
-                        }
-                    });
-
+                    // Normal mode: food hunter + mild aggression
                     if (nearestFood) {
                         targetAngle = Math.atan2(nearestFood.y - this.y, nearestFood.x - this.x);
                     } else {
                         targetAngle += (Math.random() - 0.5) * 0.3;
                     }
+                    // Occasionally boost toward player if nearby and larger
+                    const distToPlayer = Math.hypot(me.x - this.x, me.y - this.y);
+                    if (!me.isDead && distToPlayer < 350 && this.score > me.score + 20) {
+                        targetAngle = Math.atan2(me.y - this.y, me.x - this.x);
+                        currentSpeed *= 1.4;
+                    }
                 }
 
-                // Obstacle Avoidance for Bot
-                obstacles.forEach(obs => {
-                    let d = Math.hypot(obs.x - this.x, obs.y - this.y);
-                    if (d < 120) {
-                        targetAngle += Math.atan2(this.y - obs.y, this.x - obs.x);
+                // Strong obstacle avoidance
+                for (const obs of obstacles) {
+                    const d = Math.hypot(obs.x - this.x, obs.y - this.y);
+                    if (d < obs.radius + 90) {
+                        targetAngle = Math.atan2(this.y - obs.y, this.x - obs.x);
+                        currentSpeed *= 0.85;
                     }
-                });
+                }
 
-                this.angle = lerpAngle(this.angle, targetAngle, 0.15);
-                this.x += Math.cos(this.angle) * this.speed;
-                this.y += Math.sin(this.angle) * this.speed;
+                // Avoid other bots' bodies (simple)
+                for (const other of aiBots) {
+                    if (other === this || other.isDead || !other.trail || other.trail.length < 8) continue;
+                    for (let i = 6; i < other.trail.length; i += 3) {
+                        const seg = other.trail[i];
+                        if (Math.hypot(seg.x - this.x, seg.y - this.y) < 25) {
+                            targetAngle = Math.atan2(this.y - seg.y, this.x - seg.x);
+                            break;
+                        }
+                    }
+                }
+
+                // Avoid player body if smaller
+                if (!me.isDead && me.trail && me.trail.length > 8 && this.score < me.score) {
+                    for (let i = 6; i < me.trail.length; i += 4) {
+                        const seg = me.trail[i];
+                        if (Math.hypot(seg.x - this.x, seg.y - this.y) < 28) {
+                            targetAngle = Math.atan2(this.y - seg.y, this.x - seg.x);
+                            break;
+                        }
+                    }
+                }
+
+                this.angle = lerpAngle(this.angle, targetAngle, 0.14);
+                this.x += Math.cos(this.angle) * currentSpeed;
+                this.y += Math.sin(this.angle) * currentSpeed;
+
+                // Keep inside world
+                this.x = Math.max(50, Math.min(WORLD_SIZE - 50, this.x));
+                this.y = Math.max(50, Math.min(WORLD_SIZE - 50, this.y));
 
                 this.trail.unshift({ x: this.x, y: this.y });
-                let maxLen = Math.floor(this.score * 2.5);
+                const maxLen = Math.floor(this.score * 2.6);
                 if (this.trail.length > maxLen) this.trail.pop();
             }
         }
@@ -797,9 +882,10 @@
             select.innerHTML = '<option value="self">-- Self (Me) --</option>';
             
             aiBots.forEach(bot => {
+                if (bot.isDead) return;
                 let opt = document.createElement('option');
                 opt.value = bot.id;
-                opt.innerText = `🤖 ${bot.name}`;
+                opt.innerText = `🤖 ${bot.name} (${Math.floor(bot.score)})`;
                 select.appendChild(opt);
             });
 
@@ -879,10 +965,9 @@
         document.getElementById('admTargetKill').onclick = () => {
             let tId = getTargetId();
             if (tId !== 'self') {
-                let idx = aiBots.findIndex(b => b.id === tId);
-                if (idx !== -1) {
-                    addKillFeedMessage(`${aiBots[idx].name} was destroyed by admin!`);
-                    aiBots.splice(idx, 1);
+                let bot = aiBots.find(b => b.id === tId);
+                if (bot) {
+                    bot.die("admin");
                     updateTargetDropdown();
                 } else {
                     sendAdminCommand(tId, 'kill');
@@ -1148,40 +1233,83 @@
         }
 
         function checkEnvironmentCollisions() {
-            if (me.isDead || me.godMode) return;
             const headRadius = me.giantMode ? 40 : 12;
 
-            obstacles.forEach(obs => {
-                let dist = Math.hypot(me.x - obs.x, me.y - obs.y);
-                if (dist < headRadius + obs.radius) {
-                    triggerDeath("a rocky obstacle");
-                }
-            });
-
-            // Check AI Bot collisions
-            aiBots.forEach(bot => {
-                if (!bot.trail || bot.trail.length < 5) return;
-                for (let i = 5; i < bot.trail.length; i++) {
-                    let seg = bot.trail[i];
-                    let dist = Math.hypot(me.x - seg.x, me.y - seg.y);
-                    if (dist < headRadius + 8) {
-                        triggerDeath(bot.name);
+            // Player death checks (skip if god / already dead)
+            if (!me.isDead && !me.godMode) {
+                for (const obs of obstacles) {
+                    if (Math.hypot(me.x - obs.x, me.y - obs.y) < headRadius + obs.radius) {
+                        triggerDeath("a rocky obstacle");
                         return;
                     }
                 }
-            });
 
-            Object.values(remotePlayers).forEach(player => {
-                if (!player.trail || player.trail.length < 5) return;
-                for (let i = 5; i < player.trail.length; i++) {
-                    let seg = player.trail[i];
-                    let dist = Math.hypot(me.x - seg.x, me.y - seg.y);
-                    if (dist < headRadius + 8) {
-                        triggerDeath(player.name || "another player");
-                        return;
+                // Player head hits bot body → player dies
+                for (const bot of aiBots) {
+                    if (bot.isDead || !bot.trail || bot.trail.length < 6) continue;
+                    for (let i = 5; i < bot.trail.length; i++) {
+                        if (Math.hypot(me.x - bot.trail[i].x, me.y - bot.trail[i].y) < headRadius + 8) {
+                            triggerDeath(bot.name);
+                            return;
+                        }
                     }
                 }
-            });
+
+                // Player head hits remote body
+                for (const player of Object.values(remotePlayers)) {
+                    if (!player.trail || player.trail.length < 6) continue;
+                    for (let i = 5; i < player.trail.length; i++) {
+                        if (Math.hypot(me.x - player.trail[i].x, me.y - player.trail[i].y) < headRadius + 8) {
+                            triggerDeath(player.name || "another player");
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // Bot deaths: head into player body, other bots, obstacles
+            for (let b = aiBots.length - 1; b >= 0; b--) {
+                const bot = aiBots[b];
+                if (bot.isDead) continue;
+
+                // Bot hits obstacle
+                for (const obs of obstacles) {
+                    if (Math.hypot(bot.x - obs.x, bot.y - obs.y) < 14 + obs.radius) {
+                        bot.die("a rocky obstacle");
+                        break;
+                    }
+                }
+                if (bot.isDead) continue;
+
+                // Bot head hits player body → bot dies, player scores
+                if (!me.isDead && me.trail && me.trail.length > 6) {
+                    for (let i = 5; i < me.trail.length; i++) {
+                        if (Math.hypot(bot.x - me.trail[i].x, bot.y - me.trail[i].y) < 14) {
+                            bot.die(playerName);
+                            me.score += Math.floor(bot.score * 0.35) + 5;
+                            document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
+                            break;
+                        }
+                    }
+                }
+                if (bot.isDead) continue;
+
+                // Bot head hits another bot body
+                for (const other of aiBots) {
+                    if (other === bot || other.isDead || !other.trail || other.trail.length < 6) continue;
+                    for (let i = 5; i < other.trail.length; i += 2) {
+                        if (Math.hypot(bot.x - other.trail[i].x, bot.y - other.trail[i].y) < 12) {
+                            bot.die(other.name);
+                            other.score += Math.floor(bot.score * 0.25);
+                            break;
+                        }
+                    }
+                    if (bot.isDead) break;
+                }
+            }
+
+            // Clean dead bots from array periodically
+            aiBots = aiBots.filter(b => !b.isDead);
 
             if (gameMode === 'battleroyale') {
                 let distFromCenter = Math.hypot(me.x - brZone.x, me.y - brZone.y);
@@ -1203,7 +1331,7 @@
                     }
                 }
 
-                if (brZone.radius > 300) brZone.radius -= 0.1;
+                if (brZone.radius > 300) brZone.radius -= 0.12;
             }
         }
 
@@ -1214,7 +1342,15 @@
                 if (dist < zone.radius) {
                     foundBiome = zone.name;
                     if (zone.regen) {
-                        me.score += 0.005;
+                        me.score += 0.008;
+                        document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
+                    }
+                    if (zone.lava && !me.godMode && !me.isDead) {
+                        me.score = Math.max(5, me.score - 0.04);
+                        document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
+                    }
+                    if (zone.toxic && !me.godMode && !me.isDead) {
+                        me.score = Math.max(5, me.score - 0.025);
                         document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
                     }
                 }
@@ -1245,7 +1381,9 @@
             let allPlayers = [{ name: playerName, score: Math.floor(me.score) }];
 
             aiBots.forEach(bot => {
-                allPlayers.push({ name: '🤖 ' + bot.name, score: Math.floor(bot.score) });
+                if (!bot.isDead) {
+                    allPlayers.push({ name: '🤖 ' + bot.name, score: Math.floor(bot.score) });
+                }
             });
 
             const now = Date.now();
@@ -1289,6 +1427,7 @@
             }
 
             aiBots.forEach(bot => {
+                if (bot.isDead) return;
                 minimapCtx.fillStyle = '#a855f7';
                 minimapCtx.beginPath();
                 minimapCtx.arc(bot.x * scale, bot.y * scale, 2.5, 0, Math.PI * 2);
@@ -1311,9 +1450,15 @@
         }
 
         function getSegmentColor(baseColor, pattern, idx) {
-            if (pattern === 'neon') return '#38bdf8';
-            if (pattern === 'rainbow') return `hsl(${(idx * 15) % 360}, 100%, 50%)`;
+            if (pattern === 'neon') return idx % 3 === 0 ? '#38bdf8' : baseColor;
+            if (pattern === 'rainbow') return `hsl(${(idx * 15) % 360}, 100%, 55%)`;
             if (pattern === 'stripe') return idx % 2 === 0 ? baseColor : '#ffffff';
+            if (pattern === 'fire') return `hsl(${15 + (idx % 20)}, 100%, ${50 + (idx % 15)}%)`;
+            if (pattern === 'ice') return idx % 2 === 0 ? '#a5f3fc' : '#e0f2fe';
+            if (pattern === 'matrix') return idx % 4 === 0 ? '#22c55e' : '#14532d';
+            if (pattern === 'gold') return idx % 2 === 0 ? '#fbbf24' : '#f59e0b';
+            if (pattern === 'shadow') return idx % 3 === 0 ? '#1e293b' : '#475569';
+            if (pattern === 'galaxy') return `hsl(${(idx * 25 + 240) % 360}, 80%, 55%)`;
             return baseColor;
         }
 
@@ -1382,6 +1527,27 @@
                         ctx.beginPath();
                         ctx.ellipse(0, -28, 12, 5, 0, 0, Math.PI * 2);
                         ctx.stroke();
+                    } else if (hatType === 'pirate') {
+                        ctx.fillStyle = '#1e293b';
+                        ctx.beginPath();
+                        ctx.ellipse(0, -16, 14, 7, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#ef4444';
+                        ctx.fillRect(-14, -18, 28, 4);
+                    } else if (hatType === 'ninja') {
+                        ctx.fillStyle = '#0f172a';
+                        ctx.beginPath();
+                        ctx.ellipse(0, -8, 13, 9, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#ef4444';
+                        ctx.fillRect(-10, -10, 8, 3);
+                        ctx.fillRect(2, -10, 8, 3);
+                    } else if (hatType === 'robot') {
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.fillRect(-12, -26, 24, 12);
+                        ctx.fillStyle = '#22d3ee';
+                        ctx.fillRect(-8, -22, 6, 4);
+                        ctx.fillRect(2, -22, 6, 4);
                     }
                     ctx.restore();
                 }
@@ -1444,7 +1610,50 @@
                 let maxTrailLength = Math.floor(me.score * 3);
                 if (me.trail.length > maxTrailLength) me.trail.pop();
 
-                checkEnvironmentCollisions();
+                // Collect power-ups
+                for (let i = powerUps.length - 1; i >= 0; i--) {
+                    const pw = powerUps[i];
+                    if (Math.hypot(me.x - pw.x, me.y - pw.y) < 30) {
+                        if (pw.type === 'double') {
+                            me.doubleShootTimer = 600;
+                            document.getElementById('powerupHud').innerText = '⚡ Double Shot Active!';
+                        } else if (pw.type === 'speed') {
+                            me.superSpeed = true;
+                            setTimeout(() => { me.superSpeed = false; }, 8000);
+                            document.getElementById('powerupHud').innerText = '🚀 Speed Boost Active!';
+                        } else if (pw.type === 'shield') {
+                            me.godMode = true;
+                            document.getElementById('godModeHud').classList.remove('hidden');
+                            setTimeout(() => {
+                                me.godMode = false;
+                                document.getElementById('godModeHud').classList.add('hidden');
+                            }, 6000);
+                            document.getElementById('powerupHud').innerText = '🛡️ Shield Active!';
+                        }
+                        document.getElementById('powerupHud').classList.remove('hidden');
+                        powerUps.splice(i, 1);
+                    }
+                }
+
+                // Update split worms
+                for (let i = me.splitWorms.length - 1; i >= 0; i--) {
+                    const sw = me.splitWorms[i];
+                    sw.angle = lerpAngle(sw.angle, me.angle + (i % 2 === 0 ? 0.4 : -0.4), 0.08);
+                    sw.x += Math.cos(sw.angle) * 2.8;
+                    sw.y += Math.sin(sw.angle) * 2.8;
+                    sw.trail.unshift({ x: sw.x, y: sw.y });
+                    const maxSw = Math.floor(sw.score * 2.5);
+                    if (sw.trail.length > maxSw) sw.trail.pop();
+                    // Absorb food
+                    for (let fi = foodPellets.length - 1; fi >= 0; fi--) {
+                        if (Math.hypot(foodPellets[fi].x - sw.x, foodPellets[fi].y - sw.y) < 16) {
+                            foodPellets.splice(fi, 1);
+                            sw.score += 1;
+                            me.score += 0.5;
+                        }
+                    }
+                }
+
                 checkBiomes();
 
                 if (globalChannel) {
@@ -1465,6 +1674,40 @@
                         }
                     });
                 }
+            }
+
+            // Always run collisions (bots can still die / interact)
+            checkEnvironmentCollisions();
+
+            // Update black holes (always)
+            for (let i = activeBlackHoles.length - 1; i >= 0; i--) {
+                const bh = activeBlackHoles[i];
+                bh.life--;
+                bh.radius = Math.min(180, bh.radius + 1.2);
+                // Attract player
+                if (!me.isDead && !me.godMode) {
+                    const d = Math.hypot(me.x - bh.x, me.y - bh.y);
+                    if (d < bh.radius + 40) {
+                        const pull = 2.5 * (1 - d / (bh.radius + 40));
+                        me.x += (bh.x - me.x) / Math.max(1, d) * pull;
+                        me.y += (bh.y - me.y) / Math.max(1, d) * pull;
+                        if (d < bh.radius * 0.35) {
+                            triggerDeath("a black hole");
+                        }
+                    }
+                }
+                // Attract & kill bots
+                for (const bot of aiBots) {
+                    if (bot.isDead) continue;
+                    const d = Math.hypot(bot.x - bh.x, bot.y - bh.y);
+                    if (d < bh.radius + 30) {
+                        const pull = 3.0 * (1 - d / (bh.radius + 30));
+                        bot.x += (bh.x - bot.x) / Math.max(1, d) * pull;
+                        bot.y += (bh.y - bot.y) / Math.max(1, d) * pull;
+                        if (d < bh.radius * 0.4) bot.die("a black hole");
+                    }
+                }
+                if (bh.life <= 0) activeBlackHoles.splice(i, 1);
             }
 
             ctx.save();
@@ -1512,21 +1755,52 @@
                 ctx.fill(); ctx.stroke();
             });
 
-            foodPellets.forEach(pellet => {
+            // Food + player collection
+            for (let i = foodPellets.length - 1; i >= 0; i--) {
+                const pellet = foodPellets[i];
                 ctx.fillStyle = pellet.color;
                 ctx.beginPath();
                 ctx.arc(pellet.x, pellet.y, 6, 0, Math.PI * 2);
                 ctx.fill();
 
-                if (!me.isDead) {
-                    let dist = Math.hypot(me.x - pellet.x, me.y - pellet.y);
-                    if (dist < 20) {
-                        pellet.x = Math.random() * WORLD_SIZE;
-                        pellet.y = Math.random() * WORLD_SIZE;
-                        me.score += 1;
-                        document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
+                if (!me.isDead && Math.hypot(me.x - pellet.x, me.y - pellet.y) < 20) {
+                    foodPellets.splice(i, 1);
+                    me.score += 1;
+                    document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
+                    // Occasionally respawn a new pellet elsewhere to keep density
+                    if (Math.random() < 0.7) {
+                        foodPellets.push({
+                            id: 'food_r_' + Math.random().toString(36).slice(2, 7),
+                            x: Math.random() * WORLD_SIZE,
+                            y: Math.random() * WORLD_SIZE,
+                            color: `hsl(${Math.random() * 360}, 100%, 50%)`
+                        });
                     }
                 }
+            }
+
+            // Power-ups visual
+            powerUps.forEach(pw => {
+                const pulse = 10 + Math.sin(Date.now() / 200) * 3;
+                ctx.fillStyle = pw.type === 'double' ? '#fbbf24' : pw.type === 'speed' ? '#22d3ee' : '#a855f7';
+                ctx.beginPath();
+                ctx.arc(pw.x, pw.y, pulse, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // Black holes
+            activeBlackHoles.forEach(bh => {
+                const grd = ctx.createRadialGradient(bh.x, bh.y, 0, bh.x, bh.y, bh.radius);
+                grd.addColorStop(0, 'rgba(0,0,0,0.95)');
+                grd.addColorStop(0.6, 'rgba(88, 28, 135, 0.5)');
+                grd.addColorStop(1, 'rgba(56, 189, 248, 0)');
+                ctx.fillStyle = grd;
+                ctx.beginPath();
+                ctx.arc(bh.x, bh.y, bh.radius, 0, Math.PI * 2);
+                ctx.fill();
             });
 
             if (gameMode === 'battleroyale') {
@@ -1537,8 +1811,20 @@
                     ctx.fillStyle = '#f59e0b';
                     ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI * 2); ctx.fill();
 
-                    if (b.ownerId !== playerId && !me.isDead && Math.hypot(me.x - b.x, me.y - b.y) < 15) {
+                    if (b.ownerId !== playerId && !me.isDead && !me.godMode && Math.hypot(me.x - b.x, me.y - b.y) < 15) {
                         triggerDeath("a bullet");
+                    }
+
+                    // Bullets kill bots
+                    for (const bot of aiBots) {
+                        if (!bot.isDead && b.ownerId !== bot.id && Math.hypot(bot.x - b.x, bot.y - b.y) < 14) {
+                            bot.die(b.ownerId === playerId ? playerName : "a bullet");
+                            if (b.ownerId === playerId) {
+                                me.score += Math.floor(bot.score * 0.3) + 3;
+                                document.getElementById('scoreDisplay').innerText = Math.floor(me.score);
+                            }
+                            b.life = 0;
+                        }
                     }
 
                     if (b.life <= 0) bullets.splice(i, 1);
@@ -1547,7 +1833,14 @@
 
             // Draw AI Bots
             aiBots.forEach(bot => {
-                drawRealisticWorm(bot.trail, bot.color, bot.skinPattern, false, bot.angle, bot.hat);
+                if (!bot.isDead) {
+                    drawRealisticWorm(bot.trail, bot.color, bot.skinPattern, false, bot.angle, bot.hat);
+                }
+            });
+
+            // Draw split worms
+            me.splitWorms.forEach(sw => {
+                drawRealisticWorm(sw.trail, me.color, me.skinPattern, false, sw.angle, 'none');
             });
 
             if (!me.isDead && !me.invisible) {
