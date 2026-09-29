@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slither Global - Bot Spawner Edition</title>
+    <title>Slither v2.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
@@ -48,43 +48,104 @@
         }
 
         .card {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
-            border: 1px solid rgba(56, 189, 248, 0.2);
-            padding: 2.5rem;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7), 0 0 20px rgba(56, 189, 248, 0.1);
-            width: 400px;
+            background: linear-gradient(160deg, rgba(15, 23, 42, 0.97) 0%, rgba(30, 41, 59, 0.95) 50%, rgba(15, 23, 42, 0.98) 100%);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            padding: 2.75rem 2.5rem;
+            border-radius: 24px;
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.04) inset,
+                0 25px 50px -12px rgba(0, 0, 0, 0.8),
+                0 0 60px rgba(56, 189, 248, 0.12),
+                0 0 120px rgba(129, 140, 248, 0.06);
+            width: 440px;
+            max-width: 94vw;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+            animation: cardIn 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, rgba(56, 189, 248, 0.08) 0%, transparent 45%),
+                        radial-gradient(circle at 70% 80%, rgba(129, 140, 248, 0.06) 0%, transparent 40%);
+            pointer-events: none;
+            animation: shimmer 8s ease-in-out infinite;
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(24px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(180deg); }
         }
 
         h1 {
-            font-size: 2.2rem;
-            background: linear-gradient(to right, #38bdf8, #818cf8);
+            font-size: 2.4rem;
+            background: linear-gradient(135deg, #38bdf8 0%, #818cf8 45%, #c084fc 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 1.5rem;
+            background-clip: text;
+            margin-bottom: 0.35rem;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            font-weight: 800;
+            letter-spacing: 3px;
+            font-weight: 900;
+            position: relative;
+            filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.35));
+        }
+
+        .subtitle {
+            font-size: 0.78rem;
+            color: #64748b;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 1.75rem;
+            font-weight: 600;
+        }
+
+        .snake-preview {
+            width: 100%;
+            height: 56px;
+            margin-bottom: 1.5rem;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255,255,255,0.06);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #previewCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
         }
 
         input[type="text"], input[type="password"], input[type="number"], select {
             width: 100%;
-            padding: 0.85rem;
-            border-radius: 8px;
-            border: 1px solid #334155;
-            background: rgba(15, 23, 42, 0.8);
-            color: #fff;
-            margin-bottom: 1rem;
+            padding: 0.9rem 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(51, 65, 85, 0.9);
+            background: rgba(15, 23, 42, 0.75);
+            color: #f1f5f9;
+            margin-bottom: 0.85rem;
             outline: none;
             text-align: center;
             font-size: 1rem;
-            transition: border-color 0.2s;
+            transition: all 0.25s ease;
         }
 
         input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus, select:focus {
             border-color: #38bdf8;
-            box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15), 0 0 20px rgba(56, 189, 248, 0.1);
+            background: rgba(15, 23, 42, 0.95);
         }
 
         select option {
@@ -94,8 +155,8 @@
 
         .config-row {
             display: flex;
-            gap: 10px;
-            margin-bottom: 1rem;
+            gap: 12px;
+            margin-bottom: 0.85rem;
         }
 
         .config-row > div {
@@ -103,12 +164,14 @@
         }
 
         .config-label {
-            font-size: 0.8rem;
+            font-size: 0.72rem;
             color: #94a3b8;
-            font-weight: 600;
+            font-weight: 700;
             display: block;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             text-align: left;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
         }
 
         .color-picker-wrapper {
@@ -116,21 +179,23 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            margin-bottom: 1rem;
-            background: rgba(15, 23, 42, 0.5);
-            padding: 8px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(15, 23, 42, 0.6);
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            height: 48px;
         }
 
         input[type="color"] {
             appearance: none;
+            -webkit-appearance: none;
             border: none;
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             cursor: pointer;
             background: none;
+            padding: 0;
         }
 
         input[type="color"]::-webkit-color-swatch-wrapper {
@@ -138,61 +203,207 @@
         }
 
         input[type="color"]::-webkit-color-swatch {
-            border: 2px solid #38bdf8;
+            border: 3px solid rgba(56, 189, 248, 0.6);
             border-radius: 50%;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
         }
 
         .btn-group {
             display: flex;
             flex-direction: column;
             gap: 12px;
-            margin-top: 1rem;
+            margin-top: 1.25rem;
         }
 
         button {
             width: 100%;
-            padding: 0.85rem;
+            padding: 1rem;
             border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 1rem;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 1.02rem;
             cursor: pointer;
-            transition: all 0.2s ease;
-            letter-spacing: 0.5px;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            letter-spacing: 0.6px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 50%);
+            pointer-events: none;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #0284c7, #0369a1);
+            background: linear-gradient(135deg, #0ea5e9, #0284c7 50%, #0369a1);
             color: white;
-            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+            box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45), 0 0 0 1px rgba(255,255,255,0.1) inset;
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, #0369a1, #075985);
-            transform: translateY(-1px);
+            background: linear-gradient(135deg, #38bdf8, #0ea5e9 50%, #0284c7);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 28px rgba(14, 165, 233, 0.5), 0 0 0 1px rgba(255,255,255,0.15) inset;
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
         }
 
         .btn-br {
-            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            background: linear-gradient(135deg, #ef4444, #dc2626 50%, #b91c1c);
             color: white;
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4), 0 0 0 1px rgba(255,255,255,0.1) inset;
         }
 
         .btn-br:hover {
-            background: linear-gradient(135deg, #b91c1c, #991b1b);
-            transform: translateY(-1px);
+            background: linear-gradient(135deg, #f87171, #ef4444 50%, #dc2626);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 28px rgba(239, 68, 68, 0.5), 0 0 0 1px rgba(255,255,255,0.15) inset;
+        }
+
+        .btn-br:active {
+            transform: translateY(0);
         }
 
         .btn-secondary {
-            background: rgba(51, 65, 85, 0.8);
+            background: rgba(51, 65, 85, 0.7);
             color: #cbd5e1;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: none;
         }
 
         .btn-secondary:hover {
-            background: rgba(71, 85, 105, 1);
+            background: rgba(71, 85, 105, 0.95);
             color: #fff;
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
         }
+
+        .menu-footer {
+            margin-top: 1rem;
+            font-size: 0.7rem;
+            color: #475569;
+            letter-spacing: 1px;
+        }
+
+        .menu-extra-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .btn-ghost {
+            flex: 1;
+            padding: 0.7rem 0.5rem !important;
+            font-size: 0.82rem !important;
+            font-weight: 700 !important;
+            background: rgba(30, 41, 59, 0.7);
+            color: #94a3b8;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            box-shadow: none !important;
+        }
+
+        .btn-ghost:hover {
+            background: rgba(51, 65, 85, 0.9);
+            color: #e2e8f0;
+            border-color: rgba(56, 189, 248, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-ghost::after { display: none; }
+
+        .modal-card {
+            width: 420px;
+            max-height: 80vh;
+            text-align: left;
+        }
+
+        .modal-title {
+            font-size: 1.35rem;
+            color: #e2e8f0;
+            text-align: center;
+            margin-bottom: 0.35rem;
+            letter-spacing: 0.5px;
+        }
+
+        .modal-sub {
+            text-align: center;
+            font-size: 0.78rem;
+            color: #64748b;
+            margin-bottom: 1.25rem;
+        }
+
+        .high-score-list {
+            max-height: 320px;
+            overflow-y: auto;
+            margin-bottom: 1.25rem;
+            padding-right: 4px;
+        }
+
+        .hs-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 6px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255,255,255,0.05);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .hs-row.rank-1 { border-color: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.08); }
+        .hs-row.rank-2 { border-color: rgba(148, 163, 184, 0.35); }
+        .hs-row.rank-3 { border-color: rgba(180, 83, 9, 0.35); }
+
+        .hs-rank { color: #64748b; min-width: 28px; }
+        .hs-name { flex: 1; color: #f1f5f9; }
+        .hs-score { color: #38bdf8; font-weight: 800; }
+
+        .changelog-scroll {
+            max-height: 360px;
+            overflow-y: auto;
+            margin-bottom: 1.25rem;
+            padding-right: 6px;
+        }
+
+        .log-entry {
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .log-entry:last-child { border-bottom: none; }
+
+        .log-ver {
+            font-weight: 800;
+            color: #38bdf8;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+        }
+
+        .log-date {
+            font-weight: 500;
+            color: #64748b;
+            font-size: 0.78rem;
+            margin-left: 8px;
+        }
+
+        .log-entry ul {
+            margin: 0;
+            padding-left: 1.2rem;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            line-height: 1.55;
+        }
+
+        .log-entry li { margin-bottom: 3px; }
 
         /* ADMIN CONSOLE UI */
         #adminConsole {
@@ -507,8 +718,12 @@
     <!-- MAIN MENU -->
     <div id="menuScreen" class="overlay-screen">
         <div class="card">
-            <h1>Slither Global</h1>
-            <input type="text" id="playerNameInput" placeholder="Enter Nickname" maxlength="15">
+            <h1>Slither</h1>
+            <div class="subtitle">v2.1 · Bot Spawner Edition</div>
+            <div class="snake-preview">
+                <canvas id="previewCanvas" width="400" height="56"></canvas>
+            </div>
+            <input type="text" id="playerNameInput" placeholder="Enter Nickname" maxlength="15" value="SlitherPro">
             <div class="config-row">
                 <div>
                     <label class="config-label">Base Color</label>
@@ -532,7 +747,7 @@
                     </select>
                 </div>
             </div>
-            <div style="margin-bottom: 1.5rem; text-align: left;">
+            <div style="margin-bottom: 0.5rem; text-align: left;">
                 <label class="config-label">Headwear / Hat</label>
                 <select id="hatSelect">
                     <option value="none">None</option>
@@ -545,9 +760,69 @@
                 </select>
             </div>
             <div class="btn-group">
-                <button class="btn-primary" id="playNormalBtn">Normal Game (Map A)</button>
-                <button class="btn-br" id="playBRBtn">Battle Royale (Map B)</button>
+                <button class="btn-primary" id="playNormalBtn">▶  Normal Game</button>
+                <button class="btn-br" id="playBRBtn">⚔  Battle Royale</button>
             </div>
+            <div class="menu-extra-btns">
+                <button class="btn-ghost" id="openLeaderboardBtn">🏆 Leaderboard</button>
+                <button class="btn-ghost" id="openLogsBtn">📋 Changelog</button>
+            </div>
+            <div class="menu-footer">Customize · Survive · Dominate</div>
+        </div>
+    </div>
+
+    <!-- HIGH SCORE LEADERBOARD MODAL -->
+    <div id="highScoreModal" class="overlay-screen hidden">
+        <div class="card modal-card">
+            <h2 class="modal-title">🏆 All-Time High Scores</h2>
+            <p class="modal-sub">Saved locally on this device</p>
+            <div id="highScoreList" class="high-score-list"></div>
+            <button class="btn-secondary" id="closeLeaderboardBtn">Close</button>
+        </div>
+    </div>
+
+    <!-- CHANGELOG MODAL -->
+    <div id="logsModal" class="overlay-screen hidden">
+        <div class="card modal-card">
+            <h2 class="modal-title">📋 Changelog</h2>
+            <div class="changelog-scroll">
+                <div class="log-entry">
+                    <div class="log-ver">v2.1 <span class="log-date">Sep 29, 2026</span></div>
+                    <ul>
+                        <li>Organic biome shapes that merge into each other</li>
+                        <li>Persistent high-score leaderboard (local save)</li>
+                        <li>Changelog & version on main menu</li>
+                        <li>Title simplified to “Slither”</li>
+                    </ul>
+                </div>
+                <div class="log-entry">
+                    <div class="log-ver">v2.0 <span class="log-date">Sep 29, 2026</span></div>
+                    <ul>
+                        <li>Remade snake textures (gradients, eyes, glow)</li>
+                        <li>Live skin preview on main menu</li>
+                        <li>Polished menu UI with animations</li>
+                        <li>New skins & hats</li>
+                    </ul>
+                </div>
+                <div class="log-entry">
+                    <div class="log-ver">v1.5 <span class="log-date">Sep 29, 2026</span></div>
+                    <ul>
+                        <li>Intelligent bots that eat, die, and fight</li>
+                        <li>Black holes, power-ups, split-cell fixed</li>
+                        <li>New biomes for Normal & BR</li>
+                        <li>Admin console bug fixes</li>
+                    </ul>
+                </div>
+                <div class="log-entry">
+                    <div class="log-ver">v1.0 <span class="log-date">Initial</span></div>
+                    <ul>
+                        <li>Base Slither multiplayer + Battle Royale</li>
+                        <li>Admin bot spawner console</li>
+                        <li>Supabase realtime sync</li>
+                    </ul>
+                </div>
+            </div>
+            <button class="btn-secondary" id="closeLogsBtn">Close</button>
         </div>
     </div>
 
@@ -556,7 +831,8 @@
         <div class="card">
             <h1 style="color: #ef4444; -webkit-text-fill-color: #ef4444;">Eliminated</h1>
             <p id="deathReasonText" style="margin-bottom: 1rem; color: #cbd5e1; font-weight: 500;">You collided with another player!</p>
-            <p style="margin-bottom: 1.5rem;">Final Score: <span id="finalScoreDisplay" style="color: #38bdf8; font-weight: bold;">0</span></p>
+            <p style="margin-bottom: 0.5rem;">Final Score: <span id="finalScoreDisplay" style="color: #38bdf8; font-weight: bold;">0</span></p>
+            <p id="newHighScoreMsg" class="hidden" style="margin-bottom: 1rem; color: #fbbf24; font-weight: 700;">🎉 New personal best!</p>
             <div class="btn-group">
                 <button class="btn-primary" id="respawnBtn">Play Again</button>
                 <button class="btn-secondary" id="mainMenuBtn">Main Menu</button>
@@ -584,6 +860,109 @@
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
+
+        // --- Live snake preview on main menu ---
+        const previewCanvas = document.getElementById('previewCanvas');
+        const previewCtx = previewCanvas.getContext('2d');
+        let previewAngle = 0;
+
+        function drawMenuPreview() {
+            if (gameActive) return;
+            const w = previewCanvas.width;
+            const h = previewCanvas.height;
+            previewCtx.clearRect(0, 0, w, h);
+
+            const color = document.getElementById('colorPicker').value;
+            const pattern = document.getElementById('skinPatternSelect').value;
+            const hat = document.getElementById('hatSelect').value;
+
+            const points = [];
+            const segments = 28;
+            const cx = w * 0.15;
+            const cy = h / 2;
+            for (let i = 0; i < segments; i++) {
+                const t = i / segments;
+                const x = cx + t * w * 0.75 + Math.sin(previewAngle + t * 6) * 6;
+                const y = cy + Math.sin(previewAngle * 1.4 + t * 5) * 8;
+                points.push({ x, y });
+            }
+
+            // Draw body
+            for (let i = points.length - 1; i >= 0; i--) {
+                const pt = points[i];
+                let r = Math.max(3, 11 - i * 0.22);
+                if (i === 0) r = 13;
+                const segColor = getSegmentColor(color, pattern, i);
+                if (segColor[0] === '#') {
+                    const g = previewCtx.createRadialGradient(pt.x - 2, pt.y - 2, 1, pt.x, pt.y, r);
+                    g.addColorStop(0, lightenColor(segColor, 30));
+                    g.addColorStop(1, darkenColor(segColor, 20));
+                    previewCtx.fillStyle = g;
+                } else {
+                    previewCtx.fillStyle = segColor;
+                }
+                previewCtx.beginPath();
+                previewCtx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+                previewCtx.fill();
+            }
+
+            // Head eyes
+            const head = points[0];
+            const ang = Math.atan2(points[0].y - points[1].y, points[0].x - points[1].x);
+            previewCtx.save();
+            previewCtx.translate(head.x, head.y);
+            previewCtx.rotate(ang);
+            previewCtx.fillStyle = '#fff';
+            previewCtx.beginPath(); previewCtx.arc(5, -4, 2.8, 0, Math.PI * 2); previewCtx.fill();
+            previewCtx.beginPath(); previewCtx.arc(5, 4, 2.8, 0, Math.PI * 2); previewCtx.fill();
+            previewCtx.fillStyle = '#0f172a';
+            previewCtx.beginPath(); previewCtx.arc(6, -4, 1.4, 0, Math.PI * 2); previewCtx.fill();
+            previewCtx.beginPath(); previewCtx.arc(6, 4, 1.4, 0, Math.PI * 2); previewCtx.fill();
+            previewCtx.restore();
+
+            // Mini hat
+            if (hat !== 'none') {
+                previewCtx.save();
+                previewCtx.translate(head.x, head.y);
+                previewCtx.rotate(ang + Math.PI / 2);
+                if (hat === 'crown') {
+                    previewCtx.fillStyle = '#fbbf24';
+                    previewCtx.beginPath();
+                    previewCtx.moveTo(-7, -12); previewCtx.lineTo(-8, -20); previewCtx.lineTo(-3, -15);
+                    previewCtx.lineTo(0, -22); previewCtx.lineTo(3, -15); previewCtx.lineTo(8, -20); previewCtx.lineTo(7, -12);
+                    previewCtx.closePath(); previewCtx.fill();
+                } else if (hat === 'halo') {
+                    previewCtx.strokeStyle = '#fde047'; previewCtx.lineWidth = 2;
+                    previewCtx.beginPath(); previewCtx.ellipse(0, -18, 9, 3.5, 0, 0, Math.PI * 2); previewCtx.stroke();
+                } else if (hat === 'viking') {
+                    previewCtx.fillStyle = '#64748b';
+                    previewCtx.beginPath(); previewCtx.arc(0, -13, 7, Math.PI, 0); previewCtx.fill();
+                } else if (hat === 'pirate') {
+                    previewCtx.fillStyle = '#1e293b';
+                    previewCtx.beginPath(); previewCtx.ellipse(0, -11, 10, 5, 0, 0, Math.PI * 2); previewCtx.fill();
+                    previewCtx.fillStyle = '#ef4444'; previewCtx.fillRect(-10, -13, 20, 3);
+                } else if (hat === 'ninja') {
+                    previewCtx.fillStyle = '#0f172a';
+                    previewCtx.beginPath(); previewCtx.ellipse(0, -6, 9, 6, 0, 0, Math.PI * 2); previewCtx.fill();
+                } else if (hat === 'robot') {
+                    previewCtx.fillStyle = '#94a3b8'; previewCtx.fillRect(-8, -18, 16, 8);
+                    previewCtx.fillStyle = '#22d3ee'; previewCtx.fillRect(-5, -15, 4, 3); previewCtx.fillRect(1, -15, 4, 3);
+                }
+                previewCtx.restore();
+            }
+
+            previewAngle += 0.04;
+            requestAnimationFrame(drawMenuPreview);
+        }
+
+        // Start preview once helpers exist — deferred start below after function defs
+        let previewStarted = false;
+        function startPreviewLoop() {
+            if (!previewStarted) {
+                previewStarted = true;
+                drawMenuPreview();
+            }
+        }
 
         const WORLD_SIZE = 10000;
         let gameActive = false;
@@ -634,30 +1013,105 @@
             radius: WORLD_SIZE * 0.45
         };
 
+        // Build an organic irregular polygon around a center
+        function makeOrganicZone(name, cx, cy, baseRadius, color, flags, seed) {
+            const verts = [];
+            const count = 14 + Math.floor((seed % 5));
+            for (let i = 0; i < count; i++) {
+                const ang = (i / count) * Math.PI * 2;
+                // Multi-frequency noise so each zone has a unique blob shape
+                const n =
+                    0.55 +
+                    0.22 * Math.sin(ang * 2 + seed) +
+                    0.15 * Math.cos(ang * 3 - seed * 0.7) +
+                    0.12 * Math.sin(ang * 5 + seed * 1.3) +
+                    0.08 * Math.cos(ang * 7 + seed * 0.4);
+                const r = baseRadius * n;
+                verts.push({
+                    x: cx + Math.cos(ang) * r,
+                    y: cy + Math.sin(ang) * r
+                });
+            }
+            return {
+                name,
+                x: cx,
+                y: cy,
+                radius: baseRadius, // approx for minimap / fallback
+                verts,
+                color,
+                ...flags
+            };
+        }
+
+        function pointInZone(px, py, zone) {
+            // Ray-casting point-in-polygon
+            const v = zone.verts;
+            if (!v || v.length < 3) {
+                return Math.hypot(px - zone.x, py - zone.y) < zone.radius;
+            }
+            let inside = false;
+            for (let i = 0, j = v.length - 1; i < v.length; j = i++) {
+                const xi = v[i].x, yi = v[i].y;
+                const xj = v[j].x, yj = v[j].y;
+                if (((yi > py) !== (yj > py)) &&
+                    (px < (xj - xi) * (py - yi) / (yj - yi + 0.00001) + xi)) {
+                    inside = !inside;
+                }
+            }
+            return inside;
+        }
+
+        function drawZonePath(ctxRef, zone) {
+            const v = zone.verts;
+            if (!v || v.length < 3) {
+                ctxRef.beginPath();
+                ctxRef.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
+                return;
+            }
+            ctxRef.beginPath();
+            ctxRef.moveTo(v[0].x, v[0].y);
+            for (let i = 1; i < v.length; i++) {
+                // Smooth with quadratic midpoints
+                const prev = v[i - 1];
+                const curr = v[i];
+                const mx = (prev.x + curr.x) / 2;
+                const my = (prev.y + curr.y) / 2;
+                ctxRef.quadraticCurveTo(prev.x, prev.y, mx, my);
+            }
+            // close smoothly
+            const last = v[v.length - 1];
+            const first = v[0];
+            const mx = (last.x + first.x) / 2;
+            const my = (last.y + first.y) / 2;
+            ctxRef.quadraticCurveTo(last.x, last.y, mx, my);
+            ctxRef.quadraticCurveTo(first.x, first.y, first.x, first.y);
+            ctxRef.closePath();
+        }
+
         function generateUniqueMapContent(mode) {
             foodPellets = [];
             obstacles = [];
             powerUps = [];
-            aiBots = [];
+            // Bots intentionally NOT cleared — they persist until admin nuke
 
             if (mode === 'battleroyale') {
                 MAP_ZONES = [
-                    { name: "Volcanic Caldera", x: 2500, y: 2500, radius: 1800, color: 'rgba(239, 68, 68, 0.05)', lava: true },
-                    { name: "Frozen Greasy Grove", x: 7500, y: 2500, radius: 1800, color: 'rgba(147, 197, 253, 0.05)', ice: true },
-                    { name: "Cyberpunk Alley", x: 5000, y: 7500, radius: 2000, color: 'rgba(168, 85, 247, 0.04)', speedBoost: true },
-                    { name: "Toxic Wasteland", x: 2000, y: 7000, radius: 1600, color: 'rgba(34, 197, 94, 0.05)', toxic: true },
-                    { name: "Crystal Caverns", x: 8000, y: 7000, radius: 1700, color: 'rgba(236, 72, 153, 0.04)', regen: true },
-                    { name: "Storm Eye", x: 5000, y: 5000, radius: 1200, color: 'rgba(251, 191, 36, 0.04)', speedBoost: true }
+                    makeOrganicZone("Volcanic Caldera", 2500, 2500, 1900, 'rgba(239, 68, 68, 0.07)', { lava: true }, 1.2),
+                    makeOrganicZone("Frozen Greasy Grove", 7500, 2500, 1850, 'rgba(147, 197, 253, 0.07)', { ice: true }, 2.7),
+                    makeOrganicZone("Cyberpunk Alley", 5000, 7500, 2100, 'rgba(168, 85, 247, 0.06)', { speedBoost: true }, 3.4),
+                    makeOrganicZone("Toxic Wasteland", 2000, 7000, 1700, 'rgba(34, 197, 94, 0.07)', { toxic: true }, 4.1),
+                    makeOrganicZone("Crystal Caverns", 8000, 7000, 1750, 'rgba(236, 72, 153, 0.06)', { regen: true }, 5.6),
+                    makeOrganicZone("Storm Eye", 5000, 5000, 1350, 'rgba(251, 191, 36, 0.06)', { speedBoost: true }, 6.3)
                 ];
             } else {
                 MAP_ZONES = [
-                    { name: "Tilted Neon Towers", x: 2200, y: 2200, radius: 1800, color: 'rgba(56, 189, 248, 0.04)', speedBoost: true },
-                    { name: "Frozen Greasy Grove", x: 7800, y: 2200, radius: 1800, color: 'rgba(147, 197, 253, 0.05)', ice: true },
-                    { name: "Loot Lake", x: 5000, y: 7800, radius: 2000, color: 'rgba(16, 185, 129, 0.04)', regen: true },
-                    { name: "Sunny Steps", x: 2000, y: 7000, radius: 1600, color: 'rgba(251, 191, 36, 0.04)', regen: true },
-                    { name: "Shadow Dunes", x: 8000, y: 7000, radius: 1700, color: 'rgba(100, 116, 139, 0.05)', speedBoost: true },
-                    { name: "Plasma Fields", x: 5000, y: 5000, radius: 1500, color: 'rgba(192, 132, 252, 0.04)', speedBoost: true },
-                    { name: "Emerald Grove", x: 3500, y: 8500, radius: 1400, color: 'rgba(52, 211, 153, 0.04)', regen: true }
+                    makeOrganicZone("Tilted Neon Towers", 2200, 2200, 1900, 'rgba(56, 189, 248, 0.06)', { speedBoost: true }, 1.1),
+                    makeOrganicZone("Frozen Greasy Grove", 7800, 2200, 1850, 'rgba(147, 197, 253, 0.07)', { ice: true }, 2.4),
+                    makeOrganicZone("Loot Lake", 5000, 7800, 2100, 'rgba(16, 185, 129, 0.06)', { regen: true }, 3.8),
+                    makeOrganicZone("Sunny Steps", 2000, 7000, 1700, 'rgba(251, 191, 36, 0.06)', { regen: true }, 4.5),
+                    makeOrganicZone("Shadow Dunes", 8000, 7000, 1800, 'rgba(100, 116, 139, 0.07)', { speedBoost: true }, 5.2),
+                    makeOrganicZone("Plasma Fields", 5000, 5000, 1600, 'rgba(192, 132, 252, 0.06)', { speedBoost: true }, 6.9),
+                    makeOrganicZone("Emerald Grove", 3500, 8500, 1500, 'rgba(52, 211, 153, 0.06)', { regen: true }, 7.3)
                 ];
             }
 
@@ -724,6 +1178,19 @@
                     });
                 }
                 addKillFeedMessage(`${this.name} was eliminated by ${killerName}!`);
+                // Auto-respawn after a few seconds — bots never leave permanently
+                const self = this;
+                setTimeout(() => {
+                    if (!aiBots.includes(self)) return; // was nuked
+                    self.isDead = false;
+                    self.x = WORLD_SIZE / 2 + (Math.random() * 4000 - 2000);
+                    self.y = WORLD_SIZE / 2 + (Math.random() * 4000 - 2000);
+                    self.angle = Math.random() * Math.PI * 2;
+                    self.score = 25 + Math.floor(Math.random() * 60);
+                    self.trail = [];
+                    self.shootCooldown = 0;
+                    persistBots();
+                }, 2500 + Math.random() * 2000);
             }
 
             update() {
@@ -870,10 +1337,12 @@
             let count = parseInt(document.getElementById('botSpawnCountInput').value) || 5;
             for (let i = 0; i < count; i++) {
                 let botId = 'bot_' + Math.random().toString(36).substring(2, 7);
-                aiBots.push(new AIBot(botId, gameMode));
+                aiBots.push(new AIBot(botId, gameMode || 'normal'));
             }
+            persistBots();
+            ensureBotLoop();
             updateTargetDropdown();
-            alert(`Successfully spawned ${count} intelligent bots for ${gameMode.toUpperCase()} mode!`);
+            alert(`Successfully spawned ${count} intelligent bots! They will stay until you nuke them.`);
         };
 
         function updateTargetDropdown() {
@@ -965,9 +1434,11 @@
         document.getElementById('admTargetKill').onclick = () => {
             let tId = getTargetId();
             if (tId !== 'self') {
-                let bot = aiBots.find(b => b.id === tId);
-                if (bot) {
-                    bot.die("admin");
+                let idx = aiBots.findIndex(b => b.id === tId);
+                if (idx !== -1) {
+                    addKillFeedMessage(`${aiBots[idx].name} was permanently removed by admin!`);
+                    aiBots.splice(idx, 1);
+                    persistBots();
                     updateTargetDropdown();
                 } else {
                     sendAdminCommand(tId, 'kill');
@@ -1009,10 +1480,12 @@
         };
         document.getElementById('admNukeAll').onclick = () => {
             aiBots = [];
+            try { localStorage.removeItem(BOTS_KEY); } catch (e) {}
             updateTargetDropdown();
             if (globalChannel) {
                 globalChannel.send({ type: 'broadcast', event: 'admin_nuke', payload: {} });
             }
+            alert('All bots wiped. They will not return until you spawn more.');
         };
         document.getElementById('admSplitCell').onclick = () => {
             if (me.score > 30) {
@@ -1113,8 +1586,22 @@
 
             generateUniqueMapContent(mode);
 
+            // Keep existing bots — just switch their AI mode to match this session
+            aiBots.forEach(bot => {
+                bot.mode = mode;
+                if (bot.isDead) {
+                    bot.isDead = false;
+                    bot.trail = [];
+                    bot.score = Math.max(25, bot.score);
+                }
+            });
+            persistBots();
+            ensureBotLoop();
+
             document.getElementById('menuScreen').classList.add('hidden');
             document.getElementById('deathScreen').classList.add('hidden');
+            document.getElementById('highScoreModal').classList.add('hidden');
+            document.getElementById('logsModal').classList.add('hidden');
             document.getElementById('stormWarning').classList.add('hidden');
             document.getElementById('hud').classList.remove('hidden');
             document.getElementById('leaderboard').classList.remove('hidden');
@@ -1143,6 +1630,8 @@
             document.getElementById('leaderboard').classList.add('hidden');
             document.getElementById('minimapCanvas').classList.add('hidden');
             gameActive = false;
+            persistBots();
+            ensureBotLoop(); // bots keep playing in background while you're on the menu
         };
 
         function addKillFeedMessage(msg) {
@@ -1203,10 +1692,158 @@
                 .subscribe();
         }
 
+        // --- Persistent bots (survive death, menu, page reload) ---
+        const BOTS_KEY = 'slither_persistent_bots_v1';
+        let botLoopRunning = false;
+
+        function persistBots() {
+            try {
+                const data = aiBots.filter(b => !b.isDead).map(b => ({
+                    id: b.id,
+                    name: b.name,
+                    x: b.x,
+                    y: b.y,
+                    angle: b.angle,
+                    speed: b.speed,
+                    score: b.score,
+                    color: b.color,
+                    skinPattern: b.skinPattern,
+                    hat: b.hat,
+                    mode: b.mode
+                }));
+                localStorage.setItem(BOTS_KEY, JSON.stringify(data));
+            } catch (e) {}
+        }
+
+        function loadPersistedBots() {
+            try {
+                const raw = localStorage.getItem(BOTS_KEY);
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                if (!Array.isArray(data) || !data.length) return;
+                aiBots = [];
+                data.forEach(d => {
+                    const bot = new AIBot(d.id, d.mode || 'normal');
+                    bot.name = d.name || bot.name;
+                    bot.x = d.x ?? bot.x;
+                    bot.y = d.y ?? bot.y;
+                    bot.angle = d.angle ?? bot.angle;
+                    bot.speed = d.speed ?? bot.speed;
+                    bot.score = d.score ?? bot.score;
+                    bot.color = d.color || bot.color;
+                    bot.skinPattern = d.skinPattern || bot.skinPattern;
+                    bot.hat = d.hat || bot.hat;
+                    bot.trail = [{ x: bot.x, y: bot.y }];
+                    bot.isDead = false;
+                    aiBots.push(bot);
+                });
+            } catch (e) {}
+        }
+
+        function ensureBotLoop() {
+            if (botLoopRunning) return;
+            botLoopRunning = true;
+            function tick() {
+                // When a player session is active, gameLoop owns bot updates.
+                // When idle / dead / on menu, this loop keeps bots simulating.
+                if (!gameActive && aiBots.length > 0) {
+                    if (foodPellets.length < 80) {
+                        for (let i = 0; i < 40; i++) {
+                            foodPellets.push({
+                                id: 'idle_food_' + Math.random().toString(36).slice(2, 7),
+                                x: Math.random() * WORLD_SIZE,
+                                y: Math.random() * WORLD_SIZE,
+                                color: `hsl(${Math.random() * 360}, 100%, 50%)`
+                            });
+                        }
+                    }
+                    aiBots.forEach(bot => {
+                        if (!bot.isDead) bot.update();
+                    });
+                    for (let b = 0; b < aiBots.length; b++) {
+                        const bot = aiBots[b];
+                        if (bot.isDead) continue;
+                        for (let o = 0; o < aiBots.length; o++) {
+                            if (o === b) continue;
+                            const other = aiBots[o];
+                            if (other.isDead || !other.trail || other.trail.length < 6) continue;
+                            for (let i = 5; i < other.trail.length; i += 4) {
+                                if (Math.hypot(bot.x - other.trail[i].x, bot.y - other.trail[i].y) < 12) {
+                                    bot.die(other.name);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (Math.random() < 0.02) persistBots();
+                }
+                requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+        }
+
+        // Restore bots from last session as soon as possible
+        // (AIBot class must exist — this runs after class definition when we call it at bottom)
+
+        // --- Persistent high scores (localStorage) ---
+        const HS_KEY = 'slither_highscores_v1';
+
+        function loadHighScores() {
+            try {
+                return JSON.parse(localStorage.getItem(HS_KEY) || '[]');
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveHighScore(name, score, mode) {
+            const list = loadHighScores();
+            list.push({
+                name: name || 'Anonymous',
+                score: Math.floor(score),
+                mode: mode || 'normal',
+                date: new Date().toLocaleDateString()
+            });
+            list.sort((a, b) => b.score - a.score);
+            const top = list.slice(0, 15);
+            localStorage.setItem(HS_KEY, JSON.stringify(top));
+            return top.length > 0 && top[0].score === Math.floor(score) && top[0].name === (name || 'Anonymous');
+        }
+
+        function renderHighScoreList() {
+            const list = loadHighScores();
+            const el = document.getElementById('highScoreList');
+            if (!list.length) {
+                el.innerHTML = '<p style="text-align:center;color:#64748b;padding:1.5rem 0;">No scores yet — go play!</p>';
+                return;
+            }
+            el.innerHTML = list.map((s, i) => `
+                <div class="hs-row rank-${i + 1 <= 3 ? i + 1 : 'x'}">
+                    <span class="hs-rank">#${i + 1}</span>
+                    <span class="hs-name">${escapeHtml(s.name)} <span style="color:#475569;font-size:0.75rem;">(${s.mode === 'battleroyale' ? 'BR' : 'Normal'})</span></span>
+                    <span class="hs-score">${s.score}</span>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('openLeaderboardBtn').onclick = () => {
+            renderHighScoreList();
+            document.getElementById('highScoreModal').classList.remove('hidden');
+        };
+        document.getElementById('closeLeaderboardBtn').onclick = () => {
+            document.getElementById('highScoreModal').classList.add('hidden');
+        };
+        document.getElementById('openLogsBtn').onclick = () => {
+            document.getElementById('logsModal').classList.remove('hidden');
+        };
+        document.getElementById('closeLogsBtn').onclick = () => {
+            document.getElementById('logsModal').classList.add('hidden');
+        };
+
         function triggerDeath(killerName) {
             if (me.isDead || me.godMode) return;
             me.isDead = true;
-            gameActive = false;
+            gameActive = false; // stops player loop rendering, bots keep running via botLoop
 
             if (globalChannel) {
                 globalChannel.send({
@@ -1217,8 +1854,16 @@
             }
             addKillFeedMessage(`${playerName} was eliminated by ${killerName || "another player"}!`);
 
+            const finalScore = Math.floor(me.score);
+            const isNewBest = saveHighScore(playerName, finalScore, gameMode);
+
+            // Bots stay alive — save their state
+            persistBots();
+            ensureBotLoop();
+
             document.getElementById('deathReasonText').innerText = `You were eliminated by ${killerName || "another player"}!`;
-            document.getElementById('finalScoreDisplay').innerText = Math.floor(me.score);
+            document.getElementById('finalScoreDisplay').innerText = finalScore;
+            document.getElementById('newHighScoreMsg').classList.toggle('hidden', !isNewBest);
             document.getElementById('deathScreen').classList.remove('hidden');
             document.getElementById('stormWarning').classList.add('hidden');
             document.getElementById('locationBanner').classList.add('hidden');
@@ -1308,8 +1953,7 @@
                 }
             }
 
-            // Clean dead bots from array periodically
-            aiBots = aiBots.filter(b => !b.isDead);
+            // Dead bots stay in the array and auto-respawn — only admin nuke removes them
 
             if (gameMode === 'battleroyale') {
                 let distFromCenter = Math.hypot(me.x - brZone.x, me.y - brZone.y);
@@ -1338,8 +1982,7 @@
         function checkBiomes() {
             let foundBiome = "";
             MAP_ZONES.forEach(zone => {
-                let dist = Math.hypot(me.x - zone.x, me.y - zone.y);
-                if (dist < zone.radius) {
+                if (pointInZone(me.x, me.y, zone)) {
                     foundBiome = zone.name;
                     if (zone.regen) {
                         me.score += 0.008;
@@ -1367,13 +2010,10 @@
         }
 
         function isInIceBiome() {
-            let inIce = false;
-            MAP_ZONES.forEach(zone => {
-                if (zone.ice && Math.hypot(me.x - zone.x, me.y - zone.y) < zone.radius) {
-                    inIce = true;
-                }
-            });
-            return inIce;
+            for (const zone of MAP_ZONES) {
+                if (zone.ice && pointInZone(me.x, me.y, zone)) return true;
+            }
+            return false;
         }
 
         function updateLeaderboard() {
@@ -1413,9 +2053,19 @@
 
             MAP_ZONES.forEach(zone => {
                 minimapCtx.fillStyle = zone.color;
-                minimapCtx.beginPath();
-                minimapCtx.arc(zone.x * scale, zone.y * scale, zone.radius * scale, 0, Math.PI * 2);
-                minimapCtx.fill();
+                if (zone.verts && zone.verts.length > 2) {
+                    minimapCtx.beginPath();
+                    minimapCtx.moveTo(zone.verts[0].x * scale, zone.verts[0].y * scale);
+                    for (let i = 1; i < zone.verts.length; i++) {
+                        minimapCtx.lineTo(zone.verts[i].x * scale, zone.verts[i].y * scale);
+                    }
+                    minimapCtx.closePath();
+                    minimapCtx.fill();
+                } else {
+                    minimapCtx.beginPath();
+                    minimapCtx.arc(zone.x * scale, zone.y * scale, zone.radius * scale, 0, Math.PI * 2);
+                    minimapCtx.fill();
+                }
             });
 
             if (gameMode === 'battleroyale') {
@@ -1453,7 +2103,7 @@
             if (pattern === 'neon') return idx % 3 === 0 ? '#38bdf8' : baseColor;
             if (pattern === 'rainbow') return `hsl(${(idx * 15) % 360}, 100%, 55%)`;
             if (pattern === 'stripe') return idx % 2 === 0 ? baseColor : '#ffffff';
-            if (pattern === 'fire') return `hsl(${15 + (idx % 20)}, 100%, ${50 + (idx % 15)}%)`;
+            if (pattern === 'fire') return `hsl(${12 + (idx % 25)}, 100%, ${48 + (idx % 18)}%)`;
             if (pattern === 'ice') return idx % 2 === 0 ? '#a5f3fc' : '#e0f2fe';
             if (pattern === 'matrix') return idx % 4 === 0 ? '#22c55e' : '#14532d';
             if (pattern === 'gold') return idx % 2 === 0 ? '#fbbf24' : '#f59e0b';
@@ -1465,93 +2115,207 @@
         function drawRealisticWorm(trail, color, pattern, isLocal, angle, hatType) {
             if (!trail || trail.length === 0) return;
 
-            let sizeMultiplier = (isLocal && me.giantMode) ? 3.0 : 1.0;
+            const sizeMultiplier = (isLocal && me.giantMode) ? 3.0 : 1.0;
+            const isNeon = pattern === 'neon' || pattern === 'galaxy' || pattern === 'fire';
 
-            trail.forEach((pt, idx) => {
-                let radius = Math.max(5, (14 - (idx * 0.04))) * sizeMultiplier;
-                ctx.fillStyle = getSegmentColor(color, pattern, idx);
+            // Draw body from tail to head for proper overlap
+            for (let idx = trail.length - 1; idx >= 0; idx--) {
+                const pt = trail[idx];
+                const t = idx / Math.max(1, trail.length - 1);
+                let radius = Math.max(4.5, (13.5 - idx * 0.038)) * sizeMultiplier;
+                if (idx === 0) radius = 15 * sizeMultiplier;
+
+                const segColor = getSegmentColor(color, pattern, idx);
+
+                // Soft glow for neon-style skins
+                if (isNeon && idx < 40) {
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, radius * 1.55, 0, Math.PI * 2);
+                    ctx.fillStyle = segColor + '22';
+                    ctx.fill();
+                }
+
+                // Main segment with radial gradient (highlight + depth) when possible
+                if (segColor[0] === '#') {
+                    const grd = ctx.createRadialGradient(
+                        pt.x - radius * 0.3, pt.y - radius * 0.35, radius * 0.1,
+                        pt.x, pt.y, radius
+                    );
+                    grd.addColorStop(0, lightenColor(segColor, 35));
+                    grd.addColorStop(0.45, segColor);
+                    grd.addColorStop(1, darkenColor(segColor, 28));
+                    ctx.fillStyle = grd;
+                } else {
+                    ctx.fillStyle = segColor;
+                }
                 ctx.beginPath();
                 ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
                 ctx.fill();
-                
-                ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-            });
 
-            let head = trail[0];
-            if (head) {
-                ctx.fillStyle = getSegmentColor(color, pattern, 0);
+                // Scale / ring detail
+                if (idx % 3 === 0 && idx > 0) {
+                    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+                    ctx.lineWidth = 1.2 * sizeMultiplier;
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, radius * 0.72, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Subtle outer rim
+                ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+                ctx.lineWidth = 1.4;
                 ctx.beginPath();
-                ctx.arc(head.x, head.y, 15 * sizeMultiplier, 0, Math.PI * 2);
+                ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Head details
+            const head = trail[0];
+            if (head) {
+                const hr = 15 * sizeMultiplier;
+                const headColor = getSegmentColor(color, pattern, 0);
+
+                // Head glow
+                ctx.beginPath();
+                ctx.arc(head.x, head.y, hr * 1.35, 0, Math.PI * 2);
+                ctx.fillStyle = headColor + '33';
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+
+                // Head body
+                if (headColor[0] === '#') {
+                    const hgrd = ctx.createRadialGradient(
+                        head.x - hr * 0.25, head.y - hr * 0.3, hr * 0.15,
+                        head.x, head.y, hr
+                    );
+                    hgrd.addColorStop(0, lightenColor(headColor, 40));
+                    hgrd.addColorStop(0.5, headColor);
+                    hgrd.addColorStop(1, darkenColor(headColor, 25));
+                    ctx.fillStyle = hgrd;
+                } else {
+                    ctx.fillStyle = headColor;
+                }
+                ctx.beginPath();
+                ctx.arc(head.x, head.y, hr, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = 'rgba(255,255,255,0.35)';
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
+                // Eyes
+                ctx.save();
+                ctx.translate(head.x, head.y);
+                ctx.rotate(angle);
+                const eyeOffset = 6 * sizeMultiplier;
+                const eyeR = 3.2 * sizeMultiplier;
+                // White
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(eyeOffset, -5 * sizeMultiplier, eyeR, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(eyeOffset, 5 * sizeMultiplier, eyeR, 0, Math.PI * 2); ctx.fill();
+                // Pupil
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath(); ctx.arc(eyeOffset + 1.2 * sizeMultiplier, -5 * sizeMultiplier, eyeR * 0.5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(eyeOffset + 1.2 * sizeMultiplier, 5 * sizeMultiplier, eyeR * 0.5, 0, Math.PI * 2); ctx.fill();
+                // Shine
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.beginPath(); ctx.arc(eyeOffset + 0.3, -5.8 * sizeMultiplier, eyeR * 0.25, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(eyeOffset + 0.3, 4.2 * sizeMultiplier, eyeR * 0.25, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+
+                // Hats
                 if (hatType && hatType !== 'none') {
                     ctx.save();
                     ctx.translate(head.x, head.y);
-                    ctx.rotate(angle + Math.PI/2);
+                    ctx.rotate(angle + Math.PI / 2);
+                    const s = sizeMultiplier;
                     if (hatType === 'crown') {
                         ctx.fillStyle = '#fbbf24';
+                        ctx.shadowColor = '#f59e0b';
+                        ctx.shadowBlur = 8;
                         ctx.beginPath();
-                        ctx.moveTo(-10, -18);
-                        ctx.lineTo(-12, -30);
-                        ctx.lineTo(-4, -22);
-                        ctx.lineTo(0, -32);
-                        ctx.lineTo(4, -22);
-                        ctx.lineTo(12, -30);
-                        ctx.lineTo(10, -18);
+                        ctx.moveTo(-10 * s, -18 * s);
+                        ctx.lineTo(-12 * s, -30 * s);
+                        ctx.lineTo(-4 * s, -22 * s);
+                        ctx.lineTo(0, -32 * s);
+                        ctx.lineTo(4 * s, -22 * s);
+                        ctx.lineTo(12 * s, -30 * s);
+                        ctx.lineTo(10 * s, -18 * s);
                         ctx.closePath();
                         ctx.fill();
+                        ctx.shadowBlur = 0;
+                        ctx.fillStyle = '#fef08a';
+                        ctx.beginPath(); ctx.arc(0, -26 * s, 2.5 * s, 0, Math.PI * 2); ctx.fill();
                     } else if (hatType === 'viking') {
                         ctx.fillStyle = '#64748b';
                         ctx.beginPath();
-                        ctx.arc(0, -20, 10, Math.PI, 0, false);
+                        ctx.arc(0, -20 * s, 10 * s, Math.PI, 0, false);
                         ctx.fill();
                         ctx.fillStyle = '#f8fafc';
                         ctx.beginPath();
-                        ctx.moveTo(-8, -22);
-                        ctx.lineTo(-16, -32);
-                        ctx.lineTo(-4, -26);
+                        ctx.moveTo(-8 * s, -22 * s); ctx.lineTo(-16 * s, -34 * s); ctx.lineTo(-3 * s, -26 * s);
                         ctx.fill();
                         ctx.beginPath();
-                        ctx.moveTo(8, -22);
-                        ctx.lineTo(16, -32);
-                        ctx.lineTo(4, -26);
+                        ctx.moveTo(8 * s, -22 * s); ctx.lineTo(16 * s, -34 * s); ctx.lineTo(3 * s, -26 * s);
                         ctx.fill();
                     } else if (hatType === 'halo') {
                         ctx.strokeStyle = '#fde047';
-                        ctx.lineWidth = 3;
+                        ctx.lineWidth = 3 * s;
+                        ctx.shadowColor = '#facc15';
+                        ctx.shadowBlur = 10;
                         ctx.beginPath();
-                        ctx.ellipse(0, -28, 12, 5, 0, 0, Math.PI * 2);
+                        ctx.ellipse(0, -28 * s, 12 * s, 5 * s, 0, 0, Math.PI * 2);
                         ctx.stroke();
+                        ctx.shadowBlur = 0;
                     } else if (hatType === 'pirate') {
                         ctx.fillStyle = '#1e293b';
                         ctx.beginPath();
-                        ctx.ellipse(0, -16, 14, 7, 0, 0, Math.PI * 2);
+                        ctx.ellipse(0, -16 * s, 14 * s, 7 * s, 0, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.fillStyle = '#ef4444';
-                        ctx.fillRect(-14, -18, 28, 4);
+                        ctx.fillRect(-14 * s, -18 * s, 28 * s, 4 * s);
                     } else if (hatType === 'ninja') {
                         ctx.fillStyle = '#0f172a';
                         ctx.beginPath();
-                        ctx.ellipse(0, -8, 13, 9, 0, 0, Math.PI * 2);
+                        ctx.ellipse(0, -8 * s, 13 * s, 9 * s, 0, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.fillStyle = '#ef4444';
-                        ctx.fillRect(-10, -10, 8, 3);
-                        ctx.fillRect(2, -10, 8, 3);
+                        ctx.fillRect(-10 * s, -10 * s, 8 * s, 3 * s);
+                        ctx.fillRect(2 * s, -10 * s, 8 * s, 3 * s);
                     } else if (hatType === 'robot') {
                         ctx.fillStyle = '#94a3b8';
-                        ctx.fillRect(-12, -26, 24, 12);
+                        ctx.fillRect(-12 * s, -26 * s, 24 * s, 12 * s);
                         ctx.fillStyle = '#22d3ee';
-                        ctx.fillRect(-8, -22, 6, 4);
-                        ctx.fillRect(2, -22, 6, 4);
+                        ctx.shadowColor = '#22d3ee';
+                        ctx.shadowBlur = 6;
+                        ctx.fillRect(-8 * s, -22 * s, 6 * s, 4 * s);
+                        ctx.fillRect(2 * s, -22 * s, 6 * s, 4 * s);
+                        ctx.shadowBlur = 0;
                     }
                     ctx.restore();
                 }
             }
+        }
+
+        function lightenColor(hex, percent) {
+            if (!hex || hex[0] !== '#') return hex || '#fff';
+            let r = parseInt(hex.slice(1, 3), 16);
+            let g = parseInt(hex.slice(3, 5), 16);
+            let b = parseInt(hex.slice(5, 7), 16);
+            r = Math.min(255, Math.floor(r + (255 - r) * percent / 100));
+            g = Math.min(255, Math.floor(g + (255 - g) * percent / 100));
+            b = Math.min(255, Math.floor(b + (255 - b) * percent / 100));
+            return `rgb(${r},${g},${b})`;
+        }
+
+        function darkenColor(hex, percent) {
+            if (!hex || hex[0] !== '#') return hex || '#000';
+            let r = parseInt(hex.slice(1, 3), 16);
+            let g = parseInt(hex.slice(3, 5), 16);
+            let b = parseInt(hex.slice(5, 7), 16);
+            r = Math.max(0, Math.floor(r * (1 - percent / 100)));
+            g = Math.max(0, Math.floor(g * (1 - percent / 100)));
+            b = Math.max(0, Math.floor(b * (1 - percent / 100)));
+            return `rgb(${r},${g},${b})`;
         }
 
         function escapeHtml(str) {
@@ -1715,11 +2479,13 @@
 
             MAP_ZONES.forEach(zone => {
                 ctx.fillStyle = zone.color;
-                ctx.beginPath();
-                ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
+                drawZonePath(ctx, zone);
                 ctx.fill();
-                ctx.strokeStyle = zone.ice ? 'rgba(147, 197, 253, 0.2)' : 'rgba(56, 189, 248, 0.15)';
-                ctx.lineWidth = 3;
+                ctx.strokeStyle = zone.ice ? 'rgba(147, 197, 253, 0.28)' :
+                                  zone.lava ? 'rgba(239, 68, 68, 0.25)' :
+                                  zone.toxic ? 'rgba(34, 197, 94, 0.25)' :
+                                  'rgba(56, 189, 248, 0.2)';
+                ctx.lineWidth = 4;
                 ctx.stroke();
             });
 
@@ -1859,6 +2625,16 @@
             drawMinimap();
             requestAnimationFrame(gameLoop);
         }
+
+        // Kick off live menu preview
+        startPreviewLoop();
+
+        // Restore bots from previous session and keep them simulating in the background
+        loadPersistedBots();
+        if (aiBots.length > 0) ensureBotLoop();
+
+        // Save bots when leaving the page
+        window.addEventListener('beforeunload', () => persistBots());
     </script>
 </body>
 </html>
