@@ -9,50 +9,81 @@
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
 <body>
+  <!-- LOGIN -->
   <div id="loginScreen">
     <div class="login-box">
-      <div class="logo">ROCKET LEAGUE</div>
-      <p class="subtitle">Multiplayer Car Soccer</p>
+      <div class="rl-logo">ROCKET<br>LEAGUE</div>
       <input type="text" id="usernameInput" placeholder="Username" maxlength="16" autocomplete="off" />
       <input type="password" id="passwordInput" placeholder="Password (optional)" maxlength="32" />
-      <button id="playBtn">PLAY</button>
-      <p class="hint">Username required. Password optional (saved on this device).</p>
+      <button id="playBtn" class="rl-btn primary">PLAY</button>
     </div>
   </div>
 
+  <!-- MAIN MENU (Rocket League style) -->
   <div id="mainMenu" class="hidden">
-    <div class="menu-box">
-      <h1>ROCKET LEAGUE</h1>
-      <p id="welcomeText">Welcome</p>
-      <button id="soloBtn">SOLO PRACTICE</button>
-      <button id="createRoomBtn">CREATE ROOM</button>
-      <button id="joinRoomBtn">JOIN ROOM</button>
-      <input type="text" id="roomCodeInput" placeholder="Enter room code" class="hidden" maxlength="12" />
-      <button id="confirmJoinBtn" class="hidden">JOIN</button>
-      <button id="leaderboardBtn">LEADERBOARD</button>
-      <button id="logoutBtn">SWITCH USER</button>
+    <div class="menu-bg"></div>
+    <div class="menu-overlay">
+      <div class="big-play">PLAY</div>
+
+      <div class="mode-grid">
+        <div class="mode-card" id="soloBtn">
+          <div class="mode-icon">🎓</div>
+          <div class="mode-name">TRAINING</div>
+        </div>
+        <div class="mode-card" id="createRoomBtn">
+          <div class="mode-icon">🛡️</div>
+          <div class="mode-name">PRIVATE MATCH</div>
+        </div>
+        <div class="mode-card" id="joinRoomBtn">
+          <div class="mode-icon">🔗</div>
+          <div class="mode-name">JOIN MATCH</div>
+        </div>
+        <div class="mode-card" id="leaderboardBtn">
+          <div class="mode-icon">🏆</div>
+          <div class="mode-name">LEADERBOARD</div>
+        </div>
+      </div>
+
+      <div id="joinPanel" class="hidden">
+        <input type="text" id="roomCodeInput" placeholder="ROOM CODE" maxlength="12" />
+        <button id="confirmJoinBtn" class="rl-btn">JOIN</button>
+      </div>
+
+      <div class="bottom-bar">
+        <div class="player-chip">
+          <span class="player-icon">🚗</span>
+          <span id="welcomeText">Player</span>
+        </div>
+        <button id="logoutBtn" class="small-btn">SWITCH USER</button>
+      </div>
     </div>
   </div>
 
+  <!-- LEADERBOARD -->
   <div id="leaderboardScreen" class="hidden">
     <div class="lb-box">
       <h2>LEADERBOARD</h2>
       <div id="lbList">Loading...</div>
-      <button id="closeLbBtn">CLOSE</button>
+      <button id="closeLbBtn" class="rl-btn">CLOSE</button>
     </div>
   </div>
 
+  <!-- HUD -->
   <div id="hud" class="hidden">
     <div id="scoreBoard">
-      <span id="blueScore">0</span>
-      <span class="vs">-</span>
-      <span id="orangeScore">0</span>
+      <div class="score-side orange"><span id="orangeScore">0</span></div>
+      <div class="score-mid">
+        <div id="timer">5:00</div>
+      </div>
+      <div class="score-side blue"><span id="blueScore">0</span></div>
     </div>
-    <div id="timer">5:00</div>
-    <div id="boostBar"><div id="boostFill"></div></div>
+    <div id="boostBar">
+      <div id="boostFill"></div>
+      <span id="boostText">100</span>
+    </div>
     <div id="playerList"></div>
     <div id="statusMsg"></div>
-    <div id="controlsHint">WASD / Arrows = Drive | Shift = Boost | Space = Jump</div>
+    <div id="controlsHint">WASD Drive · Shift Boost · Space Jump</div>
   </div>
 
   <canvas id="gameCanvas"></canvas>
