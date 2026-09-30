@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Loading Slither…</title>
+<style>
+html,body{margin:0;height:100%;background:#090d16;color:#94a3b8;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center}
+.spinner{width:40px;height:40px;border:3px solid #1e293b;border-top-color:#38bdf8;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div style="text-align:center"><div class="spinner"></div>Loading Slither…</div>
+<script>
+(async () => {
+  try {
+    const parts = await Promise.all([
+      fetch('part1.html').then(r => { if (!r.ok) throw new Error('part1 '+r.status); return r.text(); }),
+      fetch('part2.html').then(r => { if (!r.ok) throw new Error('part2 '+r.status); return r.text(); }),
+      fetch('part3.html').then(r => { if (!r.ok) throw new Error('part3 '+r.status); return r.text(); }),
+    ]);
+    const html = parts.join('\n');
+    document.open();
+    document.write(html);
+    document.close();
+  } catch (e) {
+    document.body.innerHTML = '<div style="padding:2rem;text-align:center"><h2>Load failed</h2><p>'+e+'</p></div>';
+  }
+})();
+</script>
+</body>
+</html>
