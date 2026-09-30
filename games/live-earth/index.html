@@ -8,7 +8,7 @@
 <link href="https://cesium.com/downloads/cesiumjs/releases/1.124/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body, #cesiumContainer { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  html, body, #cesiumContainer { width: 100%; height: 100%; overflow: hidden; background: #0a0a12; }
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
 
   #ui {
@@ -38,8 +38,8 @@
     border-top: 1px solid rgba(255,255,255,0.06);
   }
   .toggle-row:first-of-type { border-top: none; padding-top: 0; }
-  .toggle-label { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-  .toggle-hint { font-size: 10px; color: #6b6b80; font-weight: 400; display: block; margin-top: 2px; }
+  .toggle-label { font-size: 13px; font-weight: 600; display: flex; flex-direction: column; gap: 2px; }
+  .toggle-hint { font-size: 10px; color: #6b6b80; font-weight: 400; }
 
   .switch {
     position: relative; width: 46px; height: 26px; flex-shrink: 0;
@@ -130,7 +130,20 @@
   }
   .back:hover { background: rgba(255,255,255,0.1); }
 
-  /* Hide default Cesium credit a bit cleaner */
+  #loading {
+    position: absolute; inset: 0; z-index: 5;
+    display: flex; align-items: center; justify-content: center;
+    background: #0a0a12; color: #a0a0b8; font-size: 14px;
+    flex-direction: column; gap: 12px; transition: opacity 0.4s;
+  }
+  #loading.hide { opacity: 0; pointer-events: none; }
+  .spin {
+    width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: #60a5fa; border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   .cesium-viewer-bottom { display: none !important; }
   .cesium-viewer-toolbar { top: auto !important; bottom: 12px !important; right: 12px !important; }
   .cesium-viewer-animationContainer,
@@ -144,6 +157,7 @@
 </head>
 <body>
 <div id="cesiumContainer"></div>
+<div id="loading"><div class="spin"></div><div>Loading Earth…</div></div>
 
 <button class="back" id="backBtn" title="Back to Game Hub">←</button>
 
@@ -193,357 +207,363 @@
 <div id="toast"></div>
 
 <script>
-// Cesium Ion free token (public demo token — replace with your own for production)
-Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxNy1mMWZiLTQzYjYtYTQ0OS1kMWFjYmFkNjc5YzciLCJpZCI6NTc3MzMsImlhdCI6MTYyNzg0NTE4Mn0.XcKpgANiY19QB2cjfJVHPAVguQp4h29rItBESZC7HQI';
+(function () {
+  // No Ion token required — use free public imagery
+  Cesium.Ion.defaultAccessToken = undefined;
 
-const viewer = new Cesium.Viewer('cesiumContainer', {
-  animation: false,
-  timeline: false,
-  baseLayerPicker: false,
-  geocoder: false,
-  homeButton: false,
-  sceneModePicker: false,
-  navigationHelpButton: false,
-  fullscreenButton: true,
-  infoBox: true,
-  selectionIndicator: true,
-  terrain: Cesium.Terrain.fromWorldTerrain(),
-});
+  // Free satellite imagery (Esri World Imagery — widely used, no key)
+  const satelliteProvider = new Cesium.UrlTemplateImageryProvider({
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    credit: 'Tiles © Esri',
+    maximumLevel: 19
+  });
 
-viewer.scene.globe.enableLighting = true;
-viewer.scene.fog.enabled = true;
-viewer.scene.skyAtmosphere.show = true;
+  const viewer = new Cesium.Viewer('cesiumContainer', {
+    animation: false,
+    timeline: false,
+    baseLayerPicker: false,
+    geocoder: false,
+    homeButton: false,
+    sceneModePicker: false,
+    navigationHelpButton: false,
+    fullscreenButton: true,
+    infoBox: true,
+    selectionIndicator: true,
+    terrainProvider: undefined, // ellipsoid only — no Ion terrain
+    imageryProvider: false,    // we add our own
+    skyBox: false,
+    skyAtmosphere: new Cesium.SkyAtmosphere()
+  });
 
-// Imagery layers
-let satelliteLayer = viewer.imageryLayers.get(0);
-let osmLayer = null;
-let trafficMode = false;
+  // Clear default layers and add free satellite
+  viewer.imageryLayers.removeAll();
+  const satelliteLayer = viewer.imageryLayers.addImageryProvider(satelliteProvider);
 
-function setStreetMode(on) {
-  trafficMode = on;
-  document.getElementById('mapMode').textContent = on ? 'Street / roads' : 'Satellite';
-  if (on) {
-    if (!osmLayer) {
-      osmLayer = viewer.imageryLayers.addImageryProvider(
-        new Cesium.UrlTemplateImageryProvider({
-          url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          credit: '© OpenStreetMap',
-          maximumLevel: 19
-        })
-      );
+  viewer.scene.globe.enableLighting = true;
+  viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#1a2744');
+  viewer.scene.fog.enabled = true;
+  viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0a0a12');
+
+  let osmLayer = null;
+  let trafficMode = false;
+
+  function setStreetMode(on) {
+    trafficMode = on;
+    document.getElementById('mapMode').textContent = on ? 'Street / roads' : 'Satellite';
+    if (on) {
+      if (!osmLayer) {
+        osmLayer = viewer.imageryLayers.addImageryProvider(
+          new Cesium.UrlTemplateImageryProvider({
+            url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            credit: '© OpenStreetMap',
+            maximumLevel: 19
+          })
+        );
+      }
+      osmLayer.show = true;
+      satelliteLayer.alpha = 0.2;
+      toast('Street / traffic view on — zoom in to see roads');
+    } else {
+      if (osmLayer) osmLayer.show = false;
+      satelliteLayer.alpha = 1;
+      toast('Satellite view');
     }
-    osmLayer.show = true;
-    if (satelliteLayer) satelliteLayer.alpha = 0.15;
-    toast('Street / traffic view on — zoom in to see roads');
-  } else {
-    if (osmLayer) osmLayer.show = false;
-    if (satelliteLayer) satelliteLayer.alpha = 1;
-    toast('Satellite view');
   }
-}
 
-// ---- Air traffic ----
-let airOn = false;
-let airTimer = null;
-const planeEntities = new Map(); // hex -> entity
-let lastFetchOk = false;
+  // ---- Air traffic ----
+  let airOn = false;
+  let airTimer = null;
+  const planeEntities = new Map();
 
-function setAirDot(state) {
-  const d = document.getElementById('airDot');
-  d.className = 'status-dot' + (state === 'on' ? ' on' : state === 'warn' ? ' warn' : state === 'err' ? ' err' : '');
-}
-
-function clearPlanes() {
-  for (const e of planeEntities.values()) viewer.entities.remove(e);
-  planeEntities.clear();
-  document.getElementById('planeCount').textContent = '0';
-}
-
-function getViewBBox() {
-  const scene = viewer.scene;
-  const rect = viewer.camera.computeViewRectangle(scene.globe.ellipsoid);
-  if (!rect) {
-    // fallback around camera
-    const c = viewer.camera.positionCartographic;
-    const lat = Cesium.Math.toDegrees(c.latitude);
-    const lon = Cesium.Math.toDegrees(c.longitude);
-    return { lamin: lat - 8, lamax: lat + 8, lomin: lon - 10, lomax: lon + 10, lat, lon };
+  function setAirDot(state) {
+    const d = document.getElementById('airDot');
+    d.className = 'status-dot' + (state === 'on' ? ' on' : state === 'warn' ? ' warn' : state === 'err' ? ' err' : '');
   }
-  return {
-    lamin: Cesium.Math.toDegrees(rect.south),
-    lamax: Cesium.Math.toDegrees(rect.north),
-    lomin: Cesium.Math.toDegrees(rect.west),
-    lomax: Cesium.Math.toDegrees(rect.east),
-    lat: Cesium.Math.toDegrees((rect.south + rect.north) / 2),
-    lon: Cesium.Math.toDegrees((rect.west + rect.east) / 2)
-  };
-}
 
-function nmDist(bbox) {
-  // approximate radius in NM from center to corner, capped
-  const dlat = Math.abs(bbox.lamax - bbox.lamin);
-  const dlon = Math.abs(bbox.lomax - bbox.lomin);
-  const deg = Math.max(dlat, dlon) / 2;
-  return Math.min(250, Math.max(40, Math.round(deg * 60)));
-}
+  function clearPlanes() {
+    for (const e of planeEntities.values()) viewer.entities.remove(e);
+    planeEntities.clear();
+    document.getElementById('planeCount').textContent = '0';
+  }
 
-async function fetchWithCors(url) {
-  // try direct first
-  try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(9000) });
-    if (r.ok) return await r.json();
-  } catch (_) {}
-  // public CORS proxies as fallback (hobby use)
-  const proxies = [
-    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
-  ];
-  for (const p of proxies) {
+  function getViewBBox() {
+    const rect = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
+    if (!rect) {
+      const c = viewer.camera.positionCartographic;
+      const lat = Cesium.Math.toDegrees(c.latitude);
+      const lon = Cesium.Math.toDegrees(c.longitude);
+      return { lamin: lat - 8, lamax: lat + 8, lomin: lon - 10, lomax: lon + 10, lat, lon };
+    }
+    return {
+      lamin: Cesium.Math.toDegrees(rect.south),
+      lamax: Cesium.Math.toDegrees(rect.north),
+      lomin: Cesium.Math.toDegrees(rect.west),
+      lomax: Cesium.Math.toDegrees(rect.east),
+      lat: Cesium.Math.toDegrees((rect.south + rect.north) / 2),
+      lon: Cesium.Math.toDegrees((rect.west + rect.east) / 2)
+    };
+  }
+
+  function nmDist(bbox) {
+    const dlat = Math.abs(bbox.lamax - bbox.lamin);
+    const dlon = Math.abs(bbox.lomax - bbox.lomin);
+    const deg = Math.max(dlat, dlon) / 2;
+    return Math.min(250, Math.max(40, Math.round(deg * 60)));
+  }
+
+  async function fetchWithCors(url) {
     try {
-      const r = await fetch(p(url), { signal: AbortSignal.timeout(10000) });
+      const r = await fetch(url, { signal: AbortSignal.timeout(9000) });
       if (r.ok) return await r.json();
     } catch (_) {}
+    const proxies = [
+      u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+    ];
+    for (const p of proxies) {
+      try {
+        const r = await fetch(p(url), { signal: AbortSignal.timeout(10000) });
+        if (r.ok) return await r.json();
+      } catch (_) {}
+    }
+    throw new Error('Could not reach ADS-B sources');
   }
-  throw new Error('Could not reach ADS-B sources');
-}
 
-async function loadAircraft() {
-  if (!airOn) return;
-  const bbox = getViewBBox();
-  const dist = nmDist(bbox);
-  const sources = [
-    `https://api.adsb.lol/v2/lat/${bbox.lat.toFixed(3)}/lon/${bbox.lon.toFixed(3)}/dist/${dist}`,
-    `https://opendata.adsb.fi/api/v3/lat/${bbox.lat.toFixed(3)}/lon/${bbox.lon.toFixed(3)}/dist/${dist}`,
-    `https://opensky-network.org/api/states/all?lamin=${bbox.lamin.toFixed(2)}&lomin=${bbox.lomin.toFixed(2)}&lamax=${bbox.lamax.toFixed(2)}&lomax=${bbox.lomax.toFixed(2)}`
-  ];
+  async function loadAircraft() {
+    if (!airOn) return;
+    const bbox = getViewBBox();
+    const dist = nmDist(bbox);
+    const sources = [
+      `https://api.adsb.lol/v2/lat/${bbox.lat.toFixed(3)}/lon/${bbox.lon.toFixed(3)}/dist/${dist}`,
+      `https://opendata.adsb.fi/api/v3/lat/${bbox.lat.toFixed(3)}/lon/${bbox.lon.toFixed(3)}/dist/${dist}`,
+      `https://opensky-network.org/api/states/all?lamin=${bbox.lamin.toFixed(2)}&lomin=${bbox.lomin.toFixed(2)}&lamax=${bbox.lamax.toFixed(2)}&lomax=${bbox.lomax.toFixed(2)}`
+    ];
 
-  let acList = null;
-  let fromOpenSky = false;
+    let acList = null;
 
-  for (const url of sources) {
-    try {
-      const data = await fetchWithCors(url);
-      if (data && Array.isArray(data.ac) && data.ac.length) {
-        acList = data.ac;
-        break;
+    for (const url of sources) {
+      try {
+        const data = await fetchWithCors(url);
+        if (data && Array.isArray(data.ac) && data.ac.length) {
+          acList = data.ac;
+          break;
+        }
+        if (data && Array.isArray(data.states) && data.states.length) {
+          acList = data.states.map(s => ({
+            hex: s[0],
+            flight: s[1],
+            lat: s[6],
+            lon: s[5],
+            alt_baro: s[7],
+            track: s[10],
+            gs: s[9],
+            on_ground: s[8]
+          })).filter(a => a.lat != null && a.lon != null);
+          break;
+        }
+      } catch (e) {
+        console.warn('ADS-B source failed', url, e);
       }
-      if (data && Array.isArray(data.states) && data.states.length) {
-        // OpenSky format
-        fromOpenSky = true;
-        acList = data.states.map(s => ({
-          hex: s[0],
-          flight: s[1],
-          lat: s[6],
-          lon: s[5],
-          alt_baro: s[7],
-          track: s[10],
-          gs: s[9],
-          on_ground: s[8]
-        })).filter(a => a.lat != null && a.lon != null);
-        break;
-      }
-    } catch (e) {
-      console.warn('ADS-B source failed', url, e);
     }
-  }
 
-  if (!acList) {
-    lastFetchOk = false;
-    setAirDot('err');
-    toast('Air traffic: sources unavailable (CORS / rate limit). Try again.');
-    return;
-  }
-
-  lastFetchOk = true;
-  setAirDot('on');
-
-  const seen = new Set();
-  let count = 0;
-  for (const ac of acList) {
-    const lat = ac.lat ?? ac.latitude;
-    const lon = ac.lon ?? ac.longitude;
-    if (lat == null || lon == null) continue;
-    if (ac.on_ground || ac.alt_baro === 'ground') continue;
-    const alt = Number(ac.alt_baro ?? ac.alt_geom ?? ac.baro_altitude ?? 0);
-    if (!Number.isFinite(alt) || alt < 50) continue; // skip near-ground clutter
-
-    const hex = String(ac.hex || ac.icao24 || `${lat},${lon}`).toLowerCase();
-    seen.add(hex);
-    const callsign = (ac.flight || ac.callsign || hex).toString().trim() || hex;
-    const track = Number(ac.track ?? ac.true_track ?? 0) || 0;
-    const gs = Number(ac.gs ?? ac.velocity ?? 0) || 0;
-    const height = Math.max(alt, 100) * 0.3048; // feet → meters if baro in ft (ADSB usually ft)
-
-    let entity = planeEntities.get(hex);
-    const position = Cesium.Cartesian3.fromDegrees(lon, lat, height);
-
-    if (!entity) {
-      entity = viewer.entities.add({
-        id: 'ac-' + hex,
-        position,
-        point: {
-          pixelSize: 8,
-          color: Cesium.Color.fromCssColorString('#38bdf8'),
-          outlineColor: Cesium.Color.WHITE,
-          outlineWidth: 1,
-          heightReference: Cesium.HeightReference.NONE,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          scaleByDistance: new Cesium.NearFarScalar(1e3, 1.4, 2e6, 0.4)
-        },
-        label: {
-          text: callsign,
-          font: '11px sans-serif',
-          fillColor: Cesium.Color.WHITE,
-          outlineColor: Cesium.Color.BLACK,
-          outlineWidth: 3,
-          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-          pixelOffset: new Cesium.Cartesian2(0, -12),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          scaleByDistance: new Cesium.NearFarScalar(1e3, 1, 8e5, 0.35),
-          show: true
-        },
-        description: `<b>${callsign}</b><br>Alt: ${Math.round(alt)} ft<br>GS: ${Math.round(gs)} kt<br>Track: ${Math.round(track)}°`
-      });
-      planeEntities.set(hex, entity);
-    } else {
-      entity.position = position;
-      entity.label.text = callsign;
-      entity.description = `<b>${callsign}</b><br>Alt: ${Math.round(alt)} ft<br>GS: ${Math.round(gs)} kt<br>Track: ${Math.round(track)}°`;
-    }
-    count++;
-  }
-
-  // remove planes no longer seen
-  for (const [hex, ent] of planeEntities) {
-    if (!seen.has(hex)) {
-      viewer.entities.remove(ent);
-      planeEntities.delete(hex);
-    }
-  }
-
-  document.getElementById('planeCount').textContent = String(count);
-}
-
-function startAir() {
-  airOn = true;
-  setAirDot('warn');
-  loadAircraft();
-  airTimer = setInterval(loadAircraft, 12000);
-  toast('Live air traffic ON');
-}
-function stopAir() {
-  airOn = false;
-  if (airTimer) clearInterval(airTimer);
-  airTimer = null;
-  clearPlanes();
-  setAirDot('');
-  toast('Air traffic off');
-}
-
-// ---- Search / fly ----
-const PLACES = {
-  'new york': [-74.006, 40.7128, 120000],
-  'nyc': [-74.006, 40.7128, 120000],
-  'london': [-0.1276, 51.5074, 100000],
-  'tokyo': [139.6917, 35.6895, 120000],
-  'paris': [2.3522, 48.8566, 90000],
-  'los angeles': [-118.2437, 34.0522, 150000],
-  'la': [-118.2437, 34.0522, 150000],
-  'dubai': [55.2708, 25.2048, 100000],
-  'singapore': [103.8198, 1.3521, 80000],
-  'sydney': [151.2093, -33.8688, 120000],
-  'chicago': [-87.6298, 41.8781, 100000],
-  'hong kong': [114.1694, 22.3193, 80000],
-  'san francisco': [-122.4194, 37.7749, 100000],
-  'sf': [-122.4194, 37.7749, 100000],
-  'miami': [-80.1918, 25.7617, 90000],
-  'berlin': [13.405, 52.52, 90000],
-  'moscow': [37.6173, 55.7558, 120000],
-  'beijing': [116.4074, 39.9042, 150000],
-  'delhi': [77.209, 28.6139, 120000],
-  'mexico city': [-99.1332, 19.4326, 120000],
-  'sao paulo': [-46.6333, -23.5505, 120000],
-  'istanbul': [28.9784, 41.0082, 100000],
-  'seoul': [126.978, 37.5665, 100000],
-  'toronto': [-79.3832, 43.6532, 100000]
-};
-
-function flyToQuery(q) {
-  const key = (q || '').trim().toLowerCase();
-  if (!key) return;
-  const hit = PLACES[key];
-  if (hit) {
-    const [lon, lat, range] = hit;
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(lon, lat, range),
-      duration: 2.2
-    });
-    return;
-  }
-  // try Nominatim (OSM geocoder)
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`, {
-    headers: { 'Accept': 'application/json' }
-  }).then(r => r.json()).then(arr => {
-    if (!arr || !arr[0]) {
-      toast('Place not found');
+    if (!acList) {
+      setAirDot('err');
+      toast('Air traffic: sources unavailable. Try zooming into a busy area.');
       return;
     }
-    const lon = parseFloat(arr[0].lon);
-    const lat = parseFloat(arr[0].lat);
+
+    setAirDot('on');
+
+    const seen = new Set();
+    let count = 0;
+    for (const ac of acList) {
+      const lat = ac.lat ?? ac.latitude;
+      const lon = ac.lon ?? ac.longitude;
+      if (lat == null || lon == null) continue;
+      if (ac.on_ground || ac.alt_baro === 'ground') continue;
+      const alt = Number(ac.alt_baro ?? ac.alt_geom ?? ac.baro_altitude ?? 0);
+      if (!Number.isFinite(alt) || alt < 50) continue;
+
+      const hex = String(ac.hex || ac.icao24 || `${lat},${lon}`).toLowerCase();
+      seen.add(hex);
+      const callsign = (ac.flight || ac.callsign || hex).toString().trim() || hex;
+      const track = Number(ac.track ?? ac.true_track ?? 0) || 0;
+      const gs = Number(ac.gs ?? ac.velocity ?? 0) || 0;
+      const height = Math.max(alt, 100) * 0.3048;
+
+      let entity = planeEntities.get(hex);
+      const position = Cesium.Cartesian3.fromDegrees(lon, lat, height);
+
+      if (!entity) {
+        entity = viewer.entities.add({
+          id: 'ac-' + hex,
+          position,
+          point: {
+            pixelSize: 8,
+            color: Cesium.Color.fromCssColorString('#38bdf8'),
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 1,
+            heightReference: Cesium.HeightReference.NONE,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            scaleByDistance: new Cesium.NearFarScalar(1e3, 1.4, 2e6, 0.4)
+          },
+          label: {
+            text: callsign,
+            font: '11px sans-serif',
+            fillColor: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 3,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            pixelOffset: new Cesium.Cartesian2(0, -12),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            scaleByDistance: new Cesium.NearFarScalar(1e3, 1, 8e5, 0.35),
+            show: true
+          },
+          description: `<b>${callsign}</b><br>Alt: ${Math.round(alt)} ft<br>GS: ${Math.round(gs)} kt<br>Track: ${Math.round(track)}°`
+        });
+        planeEntities.set(hex, entity);
+      } else {
+        entity.position = position;
+        entity.label.text = callsign;
+        entity.description = `<b>${callsign}</b><br>Alt: ${Math.round(alt)} ft<br>GS: ${Math.round(gs)} kt<br>Track: ${Math.round(track)}°`;
+      }
+      count++;
+    }
+
+    for (const [hex, ent] of planeEntities) {
+      if (!seen.has(hex)) {
+        viewer.entities.remove(ent);
+        planeEntities.delete(hex);
+      }
+    }
+
+    document.getElementById('planeCount').textContent = String(count);
+  }
+
+  function startAir() {
+    airOn = true;
+    setAirDot('warn');
+    loadAircraft();
+    airTimer = setInterval(loadAircraft, 12000);
+    toast('Live air traffic ON — zoom into busy airspace');
+  }
+  function stopAir() {
+    airOn = false;
+    if (airTimer) clearInterval(airTimer);
+    airTimer = null;
+    clearPlanes();
+    setAirDot('');
+    toast('Air traffic off');
+  }
+
+  const PLACES = {
+    'new york': [-74.006, 40.7128, 120000],
+    'nyc': [-74.006, 40.7128, 120000],
+    'london': [-0.1276, 51.5074, 100000],
+    'tokyo': [139.6917, 35.6895, 120000],
+    'paris': [2.3522, 48.8566, 90000],
+    'los angeles': [-118.2437, 34.0522, 150000],
+    'la': [-118.2437, 34.0522, 150000],
+    'dubai': [55.2708, 25.2048, 100000],
+    'singapore': [103.8198, 1.3521, 80000],
+    'sydney': [151.2093, -33.8688, 120000],
+    'chicago': [-87.6298, 41.8781, 100000],
+    'hong kong': [114.1694, 22.3193, 80000],
+    'san francisco': [-122.4194, 37.7749, 100000],
+    'sf': [-122.4194, 37.7749, 100000],
+    'miami': [-80.1918, 25.7617, 90000],
+    'berlin': [13.405, 52.52, 90000],
+    'moscow': [37.6173, 55.7558, 120000],
+    'beijing': [116.4074, 39.9042, 150000],
+    'delhi': [77.209, 28.6139, 120000],
+    'mexico city': [-99.1332, 19.4326, 120000],
+    'sao paulo': [-46.6333, -23.5505, 120000],
+    'istanbul': [28.9784, 41.0082, 100000],
+    'seoul': [126.978, 37.5665, 100000],
+    'toronto': [-79.3832, 43.6532, 100000]
+  };
+
+  function flyToQuery(q) {
+    const key = (q || '').trim().toLowerCase();
+    if (!key) return;
+    const hit = PLACES[key];
+    if (hit) {
+      const [lon, lat, range] = hit;
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(lon, lat, range),
+        duration: 2.2
+      });
+      return;
+    }
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`, {
+      headers: { 'Accept': 'application/json' }
+    }).then(r => r.json()).then(arr => {
+      if (!arr || !arr[0]) {
+        toast('Place not found');
+        return;
+      }
+      const lon = parseFloat(arr[0].lon);
+      const lat = parseFloat(arr[0].lat);
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(lon, lat, 90000),
+        duration: 2.2
+      });
+    }).catch(() => toast('Search failed'));
+  }
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toast._id);
+    toast._id = setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  document.getElementById('airToggle').addEventListener('change', e => {
+    if (e.target.checked) startAir();
+    else stopAir();
+  });
+  document.getElementById('trafficToggle').addEventListener('change', e => {
+    setStreetMode(e.target.checked);
+  });
+  document.getElementById('flyBtn').onclick = () => flyToQuery(document.getElementById('searchBox').value);
+  document.getElementById('searchBox').addEventListener('keydown', e => {
+    if (e.key === 'Enter') flyToQuery(e.target.value);
+  });
+  document.getElementById('homeBtn').onclick = () => {
     viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(lon, lat, 90000),
-      duration: 2.2
+      destination: Cesium.Cartesian3.fromDegrees(-40, 20, 18e6),
+      duration: 1.5
     });
-  }).catch(() => toast('Search failed'));
-}
+  };
+  document.getElementById('myLocBtn').onclick = () => {
+    if (!navigator.geolocation) { toast('Geolocation not available'); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(pos.coords.longitude, pos.coords.latitude, 80000),
+        duration: 2
+      });
+    }, () => toast('Could not get your location'));
+  };
+  document.getElementById('backBtn').onclick = () => {
+    const u = new URL(location.href);
+    let p = u.pathname.replace(/\/games\/live-earth\/?.*$/i, '/');
+    if (!p.endsWith('/')) p += '/';
+    location.href = u.origin + p;
+  };
 
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toast._id);
-  toast._id = setTimeout(() => t.classList.remove('show'), 2800);
-}
+  viewer.camera.setView({
+    destination: Cesium.Cartesian3.fromDegrees(-40, 20, 18e6)
+  });
 
-// UI wiring
-document.getElementById('airToggle').addEventListener('change', e => {
-  if (e.target.checked) startAir();
-  else stopAir();
-});
-document.getElementById('trafficToggle').addEventListener('change', e => {
-  setStreetMode(e.target.checked);
-});
-document.getElementById('flyBtn').onclick = () => flyToQuery(document.getElementById('searchBox').value);
-document.getElementById('searchBox').addEventListener('keydown', e => {
-  if (e.key === 'Enter') flyToQuery(e.target.value);
-});
-document.getElementById('homeBtn').onclick = () => {
-  viewer.camera.flyHome(1.5);
-};
-document.getElementById('myLocBtn').onclick = () => {
-  if (!navigator.geolocation) { toast('Geolocation not available'); return; }
-  navigator.geolocation.getCurrentPosition(pos => {
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(pos.coords.longitude, pos.coords.latitude, 80000),
-      duration: 2
-    });
-  }, () => toast('Could not get your location'));
-};
-document.getElementById('backBtn').onclick = () => {
-  // go up to hub
-  const u = new URL(location.href);
-  let p = u.pathname.replace(/\/games\/live-earth\/?.*$/i, '/');
-  if (!p.endsWith('/')) p += '/';
-  location.href = u.origin + p;
-};
-
-// start slightly above the Americas
-viewer.camera.setView({
-  destination: Cesium.Cartesian3.fromDegrees(-40, 25, 18e6)
-});
-
-toast('Live Earth ready — turn on Air traffic or Street view');
+  // Hide loading once first frame renders
+  viewer.scene.postRender.addEventListener(function hideLoad() {
+    document.getElementById('loading').classList.add('hide');
+    viewer.scene.postRender.removeEventListener(hideLoad);
+    toast('Live Earth ready — turn on Air traffic or Street view');
+  });
+})();
 </script>
 </body>
 </html>
