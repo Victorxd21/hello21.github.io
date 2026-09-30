@@ -62,9 +62,86 @@ main{position:relative;width:min(1100px,calc(100% - 32px));margin:auto;padding-b
 .error{padding:28px;border-radius:14px;background:rgba(255,70,70,.08);border:1px solid rgba(255,70,70,.2);color:#ff9b9b;text-align:center}
 footer{position:relative;text-align:center;color:#555566;font-size:12px;padding:28px}
 @media(max-width:600px){header{padding-top:56px}.games-grid{grid-template-columns:1fr}}
+/* ===== Liquid Glass ===== */
+body.glass .game{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.18);
+  backdrop-filter:blur(28px) saturate(180%);
+  -webkit-backdrop-filter:blur(28px) saturate(180%);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,.25),
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -1px 0 rgba(255,255,255,.05);
+}
+body.glass .game:hover{
+  background:rgba(255,255,255,.12);
+  border-color:rgba(255,255,255,.28);
+  box-shadow:
+    0 16px 40px rgba(0,0,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.3);
+}
+body.glass .game-icon,body.glass .category-icon{
+  background:rgba(255,255,255,.14)!important;
+  border:1px solid rgba(255,255,255,.2);
+  backdrop-filter:blur(16px) saturate(160%);
+  -webkit-backdrop-filter:blur(16px) saturate(160%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 4px 16px rgba(0,0,0,.2);
+}
+body.glass #settingsPanel{
+  background:rgba(18,18,32,.55);
+  border-right:1px solid rgba(255,255,255,.15);
+  backdrop-filter:blur(40px) saturate(180%);
+  -webkit-backdrop-filter:blur(40px) saturate(180%);
+  box-shadow:20px 0 60px rgba(0,0,0,.35),inset -1px 0 0 rgba(255,255,255,.08);
+}
+body.glass #settingsBtn{
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.2);
+  backdrop-filter:blur(20px) saturate(160%);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25);
+}
+body.glass .badge{
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.2);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+body.glass .refresh,.set-btn{
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.16);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+body.glass #bgOverlay{
+  background:rgba(8,8,16,.45);
+}
+body.glass .swatch{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 2px 8px rgba(0,0,0,.25);
+}
+.glass-toggle{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;
+}
+.switch{
+  position:relative;width:48px;height:28px;flex-shrink:0;
+}
+.switch input{opacity:0;width:0;height:0}
+.slider{
+  position:absolute;cursor:pointer;inset:0;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:999px;transition:.25s;
+}
+.slider:before{
+  content:"";position:absolute;height:22px;width:22px;left:2px;bottom:2px;
+  background:#fff;border-radius:50%;transition:.25s;
+  box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+.switch input:checked+.slider{background:linear-gradient(135deg,#6d5dfc,#9b8cff);border-color:transparent}
+.switch input:checked+.slider:before{transform:translateX(20px)}
 </style>
 </head>
-<body>
+<body class="glass">
 <div id="bgLayer"></div>
 <div id="bgOverlay"></div>
 <button id="settingsBtn" title="Settings">⚙️</button>
@@ -85,6 +162,16 @@ footer{position:relative;text-align:center;color:#555566;font-size:12px;padding:
 <div class="setting-label">Background</div>
 <button class="set-btn" id="nextBgBtn">🖼 Next background</button>
 <div class="setting-row"><label>BG opacity</label><input type="range" id="bgOpacity" min="0" max="70" value="35"><span class="vol-val" id="bgOpVal">35%</span></div>
+</div>
+<div class="setting-group">
+<div class="setting-label">Look</div>
+<div class="glass-toggle">
+<label for="glassToggle" style="font-size:14px;color:#d4d4e0">Liquid Glass</label>
+<label class="switch">
+<input type="checkbox" id="glassToggle" checked>
+<span class="slider"></span>
+</label>
+</div>
 </div>
 <div class="setting-group">
 <div class="setting-label">UI Theme</div>
@@ -139,6 +226,8 @@ bindSwipe(panel,false);bindSwipe(backdrop,false);bindSwipe(document.getElementBy
 function applyTheme(name){const t=THEMES[name]||THEMES.purple;document.querySelectorAll(".category-icon,.game-icon").forEach(el=>{el.style.background=`linear-gradient(135deg,${t.a},${t.b})`});document.querySelectorAll(".swatch").forEach(s=>s.classList.toggle("active",s.dataset.theme===name));try{localStorage.setItem("hub_theme",name)}catch(e){}}
 document.getElementById("themeSwatches").onclick=e=>{const s=e.target.closest(".swatch");if(s)applyTheme(s.dataset.theme)};
 try{applyTheme(localStorage.getItem("hub_theme")||"purple")}catch(e){applyTheme("purple")}
+function setGlass(on){document.body.classList.toggle("glass",on);const t=document.getElementById("glassToggle");if(t)t.checked=on;try{localStorage.setItem("hub_glass",on?"1":"0")}catch(e){}}
+(function(){let on=true;try{const v=localStorage.getItem("hub_glass");if(v!==null)on=v==="1"}catch(e){}setGlass(on);const t=document.getElementById("glassToggle");if(t)t.onchange=()=>setGlass(t.checked)})();
 const audio=document.getElementById("bgMusic");let tracks=[],trackIndex=0,muted=false;
 function getRepoInfo(){const h=location.hostname,p=location.pathname;let owner,repo;if(h.endsWith(".github.io")){owner=h.split(".")[0];const parts=p.split("/").filter(Boolean);repo=parts[0]||owner+".github.io"}else{owner="Victorxd21";repo="hello21.github.io"}return{owner,repo}}
 async function loadMusic(){try{const{owner,repo}=getRepoInfo();const res=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/music`);if(!res.ok)return;const files=await res.json();tracks=files.filter(f=>f.type==="file"&&/\.(mp3|ogg|wav|m4a)$/i.test(f.name)).map(f=>({name:f.name,url:f.download_url}));if(tracks.length)playTrack(Math.floor(Math.random()*tracks.length));else document.getElementById("nowPlaying").textContent="No music yet — add files to /music"}catch(e){console.warn(e)}}
