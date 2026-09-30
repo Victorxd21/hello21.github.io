@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Party Race 3D</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#0b0f1a;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#eef2ff}
+#game{position:absolute;inset:0;display:block}
+#ui{position:absolute;inset:0;z-index:10;pointer-events:none}
+#ui .pe{pointer-events:auto}
+.screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 50% 20%,rgba(80,60,160,.35),transparent 55%),rgba(8,10,20,.92)}
+.screen.hide{display:none}
+.card{width:min(420px,100%);background:rgba(16,18,32,.95);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.card h1{font-size:28px;font-weight:900;background:linear-gradient(135deg,#fff,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+.card .sub{color:#8b90a8;font-size:13px;margin-bottom:20px}
+label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#7a80a0;margin:12px 0 6px}
+input,select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font-size:15px;outline:none}
+input:focus{border-color:#8b5cf6}
+.colors{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.swatch{width:36px;height:36px;border-radius:50%;border:3px solid transparent;cursor:pointer}
+.swatch.on{border-color:#fff;box-shadow:0 0 0 2px #8b5cf6}
+.btn{display:block;width:100%;margin-top:12px;padding:14px;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;color:#fff}
+.btn.primary{background:linear-gradient(135deg,#7c3aed,#a78bfa)}
+.btn.secondary{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px}
+.row .btn{flex:1}
+.players{margin-top:14px;max-height:180px;overflow:y:auto}
+.player{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04);margin-bottom:6px;font-size:13px}
+.dot{width:14px;height:14px;border-radius:50%}
+.badge{margin-left:auto;font-size:10px;padding:2px 8px;border-radius:999px;background:rgba(139,92,246,.25);color:#c4b5fd}
+.hint{font-size:11px;color:#6b7280;margin-top:10px;line-height:1.4}
+.warn{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:#fbbf24;padding:10px;border-radius:10px;font-size:12px;margin-bottom:12px}
+.warn.hide,.hide{display:none!important}
+#hud{position:absolute;inset:0;pointer-events:none}
+#hud .pe{pointer-events:auto}
+#speedo{position:absolute;bottom:18px;right:18px;font-size:28px;font-weight:900;text-shadow:0 2px 12px #000}
+#lap{position:absolute;top:16px;left:16px;font-size:14px;background:rgba(0,0,0,.5);padding:8px 12px;border-radius:10px}
+#pos{position:absolute;top:16px;right:16px;font-size:14px;background:rgba(0,0,0,.5);padding:8px 12px;border-radius:10px}
+#countdown{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:96px;font-weight:900;text-shadow:0 4px 24px #000;pointer-events:none;opacity:0;transition:opacity .2s}
+#countdown.show{opacity:1}
+#finish{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.7)}
+#finish.show{display:flex}
+#finish .card{text-align:center}
+#backMenu{position:absolute;top:16px;left:50%;transform:translateX(-50%);padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.5);color:#c4b5fd;cursor:pointer;font-size:12px;display:none}
+#backMenu.show{display:block}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="ui">
+  <div class="screen pe" id="menu">
+    <div class="card">
+      <h1>🏁 Party Race 3D</h1>
+      <p class="sub">3D racing · realistic handling · lobby multiplayer</p>
+      <div class="warn hide" id="cfgWarn">Add your Supabase URL + anon key in <b>config.js</b> for online multiplayer. Offline solo still works.</div>
+      <label>Your name</label>
+      <input id="playerName" maxlength="16" placeholder="Racer" value="Racer">
+      <label>Car color</label>
+      <div class="colors" id="colorPick"></div>
+      <div class="row">
+        <button class="btn primary" id="btnCreate">Create Lobby</button>
+        <button class="btn secondary" id="btnJoinShow">Join Lobby</button>
+      </div>
+      <button class="btn secondary" id="btnSolo" style="margin-top:10px">Solo Practice</button>
+      <p class="hint">Host starts the race. Everyone can change car color in the lobby.</p>
+    </div>
+  </div>
+  <div class="screen pe hide" id="joinScreen">
+    <div class="card">
+      <h1>Join Lobby</h1>
+      <label>Lobby code</label>
+      <input id="joinCode" maxlength="6" placeholder="ABC123" style="text-transform:uppercase;letter-spacing:3px">
+      <button class="btn primary" id="btnJoin">Join</button>
+      <button class="btn secondary" id="btnJoinBack">Back</button>
+    </div>
+  </div>
+  <div class="screen pe hide" id="lobby">
+    <div class="card">
+      <h1>Lobby</h1>
+      <p class="sub">Code: <b id="lobbyCode">------</b> · share with friends</p>
+      <label>Your car color</label>
+      <div class="colors" id="lobbyColors"></div>
+      <div class="players" id="playerList"></div>
+      <button class="btn primary hide" id="btnStart">Start Race (Host)</button>
+      <button class="btn secondary" id="btnLeave">Leave Lobby</button>
+      <p class="hint" id="lobbyHint">Waiting for host to start…</p>
+    </div>
+  </div>
+  <div id="hud" class="hide">
+    <div id="lap">Lap 1/3</div>
+    <div id="pos">—</div>
+    <div id="speedo">0 mph</div>
+    <div id="countdown"></div>
+    <button class="pe" id="backMenu">Exit to Menu</button>
+  </div>
+  <div id="finish">
+    <div class="card">
+      <h1 id="finishTitle">Finished!</h1>
+      <p class="sub" id="finishSub"></p>
+      <button class="btn primary pe" id="btnAgain">Back to Menu</button>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module" src="game.js"></script>
+</body>
+</html>
