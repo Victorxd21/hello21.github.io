@@ -1,0 +1,97 @@
+name: Update aircraft data
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch live aircraft
+        run: |
+          python3 << 'PY'
+          import json, urllib.request, time, os
+
+          regions = [
+              (40.7, -74.0, 250),
+              (51.5, -0.1, 250),
+              (34.0, -118.2, 200),
+              (35.7, 139.7, 200),
+              (48.9, 2.3, 180),
+              (25.2, 55.3, 180),
+              (41.9, 12.5, 180),
+              (52.5, 13.4, 180),
+              (33.9, -84.4, 180),
+              (41.9, -87.6, 180),
+              (37.6, -122.4, 180),
+              (1.35, 103.8, 150),
+              (-33.9, 151.2, 150),
+              (55.8, 37.6, 180),
+              (19.4, -99.1, 150),
+          ]
+
+          planes = {}
+          for lat, lon, dist in regions:
+              for base in [
+                  f"https://api.adsb.lol/v2/lat/{lat}/lon/{lon}/dist/{dist}",
+                  f"https://opendata.adsb.fi/api/v2/lat/{lat}/lon/{lon}/dist/{dist}",
+              ]:
+                  try:
+                      req = urllib.request.Request(base, headers={"User-Agent": "LiveEarth-GitHubAction/1.0"})
+                      with urllib.request.urlopen(req, timeout=15) as r:
+                          data = json.loads(r.read().decode())
+                      ac = data.get("ac") or data.get("aircraft") or []
+                      for a in ac:
+                          hexid = (a.get("hex") or "").lower().lstrip("~")
+                          if not hexid:
+                              continue
+                          if a.get("lat") is None or a.get("lon") is None:
+                              continue
+                          alt = a.get("alt_baro")
+                          if alt == "ground":
+                              continue
+                          if isinstance(alt, (int, float)) and alt < 50:
+                              continue
+                          planes[hexid] = {
+                              "hex": hexid,
+                              "flight": (a.get("flight") or "").strip(),
+                              "lat": a.get("lat"),
+                              "lon": a.get("lon"),
+                              "alt_baro": alt if isinstance(alt, (int, float)) else None,
+                              "gs": a.get("gs"),
+                              "track": a.get("track"),
+                              "squawk": a.get("squawk"),
+                              "r": a.get("r"),
+                              "t": a.get("t"),
+                          }
+                      if ac:
+                          break
+                  except Exception as e:
+                      print("fail", base, e)
+              time.sleep(0.4)
+
+          os.makedirs("games/live-earth/data", exist_ok=True)
+          out = {"updated": time.time(), "count": len(planes), "ac": list(planes.values())}
+          with open("games/live-earth/data/aircraft.json", "w") as f:
+              json.dump(out, f, separators=(",", ":"))
+          print("planes:", len(planes))
+          PY
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add games/live-earth/data/aircraft.json
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "chore: update live aircraft data [skip ci]"
+            git push
+          fi
