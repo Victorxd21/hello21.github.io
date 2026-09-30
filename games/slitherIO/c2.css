@@ -1,0 +1,290 @@
+            font-size: 0.82rem;
+            font-weight: 700 !important;
+            background: rgba(30, 41, 59, 0.7);
+            color: #94a3b8;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            box-shadow: none !important;
+        }
+
+        .btn-ghost:hover {
+            background: rgba(51, 65, 85, 0.9);
+            color: #e2e8f0;
+            border-color: rgba(56, 189, 248, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-ghost::after { display: none; }
+
+        .modal-card {
+            width: 420px;
+            max-height: 80vh;
+            text-align: left;
+        }
+
+        .modal-title {
+            font-size: 1.35rem;
+            color: #e2e8f0;
+            text-align: center;
+            margin-bottom: 0.35rem;
+            letter-spacing: 0.5px;
+        }
+
+        .modal-sub {
+            text-align: center;
+            font-size: 0.78rem;
+            color: #64748b;
+            margin-bottom: 1.25rem;
+        }
+
+        .high-score-list {
+            max-height: 320px;
+            overflow-y: auto;
+            margin-bottom: 1.25rem;
+            padding-right: 4px;
+        }
+
+        .hs-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 6px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255,255,255,0.05);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .hs-row.rank-1 { border-color: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.08); }
+        .hs-row.rank-2 { border-color: rgba(148, 163, 184, 0.35); }
+        .hs-row.rank-3 { border-color: rgba(180, 83, 9, 0.35); }
+
+        .hs-rank { color: #64748b; min-width: 28px; }
+        .hs-name { flex: 1; color: #f1f5f9; }
+        .hs-score { color: #38bdf8; font-weight: 800; }
+
+        .changelog-scroll {
+            max-height: 360px;
+            overflow-y: auto;
+            margin-bottom: 1.25rem;
+            padding-right: 6px;
+        }
+
+        .log-entry {
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .log-entry:last-child { border-bottom: none; }
+
+        .log-ver {
+            font-weight: 800;
+            color: #38bdf8;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+        }
+
+        .log-date {
+            font-weight: 500;
+            color: #64748b;
+            font-size: 0.78rem;
+            margin-left: 8px;
+        }
+
+        .log-entry ul {
+            margin: 0;
+            padding-left: 1.2rem;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            line-height: 1.55;
+        }
+
+        .log-entry li { margin-bottom: 3px; }
+
+        #adminConsole {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 580px;
+            background: rgba(15, 23, 42, 0.98);
+            backdrop-filter: blur(16px);
+            border: 2px solid #a855f7;
+            border-radius: 16px;
+            padding: 2rem;
+            z-index: 100;
+            box-shadow: 0 25px 50px -12px rgba(168, 85, 247, 0.4);
+        }
+
+        #adminConsole h2 {
+            color: #c084fc;
+            margin-bottom: 1rem;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 1.4rem;
+        }
+
+        .target-box {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .target-box label {
+            font-size: 0.8rem;
+            color: #c084fc;
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            padding-right: 4px;
+            margin-bottom: 10px;
+        }
+
+        .admin-grid::-webkit-scrollbar {
+            width: 6px;
+        }
+        .admin-grid::-webkit-scrollbar-thumb {
+            background: rgba(168, 85, 247, 0.4);
+            border-radius: 3px;
+        }
+
+        .btn-admin {
+            background: linear-gradient(135deg, #7e22ce, #6b21a8);
+            color: #fff;
+            font-size: 0.78rem;
+            padding: 0.6rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-admin:hover {
+            background: linear-gradient(135deg, #6b21a8, #581c87);
+        }
+
+        .btn-target {
+            background: linear-gradient(135deg, #be185d, #9d174d);
+        }
+
+        .bot-spawner-box {
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #locationBanner {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #38bdf8;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            z-index: 6;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            transition: opacity 0.5s ease;
+        }
+
+        #stormWarning {
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(220, 38, 38, 0.85);
+            backdrop-filter: blur(8px);
+            border: 2px solid #f87171;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #fff;
+            text-align: center;
+            z-index: 6;
+            box-shadow: 0 0 25px rgba(220, 38, 38, 0.6);
+        }
+
+        #killFeed {
+            position: absolute;
+            top: 20px;
+            right: 240px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-end;
+            z-index: 6;
+            pointer-events: none;
+        }
+
+        .kill-msg {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(6px);
+            border-left: 4px solid #ef4444;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #f8fafc;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            animation: fadeInOut 4s forwards;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-10px); }
+            15% { opacity: 1; transform: translateY(0); }
+            85% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 5;
+        }
+
+        #mobileControls { display: none; position: absolute; inset: 0; z-index: 15; pointer-events: none; }
+        #mobileControls.active { display: block; }
+        #joystickArea { position: absolute; left: max(16px, env(safe-area-inset-left)); bottom: max(24px, env(safe-area-inset-bottom)); width: 150px; height: 150px; pointer-events: auto; touch-action: none; }
+        #joystickBase { width: 150px; height: 150px; border-radius: 50%; background: rgba(15,23,42,0.55); border: 2px solid rgba(56,189,248,0.45); box-shadow: 0 0 24px rgba(56,189,248,0.15); position: relative; }
+        #joystickKnob { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(145deg,#38bdf8,#0ea5e9); border: 2px solid rgba(255,255,255,0.35); box-shadow: 0 4px 16px rgba(14,165,233,0.5); position: absolute; top: 43px; left: 43px; }
+        #boostBtn { position: absolute; right: max(20px, env(safe-area-inset-right)); bottom: max(36px, env(safe-area-inset-bottom)); width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(145deg,#f43f5e,#e11d48); border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 6px 20px rgba(225,29,72,0.45); color: #fff; font-weight: 800; font-size: 0.78rem; display: flex; align-items: center; justify-content: center; pointer-events: auto; touch-action: none; user-select: none; }
+        #boostBtn.active { transform: scale(0.92); background: linear-gradient(145deg,#fb7185,#f43f5e); }
+        #adminMobileBtn { position: absolute; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(145deg, #7e22ce, #6b21a8); border: 2px solid rgba(192,132,252,0.5); box-shadow: 0 4px 16px rgba(126,34,206,0.4); color: #e9d5ff; font-size: 1.25rem; display: flex; align-items: center; justify-content: center; pointer-events: auto; touch-action: none; user-select: none; z-index: 16; }
+        #adminMobileBtn:active { transform: scale(0.92); }
+        @media (max-width: 950px) {
+            #adminConsole { width: min(96vw, 580px) !important; max-height: 90vh !important; overflow-y: auto !important; padding: 1.25rem !important; }
+            #adminConsole h2 { font-size: 1.1rem !important; }
+            .admin-grid { max-height: 40vh !important; }
+            .btn-admin { font-size: 0.7rem !important; padding: 0.5rem !important; }
+        }
+        @media (max-width: 950px) and (orientation: landscape) {
+            #minimapCanvas { width: 110px !important; height: 110px !important; bottom: 12px; right: 12px; }
+            #leaderboard { top: 10px; right: 10px; min-width: 150px; font-size: 0.8rem; }
+            #hud { top: 10px; left: 10px; }
+        }
