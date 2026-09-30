@@ -10,18 +10,18 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body,#cesiumContainer{width:100%;height:100%;overflow:hidden;background:#0a0a12}
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-#ui{position:absolute;top:12px;left:12px;z-index:20;display:flex;flex-direction:column;gap:10px;max-width:min(340px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow-y:auto}
-.panel{background:rgba(12,14,22,.88);border:1px solid rgba(255,255,255,.12);border-radius:14px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#e8e8f0;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+#ui{position:absolute;top:12px;left:12px;z-index:20;display:flex;flex-direction:column;gap:10px;max-width:min(360px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow-y:auto;scrollbar-width:thin}
+.panel{background:rgba(12,14,22,.9);border:1px solid rgba(255,255,255,.12);border-radius:14px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#e8e8f0;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
 .title{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .sub{font-size:11px;color:#8b8ba0;margin-bottom:10px;line-height:1.4}
-.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid rgba(255,255,255,.06)}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06)}
 .toggle-row:first-of-type{border-top:none;padding-top:0}
 .toggle-label{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:2px}
 .toggle-hint{font-size:10px;color:#6b6b80;font-weight:400}
-.switch{position:relative;width:46px;height:26px;flex-shrink:0}
+.switch{position:relative;width:44px;height:24px;flex-shrink:0}
 .switch input{opacity:0;width:0;height:0}
-.slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14);border-radius:999px;transition:.25s}
-.slider:before{content:"";position:absolute;height:20px;width:20px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14);border-radius:999px;transition:.2s}
+.slider:before{content:"";position:absolute;height:18px;width:18px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 .switch input:checked+.slider{border-color:transparent}
 .switch input:checked+.slider:before{transform:translateX(20px)}
 .switch.air input:checked+.slider{background:linear-gradient(135deg,#0ea5e9,#38bdf8)}
@@ -29,8 +29,9 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 .switch.disaster input:checked+.slider{background:linear-gradient(135deg,#ef4444,#f87171)}
 .switch.weather input:checked+.slider{background:linear-gradient(135deg,#22c55e,#4ade80)}
 .switch.lightning input:checked+.slider{background:linear-gradient(135deg,#a855f7,#c084fc)}
-.stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#a0a0b8}
-.stat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:5px 9px}
+.switch.set input:checked+.slider{background:linear-gradient(135deg,#6366f1,#818cf8)}
+.stats{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#a0a0b8}
+.stat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:5px 8px}
 .stat strong{color:#fff;font-weight:700}
 .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:#555;margin-right:4px}
 .status-dot.on{background:#22c55e;box-shadow:0 0 8px #22c55e}
@@ -61,6 +62,14 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 .ic-item.full{grid-column:1/-1}
 .ic-k{font-size:10px;color:#6b6b80;text-transform:uppercase;letter-spacing:.4px}
 .ic-v{font-size:13px;font-weight:700;margin-top:2px;color:#fff;word-break:break-word}
+#settingsPanel{display:none}
+#settingsPanel.open{display:block}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid rgba(255,255,255,.05);font-size:12px}
+.setting-row:first-child{border-top:none}
+.setting-row label{color:#c8c8d8}
+.setting-row input[type=range]{width:110px;accent-color:#60a5fa}
+.setting-row select{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:6px;padding:4px 6px;font-size:11px}
+.setting-val{color:#60a5fa;font-weight:700;min-width:36px;text-align:right;font-size:11px}
 .cesium-viewer-bottom,.cesium-infoBox,.cesium-selection-wrapper{display:none!important}
 .cesium-viewer-toolbar{top:auto!important;bottom:12px!important;right:12px!important}
 .cesium-viewer-animationContainer,.cesium-viewer-timelineContainer{display:none!important}
@@ -85,35 +94,84 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 <div id="ui">
   <div class="panel">
     <div class="title">🌍 Live Earth</div>
-    <div class="sub">Drag to orbit · scroll zoom · right-drag tilt · click markers for info</div>
+    <div class="sub">Orbit · zoom · tilt · click markers for info</div>
 
     <div class="toggle-row">
-      <div class="toggle-label">✈️ Air traffic<span class="toggle-hint">Live planes from ADS-B (auto-updated)</span></div>
+      <div class="toggle-label">✈️ Air traffic<span class="toggle-hint">Live planes — smooth flight paths</span></div>
       <label class="switch air"><input type="checkbox" id="airToggle"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
-      <div class="toggle-label">🌋 Disasters<span class="toggle-hint">Earthquakes + wildfires, storms, volcanoes</span></div>
+      <div class="toggle-label">🌋 Disasters<span class="toggle-hint">Quakes, wildfires, storms, volcanoes</span></div>
       <label class="switch disaster"><input type="checkbox" id="disasterToggle"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
-      <div class="toggle-label">🌧️ Weather radar<span class="toggle-hint">Live rain / storm radar overlay</span></div>
+      <div class="toggle-label">🌧️ Weather radar<span class="toggle-hint">Rain overlay · click map for weather</span></div>
       <label class="switch weather"><input type="checkbox" id="weatherToggle"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
-      <div class="toggle-label">⚡ Lightning<span class="toggle-hint">Live strikes (Blitzortung network)</span></div>
+      <div class="toggle-label">⚡ Lightning<span class="toggle-hint">Live strikes worldwide</span></div>
       <label class="switch lightning"><input type="checkbox" id="lightningToggle"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
-      <div class="toggle-label">🚗 Street view<span class="toggle-hint">Roads & cities map</span></div>
+      <div class="toggle-label">🚗 Street view<span class="toggle-hint">Roads & cities</span></div>
       <label class="switch traffic"><input type="checkbox" id="trafficToggle"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">⚙️ Settings<span class="toggle-hint">Labels, trails, filters, quality</span></div>
+      <label class="switch set"><input type="checkbox" id="settingsToggle"><span class="slider"></span></label>
     </div>
 
     <div class="stats">
       <div class="stat"><span class="status-dot" id="airDot"></span>Planes <strong id="planeCount">0</strong></div>
       <div class="stat">🌋 <strong id="disasterCount">0</strong></div>
       <div class="stat">⚡ <strong id="strikeCount">0</strong></div>
+      <div class="stat" id="fpsStat" style="display:none">FPS <strong id="fpsVal">—</strong></div>
     </div>
   </div>
+
+  <div class="panel" id="settingsPanel">
+    <div class="title" style="margin-bottom:8px">⚙️ Settings</div>
+    <div class="setting-row">
+      <label>Show labels</label>
+      <input type="checkbox" id="setLabels" checked>
+    </div>
+    <div class="setting-row">
+      <label>Flight trails</label>
+      <input type="checkbox" id="setTrails" checked>
+    </div>
+    <div class="setting-row">
+      <label>Night lights</label>
+      <input type="checkbox" id="setLighting" checked>
+    </div>
+    <div class="setting-row">
+      <label>Min altitude</label>
+      <input type="range" id="setMinAlt" min="0" max="30000" step="500" value="1000">
+      <span class="setting-val" id="minAltVal">1000 ft</span>
+    </div>
+    <div class="setting-row">
+      <label>Max planes</label>
+      <input type="range" id="setMaxPlanes" min="50" max="800" step="50" value="300">
+      <span class="setting-val" id="maxPlanesVal">300</span>
+    </div>
+    <div class="setting-row">
+      <label>Trail length</label>
+      <input type="range" id="setTrailLen" min="2" max="20" step="1" value="8">
+      <span class="setting-val" id="trailLenVal">8</span>
+    </div>
+    <div class="setting-row">
+      <label>Quality</label>
+      <select id="setQuality">
+        <option value="high">High</option>
+        <option value="medium" selected>Medium</option>
+        <option value="low">Low (faster)</option>
+      </select>
+    </div>
+    <div class="setting-row">
+      <label>Show FPS</label>
+      <input type="checkbox" id="setFps">
+    </div>
+  </div>
+
   <div class="panel">
     <input id="searchBox" type="search" placeholder="Fly to city (New York, Tokyo…)" autocomplete="off">
     <div class="btn-row">
@@ -124,8 +182,6 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
   </div>
 </div>
 <div id="toast"></div>
-
 <script src="app.js"></script>
-
 </body>
 </html>
