@@ -16,13 +16,20 @@ html,body{margin:0;height:100%;background:#090d16;color:#94a3b8;font-family:syst
 (async () => {
   try {
     const parts = await Promise.all([
-      fetch('part1.html').then(r => { if (!r.ok) throw new Error('part1 '+r.status); return r.text(); }),
-      fetch('part2.html').then(r => { if (!r.ok) throw new Error('part2 '+r.status); return r.text(); }),
-      fetch('part3.html').then(r => { if (!r.ok) throw new Error('part3 '+r.status); return r.text(); }),
+      fetch('p00.html').then(r => { if (!r.ok) throw new Error('p00 '+r.status); return r.text(); }),
+      fetch('p01.html').then(r => { if (!r.ok) throw new Error('p01 '+r.status); return r.text(); }),
+      fetch('p02.html').then(r => { if (!r.ok) throw new Error('p02 '+r.status); return r.text(); }),
+      fetch('p03.html').then(r => { if (!r.ok) throw new Error('p03 '+r.status); return r.text(); }),
+      fetch('p04.html').then(r => { if (!r.ok) throw new Error('p04 '+r.status); return r.text(); }),
+      fetch('p05.html').then(r => { if (!r.ok) throw new Error('p05 '+r.status); return r.text(); }),
+      fetch('p06.html').then(r => { if (!r.ok) throw new Error('p06 '+r.status); return r.text(); }),
+      fetch('p07.html').then(r => { if (!r.ok) throw new Error('p07 '+r.status); return r.text(); }),
+      fetch('p08.html').then(r => { if (!r.ok) throw new Error('p08 '+r.status); return r.text(); }),
+      fetch('p09.html').then(r => { if (!r.ok) throw new Error('p09 '+r.status); return r.text(); }),
+      fetch('p10.html').then(r => { if (!r.ok) throw new Error('p10 '+r.status); return r.text(); })
     ]);
-    const html = parts.join('\n');
     document.open();
-    document.write(html);
+    document.write(parts.join('\n'));
     document.close();
   } catch (e) {
     document.body.innerHTML = '<div style="padding:2rem;text-align:center"><h2>Load failed</h2><p>'+e+'</p></div>';
