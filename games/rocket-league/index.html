@@ -3,48 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Rocket League – Multiplayer</title>
+  <title>Rocket League</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 </head>
 <body>
-  <!-- Login / Username Screen -->
   <div id="loginScreen">
     <div class="login-box">
       <div class="logo">ROCKET LEAGUE</div>
-      <p class="subtitle">Multiplayer Prototype</p>
-      <input type="text" id="usernameInput" placeholder="Enter username" maxlength="16" autocomplete="off" />
+      <p class="subtitle">Multiplayer Car Soccer</p>
+      <input type="text" id="usernameInput" placeholder="Username" maxlength="16" autocomplete="off" />
       <input type="password" id="passwordInput" placeholder="Password (optional)" maxlength="32" />
       <button id="playBtn">PLAY</button>
-      <p class="hint">Username is required. Password is stored locally for now.</p>
+      <p class="hint">Username required. Password optional (saved on this device).</p>
     </div>
   </div>
 
-  <!-- Main Menu -->
   <div id="mainMenu" class="hidden">
     <div class="menu-box">
       <h1>ROCKET LEAGUE</h1>
       <p id="welcomeText">Welcome</p>
+      <button id="soloBtn">SOLO PRACTICE</button>
       <button id="quickMatchBtn">QUICK MATCH</button>
-      <button id="createRoomBtn">CREATE PRIVATE ROOM</button>
+      <button id="createRoomBtn">CREATE ROOM</button>
       <button id="joinRoomBtn">JOIN ROOM</button>
-      <input type="text" id="roomCodeInput" placeholder="Room code" class="hidden" maxlength="8" />
+      <input type="text" id="roomCodeInput" placeholder="Enter room code" class="hidden" maxlength="10" />
       <button id="confirmJoinBtn" class="hidden">JOIN</button>
       <button id="leaderboardBtn">LEADERBOARD</button>
-      <button id="logoutBtn">CHANGE USER</button>
+      <button id="logoutBtn">SWITCH USER</button>
     </div>
   </div>
 
-  <!-- Leaderboard Overlay -->
   <div id="leaderboardScreen" class="hidden">
     <div class="lb-box">
-      <h2>GLOBAL LEADERBOARD</h2>
+      <h2>LEADERBOARD</h2>
       <div id="lbList">Loading...</div>
       <button id="closeLbBtn">CLOSE</button>
     </div>
   </div>
 
-  <!-- HUD -->
   <div id="hud" class="hidden">
     <div id="scoreBoard">
       <span id="blueScore">0</span>
@@ -55,18 +52,16 @@
     <div id="boostBar"><div id="boostFill"></div></div>
     <div id="playerList"></div>
     <div id="statusMsg"></div>
+    <div id="controlsHint">WASD / Arrows = Drive | Shift = Boost | Space = Jump</div>
   </div>
 
-  <!-- Game Canvas -->
   <canvas id="gameCanvas"></canvas>
 
-  <!-- Load Photon from npm package via esm.sh or similar, with fallback message -->
-  <script type="module">
-    // Photon Realtime is best loaded from the official SDK download.
-    // For this prototype we provide a working single-player + local multiplayer structure
-    // and a clear place to plug in the official Photon JS client.
+  <script>
     window.PHOTON_APP_ID = "e42a4126-88d9-4075-b4f2-6cfa9a885e05";
   </script>
+  <script src="physics.js"></script>
+  <script src="network.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
