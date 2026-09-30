@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Storm Chaser</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#map{width:100%;height:100%;overflow:hidden;background:#0a0e14;touch-action:none}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#e8eef8}
+#map{position:absolute;inset:0;z-index:0}
+.leaflet-control-attribution{font-size:9px;background:rgba(0,0,0,.5)!important;color:#888!important}
+.leaflet-control-zoom{border:none!important;box-shadow:none!important}
+.leaflet-control-zoom a{background:rgba(12,18,28,.9)!important;color:#9ab!important;border:1px solid rgba(255,255,255,.1)!important;width:32px!important;height:32px!important;line-height:32px!important}
+
+#hud{position:absolute;inset:0;z-index:10;pointer-events:none}
+#hud *{pointer-events:auto}
+.panel{background:rgba(8,12,20,.88);border:1px solid rgba(255,255,255,.1);border-radius:12px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.4)}
+#topBar{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+#stats{display:flex;gap:6px;flex-wrap:wrap}
+.stat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:6px 10px;font-size:12px;min-width:70px}
+.stat b{display:block;font-size:16px;font-weight:800;color:#fff;margin-top:1px}
+.stat span{color:#7a8a9a;font-size:10px;text-transform:uppercase;letter-spacing:.3px}
+.stat.warn b{color:#fbbf24}
+.stat.danger b{color:#f87171}
+.stat.good b{color:#34d399}
+#titleBox{margin-left:auto}
+#titleBox .t{font-weight:800;font-size:14px}
+#titleBox .s{font-size:10px;color:#7a8a9a}
+
+#side{position:absolute;top:70px;left:10px;width:min(280px,calc(100vw - 20px));display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 160px);overflow-y:auto}
+.btn{padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#dce4f0;font-size:12px;font-weight:600;cursor:pointer;text-align:left}
+.btn:hover{background:rgba(255,255,255,.1)}
+.btn.on{background:linear-gradient(135deg,#0ea5e9,#38bdf8);border-color:transparent;color:#041018}
+.btn.green.on{background:linear-gradient(135deg,#16a34a,#4ade80);color:#041018}
+.btn.purple.on{background:linear-gradient(135deg,#7c3aed,#c084fc);color:#fff}
+.btn.orange.on{background:linear-gradient(135deg,#ea580c,#fb923c);color:#041018}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+.row .btn{flex:1;text-align:center;min-width:70px}
+
+#mission{font-size:11px;line-height:1.45;color:#a8b8c8}
+#mission strong{color:#fbbf24}
+
+#bottom{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center}
+#dpad{display:grid;grid-template-columns:40px 40px 40px;grid-template-rows:40px 40px 40px;gap:4px}
+#dpad button{width:40px;height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(12,18,28,.85);color:#fff;font-size:16px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#dpad button:active{background:#1e3a5f}
+#dpad .empty{visibility:hidden}
+#speedBar{width:120px}
+#speedBar .label{font-size:10px;color:#7a8a9a;margin-bottom:4px}
+#speedBar .track{height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden}
+#speedBar .fill{height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#eab308,#ef4444);border-radius:4px;transition:width .1s linear}
+
+#toast{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(8,12,20,.95);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;border:1px solid rgba(255,255,255,.12);opacity:0;pointer-events:none;transition:opacity .25s;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+
+#overlay{position:absolute;inset:0;z-index:30;background:rgba(4,8,14,.92);display:flex;align-items:center;justify-content:center;padding:20px}
+#overlay.hide{display:none}
+.card{max-width:420px;width:100%;background:rgba(12,18,28,.95);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:24px;text-align:center}
+.card h1{font-size:26px;margin-bottom:8px}
+.card p{color:#8a9aaa;font-size:13px;line-height:1.5;margin-bottom:12px}
+.card .start{display:inline-block;margin-top:8px;padding:12px 28px;border-radius:12px;border:none;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+.card ul{text-align:left;font-size:12px;color:#a0b0c0;margin:12px auto;max-width:320px;line-height:1.7}
+.card kbd{background:rgba(255,255,255,.1);padding:1px 6px;border-radius:4px;font-size:11px}
+
+.car-icon{width:28px;height:28px;margin-left:-14px;margin-top:-14px;filter:drop-shadow(0 0 4px #0ea5e9)}
+.bolt{width:12px;height:12px;border-radius:50%;background:#c084fc;box-shadow:0 0 8px #a855f7;margin-left:-6px;margin-top:-6px}
+.storm-marker{width:18px;height:18px;border-radius:50%;background:rgba(249,115,22,.85);border:2px solid #fff;box-shadow:0 0 12px #f97316;margin-left:-9px;margin-top:-9px}
+
+#back{position:absolute;top:10px;right:10px;z-index:15;width:40px;height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(8,12,20,.85);color:#c4b5fd;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+@media(max-width:560px){
+  #side{top:auto;bottom:100px;max-height:30vh}
+  .stat b{font-size:14px}
+  #dpad button{width:36px;height:36px}
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="hud">
+  <button id="back" title="Back">←</button>
+  <div id="topBar">
+    <div id="stats">
+      <div class="stat good"><span>Score</span><b id="score">0</b></div>
+      <div class="stat"><span>Speed</span><b id="spd">0</b></div>
+      <div class="stat"><span>Fuel</span><b id="fuel">100</b></div>
+      <div class="stat"><span>Armor</span><b id="armor">100</b></div>
+      <div class="stat"><span>Storm</span><b id="stormLvl">0</b></div>
+      <div class="stat"><span>Bolts</span><b id="bolts">0</b></div>
+    </div>
+    <div class="panel" id="titleBox">
+      <div class="t">⛈️ Storm Chaser</div>
+      <div class="s">Live radar · lightning · chase</div>
+    </div>
+  </div>
+
+  <div id="side">
+    <div class="panel row">
+      <button class="btn green" id="btnRadar">🌧️ Radar</button>
+      <button class="btn purple" id="btnBolt">⚡ Bolts</button>
+      <button class="btn orange" id="btnStorms">🌀 Storms</button>
+    </div>
+    <div class="panel" id="mission">
+      <strong>Mission:</strong> Drive into storm cells and near lightning to earn points.
+      Avoid the core too long or armor drops. Fuel burns with speed — stop to recover a bit.
+    </div>
+    <div class="panel row">
+      <button class="btn" id="btnChase">🎯 Nearest storm</button>
+      <button class="btn" id="btnCenter">📍 Me</button>
+    </div>
+    <div class="panel row">
+      <button class="btn" id="btnQuality">Quality: Med</button>
+      <button class="btn" id="btnHelp">?</button>
+    </div>
+  </div>
+
+  <div id="bottom">
+    <div class="panel" id="speedBar">
+      <div class="label">Throttle</div>
+      <div class="track"><div class="fill" id="throttleFill"></div></div>
+    </div>
+    <div id="dpad">
+      <div class="empty"></div>
+      <button data-k="up">▲</button>
+      <div class="empty"></div>
+      <button data-k="left">◀</button>
+      <button data-k="down">▼</button>
+      <button data-k="right">▶</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<div id="overlay">
+  <div class="card">
+    <h1>⛈️ Storm Chaser</h1>
+    <p>Live weather radar, lightning network, and storm targets on a world map. Chase the weather. Survive the core.</p>
+    <ul>
+      <li><kbd>WASD</kbd> / <kbd>Arrows</kbd> or on-screen pad to drive</li>
+      <li>Yellow/orange zones = active storms — drive through for score</li>
+      <li>Purple flashes = live lightning — get close for bonus points</li>
+      <li>Too deep in a cell drains <b>armor</b>. Speed burns <b>fuel</b></li>
+      <li>Optimized for Edge & low-end PCs</li>
+    </ul>
+    <button class="start" id="btnStart">Start Chase</button>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
