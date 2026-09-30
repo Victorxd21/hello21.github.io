@@ -6,6 +6,7 @@
   <title>Rocket League</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
 <body>
   <div id="loginScreen">
@@ -24,10 +25,9 @@
       <h1>ROCKET LEAGUE</h1>
       <p id="welcomeText">Welcome</p>
       <button id="soloBtn">SOLO PRACTICE</button>
-      <button id="quickMatchBtn">QUICK MATCH</button>
       <button id="createRoomBtn">CREATE ROOM</button>
       <button id="joinRoomBtn">JOIN ROOM</button>
-      <input type="text" id="roomCodeInput" placeholder="Enter room code" class="hidden" maxlength="10" />
+      <input type="text" id="roomCodeInput" placeholder="Enter room code" class="hidden" maxlength="12" />
       <button id="confirmJoinBtn" class="hidden">JOIN</button>
       <button id="leaderboardBtn">LEADERBOARD</button>
       <button id="logoutBtn">SWITCH USER</button>
@@ -57,9 +57,6 @@
 
   <canvas id="gameCanvas"></canvas>
 
-  <script>
-    window.PHOTON_APP_ID = "e42a4126-88d9-4075-b4f2-6cfa9a885e05";
-  </script>
   <script src="physics.js"></script>
   <script src="network.js"></script>
   <script src="game.js"></script>
