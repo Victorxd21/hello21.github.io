@@ -24,7 +24,6 @@ html, body {
   z-index: 1;
 }
 
-/* Login */
 #loginScreen, #mainMenu, #leaderboardScreen {
   position: fixed;
   inset: 0;
@@ -42,6 +41,7 @@ html, body {
   padding: 36px 40px;
   text-align: center;
   min-width: 320px;
+  max-width: 380px;
   backdrop-filter: blur(12px);
   box-shadow: 0 20px 50px rgba(0,0,0,0.5);
 }
@@ -111,7 +111,6 @@ button:active {
   display: none !important;
 }
 
-/* HUD */
 #hud {
   position: fixed;
   inset: 0;
@@ -179,13 +178,22 @@ button:active {
 
 #statusMsg {
   position: absolute;
-  bottom: 60px;
+  bottom: 70px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 18px;
-  font-weight: 700;
-  text-shadow: 0 2px 8px #000;
+  font-size: 20px;
+  font-weight: 800;
+  text-shadow: 0 2px 10px #000;
   color: #fff;
+}
+
+#controlsHint {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
 }
 
 #lbList {
