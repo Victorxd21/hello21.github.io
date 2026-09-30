@@ -1,1 +1,13 @@
-/home/workdir/artifacts/slither_original.html
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Loading Slither...</title></head>
+<body style="background:#090d16;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+<div>Loading Slither v2.1…</div>
+<script>
+fetch('https://raw.githubusercontent.com/Victorxd21/hello21.github.io/98830872b5615f21e26374df0da4d86945af04f5/games/slitherio.html')
+  .then(r => r.text())
+  .then(html => { document.open(); document.write(html); document.close(); })
+  .catch(e => { document.body.innerHTML = '<p>Failed to load. Open the game from GitHub history or try again.</p><pre>'+e+'</pre>'; });
+</script>
+</body>
+</html>
