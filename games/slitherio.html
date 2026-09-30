@@ -17,7 +17,7 @@ fetch('https://raw.githubusercontent.com/Victorxd21/hello21.github.io/98830872b5
   .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
   .then(html => { document.open(); document.write(html); document.close(); })
   .catch(e => {
-    document.body.innerHTML = '<div style="padding:2rem;text-align:center"><h2 style="color:#f87171">Could not load</h2><p>'+e+'</p><p><a style="color:#38bdf8" href="https://raw.githubusercontent.com/Victorxd21/hello21.github.io/98830872b5615f21e26374df0da4d86945af04f5/games/slitherio.html">Open direct</a></p></div>';
+    document.body.innerHTML = '<div style="padding:2rem;text-align:center"><h2 style="color:#f87171">Could not load</h2><p>'+e+'</p></div>';
   });
 </script>
 </body>
