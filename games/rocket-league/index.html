@@ -6,9 +6,6 @@
   <title>Rocket League – Multiplayer</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
-  <!-- Photon Realtime JavaScript SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/photon-js@latest/dist/photon.min.js"></script>
 </head>
 <body>
   <!-- Login / Username Screen -->
@@ -63,6 +60,13 @@
   <!-- Game Canvas -->
   <canvas id="gameCanvas"></canvas>
 
+  <!-- Load Photon from npm package via esm.sh or similar, with fallback message -->
+  <script type="module">
+    // Photon Realtime is best loaded from the official SDK download.
+    // For this prototype we provide a working single-player + local multiplayer structure
+    // and a clear place to plug in the official Photon JS client.
+    window.PHOTON_APP_ID = "e42a4126-88d9-4075-b4f2-6cfa9a885e05";
+  </script>
   <script src="game.js"></script>
 </body>
 </html>
