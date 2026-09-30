@@ -68,15 +68,140 @@ const HIDDEN_FOLDERS=new Set(["heads","game-art","images","sounds","assets","pic
 const HIDDEN_ROOT_FILES=new Set(["test.html"]);
 function escapeHTML(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 function formatName(n){return n.replace(/\b\w/g,c=>c.toUpperCase())}
-function getRepoInfo(){const h=location.hostname;if(h.endsWith(".github.io")){const owner=h.split(".")[0];const parts=location.pathname.split("/").filter(Boolean);const repo=parts[0]&&!parts[0].includes(".")?parts[0]:owner+".github.io";return{owner,repo}}return{owner:"Victorxd21",repo:"hello21.github.io"}}
-async function loadGames(){const gamesContainer=document.getElementById("games"),gameCount=document.getElementById("gameCount");gamesContainer.innerHTML=`<div class="loading"><div class="spinner"></div>Loading games...</div>`;gameCount.textContent="Loading games...";try{const{owner,repo}=getRepoInfo();const response=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/games`);if(!response.ok)throw new Error("GitHub API "+response.status);const items=await response.json();const categories=[];const rootGames=[];for(const item of items){if(item.type==="file"&&/\.html$/i.test(item.name)&&!HIDDEN_ROOT_FILES.has(item.name.toLowerCase()))rootGames.push(item);if(item.type==="dir"&&!HIDDEN_FOLDERS.has(item.name.toLowerCase())){try{const fr=await fetch(item.url);if(!fr.ok)continue;const files=await fr.json();const games=files.filter(f=>f.type==="file"&&(/^index\.html$/i.test(f.name)||/\.html$/i.test(f.name)));if(games.length)categories.push({name:item.name,folder:item.name,icon:getCategoryIcon(item.name),games})}catch(e){}}}if(rootGames.length)categories.unshift({name:"Games",folder:null,icon:"🎮",games:rootGames});const total=categories.reduce((s,c)=>s+c.games.length,0);gameCount.textContent=total+" game"+(total===1?"":"s");categories.sort((a,b)=>a.name==="Games"?-1:b.name==="Games"?1:a.name.localeCompare(b.name));gamesContainer.innerHTML="";for(const c of categories)gamesContainer.appendChild(createCategory(c))}catch(error){gamesContainer.innerHTML=`<div class="error">Failed to load games.<br><small>${escapeHTML(String(error.message||error))}</small></div>`;gameCount.textContent="Error"}}
-function createCategory(category){const section=document.createElement("div");section.className="category";const header=document.createElement("div");header.className="category-header";header.innerHTML=`<div class="category-icon">${category.icon}</div><div class="category-name">${escapeHTML(formatName(category.name))}<span class="category-count">(${category.games.length})</span></div>`;const grid=document.createElement("div");grid.className="games-grid";[...category.games].sort((a,b)=>a.name.localeCompare(b.name)).forEach(f=>grid.appendChild(createGameCard(f,category.folder)));section.appendChild(header);section.appendChild(grid);return section}
-function getArtKey(gameName,folder){const raw=(folder||gameName||"").toLowerCase().replace(/\.html$/i,"").replace(/\s+/g,"-");const aliases={"slither-io":"slitherIO","slitherio":"slitherIO","gartic-phone":"garticphone","liveearth":"live-earth","stormchaser":"storm-chaser","catgame":"cat-game"};if(folder&&window.GAME_ART&&window.GAME_ART[folder])return folder;if(aliases[raw])return aliases[raw];if(window.GAME_ART&&window.GAME_ART[raw])return raw;const keys=window.GAME_ART?Object.keys(window.GAME_ART):[];for(const k of keys){if(raw.includes(k.toLowerCase())||k.toLowerCase().includes(raw))return k}return folder||raw}
-function artUrl(key,kind){if(!key)return null;if(window.GAME_ART&&window.GAME_ART[key]){const o=window.GAME_ART[key];return kind==="banner"?(o.b||o.banner):(o.p||o.profile)}const base="game-art/"+encodeURIComponent(key)+"/";return base+(kind==="banner"?"banner.svg":"profile.svg")}
-function createGameCard(file,folder){const card=document.createElement("div");card.className="game";let gameName=file.name.replace(/\.html$/i,"").replace(/[-_]/g," ");if(folder&&file.name.toLowerCase()==="index.html")gameName=folder.replace(/[-_]/g," ");gameName=formatName(gameName);const displayPath=folder?folder+"/"+file.name:file.name;const artKey=getArtKey(gameName,folder);const banner=artUrl(artKey,"banner");const profile=artUrl(artKey,"profile");const iconHtml=profile?`<img src="${profile}" alt="" loading="lazy" onerror="this.remove()">`:getGameIcon(gameName,folder);if(banner){card.classList.add("has-art");card.innerHTML=`<div class="game-banner" style="background-image:url('${banner}')"></div><div class="game-body"><div class="game-icon">${iconHtml}</div><div class="game-meta"><div class="game-name">${escapeHTML(gameName)}</div><div class="game-file">${escapeHTML(displayPath)}</div></div></div>`}else{card.innerHTML=`<div class="game-icon">${iconHtml}</div><div class="game-name">${escapeHTML(gameName)}</div><div class="game-file">${escapeHTML(displayPath)}</div>`}card.onclick=()=>{location.href=getGameURL(file,folder)};return card}
-function getGameURL(file,folder){const u=new URL(location.href);let base=u.pathname;if(base.endsWith("index.html"))base=base.slice(0,-10);if(!base.endsWith("/"))base+="/";const path=folder?`games/${encodeURIComponent(folder)}/${encodeURIComponent(file.name)}`:`games/${encodeURIComponent(file.name)}`;return new URL(path,u.origin+base).href}
-function getGameIcon(gameName,folder){const n=(gameName+" "+(folder||"")).toLowerCase();if(n.includes("slither"))return"🐍";if(n.includes("snake"))return"🟩";if(n.includes("royale")||n.includes("battle"))return"⚔️";if(n.includes("werewolf")||n.includes("wolf"))return"🐺";if(n.includes("cat"))return"🐱";if(n.includes("gartic")||n.includes("draw"))return"✏️";if(n.includes("earth"))return"🌍";if(n.includes("storm"))return"⛈️";return"🎮"}
-function getCategoryIcon(folderName){const n=folderName.toLowerCase();if(n.includes("cat"))return"🐱";if(n.includes("gartic")||n.includes("draw"))return"✏️";if(n.includes("slither"))return"🐍";if(n.includes("earth"))return"🌍";if(n.includes("storm"))return"⛈️";return"📁"}
+function getRepoInfo(){
+  const h=location.hostname;
+  if(h.endsWith(".github.io")){
+    const owner=h.split(".")[0];
+    const parts=location.pathname.split("/").filter(Boolean).filter(p=>p.toLowerCase()!=="index.html");
+    // Project pages live at owner.github.io/repo-name/
+    let repo=owner+".github.io";
+    if(parts[0]) repo=parts[0];
+    return{owner,repo};
+  }
+  return{owner:"Victorxd21",repo:"hello21.github.io"};
+}
+async function loadGames(){
+  const gamesContainer=document.getElementById("games"),gameCount=document.getElementById("gameCount");
+  gamesContainer.innerHTML=`<div class="loading"><div class="spinner"></div>Loading games...</div>`;
+  gameCount.textContent="Loading games...";
+  try{
+    let {owner,repo}=getRepoInfo();
+    // Always prefer the known repo if API path is wrong
+    let response=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/games`);
+    if(!response.ok){
+      owner="Victorxd21";
+      repo="hello21.github.io";
+      response=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/games`);
+    }
+    if(!response.ok) throw new Error("GitHub API "+response.status);
+    const items=await response.json();
+    const categories=[];
+    const rootGames=[];
+    for(const item of items){
+      if(item.type==="file"&&/\.html$/i.test(item.name)&&!HIDDEN_ROOT_FILES.has(item.name.toLowerCase())) rootGames.push(item);
+      if(item.type==="dir"&&!HIDDEN_FOLDERS.has(item.name.toLowerCase())){
+        try{
+          const fr=await fetch(item.url);
+          if(!fr.ok) continue;
+          const files=await fr.json();
+          const games=files.filter(f=>f.type==="file"&&(/\.html$/i.test(f.name)));
+          if(games.length) categories.push({name:item.name,folder:item.name,icon:getCategoryIcon(item.name),games});
+        }catch(e){}
+      }
+    }
+    if(rootGames.length) categories.unshift({name:"Games",folder:null,icon:"🎮",games:rootGames});
+    const total=categories.reduce((s,c)=>s+c.games.length,0);
+    gameCount.textContent=total+" game"+(total===1?"":"s");
+    categories.sort((a,b)=>a.name==="Games"?-1:b.name==="Games"?1:a.name.localeCompare(b.name));
+    gamesContainer.innerHTML="";
+    for(const c of categories) gamesContainer.appendChild(createCategory(c));
+  }catch(error){
+    gamesContainer.innerHTML=`<div class="error">Failed to load games.<br><small>${escapeHTML(String(error.message||error))}</small></div>`;
+    gameCount.textContent="Error";
+  }
+}
+function createCategory(category){
+  const section=document.createElement("div");
+  section.className="category";
+  const header=document.createElement("div");
+  header.className="category-header";
+  header.innerHTML=`<div class="category-icon">${category.icon}</div><div class="category-name">${escapeHTML(formatName(category.name))}<span class="category-count">(${category.games.length})</span></div>`;
+  const grid=document.createElement("div");
+  grid.className="games-grid";
+  [...category.games].sort((a,b)=>a.name.localeCompare(b.name)).forEach(f=>grid.appendChild(createGameCard(f,category.folder)));
+  section.appendChild(header);
+  section.appendChild(grid);
+  return section;
+}
+function getArtKey(gameName,folder){
+  const raw=(folder||gameName||"").toLowerCase().replace(/\.html$/i,"").replace(/\s+/g,"-");
+  const aliases={"slither-io":"slitherIO","slitherio":"slitherIO","gartic-phone":"garticphone","liveearth":"live-earth","stormchaser":"storm-chaser","catgame":"cat-game"};
+  if(folder&&window.GAME_ART&&window.GAME_ART[folder]) return folder;
+  if(aliases[raw]) return aliases[raw];
+  if(window.GAME_ART&&window.GAME_ART[raw]) return raw;
+  const keys=window.GAME_ART?Object.keys(window.GAME_ART):[];
+  for(const k of keys){ if(raw.includes(k.toLowerCase())||k.toLowerCase().includes(raw)) return k; }
+  return folder||raw;
+}
+function artUrl(key,kind){
+  if(!key) return null;
+  if(window.GAME_ART&&window.GAME_ART[key]){
+    const o=window.GAME_ART[key];
+    const url=kind==="banner"?(o.b||o.banner):(o.p||o.profile);
+    if(url) return url;
+  }
+  const base="game-art/"+encodeURIComponent(key)+"/";
+  return base+(kind==="banner"?"banner.svg":"profile.svg");
+}
+function createGameCard(file,folder){
+  const card=document.createElement("div");
+  card.className="game";
+  let gameName=file.name.replace(/\.html$/i,"").replace(/[-_]/g," ");
+  if(folder&&file.name.toLowerCase()==="index.html") gameName=folder.replace(/[-_]/g," ");
+  gameName=formatName(gameName);
+  const displayPath=folder?folder+"/"+file.name:file.name;
+  const artKey=getArtKey(gameName,folder);
+  const banner=artUrl(artKey,"banner");
+  const profile=artUrl(artKey,"profile");
+  const iconHtml=profile?`<img src="${profile}" alt="" loading="lazy" onerror="this.remove()">`:getGameIcon(gameName,folder);
+  if(banner){
+    card.classList.add("has-art");
+    card.innerHTML=`<div class="game-banner" style="background-image:url('${banner}')"></div><div class="game-body"><div class="game-icon">${iconHtml}</div><div class="game-meta"><div class="game-name">${escapeHTML(gameName)}</div><div class="game-file">${escapeHTML(displayPath)}</div></div></div>`;
+  }else{
+    card.innerHTML=`<div class="game-icon">${iconHtml}</div><div class="game-name">${escapeHTML(gameName)}</div><div class="game-file">${escapeHTML(displayPath)}</div>`;
+  }
+  card.onclick=()=>{location.href=getGameURL(file,folder)};
+  return card;
+}
+function getGameURL(file,folder){
+  const u=new URL(location.href);
+  let base=u.pathname;
+  if(base.endsWith("index.html")) base=base.slice(0,-10);
+  if(!base.endsWith("/")) base+="/";
+  const path=folder?`games/${encodeURIComponent(folder)}/${encodeURIComponent(file.name)}`:`games/${encodeURIComponent(file.name)}`;
+  return new URL(path,u.origin+base).href;
+}
+function getGameIcon(gameName,folder){
+  const n=(gameName+" "+(folder||"")).toLowerCase();
+  if(n.includes("slither"))return"🐍";
+  if(n.includes("snake"))return"🟩";
+  if(n.includes("royale")||n.includes("battle"))return"⚔️";
+  if(n.includes("werewolf")||n.includes("wolf"))return"🐺";
+  if(n.includes("cat"))return"🐱";
+  if(n.includes("gartic")||n.includes("draw"))return"✏️";
+  if(n.includes("earth"))return"🌍";
+  if(n.includes("storm"))return"⛈️";
+  return"🎮";
+}
+function getCategoryIcon(folderName){
+  const n=folderName.toLowerCase();
+  if(n.includes("cat"))return"🐱";
+  if(n.includes("gartic")||n.includes("draw"))return"✏️";
+  if(n.includes("slither"))return"🐍";
+  if(n.includes("earth"))return"🌍";
+  if(n.includes("storm"))return"⛈️";
+  return"📁";
+}
 loadGames();
 </script>
 </body>
