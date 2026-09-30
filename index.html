@@ -1,1 +1,167 @@
-PLACEHOLDER_WILL_FAIL
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Hub</title>
+<link rel="icon" href="favicon.png" type="image/png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,Arial,sans-serif;background:#080810;color:#fff;min-height:100vh;overflow-x:hidden}
+#bgLayer{position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;transition:opacity 1.2s ease;opacity:.35}
+#bgOverlay{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(circle at 20% 20%,rgba(37,37,74,.5) 0%,transparent 40%),radial-gradient(circle at 80% 80%,rgba(23,23,53,.5) 0%,transparent 45%),rgba(8,8,16,.72)}
+body::before{content:"";position:fixed;inset:0;z-index:2;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:40px 40px}
+.content{position:relative;z-index:3}
+#settingsBtn{position:fixed;top:16px;left:16px;z-index:50;width:46px;height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);backdrop-filter:blur(12px);color:#c4b5fd;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#edgeSwipe{position:fixed;top:0;left:0;z-index:55;width:24px;height:100%;touch-action:none}
+#settingsBackdrop{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .3s}
+#settingsBackdrop.open{opacity:1;pointer-events:auto}
+#settingsPanel{position:fixed;top:0;left:0;z-index:70;width:min(340px,88vw);height:100%;background:linear-gradient(180deg,#12121f,#0c0c16);border-right:1px solid rgba(140,140,255,.2);box-shadow:20px 0 60px rgba(0,0,0,.5);transform:translateX(-105%);transition:transform .35s cubic-bezier(.16,1,.3,1);padding:24px 20px;overflow-y:auto;touch-action:pan-y;will-change:transform}
+#settingsPanel.open{transform:translateX(0)}
+#settingsPanel.dragging{transition:none}
+#settingsPanel h2{font-size:20px;font-weight:800;margin-bottom:6px}
+#settingsPanel .sub{color:#6b6b80;font-size:12px;margin-bottom:22px}
+.setting-group{margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,.06)}
+.setting-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#8b8b9e;margin-bottom:10px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.setting-row label{font-size:14px;color:#d4d4e0}
+input[type=range]{flex:1;accent-color:#8b7cff;height:4px}
+.vol-val{font-size:12px;color:#8b8b9e;min-width:32px;text-align:right}
+.set-btn{width:100%;padding:11px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#e2e2f0;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px}
+.now-playing{font-size:12px;color:#a5a5c0;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.theme-swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatch{width:32px;height:32px;border-radius:8px;cursor:pointer;border:2px solid transparent}
+.swatch.active,.swatch:hover{border-color:#fff;transform:scale(1.1)}
+.close-panel{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:10px;border:none;background:rgba(255,255,255,.06);color:#aaa;font-size:18px;cursor:pointer}
+header{position:relative;padding:70px 24px 40px;text-align:center}
+.badge{display:inline-block;padding:7px 14px;border-radius:999px;background:rgba(120,120,255,.12);border:1px solid rgba(140,140,255,.25);color:#aaaaff;font-size:13px;margin-bottom:18px}
+h1{font-size:clamp(40px,7vw,72px);font-weight:900;letter-spacing:-3px;background:linear-gradient(90deg,#fff,#aaaaff,#fff);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:grad 5s linear infinite}
+@keyframes grad{to{background-position:200%}}
+.subtitle{margin-top:12px;color:#89899a;font-size:15px}
+.credits{margin-top:18px;font-size:13px;color:#6b6b80}
+.credits strong{color:#a78bfa;font-weight:700}
+.credits .tiny{display:block;font-size:11px;color:#55556a;margin-top:3px}
+main{position:relative;width:min(1100px,calc(100% - 32px));margin:auto;padding-bottom:70px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px}
+.games-count{color:#858597;font-size:14px}
+.refresh{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#fff;padding:10px 16px;border-radius:10px;cursor:pointer;font-size:14px}
+.category{margin-bottom:40px}
+.category-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.category-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:linear-gradient(135deg,#6d5dfc,#9b8cff);box-shadow:0 8px 24px rgba(109,93,252,.25);font-size:17px}
+.category-name{font-size:20px;font-weight:800;text-transform:capitalize}
+.category-count{color:#666677;font-size:12px;margin-left:4px}
+.games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.game{position:relative;min-height:130px;padding:20px;border-radius:18px;border:1px solid rgba(255,255,255,.09);background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.03));backdrop-filter:blur(14px);cursor:pointer;overflow:hidden;transition:transform .25s,border-color .25s,box-shadow .25s}
+.game:hover{transform:translateY(-4px);border-color:rgba(140,140,255,.45);box-shadow:0 14px 36px rgba(0,0,0,.35)}
+.game-icon{position:relative;width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#6d5dfc,#9b8cff);font-size:20px;margin-bottom:14px}
+.game-name{position:relative;font-size:17px;font-weight:700;margin-bottom:6px}
+.game-file{position:relative;color:#777789;font-size:11px}
+.loading{text-align:center;padding:60px 20px;color:#777789}
+.spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.08);border-top-color:#8b7cff;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error{padding:28px;border-radius:14px;background:rgba(255,70,70,.08);border:1px solid rgba(255,70,70,.2);color:#ff9b9b;text-align:center}
+footer{position:relative;text-align:center;color:#555566;font-size:12px;padding:28px}
+@media(max-width:600px){header{padding-top:56px}.games-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="bgLayer"></div>
+<div id="bgOverlay"></div>
+<button id="settingsBtn" title="Settings">⚙️</button>
+<div id="edgeSwipe"></div>
+<div id="settingsBackdrop"></div>
+<aside id="settingsPanel">
+<button class="close-panel" id="closeSettings">✕</button>
+<h2>⚙️ Settings</h2>
+<p class="sub">Customize your Game Hub</p>
+<div class="setting-group">
+<div class="setting-label">Music</div>
+<div class="setting-row"><label>Volume</label><input type="range" id="volSlider" min="0" max="100" value="40"><span class="vol-val" id="volVal">40%</span></div>
+<button class="set-btn" id="skipBtn">⏭ Skip song</button>
+<button class="set-btn" id="muteBtn">🔇 Mute / Unmute</button>
+<div class="now-playing" id="nowPlaying">No music yet — add files to /music</div>
+</div>
+<div class="setting-group">
+<div class="setting-label">Background</div>
+<button class="set-btn" id="nextBgBtn">🖼 Next background</button>
+<div class="setting-row"><label>BG opacity</label><input type="range" id="bgOpacity" min="0" max="70" value="35"><span class="vol-val" id="bgOpVal">35%</span></div>
+</div>
+<div class="setting-group">
+<div class="setting-label">UI Theme</div>
+<div class="theme-swatches" id="themeSwatches">
+<div class="swatch active" data-theme="purple" style="background:linear-gradient(135deg,#6d5dfc,#9b8cff)"></div>
+<div class="swatch" data-theme="blue" style="background:linear-gradient(135deg,#0ea5e9,#38bdf8)"></div>
+<div class="swatch" data-theme="pink" style="background:linear-gradient(135deg,#ec4899,#f472b6)"></div>
+<div class="swatch" data-theme="green" style="background:linear-gradient(135deg,#10b981,#34d399)"></div>
+<div class="swatch" data-theme="orange" style="background:linear-gradient(135deg,#f59e0b,#fbbf24)"></div>
+</div>
+</div>
+<div class="setting-group">
+<div class="setting-label">About</div>
+<p style="font-size:13px;color:#a5a5c0;line-height:1.5">Made by <strong style="color:#a78bfa">Grok</strong><br><span style="font-size:11px;color:#55556a">with a bit of help from Victor</span></p>
+</div>
+</aside>
+<div class="content">
+<header>
+<div class="badge">🎮 GITHUB GAME HUB</div>
+<h1>GAME HUB</h1>
+<p class="subtitle">Pick a game and start playing.</p>
+<p class="credits">Made by <strong>Grok</strong><span class="tiny">with a bit of help from Victor</span></p>
+</header>
+<main>
+<div class="topbar">
+<div class="games-count" id="gameCount">Loading games...</div>
+<button class="refresh" onclick="loadGames()">↻ Refresh</button>
+</div>
+<div id="games"><div class="loading"><div class="spinner"></div>Loading games...</div></div>
+</main>
+<footer>Games are loaded automatically from the <b>/games</b> folder.</footer>
+</div>
+<audio id="bgMusic" preload="auto"></audio>
+<script>
+const HIDDEN_FOLDERS=new Set(["heads","images","sounds","assets","pics","music"]);
+const HIDDEN_ROOT_FILES=new Set(["test.html"]);
+const THEMES={purple:{a:"#6d5dfc",b:"#9b8cff"},blue:{a:"#0ea5e9",b:"#38bdf8"},pink:{a:"#ec4899",b:"#f472b6"},green:{a:"#10b981",b:"#34d399"},orange:{a:"#f59e0b",b:"#fbbf24"}};
+const panel=document.getElementById("settingsPanel");
+const backdrop=document.getElementById("settingsBackdrop");
+let panelOpen=false,dragStartX=0,dragDx=0,dragging=false,dragFromEdge=false;
+function openSettings(){panelOpen=true;panel.classList.add("open");backdrop.classList.add("open");panel.style.transform="";backdrop.style.opacity=""}
+function closeSettings(){panelOpen=false;panel.classList.remove("open");backdrop.classList.remove("open");panel.style.transform="";backdrop.style.opacity=""}
+document.getElementById("settingsBtn").onclick=openSettings;
+document.getElementById("closeSettings").onclick=closeSettings;
+backdrop.onclick=closeSettings;
+function panelWidth(){return panel.getBoundingClientRect().width||300}
+function onDragStart(x,fromEdge){dragStartX=x;dragDx=0;dragging=true;dragFromEdge=fromEdge;panel.classList.add("dragging")}
+function onDragMove(x){if(!dragging)return;const dx=x-dragStartX;dragDx=dx;const w=panelWidth();if(panelOpen){const o=Math.min(0,Math.max(-w,dx));panel.style.transform="translateX("+o+"px)";backdrop.style.opacity=String(Math.max(0,1+o/w))}else if(dragFromEdge){const o=Math.min(0,Math.max(-w,-w+Math.max(0,dx)));panel.style.transform="translateX("+o+"px)";backdrop.classList.add("open");backdrop.style.opacity=String(Math.min(1,Math.max(0,dx)/w));backdrop.style.pointerEvents="auto"}}
+function onDragEnd(){if(!dragging)return;dragging=false;panel.classList.remove("dragging");const w=panelWidth(),th=w*0.28;if(panelOpen){if(dragDx<-th)closeSettings();else openSettings()}else if(dragFromEdge){if(dragDx>th)openSettings();else{closeSettings();backdrop.style.pointerEvents=""}}dragDx=0}
+function bindSwipe(el,edgeOnly){el.addEventListener("touchstart",e=>{if(edgeOnly&&panelOpen)return;if(!edgeOnly&&!panelOpen)return;onDragStart(e.changedTouches[0].clientX,edgeOnly)},{passive:true});el.addEventListener("touchmove",e=>{if(dragging)onDragMove(e.changedTouches[0].clientX)},{passive:true});el.addEventListener("touchend",onDragEnd,{passive:true});el.addEventListener("touchcancel",onDragEnd,{passive:true})}
+bindSwipe(panel,false);bindSwipe(backdrop,false);bindSwipe(document.getElementById("edgeSwipe"),true);
+function applyTheme(name){const t=THEMES[name]||THEMES.purple;document.querySelectorAll(".category-icon,.game-icon").forEach(el=>{el.style.background=`linear-gradient(135deg,${t.a},${t.b})`});document.querySelectorAll(".swatch").forEach(s=>s.classList.toggle("active",s.dataset.theme===name));try{localStorage.setItem("hub_theme",name)}catch(e){}}
+document.getElementById("themeSwatches").onclick=e=>{const s=e.target.closest(".swatch");if(s)applyTheme(s.dataset.theme)};
+try{applyTheme(localStorage.getItem("hub_theme")||"purple")}catch(e){applyTheme("purple")}
+const audio=document.getElementById("bgMusic");let tracks=[],trackIndex=0,muted=false;
+function getRepoInfo(){const h=location.hostname,p=location.pathname;let owner,repo;if(h.endsWith(".github.io")){owner=h.split(".")[0];const parts=p.split("/").filter(Boolean);repo=parts[0]||owner+".github.io"}else{owner="Victorxd21";repo="hello21.github.io"}return{owner,repo}}
+async function loadMusic(){try{const{owner,repo}=getRepoInfo();const res=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/music`);if(!res.ok)return;const files=await res.json();tracks=files.filter(f=>f.type==="file"&&/\.(mp3|ogg|wav|m4a)$/i.test(f.name)).map(f=>({name:f.name,url:f.download_url}));if(tracks.length)playTrack(Math.floor(Math.random()*tracks.length));else document.getElementById("nowPlaying").textContent="No music yet — add files to /music"}catch(e){console.warn(e)}}
+function playTrack(i){if(!tracks.length)return;trackIndex=((i%tracks.length)+tracks.length)%tracks.length;const t=tracks[trackIndex];audio.src=t.url;audio.volume=(parseInt(document.getElementById("volSlider").value,10)||40)/100;audio.play().catch(()=>{document.getElementById("nowPlaying").textContent="Tap to start music · "+t.name;const u=()=>{audio.play().catch(()=>{});document.removeEventListener("click",u);document.removeEventListener("touchstart",u)};document.addEventListener("click",u,{once:true});document.addEventListener("touchstart",u,{once:true})});document.getElementById("nowPlaying").textContent="♪ "+t.name}
+audio.addEventListener("ended",()=>playTrack(trackIndex+1));
+document.getElementById("volSlider").oninput=e=>{const v=parseInt(e.target.value,10);audio.volume=muted?0:v/100;document.getElementById("volVal").textContent=v+"%";try{localStorage.setItem("hub_vol",v)}catch(e){}};
+document.getElementById("skipBtn").onclick=()=>playTrack(trackIndex+1);
+document.getElementById("muteBtn").onclick=()=>{muted=!muted;audio.volume=muted?0:(parseInt(document.getElementById("volSlider").value,10)/100);document.getElementById("muteBtn").textContent=muted?"🔊 Unmute":"🔇 Mute / Unmute"};
+try{const v=localStorage.getItem("hub_vol");if(v!=null){document.getElementById("volSlider").value=v;document.getElementById("volVal").textContent=v+"%";audio.volume=parseInt(v,10)/100}}catch(e){}
+let pics=[],picIndex=0;const bgLayer=document.getElementById("bgLayer");
+async function loadPics(){try{const{owner,repo}=getRepoInfo();const res=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/pics`);if(!res.ok)return;const files=await res.json();pics=files.filter(f=>f.type==="file"&&/\.(jpe?g|png|webp|gif)$/i.test(f.name)).map(f=>f.download_url);if(pics.length){showPic(Math.floor(Math.random()*pics.length));setInterval(()=>showPic(picIndex+1),12000)}}catch(e){console.warn(e)}}
+function showPic(i){if(!pics.length)return;picIndex=((i%pics.length)+pics.length)%pics.length;bgLayer.style.opacity="0";setTimeout(()=>{bgLayer.style.backgroundImage=`url("${pics[picIndex]}")`;const op=(parseInt(document.getElementById("bgOpacity").value,10)||35)/100;bgLayer.style.opacity=String(op)},400)}
+document.getElementById("nextBgBtn").onclick=()=>showPic(picIndex+1);
+document.getElementById("bgOpacity").oninput=e=>{const v=parseInt(e.target.value,10);bgLayer.style.opacity=String(v/100);document.getElementById("bgOpVal").textContent=v+"%"};
+async function loadGames(){const gamesContainer=document.getElementById("games"),gameCount=document.getElementById("gameCount");gamesContainer.innerHTML=`<div class="loading"><div class="spinner"></div>Loading games...</div>`;gameCount.textContent="Loading games...";try{const{owner,repo}=getRepoInfo();const response=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/games`);if(!response.ok)throw new Error("GitHub API "+response.status);const files=await response.json();const rootGames=files.filter(f=>f.type==="file"&&f.name.toLowerCase().endsWith(".html")&&!HIDDEN_ROOT_FILES.has(f.name.toLowerCase()));const folders=files.filter(f=>f.type==="dir"&&!HIDDEN_FOLDERS.has(f.name.toLowerCase()));let totalGames=rootGames.length;const categories=[];if(rootGames.length)categories.push({name:"Games",icon:"🎮",games:rootGames});for(const folder of folders){try{const fr=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/games/${encodeURIComponent(folder.name)}`);if(!fr.ok)continue;const ff=await fr.json();const fg=ff.filter(f=>f.type==="file"&&f.name.toLowerCase().endsWith(".html"));if(!fg.length)continue;totalGames+=fg.length;categories.push({name:folder.name,icon:getCategoryIcon(folder.name),games:fg,folder:folder.name})}catch(e){console.error(e)}}if(!totalGames){gamesContainer.innerHTML=`<div class="loading"><div style="font-size:40px;margin-bottom:12px">🎮</div><div>No games found.</div></div>`;gameCount.textContent="0 games";return}gameCount.textContent=totalGames+" game"+(totalGames===1?"":"s");categories.sort((a,b)=>a.name==="Games"?-1:b.name==="Games"?1:a.name.localeCompare(b.name));gamesContainer.innerHTML="";for(const c of categories)gamesContainer.appendChild(createCategory(c));try{applyTheme(localStorage.getItem("hub_theme")||"purple")}catch(e){}}catch(error){gamesContainer.innerHTML=`<div class="error">Failed to load games.<br><small>${escapeHTML(String(error.message||error))}</small></div>`;gameCount.textContent="Error"}}
+function createCategory(category){const section=document.createElement("div");section.className="category";const header=document.createElement("div");header.className="category-header";header.innerHTML=`<div class="category-icon">${category.icon}</div><div class="category-name">${escapeHTML(formatName(category.name))}<span class="category-count">(${category.games.length})</span></div>`;const grid=document.createElement("div");grid.className="games-grid";[...category.games].sort((a,b)=>a.name.localeCompare(b.name)).forEach(f=>grid.appendChild(createGameCard(f,category.folder)));section.appendChild(header);section.appendChild(grid);return section}
+function createGameCard(file,folder){const card=document.createElement("div");card.className="game";let gameName=file.name.replace(/\.html$/i,"").replace(/[-_]/g," ");if(folder&&file.name.toLowerCase()==="index.html")gameName=folder.replace(/[-_]/g," ");gameName=formatName(gameName);const displayPath=folder?folder+"/"+file.name:file.name;card.innerHTML=`<div class="game-icon">${getGameIcon(gameName,folder)}</div><div class="game-name">${escapeHTML(gameName)}</div><div class="game-file">${escapeHTML(displayPath)}</div>`;card.onclick=()=>{location.href=getGameURL(file,folder)};return card}
+function getGameURL(file,folder){const u=new URL(location.href);let base=u.pathname;if(base.endsWith("index.html"))base=base.slice(0,-10);if(!base.endsWith("/"))base+="/";const path=folder?`games/${encodeURIComponent(folder)}/${encodeURIComponent(file.name)}`:`games/${encodeURIComponent(file.name)}`;return new URL(path,u.origin+base).href}
+function formatName(name){const cleaned=name.replace(/[-_]/g," ").replace(/\s+/g," ").trim();const aliases={"agar io":"Agar.io","agario":"Agar.io","slither io":"Slither.io","slitherio":"Slither.io","cat up":"Cat UP","catup":"Cat UP","gartic":"Gartic Phone","garticphone":"Gartic Phone","royale":"Battle Royale","werewolf":"Werewolf"};return aliases[cleaned.toLowerCase()]||cleaned.replace(/\b\w/g,c=>c.toUpperCase())}
+function getGameIcon(gameName,folder){const n=(gameName+" "+(folder||"")).toLowerCase();if(n.includes("slither"))return"🐍";if(n.includes("snake"))return"🟩";if(n.includes("agar"))return"🟡";if(n.includes("royale")||n.includes("battle"))return"⚔️";if(n.includes("werewolf")||n.includes("wolf"))return"🐺";if(n.includes("cat"))return"🐱";if(n.includes("gartic")||n.includes("draw"))return"✏️";return"🎮"}
+function getCategoryIcon(folderName){const n=folderName.toLowerCase();if(n.includes("cat"))return"🐱";if(n.includes("gartic")||n.includes("draw"))return"✏️";if(n.includes("slither"))return"🐍";return"📁"}
+function escapeHTML(text){const d=document.createElement("div");d.textContent=text;return d.innerHTML}
+loadGames();loadMusic();loadPics();
+</script>
+</body>
+</html>
