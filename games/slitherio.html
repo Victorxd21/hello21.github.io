@@ -1,13 +1,155 @@
 <!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>Loading Slither...</title></head>
-<body style="background:#090d16;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
-<div>Loading Slither v2.1…</div>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Slither v2.1</title>
+<style>
+html,body{margin:0;height:100%;background:#090d16;color:#94a3b8;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center}
+.loader{text-align:center}
+.spinner{width:40px;height:40px;border:3px solid #1e293b;border-top-color:#38bdf8;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="loader"><div class="spinner"></div><div>Loading Slither…</div></div>
 <script>
-fetch('https://raw.githubusercontent.com/Victorxd21/hello21.github.io/98830872b5615f21e26374df0da4d86945af04f5/games/slitherio.html')
-  .then(r => r.text())
-  .then(html => { document.open(); document.write(html); document.close(); })
-  .catch(e => { document.body.innerHTML = '<p>Failed to load. Open the game from GitHub history or try again.</p><pre>'+e+'</pre>'; });
+(async function() {
+  const SRC = 'https://raw.githubusercontent.com/Victorxd21/hello21.github.io/98830872b5615f21e26374df0da4d86945af04f5/games/slitherio.html';
+  try {
+    const res = await fetch(SRC);
+    let html = await res.text();
+
+    html = html.replace(
+      '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+      '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">\n    <meta name="apple-mobile-web-app-capable" content="yes">'
+    );
+
+    const mobileCSS = `
+        body, html { height: 100dvh; touch-action: none; -webkit-touch-callout: none; }
+        #gameCanvas { width: 100%; height: 100%; touch-action: none; }
+        #mobileControls { display: none; position: absolute; inset: 0; z-index: 15; pointer-events: none; }
+        #mobileControls.active { display: block; }
+        #joystickArea { position: absolute; left: max(16px, env(safe-area-inset-left)); bottom: max(24px, env(safe-area-inset-bottom)); width: 150px; height: 150px; pointer-events: auto; touch-action: none; }
+        #joystickBase { width: 150px; height: 150px; border-radius: 50%; background: rgba(15,23,42,0.55); border: 2px solid rgba(56,189,248,0.45); box-shadow: 0 0 24px rgba(56,189,248,0.15); position: relative; }
+        #joystickKnob { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(145deg,#38bdf8,#0ea5e9); border: 2px solid rgba(255,255,255,0.35); box-shadow: 0 4px 16px rgba(14,165,233,0.5); position: absolute; top: 43px; left: 43px; }
+        #boostBtn { position: absolute; right: max(20px, env(safe-area-inset-right)); bottom: max(36px, env(safe-area-inset-bottom)); width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(145deg,#f43f5e,#e11d48); border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 6px 20px rgba(225,29,72,0.45); color: #fff; font-weight: 800; font-size: 0.78rem; display: flex; align-items: center; justify-content: center; pointer-events: auto; touch-action: none; user-select: none; }
+        #boostBtn.active { transform: scale(0.92); background: linear-gradient(145deg,#fb7185,#f43f5e); }
+        @media (max-width: 950px) and (orientation: landscape) {
+          #minimapCanvas { width: 110px !important; height: 110px !important; bottom: 12px; right: 12px; }
+        }
+    `;
+    html = html.replace('</style>', mobileCSS + '\n    </style>');
+
+    const mobileHTML = `
+    <div id="mobileControls">
+      <div id="joystickArea"><div id="joystickBase"><div id="joystickKnob"></div></div></div>
+      <div id="boostBtn">BOOST</div>
+    </div>
+    `;
+    html = html.replace('<!-- MAIN MENU -->', mobileHTML + '\n    <!-- MAIN MENU -->');
+
+    const mobileJS = `
+        // ===== Mobile joystick (injected) =====
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        let joystickActive = false;
+        let joyCenterX = 0, joyCenterY = 0;
+        const JOY_MAX = 50;
+        let lastJoyDX = 0, lastJoyDY = 0;
+        const mobileControlsEl = document.getElementById('mobileControls');
+        const joystickAreaEl = document.getElementById('joystickArea');
+        const joystickKnobEl = document.getElementById('joystickKnob');
+        const boostBtnEl = document.getElementById('boostBtn');
+
+        function isLandscapeMobile() {
+          return isTouchDevice && window.innerWidth > window.innerHeight && window.innerWidth <= 1100;
+        }
+        function updateMobileControlsVisibility() {
+          if (!mobileControlsEl) return;
+          const show = !!gameActive && isLandscapeMobile() && !(typeof me !== 'undefined' && me.isDead);
+          mobileControlsEl.classList.toggle('active', show);
+          if (!show) {
+            joystickActive = false;
+            if (joystickKnobEl) { joystickKnobEl.style.left = '43px'; joystickKnobEl.style.top = '43px'; }
+          }
+        }
+        function applyJoystickDirection(dx, dy) {
+          if (Math.hypot(dx, dy) < 6) return;
+          lastJoyDX = dx; lastJoyDY = dy;
+          mouseX = canvas.width / 2 + dx * 18;
+          mouseY = canvas.height / 2 + dy * 18;
+        }
+        function onJoyStart(e) {
+          e.preventDefault(); e.stopPropagation();
+          const t = e.changedTouches ? e.changedTouches[0] : e;
+          const rect = joystickAreaEl.getBoundingClientRect();
+          joyCenterX = rect.left + rect.width / 2;
+          joyCenterY = rect.top + rect.height / 2;
+          joystickActive = true;
+          onJoyMove(e);
+        }
+        function onJoyMove(e) {
+          if (!joystickActive) return;
+          e.preventDefault(); e.stopPropagation();
+          const t = e.changedTouches ? e.changedTouches[0] : e;
+          let dx = t.clientX - joyCenterX, dy = t.clientY - joyCenterY;
+          const dist = Math.hypot(dx, dy);
+          if (dist > JOY_MAX) { dx = (dx / dist) * JOY_MAX; dy = (dy / dist) * JOY_MAX; }
+          if (joystickKnobEl) {
+            joystickKnobEl.style.left = (43 + dx) + 'px';
+            joystickKnobEl.style.top = (43 + dy) + 'px';
+          }
+          applyJoystickDirection(dx, dy);
+        }
+        function onJoyEnd(e) {
+          if (!joystickActive) return;
+          e.preventDefault(); e.stopPropagation();
+          joystickActive = false;
+          if (joystickKnobEl) { joystickKnobEl.style.left = '43px'; joystickKnobEl.style.top = '43px'; }
+          if (lastJoyDX || lastJoyDY) applyJoystickDirection(lastJoyDX, lastJoyDY);
+        }
+        if (joystickAreaEl) {
+          joystickAreaEl.addEventListener('touchstart', onJoyStart, { passive: false });
+          joystickAreaEl.addEventListener('touchmove', onJoyMove, { passive: false });
+          joystickAreaEl.addEventListener('touchend', onJoyEnd, { passive: false });
+          joystickAreaEl.addEventListener('touchcancel', onJoyEnd, { passive: false });
+        }
+        if (boostBtnEl) {
+          const on = (e) => { e.preventDefault(); e.stopPropagation(); isBoosting = true; boostBtnEl.classList.add('active'); };
+          const off = (e) => { e.preventDefault(); e.stopPropagation(); isBoosting = false; boostBtnEl.classList.remove('active'); };
+          boostBtnEl.addEventListener('touchstart', on, { passive: false });
+          boostBtnEl.addEventListener('touchend', off, { passive: false });
+          boostBtnEl.addEventListener('touchcancel', off, { passive: false });
+        }
+        document.addEventListener('touchmove', (e) => { if (gameActive) e.preventDefault(); }, { passive: false });
+        window.addEventListener('orientationchange', () => {
+          setTimeout(() => { if (typeof resizeCanvas === 'function') resizeCanvas(); updateMobileControlsVisibility(); }, 150);
+        });
+        window.addEventListener('resize', () => updateMobileControlsVisibility());
+        if (typeof startGame === 'function') {
+          const _origStart = startGame;
+          startGame = function(mode) { _origStart(mode); updateMobileControlsVisibility(); };
+        }
+        if (typeof triggerDeath === 'function') {
+          const _origDeath = triggerDeath;
+          triggerDeath = function(k) { _origDeath(k); updateMobileControlsVisibility(); };
+        }
+    `;
+
+    if (html.includes('startPreviewLoop()')) {
+      html = html.replace('startPreviewLoop();', 'startPreviewLoop();\n' + mobileJS);
+    } else {
+      html = html.replace('</script>\n</body>', mobileJS + '\n    </script>\n</body>');
+    }
+
+    document.open();
+    document.write(html);
+    document.close();
+  } catch (err) {
+    document.body.innerHTML = '<div style="padding:2rem;text-align:center"><h2>Could not load Slither</h2><p style="color:#64748b">' + err + '</p><p><a style="color:#38bdf8" href="' + SRC + '">Open direct link</a></p></div>';
+  }
+})();
 </script>
 </body>
 </html>
