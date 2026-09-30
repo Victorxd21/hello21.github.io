@@ -1,24 +1,57 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Slither v2.1</title>
 <style>
 html,body{margin:0;height:100%;background:#090d16;color:#94a3b8;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center}
-.spinner{width:40px;height:40px;border:3px solid #1e293b;border-top-color:#38bdf8;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
-@keyframes spin{to{transform:rotate(360deg)}}
+.sp{width:36px;height:36px;border:3px solid #1e293b;border-top-color:#38bdf8;border-radius:50%;animation:s .8s linear infinite;margin:0 auto 12px}
+@keyframes s{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
-<div style="text-align:center"><div class="spinner"></div><div>Loading Slither…</div></div>
+<div style="text-align:center"><div class="sp"></div>Loading Slither…</div>
 <script>
-fetch('https://raw.githubusercontent.com/Victorxd21/hello21.github.io/98830872b5615f21e26374df0da4d86945af04f5/games/slitherio.html')
-  .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
-  .then(html => { document.open(); document.write(html); document.close(); })
-  .catch(e => {
-    document.body.innerHTML = '<div style="padding:2rem;text-align:center"><h2 style="color:#f87171">Could not load</h2><p>'+e+'</p><p><a style="color:#38bdf8" href="https://raw.githubusercontent.com/Victorxd21/hello21.github.io/98830872b5615f21e26374df0da4d86945af04f5/games/slitherio.html">Open direct</a></p></div>';
-  });
+(async function () {
+  var SRC = "https://raw.githubusercontent.com/Victorxd21/hello21.github.io/98830872b5615f21e26374df0da4d86945af04f5/games/slitherio.html";
+  try {
+    var res = await fetch(SRC);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var html = await res.text();
+
+    html = html.replace(
+      '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+      '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">'
+    );
+
+    var css = "body,html{height:100dvh;touch-action:none;-webkit-touch-callout:none}#gameCanvas{width:100%;height:100%;touch-action:none}#mobileControls{display:none;position:absolute;inset:0;z-index:15;pointer-events:none}#mobileControls.active{display:block}#joystickArea{position:absolute;left:max(16px,env(safe-area-inset-left));bottom:max(24px,env(safe-area-inset-bottom));width:150px;height:150px;pointer-events:auto;touch-action:none}#joystickBase{width:150px;height:150px;border-radius:50%;background:rgba(15,23,42,.55);border:2px solid rgba(56,189,248,.45);position:relative}#joystickKnob{width:64px;height:64px;border-radius:50%;background:linear-gradient(145deg,#38bdf8,#0ea5e9);border:2px solid rgba(255,255,255,.35);position:absolute;top:43px;left:43px}#boostBtn{position:absolute;right:max(20px,env(safe-area-inset-right));bottom:max(36px,env(safe-area-inset-bottom));width:80px;height:80px;border-radius:50%;background:linear-gradient(145deg,#f43f5e,#e11d48);border:2px solid rgba(255,255,255,.3);color:#fff;font-weight:800;font-size:.78rem;display:flex;align-items:center;justify-content:center;pointer-events:auto;touch-action:none}#boostBtn.active{transform:scale(.92)}#adminMobileBtn{position:absolute;top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));width:48px;height:48px;border-radius:12px;background:linear-gradient(145deg,#7e22ce,#6b21a8);border:2px solid rgba(192,132,252,.5);color:#e9d5ff;font-size:1.25rem;display:flex;align-items:center;justify-content:center;pointer-events:auto;touch-action:none;z-index:16}@media (max-width:950px){#adminConsole{width:min(96vw,580px)!important;max-height:90vh!important;overflow-y:auto!important;padding:1.25rem!important}}@media (max-width:950px) and (orientation:landscape){#minimapCanvas{width:110px!important;height:110px!important}}";
+    html = html.replace("</style>", css + "</style>");
+
+    var mob = "<div id=\"mobileControls\"><div id=\"adminMobileBtn\">🛠️</div><div id=\"joystickArea\"><div id=\"joystickBase\"><div id=\"joystickKnob\"></div></div></div><div id=\"boostBtn\">BOOST</div></div>";
+    if (html.indexOf("<!-- MAIN MENU -->") !== -1) {
+      html = html.replace("<!-- MAIN MENU -->", mob + "<!-- MAIN MENU -->");
+    } else {
+      html = html.replace('<canvas id="gameCanvas"></canvas>', '<canvas id="gameCanvas"></canvas>' + mob);
+    }
+
+    var mjs = "(function(){\nvar isTouch=('ontouchstart' in window)||(navigator.maxTouchPoints>0);\nvar joyOn=false,cx=0,cy=0,MAX=50,lx=0,ly=0;\nvar mc=document.getElementById('mobileControls');\nvar ja=document.getElementById('joystickArea');\nvar jk=document.getElementById('joystickKnob');\nvar bb=document.getElementById('boostBtn');\nvar ab=document.getElementById('adminMobileBtn');\nfunction land(){return isTouch&&innerWidth>innerHeight&&innerWidth<=1100;}\nfunction showMC(){\n  if(!mc)return;\n  var ok=!!gameActive&&land()&&!(typeof me!=='undefined'&&me.isDead);\n  mc.classList.toggle('active',ok);\n  if(!ok){joyOn=false;if(jk){jk.style.left='43px';jk.style.top='43px';}}\n}\nfunction apply(dx,dy){if(Math.hypot(dx,dy)<6)return;lx=dx;ly=dy;mouseX=canvas.width/2+dx*18;mouseY=canvas.height/2+dy*18;}\nfunction jStart(e){e.preventDefault();e.stopPropagation();var t=e.changedTouches?e.changedTouches[0]:e;var r=ja.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;joyOn=true;jMove(e);}\nfunction jMove(e){if(!joyOn)return;e.preventDefault();e.stopPropagation();var t=e.changedTouches?e.changedTouches[0]:e;var dx=t.clientX-cx,dy=t.clientY-cy;var d=Math.hypot(dx,dy);if(d>MAX){dx=dx/d*MAX;dy=dy/d*MAX;}if(jk){jk.style.left=(43+dx)+'px';jk.style.top=(43+dy)+'px';}apply(dx,dy);}\nfunction jEnd(e){if(!joyOn)return;e.preventDefault();e.stopPropagation();joyOn=false;if(jk){jk.style.left='43px';jk.style.top='43px';}if(lx||ly)apply(lx,ly);}\nif(ja){ja.addEventListener('touchstart',jStart,{passive:false});ja.addEventListener('touchmove',jMove,{passive:false});ja.addEventListener('touchend',jEnd,{passive:false});ja.addEventListener('touchcancel',jEnd,{passive:false});}\nif(bb){var on=function(e){e.preventDefault();e.stopPropagation();isBoosting=true;bb.classList.add('active');};var off=function(e){e.preventDefault();e.stopPropagation();isBoosting=false;bb.classList.remove('active');};bb.addEventListener('touchstart',on,{passive:false});bb.addEventListener('touchend',off,{passive:false});bb.addEventListener('touchcancel',off,{passive:false});}\nfunction togAdmin(e){if(e){e.preventDefault();e.stopPropagation();}var el=document.getElementById('adminConsole');if(!el)return;el.classList.toggle('hidden');if(!el.classList.contains('hidden')&&typeof updateTargetDropdown==='function')updateTargetDropdown();}\nif(ab){ab.addEventListener('touchstart',togAdmin,{passive:false});ab.addEventListener('click',togAdmin);}\ndocument.addEventListener('touchmove',function(e){if(gameActive)e.preventDefault();},{passive:false});\naddEventListener('orientationchange',function(){setTimeout(function(){if(typeof resizeCanvas==='function')resizeCanvas();showMC();},150);});\naddEventListener('resize',showMC);\nif(typeof startGame==='function'){var _s=startGame;startGame=function(m){_s(m);showMC();};}\nif(typeof triggerDeath==='function'){var _d=triggerDeath;triggerDeath=function(k){_d(k);showMC();};}\n})();";
+
+    if (html.indexOf("startPreviewLoop()") !== -1) {
+      html = html.replace("startPreviewLoop();", "startPreviewLoop();\n" + mjs);
+    } else {
+      var idx = html.lastIndexOf("</script>");
+      if (idx !== -1) html = html.slice(0, idx) + "\n" + mjs + "\n" + html.slice(idx);
+    }
+
+    document.open();
+    document.write(html);
+    document.close();
+  } catch (err) {
+    document.body.innerHTML = '<div style="padding:2rem;text-align:center;color:#94a3b8"><h2 style="color:#f87171">Could not load Slither</h2><p>' + err + '</p><p><a style="color:#38bdf8" href="' + SRC + '">Open direct link</a></p></div>';
+  }
+})();
 </script>
 </body>
 </html>
