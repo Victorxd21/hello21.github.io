@@ -1,5 +1,4 @@
-// Rocket League Prototype – Fully playable solo + multiplayer structure
-// Photon App ID is already set in index.html
+// Rocket League – Solo + Free Multiplayer (PeerJS)
 
 let username = localStorage.getItem("rl_username") || "";
 let password = localStorage.getItem("rl_password") || "";
@@ -7,6 +6,8 @@ let blueScore = 0, orangeScore = 0, matchTime = 300, matchRunning = false, boost
 let scene, camera, renderer, clock, ball, myCar;
 let keys = {};
 let lastGoalTime = 0;
+let otherCars = {};          // peerId -> car mesh
+let lastPosSend = 0;
 
 const loginScreen = document.getElementById("loginScreen");
 const mainMenu = document.getElementById("mainMenu");
@@ -32,7 +33,6 @@ function init() {
   };
 
   document.getElementById("soloBtn").onclick = () => startMatch("solo");
-  document.getElementById("quickMatchBtn").onclick = () => startMatch("quick");
   document.getElementById("createRoomBtn").onclick = () => startMatch("create");
   document.getElementById("joinRoomBtn").onclick = () => {
     document.getElementById("roomCodeInput").classList.remove("hidden");
@@ -50,7 +50,10 @@ function init() {
     location.reload();
   };
 
-  window.addEventListener("keydown", e => { keys[e.code] = true; if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)) e.preventDefault(); });
+  window.addEventListener("keydown", e => {
+    keys[e.code] = true;
+    if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
+  });
   window.addEventListener("keyup", e => keys[e.code] = false);
 
   if (username) {
@@ -64,23 +67,84 @@ function init() {
 function startMatch(mode, code) {
   mainMenu.classList.add("hidden");
   hud.classList.remove("hidden");
-  setStatus(mode === "solo" ? "Solo Practice" : "Starting...");
+
+  Network.onPlayerJoin = (id, player) => {
+    spawnOtherCar(id, player);
+    updatePlayerList();
+    setStatus(player.name + " joined!");
+    setTimeout(() => setStatus(""), 2000);
+  };
+
+  Network.onPlayerLeave = (id) => {
+    if (otherCars[id]) {
+      scene.remove(otherCars[id]);
+      delete otherCars[id];
+    }
+    updatePlayerList();
+  };
+
+  Network.onMessage = (data, fromPeer) => {
+    if (data.type === "pos" && data.id && otherCars[data.id]) {
+      const c = otherCars[data.id];
+      c.position.set(data.x, data.y, data.z);
+      c.rotation.y = data.ry || 0;
+    }
+    if (data.type === "ball" && ball) {
+      ball.position.set(data.x, data.y, data.z);
+      if (ball.userData.velocity) {
+        ball.userData.velocity.set(data.vx || 0, data.vy || 0, data.vz || 0);
+      }
+    }
+    if (data.type === "score") {
+      blueScore = data.blue || 0;
+      orangeScore = data.orange || 0;
+      document.getElementById("blueScore").textContent = blueScore;
+      document.getElementById("orangeScore").textContent = orangeScore;
+    }
+    if (data.type === "welcome") {
+      blueScore = data.blue || 0;
+      orangeScore = data.orange || 0;
+      document.getElementById("blueScore").textContent = blueScore;
+      document.getElementById("orangeScore").textContent = orangeScore;
+      updatePlayerList();
+      // Spawn cars for existing players
+      for (const id in data.players) {
+        if (id !== Network.myId && !otherCars[id]) {
+          spawnOtherCar(id, data.players[id]);
+        }
+      }
+    }
+  };
 
   if (mode === "solo") {
+    setStatus("Solo Practice");
     Network.startSolo(() => beginGame());
   } else if (mode === "create") {
-    Network.createRoom(null, (room) => {
-      setStatus("Room: " + room + " – share this code");
-      beginGame();
-    });
+    setStatus("Creating room...");
+    Network.createRoom(
+      (room) => {
+        setStatus("Room: " + room + "  –  share this code!");
+        beginGame();
+      },
+      (err) => {
+        setStatus("Failed to create room");
+        console.error(err);
+      }
+    );
   } else if (mode === "join") {
-    Network.joinRoom(code, () => {
-      setStatus("Joined " + code);
-      beginGame();
-    });
-  } else {
-    // quick
-    Network.createRoom("QUICK", () => beginGame());
+    setStatus("Joining " + code + "...");
+    Network.joinRoom(
+      code,
+      () => {
+        setStatus("Joined " + code);
+        beginGame();
+      },
+      (err) => {
+        setStatus("Could not join room");
+        alert("Could not join room. Check the code and try again.");
+        console.error(err);
+      }
+    );
   }
 }
 
@@ -125,7 +189,6 @@ function initThree() {
 }
 
 function createArena() {
-  // Grass
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(120, 80),
     new THREE.MeshStandardMaterial({ color: 0x2a8c3e, roughness: 0.85 })
@@ -134,7 +197,6 @@ function createArena() {
   floor.receiveShadow = true;
   scene.add(floor);
 
-  // Center line
   const line = new THREE.Mesh(
     new THREE.PlaneGeometry(0.4, 80),
     new THREE.MeshBasicMaterial({ color: 0xffffff })
@@ -143,11 +205,9 @@ function createArena() {
   line.position.y = 0.02;
   scene.add(line);
 
-  // Goals
   makeGoal(-55, 0x3b9eff);
   makeGoal(55, 0xff8c2a);
 
-  // Simple stadium walls
   const wallMat = new THREE.MeshStandardMaterial({ color: 0x445566, transparent: true, opacity: 0.35 });
   [[0, 12, -40, 120, 24, 1], [0, 12, 40, 120, 24, 1], [-60, 12, 0, 1, 24, 80], [60, 12, 0, 1, 24, 80]].forEach(p => {
     const w = new THREE.Mesh(new THREE.BoxGeometry(p[3], p[4], p[5]), wallMat);
@@ -177,10 +237,19 @@ function createBall() {
 
 function createMyCar() {
   myCar = buildCar(0xffcc00);
-  myCar.position.set(0, 0.55, 18);
+  myCar.position.set(0, 0.55, Network.isHost ? 18 : -18);
   myCar.userData.velocity = new THREE.Vector3();
   myCar.userData.onGround = true;
   scene.add(myCar);
+}
+
+function spawnOtherCar(id, player) {
+  if (otherCars[id]) return;
+  const color = player.team === "blue" ? 0x3b9eff : 0xff8c2a;
+  const car = buildCar(color);
+  car.position.set(0, 0.55, player.team === "blue" ? 18 : -18);
+  scene.add(car);
+  otherCars[id] = car;
 }
 
 function buildCar(color) {
@@ -192,7 +261,6 @@ function buildCar(color) {
   body.castShadow = true;
   g.add(body);
 
-  // Cabin
   const cabin = new THREE.Mesh(
     new THREE.BoxGeometry(1.8, 0.55, 1.6),
     new THREE.MeshStandardMaterial({ color: 0x222233, metalness: 0.5, roughness: 0.2 })
@@ -228,7 +296,7 @@ function updatePlayerList() {
   let html = "<b>Players</b><br>";
   for (const id in Network.players) {
     const p = Network.players[id];
-    html += `<span style="color:${p.team==='blue'?'#4da6ff':'#ff9a3c'}">${p.name}</span><br>`;
+    html += `<span style="color:${p.team === "blue" ? "#4da6ff" : "#ff9a3c"}">${p.name}</span><br>`;
   }
   el.innerHTML = html;
 }
@@ -259,7 +327,7 @@ function onGoal(team) {
 
   Physics.resetBall(ball);
   if (myCar) {
-    myCar.position.set(0, 0.55, team === "blue" ? 18 : -18);
+    myCar.position.set(0, 0.55, Network.isHost ? 18 : -18);
     myCar.userData.velocity.set(0, 0, 0);
   }
 
@@ -274,7 +342,7 @@ function showLeaderboard() {
   let html = "";
   if (!list.length) html = "<p>No scores yet. Score some goals!</p>";
   else list.slice(0, 25).forEach((e, i) => {
-    html += `<div><span>#${i+1} ${e.name}</span><span>${e.goals} goals</span></div>`;
+    html += `<div><span>#${i + 1} ${e.name}</span><span>${e.goals} goals</span></div>`;
   });
   document.getElementById("lbList").innerHTML = html;
   leaderboardScreen.classList.remove("hidden");
@@ -288,10 +356,35 @@ function animate() {
   boost = Physics.updateCar(myCar, getInput(), dt, boost);
   document.getElementById("boostFill").style.width = boost + "%";
 
-  Physics.updateBall(ball, [myCar], dt);
+  // All cars for ball collision
+  const allCars = [myCar].concat(Object.values(otherCars));
+  Physics.updateBall(ball, allCars, dt);
 
   const scored = Physics.checkGoal(ball);
   if (scored) onGoal(scored);
+
+  // Send my position ~20 times per second
+  const now = performance.now();
+  if (Network.mode === "multi" && myCar && now - lastPosSend > 50) {
+    lastPosSend = now;
+    Network.sendPosition({
+      x: myCar.position.x,
+      y: myCar.position.y,
+      z: myCar.position.z,
+      ry: myCar.rotation.y
+    });
+
+    // Host also sends ball state
+    if (Network.isHost && ball) {
+      const v = ball.userData.velocity;
+      Network.sendBall({
+        x: ball.position.x,
+        y: ball.position.y,
+        z: ball.position.z,
+        vx: v.x, vy: v.y, vz: v.z
+      });
+    }
+  }
 
   // Camera follow
   if (myCar) {
