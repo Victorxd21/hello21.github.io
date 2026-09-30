@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Rocket League – Multiplayer</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Photon Realtime JavaScript SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/photon-js@latest/dist/photon.min.js"></script>
+</head>
+<body>
+  <!-- Login / Username Screen -->
+  <div id="loginScreen">
+    <div class="login-box">
+      <div class="logo">ROCKET LEAGUE</div>
+      <p class="subtitle">Multiplayer Prototype</p>
+      <input type="text" id="usernameInput" placeholder="Enter username" maxlength="16" autocomplete="off" />
+      <input type="password" id="passwordInput" placeholder="Password (optional)" maxlength="32" />
+      <button id="playBtn">PLAY</button>
+      <p class="hint">Username is required. Password is stored locally for now.</p>
+    </div>
+  </div>
+
+  <!-- Main Menu -->
+  <div id="mainMenu" class="hidden">
+    <div class="menu-box">
+      <h1>ROCKET LEAGUE</h1>
+      <p id="welcomeText">Welcome</p>
+      <button id="quickMatchBtn">QUICK MATCH</button>
+      <button id="createRoomBtn">CREATE PRIVATE ROOM</button>
+      <button id="joinRoomBtn">JOIN ROOM</button>
+      <input type="text" id="roomCodeInput" placeholder="Room code" class="hidden" maxlength="8" />
+      <button id="confirmJoinBtn" class="hidden">JOIN</button>
+      <button id="leaderboardBtn">LEADERBOARD</button>
+      <button id="logoutBtn">CHANGE USER</button>
+    </div>
+  </div>
+
+  <!-- Leaderboard Overlay -->
+  <div id="leaderboardScreen" class="hidden">
+    <div class="lb-box">
+      <h2>GLOBAL LEADERBOARD</h2>
+      <div id="lbList">Loading...</div>
+      <button id="closeLbBtn">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="scoreBoard">
+      <span id="blueScore">0</span>
+      <span class="vs">-</span>
+      <span id="orangeScore">0</span>
+    </div>
+    <div id="timer">5:00</div>
+    <div id="boostBar"><div id="boostFill"></div></div>
+    <div id="playerList"></div>
+    <div id="statusMsg"></div>
+  </div>
+
+  <!-- Game Canvas -->
+  <canvas id="gameCanvas"></canvas>
+
+  <script src="game.js"></script>
+</body>
+</html>
