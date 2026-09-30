@@ -36,6 +36,36 @@ html,body{margin:0;height:100%;background:#090d16;color:#94a3b8;font-family:syst
         #joystickKnob { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(145deg,#38bdf8,#0ea5e9); border: 2px solid rgba(255,255,255,0.35); box-shadow: 0 4px 16px rgba(14,165,233,0.5); position: absolute; top: 43px; left: 43px; }
         #boostBtn { position: absolute; right: max(20px, env(safe-area-inset-right)); bottom: max(36px, env(safe-area-inset-bottom)); width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(145deg,#f43f5e,#e11d48); border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 6px 20px rgba(225,29,72,0.45); color: #fff; font-weight: 800; font-size: 0.78rem; display: flex; align-items: center; justify-content: center; pointer-events: auto; touch-action: none; user-select: none; }
         #boostBtn.active { transform: scale(0.92); background: linear-gradient(145deg,#fb7185,#f43f5e); }
+        #adminMobileBtn {
+          position: absolute;
+          top: max(12px, env(safe-area-inset-top));
+          left: max(12px, env(safe-area-inset-left));
+          width: 48px; height: 48px;
+          border-radius: 12px;
+          background: linear-gradient(145deg, #7e22ce, #6b21a8);
+          border: 2px solid rgba(192,132,252,0.5);
+          box-shadow: 0 4px 16px rgba(126,34,206,0.4);
+          color: #e9d5ff;
+          font-size: 1.25rem;
+          display: flex; align-items: center; justify-content: center;
+          pointer-events: auto; touch-action: none; user-select: none;
+          z-index: 16;
+        }
+        #adminMobileBtn:active { transform: scale(0.92); }
+        @media (max-width: 950px) {
+          #adminConsole {
+            width: min(96vw, 580px) !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            padding: 1.25rem !important;
+          }
+          #adminConsole h2 { font-size: 1.1rem !important; }
+          .admin-grid { grid-template-columns: 1fr 1fr !important; max-height: 40vh !important; }
+          .btn-admin { font-size: 0.7rem !important; padding: 0.5rem !important; }
+        }
         @media (max-width: 950px) and (orientation: landscape) {
           #minimapCanvas { width: 110px !important; height: 110px !important; bottom: 12px; right: 12px; }
         }
@@ -44,6 +74,7 @@ html,body{margin:0;height:100%;background:#090d16;color:#94a3b8;font-family:syst
 
     const mobileHTML = `
     <div id="mobileControls">
+      <div id="adminMobileBtn" title="Admin Console">🛠️</div>
       <div id="joystickArea"><div id="joystickBase"><div id="joystickKnob"></div></div></div>
       <div id="boostBtn">BOOST</div>
     </div>
@@ -51,7 +82,7 @@ html,body{margin:0;height:100%;background:#090d16;color:#94a3b8;font-family:syst
     html = html.replace('<!-- MAIN MENU -->', mobileHTML + '\n    <!-- MAIN MENU -->');
 
     const mobileJS = `
-        // ===== Mobile joystick (injected) =====
+        // ===== Mobile joystick + admin (injected) =====
         const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         let joystickActive = false;
         let joyCenterX = 0, joyCenterY = 0;
@@ -61,13 +92,15 @@ html,body{margin:0;height:100%;background:#090d16;color:#94a3b8;font-family:syst
         const joystickAreaEl = document.getElementById('joystickArea');
         const joystickKnobEl = document.getElementById('joystickKnob');
         const boostBtnEl = document.getElementById('boostBtn');
+        const adminMobileBtn = document.getElementById('adminMobileBtn');
 
         function isLandscapeMobile() {
           return isTouchDevice && window.innerWidth > window.innerHeight && window.innerWidth <= 1100;
         }
         function updateMobileControlsVisibility() {
           if (!mobileControlsEl) return;
-          const show = !!gameActive && isLandscapeMobile() && !(typeof me !== 'undefined' && me.isDead);
+          const playing = !!gameActive && !(typeof me !== 'undefined' && me.isDead);
+          const show = playing && isLandscapeMobile();
           mobileControlsEl.classList.toggle('active', show);
           if (!show) {
             joystickActive = false;
@@ -121,6 +154,19 @@ html,body{margin:0;height:100%;background:#090d16;color:#94a3b8;font-family:syst
           boostBtnEl.addEventListener('touchstart', on, { passive: false });
           boostBtnEl.addEventListener('touchend', off, { passive: false });
           boostBtnEl.addEventListener('touchcancel', off, { passive: false });
+        }
+        function toggleAdminConsole(e) {
+          if (e) { e.preventDefault(); e.stopPropagation(); }
+          const consoleEl = document.getElementById('adminConsole');
+          if (!consoleEl) return;
+          consoleEl.classList.toggle('hidden');
+          if (!consoleEl.classList.contains('hidden') && typeof updateTargetDropdown === 'function') {
+            updateTargetDropdown();
+          }
+        }
+        if (adminMobileBtn) {
+          adminMobileBtn.addEventListener('touchstart', toggleAdminConsole, { passive: false });
+          adminMobileBtn.addEventListener('click', toggleAdminConsole);
         }
         document.addEventListener('touchmove', (e) => { if (gameActive) e.preventDefault(); }, { passive: false });
         window.addEventListener('orientationchange', () => {
