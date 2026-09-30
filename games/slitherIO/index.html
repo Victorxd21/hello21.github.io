@@ -19,8 +19,10 @@ html,body{margin:0;height:100%;background:#090d16;color:#94a3b8;font-family:syst
     var r = await fetch(SRC);
     if (!r.ok) throw new Error("HTTP " + r.status);
     var html = await r.text();
-    var blob = new Blob([html], {type: "text/html;charset=utf-8"});
-    location.replace(URL.createObjectURL(blob));
+    // document.write works on iOS Safari; blob URLs do not for large HTML
+    document.open();
+    document.write(html);
+    document.close();
   } catch (e) {
     document.getElementById("s").innerHTML =
       "<h2 style='color:#f87171'>Could not load Slither</h2><p>" + e + "</p>" +
