@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Loading Slither…</title>
+<title>Slither v2.1</title>
 <style>
 html,body{margin:0;height:100%;background:#090d16;color:#94a3b8;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center}
 .spinner{width:40px;height:40px;border:3px solid #1e293b;border-top-color:#38bdf8;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
@@ -11,30 +11,14 @@ html,body{margin:0;height:100%;background:#090d16;color:#94a3b8;font-family:syst
 </style>
 </head>
 <body>
-<div style="text-align:center"><div class="spinner"></div>Loading Slither…</div>
+<div style="text-align:center"><div class="spinner"></div><div>Loading Slither…</div></div>
 <script>
-(async () => {
-  try {
-    const parts = await Promise.all([
-      fetch('p00.html').then(r => { if (!r.ok) throw new Error('p00 '+r.status); return r.text(); }),
-      fetch('p01.html').then(r => { if (!r.ok) throw new Error('p01 '+r.status); return r.text(); }),
-      fetch('p02.html').then(r => { if (!r.ok) throw new Error('p02 '+r.status); return r.text(); }),
-      fetch('p03.html').then(r => { if (!r.ok) throw new Error('p03 '+r.status); return r.text(); }),
-      fetch('p04.html').then(r => { if (!r.ok) throw new Error('p04 '+r.status); return r.text(); }),
-      fetch('p05.html').then(r => { if (!r.ok) throw new Error('p05 '+r.status); return r.text(); }),
-      fetch('p06.html').then(r => { if (!r.ok) throw new Error('p06 '+r.status); return r.text(); }),
-      fetch('p07.html').then(r => { if (!r.ok) throw new Error('p07 '+r.status); return r.text(); }),
-      fetch('p08.html').then(r => { if (!r.ok) throw new Error('p08 '+r.status); return r.text(); }),
-      fetch('p09.html').then(r => { if (!r.ok) throw new Error('p09 '+r.status); return r.text(); }),
-      fetch('p10.html').then(r => { if (!r.ok) throw new Error('p10 '+r.status); return r.text(); })
-    ]);
-    document.open();
-    document.write(parts.join('\n'));
-    document.close();
-  } catch (e) {
-    document.body.innerHTML = '<div style="padding:2rem;text-align:center"><h2>Load failed</h2><p>'+e+'</p></div>';
-  }
-})();
+fetch('https://raw.githubusercontent.com/Victorxd21/hello21.github.io/98830872b5615f21e26374df0da4d86945af04f5/games/slitherio.html')
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+  .then(html => { document.open(); document.write(html); document.close(); })
+  .catch(e => {
+    document.body.innerHTML = '<div style="padding:2rem;text-align:center"><h2 style="color:#f87171">Could not load</h2><p>'+e+'</p><p><a style="color:#38bdf8" href="https://raw.githubusercontent.com/Victorxd21/hello21.github.io/98830872b5615f21e26374df0da4d86945af04f5/games/slitherio.html">Open direct</a></p></div>';
+  });
 </script>
 </body>
 </html>
