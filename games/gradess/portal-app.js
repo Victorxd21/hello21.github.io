@@ -1,6 +1,8 @@
 const SUPABASE_URL='https://cfwsxpdbmefnnxrunoue.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_ByXgX6dPutVaTbluUs2fwg_p1A6Gc8I';
-const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let supabase=null;
+try{supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});}catch(e){console.warn(e);}
+
 const DEFAULT_GRADES=[
 {pd:'01',rot:'A',course:'WORLD HISTORY',teacher:'default',ex:0,unx:0,tardy:0,grade:'x'},
 {pd:'02',rot:'A',course:'ENG 2',teacher:'default',ex:0,unx:0,tardy:0,grade:'x'},
@@ -16,52 +18,87 @@ document.getElementById('sidebar').innerHTML=NAV.map((n,i)=>{
   const[icon,...rest]=n.split(' ');
   return `<div class="nav-item${i===0?' active':''}"><span class="nav-icon">${icon}</span><span contenteditable="true">${rest.join(' ')}</span></div>`;
 }).join('');
+
 let currentUser=null,portalData=null;
+
+function getLocalSession(){
+  try{return JSON.parse(localStorage.getItem('portal_session')||'null');}catch{return null;}
+}
+
 async function init(){
-  const lock=document.getElementById('lockScreen'),app=document.getElementById('portalApp');
-  try{
-    const{data:{session}}=await supabase.auth.getSession();
-    if(!session||!session.user){
-      let n=3;const cd=document.getElementById('countdown');
-      const t=setInterval(()=>{n--;if(n<=0){clearInterval(t);window.location.replace('login.html');}else{cd.textContent='Redirecting in '+n+' second'+(n===1?'':'s')+'...';}},1000);
-      return;
-    }
-    currentUser=session.user;
+  const lock=document.getElementById('lockScreen');
+  const app=document.getElementById('portalApp');
+
+  // Local session first (always works after our login)
+  const local=getLocalSession();
+  if(local&&local.user_id){
+    currentUser={id:local.user_id,email:local.email,user_metadata:{display_name:local.display_name}};
     lock.classList.add('hidden');
     app.style.display='block';
-    await loadPortalData();renderGrades();applyMeta();
-  }catch(err){
-    document.querySelector('#lockScreen h1').textContent='Error';
-    document.querySelector('#lockScreen p').innerHTML='Could not verify your session.<br>Please log in again.';
-    setTimeout(()=>window.location.replace('login.html'),2500);
+    await loadPortalData();
+    renderGrades();
+    applyMeta();
+    return;
   }
+
+  // Try Supabase session
+  if(supabase){
+    try{
+      const{data:{session}}=await supabase.auth.getSession();
+      if(session&&session.user){
+        currentUser=session.user;
+        lock.classList.add('hidden');
+        app.style.display='block';
+        await loadPortalData();
+        renderGrades();
+        applyMeta();
+        return;
+      }
+    }catch(e){console.warn(e);}
+  }
+
+  // Not logged in
+  let n=3;
+  const cd=document.getElementById('countdown');
+  const t=setInterval(()=>{
+    n--;
+    if(n<=0){clearInterval(t);window.location.replace('login.html');}
+    else{cd.textContent='Redirecting in '+n+' second'+(n===1?'':'s')+'...';}
+  },1000);
 }
-supabase.auth.onAuthStateChange((event,session)=>{
-  if(event==='SIGNED_OUT'||!session){
-    document.getElementById('portalApp').style.display='none';
-    document.getElementById('lockScreen').classList.remove('hidden');
-    window.location.replace('login.html');
-  }
-});
+
 async function loadPortalData(){
-  try{
-    const{data,error}=await supabase.from('portal_data').select('*').eq('user_id',currentUser.id).maybeSingle();
-    if(error)throw error;
-    if(data){portalData=data;}
-    else{
-      portalData={display_name:currentUser.user_metadata?.display_name||'STUDENT',school:'HOLLYWOOD HILLS HIGH (1661)',year:'2026-2027',grades:DEFAULT_GRADES,colors:{}};
-      await supabase.from('portal_data').insert({user_id:currentUser.id,...portalData});
-    }
-  }catch(e){
-    const key='portal_'+currentUser.id,saved=localStorage.getItem(key);
-    portalData=saved?JSON.parse(saved):{display_name:currentUser.user_metadata?.display_name||'STUDENT',school:'HOLLYWOOD HILLS HIGH (1661)',year:'2026-2027',grades:DEFAULT_GRADES,colors:{}};
+  const key='portal_'+currentUser.id;
+  const saved=localStorage.getItem(key);
+  if(saved){
+    try{portalData=JSON.parse(saved);}catch{portalData=null;}
   }
-  if(portalData.colors)Object.entries(portalData.colors).forEach(([k,v])=>{
-    document.documentElement.style.setProperty(k,v);
-    const input=document.querySelector(`input[data-var="${k}"]`);
-    if(input)input.value=v;
-  });
+  if(!portalData){
+    portalData={
+      display_name:currentUser.user_metadata?.display_name||'STUDENT',
+      school:'HOLLYWOOD HILLS HIGH (1661)',
+      year:'2026-2027',
+      grades:DEFAULT_GRADES,
+      colors:{}
+    };
+    localStorage.setItem(key,JSON.stringify(portalData));
+  }
+  // optional supabase sync
+  if(supabase&&!String(currentUser.id).startsWith('local_')){
+    try{
+      const{data}=await supabase.from('portal_data').select('*').eq('user_id',currentUser.id).maybeSingle();
+      if(data){portalData=data;localStorage.setItem(key,JSON.stringify(portalData));}
+    }catch(e){}
+  }
+  if(portalData.colors){
+    Object.entries(portalData.colors).forEach(([k,v])=>{
+      document.documentElement.style.setProperty(k,v);
+      const input=document.querySelector('input[data-var="'+k+'"]');
+      if(input)input.value=v;
+    });
+  }
 }
+
 function applyMeta(){
   const name=portalData.display_name||'STUDENT';
   document.getElementById('userBtn').textContent=name;
@@ -73,16 +110,16 @@ function applyMeta(){
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function renderGrades(){
   const grades=portalData.grades||DEFAULT_GRADES;
-  document.getElementById('gradesBody').innerHTML=grades.map((g,i)=>`<tr data-idx="${i}">
-    <td class="col-pd" contenteditable="true">${esc(g.pd)}</td>
-    <td class="col-rot" contenteditable="true">${esc(g.rot)}</td>
-    <td class="link-blue" contenteditable="true">${esc(g.course)}</td>
-    <td class="link-blue" contenteditable="true">${esc(g.teacher)}</td>
-    <td class="col-ex" contenteditable="true">${esc(g.ex)}</td>
-    <td class="col-unx" contenteditable="true">${esc(g.unx)}</td>
-    <td class="col-tardy" contenteditable="true">${esc(g.tardy)}</td>
-    <td class="col-grade grade-cell" contenteditable="true">${esc(g.grade)}</td>
-  </tr>`).join('');
+  document.getElementById('gradesBody').innerHTML=grades.map((g,i)=>'<tr data-idx="'+i+'">'+'
+    <td class="col-pd" contenteditable="true">'+esc(g.pd)+'</td>'+'
+    <td class="col-rot" contenteditable="true">'+esc(g.rot)+'</td>'+'
+    <td class="link-blue" contenteditable="true">'+esc(g.course)+'</td>'+'
+    <td class="link-blue" contenteditable="true">'+esc(g.teacher)+'</td>'+'
+    <td class="col-ex" contenteditable="true">'+esc(g.ex)+'</td>'+'
+    <td class="col-unx" contenteditable="true">'+esc(g.unx)+'</td>'+'
+    <td class="col-tardy" contenteditable="true">'+esc(g.tardy)+'</td>'+'
+    <td class="col-grade grade-cell" contenteditable="true">'+esc(g.grade)+'</td>'+'
+  </tr>').join('');
 }
 function collectGrades(){
   return[...document.querySelectorAll('#gradesBody tr')].map(tr=>{
@@ -103,10 +140,12 @@ async function saveAll(){
   portalData.colors=collectColors();
   document.getElementById('userBtn').textContent=portalData.display_name;
   document.getElementById('schoolName').textContent=portalData.school;
-  try{
-    const{error}=await supabase.from('portal_data').upsert({user_id:currentUser.id,display_name:portalData.display_name,school:portalData.school,year:portalData.year,grades:portalData.grades,colors:portalData.colors,updated_at:new Date().toISOString()});
-    if(error)throw error;
-  }catch(e){localStorage.setItem('portal_'+currentUser.id,JSON.stringify(portalData));}
+  localStorage.setItem('portal_'+currentUser.id,JSON.stringify(portalData));
+  if(supabase&&!String(currentUser.id).startsWith('local_')){
+    try{
+      await supabase.from('portal_data').upsert({user_id:currentUser.id,display_name:portalData.display_name,school:portalData.school,year:portalData.year,grades:portalData.grades,colors:portalData.colors,updated_at:new Date().toISOString()});
+    }catch(e){}
+  }
   const toast=document.getElementById('saveToast');
   toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1500);
 }
@@ -133,7 +172,11 @@ document.querySelectorAll('#colorPanel input[type=color]').forEach(input=>{
 });
 function resetColors(){
   const d={'--header-bg':'#1e4d7b','--header-btn':'#2a5f8f','--sidebar-bg':'#f4f4f4','--sidebar-active':'#d6e4f0','--announcements-header':'#e67e22','--student-header':'#1e4d7b','--quarter-active':'#1e4d7b','--link-blue':'#3a7ab8','--table-header':'#dce4ec','--table-stripe':'#f0f4f8','--body-bg':'#e8e8e8','--content-bg':'#ececec'};
-  Object.entries(d).forEach(([k,v])=>{document.documentElement.style.setProperty(k,v);const i=document.querySelector(`input[data-var="${k}"]`);if(i)i.value=v;});
+  Object.entries(d).forEach(([k,v])=>{document.documentElement.style.setProperty(k,v);const i=document.querySelector('input[data-var="'+k+'"]');if(i)i.value=v;});
 }
-document.getElementById('logoutBtn').addEventListener('click',async()=>{await supabase.auth.signOut();window.location.href='login.html';});
+document.getElementById('logoutBtn').addEventListener('click',async()=>{
+  localStorage.removeItem('portal_session');
+  if(supabase){try{await supabase.auth.signOut();}catch(e){}}
+  window.location.href='login.html';
+});
 init();

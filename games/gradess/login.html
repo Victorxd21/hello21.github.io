@@ -21,18 +21,32 @@
     .logo-fallback .sub { font-size: 12px; color: #555; }
     .form-container { background: white; border-radius: 8px; padding: 28px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
     .login-section-title { font-size: 18px; color: #213c6b; margin-bottom: 16px; text-align: center; font-weight: 700; }
-    .form-input { width: 100%; padding: 12px 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; font-family: inherit; outline: none; }
+    .form-input {
+      width: 100%; padding: 12px 14px; margin-bottom: 12px; border: 1px solid #ccc;
+      border-radius: 4px; font-size: 15px; font-family: inherit; outline: none;
+    }
     .form-input:focus { border-color: #e67e22; box-shadow: 0 0 0 2px rgba(230,126,34,0.2); }
-    .form-button { width: 100%; padding: 12px; background: #e67e22; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .form-button {
+      width: 100%; padding: 12px; background: #e67e22; color: white; border: none;
+      border-radius: 4px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
     .form-button:hover { background: #d35400; }
     .form-button:disabled { background: #ccc; cursor: not-allowed; }
     .toggle-mode { text-align: center; margin-top: 16px; font-size: 13px; color: #666; }
-    .toggle-mode span { color: #e67e22; font-weight: 600; cursor: pointer; }
-    .error-msg { background: #fdecea; color: #c0392b; padding: 10px 12px; border-radius: 4px; font-size: 13px; margin-bottom: 12px; display: none; border: 1px solid #f5c6cb; }
+    .toggle-mode a { color: #e67e22; font-weight: 600; cursor: pointer; text-decoration: none; }
+    .toggle-mode a:hover { text-decoration: underline; }
+    .error-msg {
+      background: #fdecea; color: #c0392b; padding: 10px 12px; border-radius: 4px;
+      font-size: 13px; margin-bottom: 12px; display: none; border: 1px solid #f5c6cb;
+    }
     .error-msg.show { display: block; }
-    .success-msg { background: #e8f8ef; color: #1e7e34; padding: 10px 12px; border-radius: 4px; font-size: 13px; margin-bottom: 12px; display: none; border: 1px solid #a3d9b1; }
+    .success-msg {
+      background: #e8f8ef; color: #1e7e34; padding: 10px 12px; border-radius: 4px;
+      font-size: 13px; margin-bottom: 12px; display: none; border: 1px solid #a3d9b1;
+    }
     .success-msg.show { display: block; }
     .hint { font-size: 12px; color: #888; text-align: center; margin-top: 12px; line-height: 1.4; }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -47,22 +61,37 @@
       <h3 class="login-section-title" id="formTitle">Log In</h3>
       <div class="error-msg" id="errorMsg"></div>
       <div class="success-msg" id="successMsg"></div>
-      <form id="authForm">
-        <input type="email" id="email" class="form-input" placeholder="Email / Username" required autocomplete="username">
+
+      <form id="authForm" autocomplete="on">
+        <input type="text" id="email" class="form-input" placeholder="Email" required autocomplete="username">
         <input type="password" id="password" class="form-input" placeholder="Password" required autocomplete="current-password" minlength="6">
-        <input type="password" id="password2" class="form-input" placeholder="Confirm Password" style="display:none" minlength="6">
-        <input type="text" id="displayName" class="form-input" placeholder="Display Name (e.g. VICTOR)" style="display:none" maxlength="40">
+        <input type="password" id="password2" class="form-input hidden" placeholder="Confirm Password" minlength="6">
+        <input type="text" id="displayName" class="form-input hidden" placeholder="Display Name (e.g. VICTOR)" maxlength="40">
         <button type="submit" class="form-button" id="submitBtn">Log In</button>
       </form>
-      <div class="toggle-mode" id="toggleMode">Don't have an account? <span id="toggleLink">Sign Up</span></div>
+
+      <div class="toggle-mode" id="toggleMode">
+        Don't have an account? <a href="#" id="toggleLink">Sign Up</a>
+      </div>
       <p class="hint" id="hintText">Use your email and password to access the student portal.</p>
     </div>
   </div>
+
   <script>
     const SUPABASE_URL = 'https://cfwsxpdbmefnnxrunoue.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_ByXgX6dPutVaTbluUs2fwg_p1A6Gc8I';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let supabase = null;
+    try {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+      });
+    } catch (e) {
+      console.warn('Supabase init failed', e);
+    }
+
     let isSignup = false;
+
     const form = document.getElementById('authForm');
     const emailEl = document.getElementById('email');
     const passwordEl = document.getElementById('password');
@@ -70,43 +99,77 @@
     const displayNameEl = document.getElementById('displayName');
     const submitBtn = document.getElementById('submitBtn');
     const formTitle = document.getElementById('formTitle');
+    const toggleLink = document.getElementById('toggleLink');
+    const toggleMode = document.getElementById('toggleMode');
     const errorMsg = document.getElementById('errorMsg');
     const successMsg = document.getElementById('successMsg');
     const hintText = document.getElementById('hintText');
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) window.location.href = 'portal.html';
+    // Already logged in via Supabase?
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) window.location.replace('portal.html');
+      }).catch(() => {});
+    }
+    // Or local session?
+    if (localStorage.getItem('portal_session')) {
+      window.location.replace('portal.html');
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.add('show');
+      successMsg.classList.remove('show');
+    }
+    function showSuccess(msg) {
+      successMsg.textContent = msg;
+      successMsg.classList.add('show');
+      errorMsg.classList.remove('show');
+    }
+    function clearMsgs() {
+      errorMsg.classList.remove('show');
+      successMsg.classList.remove('show');
+    }
+
+    toggleLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      isSignup = !isSignup;
+      clearMsgs();
+      if (isSignup) {
+        formTitle.textContent = 'Sign Up';
+        submitBtn.textContent = 'Create Account';
+        password2El.classList.remove('hidden');
+        displayNameEl.classList.remove('hidden');
+        password2El.required = true;
+        toggleMode.innerHTML = 'Already have an account? <a href="#" id="toggleLink">Log In</a>';
+        hintText.textContent = 'Create an account with any email and a password (min 6 characters).';
+      } else {
+        formTitle.textContent = 'Log In';
+        submitBtn.textContent = 'Log In';
+        password2El.classList.add('hidden');
+        displayNameEl.classList.add('hidden');
+        password2El.required = false;
+        toggleMode.innerHTML = 'Don\'t have an account? <a href="#" id="toggleLink">Sign Up</a>';
+        hintText.textContent = 'Use your email and password to access the student portal.';
+      }
+      // re-bind because we replaced innerHTML
+      document.getElementById('toggleLink').addEventListener('click', arguments.callee);
     });
 
-    function bindToggle() {
-      document.getElementById('toggleLink').onclick = () => {
-        isSignup = !isSignup;
-        errorMsg.classList.remove('show');
-        successMsg.classList.remove('show');
-        if (isSignup) {
-          formTitle.textContent = 'Sign Up';
-          submitBtn.textContent = 'Create Account';
-          password2El.style.display = 'block';
-          displayNameEl.style.display = 'block';
-          password2El.required = true;
-          document.getElementById('toggleMode').innerHTML = 'Already have an account? <span id="toggleLink">Log In</span>';
-          hintText.textContent = 'Create an account. You will receive a confirmation email from Supabase.';
-        } else {
-          formTitle.textContent = 'Log In';
-          submitBtn.textContent = 'Log In';
-          password2El.style.display = 'none';
-          displayNameEl.style.display = 'none';
-          password2El.required = false;
-          document.getElementById('toggleMode').innerHTML = "Don't have an account? <span id=\"toggleLink\">Sign Up</span>";
-          hintText.textContent = 'Use your email and password to access the student portal.';
-        }
-        bindToggle();
-      };
+    // Simple hash for local accounts (not crypto-secure, but fine for this demo)
+    async function hashPw(pw) {
+      const data = new TextEncoder().encode('portal_salt_v1:' + pw);
+      const buf = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
-    bindToggle();
 
-    function showError(msg) { errorMsg.textContent = msg; errorMsg.classList.add('show'); successMsg.classList.remove('show'); }
-    function showSuccess(msg) { successMsg.textContent = msg; successMsg.classList.add('show'); errorMsg.classList.remove('show'); }
+    function getLocalUsers() {
+      try { return JSON.parse(localStorage.getItem('portal_users') || '{}'); }
+      catch { return {}; }
+    }
+    function saveLocalUsers(users) {
+      localStorage.setItem('portal_users', JSON.stringify(users));
+    }
 
     const DEFAULT_GRADES = [
       { pd: '01', rot: 'A', course: 'WORLD HISTORY', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
@@ -119,59 +182,161 @@
       { pd: '08', rot: 'B', course: 'BIOLOGY 1', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' }
     ];
 
-    async function ensurePortalData(userId, displayName) {
-      try {
-        const { data } = await supabase.from('portal_data').select('user_id').eq('user_id', userId).maybeSingle();
-        if (!data) {
-          await supabase.from('portal_data').insert({
-            user_id: userId, display_name: displayName,
-            school: 'HOLLYWOOD HILLS HIGH (1661)', year: '2026-2027',
-            grades: DEFAULT_GRADES, colors: {}
-          });
-        }
-      } catch (e) {
-        localStorage.setItem('portal_' + userId, JSON.stringify({
-          display_name: displayName, school: 'HOLLYWOOD HILLS HIGH (1661)',
-          year: '2026-2027', grades: DEFAULT_GRADES, colors: {}
+    function setSession(userId, displayName, email) {
+      localStorage.setItem('portal_session', JSON.stringify({
+        user_id: userId,
+        display_name: displayName,
+        email: email,
+        ts: Date.now()
+      }));
+      // seed portal data if missing
+      const key = 'portal_' + userId;
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, JSON.stringify({
+          display_name: displayName,
+          school: 'HOLLYWOOD HILLS HIGH (1661)',
+          year: '2026-2027',
+          grades: DEFAULT_GRADES,
+          colors: {}
         }));
       }
     }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      errorMsg.classList.remove('show');
-      successMsg.classList.remove('show');
+      clearMsgs();
       submitBtn.disabled = true;
       submitBtn.textContent = isSignup ? 'Creating...' : 'Logging in...';
-      const email = emailEl.value.trim();
+
+      const email = emailEl.value.trim().toLowerCase();
       const password = passwordEl.value;
+
+      if (!email || !password) {
+        showError('Please enter email and password.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = isSignup ? 'Create Account' : 'Log In';
+        return;
+      }
+      if (password.length < 6) {
+        showError('Password must be at least 6 characters.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = isSignup ? 'Create Account' : 'Log In';
+        return;
+      }
+
       try {
         if (isSignup) {
-          if (password !== password2El.value) { showError('Passwords do not match.'); submitBtn.disabled = false; submitBtn.textContent = 'Create Account'; return; }
-          if (password.length < 6) { showError('Password must be at least 6 characters.'); submitBtn.disabled = false; submitBtn.textContent = 'Create Account'; return; }
-          const name = displayNameEl.value.trim() || email.split('@')[0].toUpperCase();
-          const { data, error } = await supabase.auth.signUp({
-            email, password,
-            options: { data: { display_name: name }, emailRedirectTo: window.location.href.replace('login.html', 'portal.html') }
-          });
-          if (error) throw error;
-          if (data.user) await ensurePortalData(data.user.id, name);
-          showSuccess('Account created! Check your email for a confirmation link, then log in.');
-          setTimeout(() => location.reload(), 2500);
-        } else {
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) {
-            if (error.message.includes('Invalid login') || error.message.includes('invalid'))
-              throw new Error('Wrong email or password. Please try again.');
-            throw error;
+          if (password !== password2El.value) {
+            showError('Passwords do not match.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Account';
+            return;
           }
-          await ensurePortalData(data.user.id, data.user.user_metadata?.display_name || email.split('@')[0].toUpperCase());
-          window.location.href = 'portal.html';
+          const name = (displayNameEl.value.trim() || email.split('@')[0]).toUpperCase();
+
+          // Try Supabase first
+          let usedLocal = false;
+          if (supabase) {
+            try {
+              const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: { data: { display_name: name } }
+              });
+              if (error) {
+                // If user already exists on supabase, fall through to local check
+                if (!/already|registered|exists/i.test(error.message)) throw error;
+              } else if (data.session) {
+                // Auto-confirmed — go in
+                setSession(data.user.id, name, email);
+                window.location.replace('portal.html');
+                return;
+              } else if (data.user) {
+                // Account created but needs email confirm — still create local so they can use it
+                showSuccess('Account created! You can log in now.');
+              }
+            } catch (sbErr) {
+              console.warn('Supabase signup issue, using local accounts:', sbErr);
+              usedLocal = true;
+            }
+          } else {
+            usedLocal = true;
+          }
+
+          // Always also save local account so login works even without email confirm
+          const users = getLocalUsers();
+          if (users[email]) {
+            showError('An account with this email already exists. Please log in.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Account';
+            return;
+          }
+          const pwHash = await hashPw(password);
+          const localId = 'local_' + btoa(email).replace(/=/g, '');
+          users[email] = { id: localId, hash: pwHash, name: name };
+          saveLocalUsers(users);
+          setSession(localId, name, email);
+
+          if (!usedLocal) {
+            showSuccess('Account created! Redirecting...');
+          }
+          setTimeout(() => window.location.replace('portal.html'), 600);
+          return;
+
+        } else {
+          // LOGIN
+          // 1) Try Supabase
+          if (supabase) {
+            try {
+              const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+              if (!error && data.session) {
+                const name = data.user.user_metadata?.display_name || email.split('@')[0].toUpperCase();
+                setSession(data.user.id, name, email);
+                window.location.replace('portal.html');
+                return;
+              }
+              if (error) {
+                const msg = error.message || '';
+                if (/confirm|verified/i.test(msg)) {
+                  // Fall through to local login
+                  console.warn('Email not confirmed on Supabase, trying local');
+                } else if (/invalid|credentials|password/i.test(msg)) {
+                  // wrong password on supabase — still try local
+                  console.warn('Supabase login failed, trying local');
+                } else {
+                  console.warn(msg);
+                }
+              }
+            } catch (sbErr) {
+              console.warn('Supabase login error', sbErr);
+            }
+          }
+
+          // 2) Local accounts
+          const users = getLocalUsers();
+          const u = users[email];
+          if (!u) {
+            showError('Wrong email or password. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Log In';
+            return;
+          }
+          const pwHash = await hashPw(password);
+          if (pwHash !== u.hash) {
+            showError('Wrong email or password. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Log In';
+            return;
+          }
+          setSession(u.id, u.name, email);
+          window.location.replace('portal.html');
           return;
         }
       } catch (err) {
+        console.error(err);
         showError(err.message || 'Something went wrong. Please try again.');
       }
+
       submitBtn.disabled = false;
       submitBtn.textContent = isSignup ? 'Create Account' : 'Log In';
     });
