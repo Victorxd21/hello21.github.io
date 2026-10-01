@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jetpack Joyride - Multiplayer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Lobby Screen -->
+    <div id="lobbyScreen" class="screen active">
+        <div class="lobby-container">
+            <h1>Jetpack Joyride</h1>
+            <div class="lobby-content">
+                <div class="lobby-section">
+                    <h2>Create or Join a Lobby</h2>
+                    <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
+                    <div class="button-group">
+                        <button id="createLobbyBtn" class="btn btn-primary">Create Lobby</button>
+                        <button id="joinLobbyBtn" class="btn btn-secondary">Join Lobby</button>
+                    </div>
+                </div>
+                
+                <div id="joinLobbySection" class="lobby-section hidden">
+                    <h3>Join Existing Lobby</h3>
+                    <input type="text" id="lobbyCode" placeholder="Enter lobby code">
+                    <button id="confirmJoinBtn" class="btn btn-primary">Join</button>
+                    <button id="backBtn" class="btn btn-secondary">Back</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Waiting Room Screen -->
+    <div id="waitingScreen" class="screen">
+        <div class="waiting-container">
+            <h1>Waiting Room</h1>
+            <div class="lobby-info">
+                <p>Lobby Code: <span id="lobbyCodeDisplay" class="code">---</span></p>
+                <p class="lobby-status">Waiting for players...</p>
+            </div>
+            
+            <div class="players-list">
+                <h2>Players (<span id="playerCount">0</span>/2)</h2>
+                <div id="playersList" class="players">
+                    <!-- Players will be added here -->
+                </div>
+            </div>
+            
+            <div class="ready-section">
+                <p id="readyStatus">Need at least 2 players to start</p>
+                <button id="startGameBtn" class="btn btn-primary" disabled>Start Game</button>
+                <button id="leaveLobbyBtn" class="btn btn-secondary">Leave</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="screen">
+        <div class="game-container">
+            <canvas id="gameCanvas"></canvas>
+            <div class="game-hud">
+                <div class="hud-player">
+                    <h3 id="player1Name">Player 1</h3>
+                    <p>Score: <span id="player1Score">0</span></p>
+                    <p id="player1Status">Alive</p>
+                </div>
+                <div class="hud-center">
+                    <p id="gameStatus">Game Running</p>
+                </div>
+                <div class="hud-player">
+                    <h3 id="player2Name">Player 2</h3>
+                    <p>Score: <span id="player2Score">0</span></p>
+                    <p id="player2Status">Alive</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="screen">
+        <div class="game-over-container">
+            <h1 id="gameOverTitle">Game Over!</h1>
+            <div class="game-over-scores">
+                <div class="score-card">
+                    <h2 id="gameOverPlayer1Name">Player 1</h2>
+                    <p class="final-score" id="gameOverPlayer1Score">0</p>
+                </div>
+                <div class="vs">VS</div>
+                <div class="score-card">
+                    <h2 id="gameOverPlayer2Name">Player 2</h2>
+                    <p class="final-score" id="gameOverPlayer2Score">0</p>
+                </div>
+            </div>
+            <div class="game-over-message" id="gameOverMessage"></div>
+            <button id="playAgainBtn" class="btn btn-primary">Play Again</button>
+            <button id="exitGameBtn" class="btn btn-secondary">Exit to Lobby</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="game.js"></script>
+    <script src="ui.js"></script>
+    <script src="multiplayer.js"></script>
+</body>
+</html>
