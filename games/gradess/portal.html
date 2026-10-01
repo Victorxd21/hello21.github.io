@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Broward County Public Schools - Portal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--header-bg:#1e4d7b;--header-btn:#2a5f8f;--sidebar-bg:#f4f4f4;--sidebar-active:#d6e4f0;--sidebar-active-border:#1e4d7b;--announcements-header:#e67e22;--student-header:#1e4d7b;--quarter-active:#1e4d7b;--tab-active:#1e4d7b;--alert-link:#2a6bb5;--link-blue:#3a7ab8;--body-bg:#e8e8e8;--content-bg:#ececec;--card-bg:#fff;--table-header:#dce4ec;--table-stripe:#f0f4f8;--table-border:#c8d0d8}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--body-bg);color:#333;font-size:13px;overflow:hidden}
+#portalApp{display:none}
+#lockScreen{display:flex;position:fixed;inset:0;background:linear-gradient(160deg,#1a3a5c,#213c6b 50%,#2a5080);z-index:99999;align-items:center;justify-content:center;flex-direction:column;color:#fff;text-align:center;padding:24px}
+#lockScreen.hidden{display:none}
+.lock-card{background:#fff;color:#333;border-radius:10px;padding:36px 40px;max-width:400px;box-shadow:0 16px 48px rgba(0,0,0,.35)}
+.lock-icon{font-size:48px;margin-bottom:12px}
+.lock-card h1{font-size:22px;color:#c0392b;margin-bottom:10px}
+.lock-card p{font-size:14px;color:#555;line-height:1.5;margin-bottom:20px}
+.lock-card a{display:inline-block;background:#e67e22;color:#fff;text-decoration:none;padding:12px 28px;border-radius:4px;font-weight:700;font-size:15px}
+.lock-card a:hover{background:#d35400}
+.countdown{margin-top:14px;font-size:12px;color:#888}
+.top-header{background:var(--header-bg);height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 8px;color:#fff}
+.logo-area{display:flex;align-items:center;gap:8px}
+.logo-box{background:#fff;border-radius:3px;padding:3px 7px;display:flex;align-items:center;gap:5px;height:38px}
+.logo-icon{width:28px;height:28px;background:linear-gradient(135deg,#1e4d7b,#2a6bb5);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700}
+.logo-text{font-size:11px;color:#1a3a5c;font-weight:700;line-height:1.1}
+.logo-text small{font-size:8.5px;font-weight:400;color:#555}
+.portal-title{font-size:17px;margin-left:6px}
+.portal-title .help{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1.5px solid rgba(255,255,255,.7);border-radius:50%;font-size:11px;margin-left:4px;opacity:.85}
+.header-right{display:flex;align-items:center;gap:8px}
+.user-btn{background:var(--header-btn);border:1px solid #3a6f9a;color:#fff;padding:5px 16px;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer}
+.logout-btn{background:0 0;border:none;color:#fff;font-size:15px;cursor:pointer;opacity:.85;padding:4px 6px}
+.school-select{background:var(--header-btn);border:1px solid #3a6f9a;color:#fff;padding:4px 12px;border-radius:3px;font-size:11px;display:flex;flex-direction:column;line-height:1.25;min-width:175px}
+.school-select .school-name{font-weight:600;font-size:11.5px}
+.school-select .year{font-size:10.5px;opacity:.95}
+.school-select .year::after{content:' ▾';font-size:9px}
+.main-layout{display:flex;height:calc(100vh - 50px)}
+.sidebar{width:175px;background:var(--sidebar-bg);border-right:1px solid #ccc;padding-top:6px;flex-shrink:0;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;cursor:pointer;color:#333;font-size:12.5px;border-left:3px solid transparent}
+.nav-item:hover{background:#e8e8e8}
+.nav-item.active{background:var(--sidebar-active);border-left-color:var(--sidebar-active-border);font-weight:600;color:#1a3a5c}
+.nav-icon{width:18px;text-align:center;font-size:14px}
+.content{flex:1;display:flex;gap:10px;padding:10px;overflow:auto;background:var(--content-bg)}
+.left-panel{flex:1;min-width:280px;max-width:520px}
+.announcements-box{background:var(--card-bg);border:1px solid #c8c8c8;border-radius:2px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.announcements-header{background:var(--announcements-header);color:#fff;padding:7px 12px;font-size:14.5px;font-weight:600}
+.tabs{display:flex;border-bottom:1px solid #ddd;background:#f7f7f7}
+.tab{padding:6px 14px;cursor:pointer;font-size:12.5px;border-bottom:2px solid transparent;color:#555;margin-bottom:-1px}
+.tab.active{background:#fff;border-bottom-color:var(--announcements-header);color:var(--announcements-header);font-weight:600}
+.alerts-section{padding:10px 12px 14px}
+.alerts-title{display:flex;align-items:center;gap:7px;background:#ececec;padding:6px 10px;border-radius:2px;font-weight:600;font-size:13px;margin-bottom:10px}
+.alert-icon{background:#5b9bd5;color:#fff;width:20px;height:20px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:11px}
+.alert-item{display:flex;gap:7px;padding:4px 0;color:var(--alert-link);font-size:12.5px}
+.right-panel{width:470px;flex-shrink:0}
+.student-card{background:var(--card-bg);border:1px solid #c8c8c8;border-radius:2px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.student-header{background:var(--student-header);color:#fff;padding:9px 12px;display:flex;align-items:center;gap:10px}
+.avatar{width:40px;height:40px;background:#8a9ba8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;color:#ddd;overflow:hidden;flex-shrink:0}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.student-info .name{font-size:15px;font-weight:700;letter-spacing:.4px}
+.student-info .school{font-size:11.5px;opacity:.92;margin-top:1px}
+.florida-logo-wrap{text-align:center;padding:8px 0 4px}
+.florida-logo{font-family:Georgia,serif;font-size:22px;color:#1a3a5c;font-weight:600}
+.florida-logo small{display:block;font-size:9.5px;font-family:'Segoe UI',Arial,sans-serif;font-weight:400;color:#555;letter-spacing:.8px}
+.student-tabs{display:flex;border-bottom:1px solid #ccc;background:#f5f5f5;padding:0 6px}
+.student-tab{padding:7px 13px;cursor:pointer;font-size:12.5px;color:#555;border-bottom:2px solid transparent;margin-bottom:-1px}
+.student-tab.active{color:var(--tab-active);font-weight:600;border-bottom-color:var(--tab-active);background:#fff}
+.quarter-row{display:flex;align-items:center;justify-content:space-between;padding:5px 8px 0;background:#e4ecf4}
+.quarters{display:flex;gap:1px}
+.quarter{padding:4px 11px;font-size:11.5px;font-weight:600;cursor:pointer;background:#c8d4e0;color:#444;border-radius:2px 2px 0 0}
+.quarter.active{background:var(--quarter-active);color:#fff}
+.date-range{font-size:11px;color:#555;padding-right:4px}
+.grades-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.grades-table th{background:var(--table-header);padding:5px 6px;text-align:left;font-weight:600;border-bottom:1px solid var(--table-border);color:#333;white-space:nowrap}
+.grades-table td{padding:4px 6px;border-bottom:1px solid #e0e5ea;white-space:nowrap;background:#fff}
+.grades-table tbody tr:nth-child(even) td{background:var(--table-stripe)}
+.grades-table tbody tr:hover td{background:#e8f0f8}
+.col-pd,.col-rot{width:28px;text-align:center}
+.col-ex,.col-unx,.col-tardy{width:32px;text-align:center;color:#555}
+.col-grade{width:55px;text-align:right}
+.link-blue,.grade-cell{color:var(--link-blue);font-weight:400}
+[contenteditable="true"]{outline:none;border-radius:1px}
+[contenteditable="true"]:hover{background:rgba(255,230,80,.22)}
+[contenteditable="true"]:focus{background:rgba(255,230,80,.38);box-shadow:0 0 0 1px #d4a800}
+.color-panel{display:none;position:fixed;bottom:16px;right:16px;width:260px;background:#1e1e1e;border:1px solid #444;border-radius:8px;padding:12px 14px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.4);color:#eee;font-size:12px}
+.color-panel.open{display:block}
+.color-panel h3{font-size:13px;margin-bottom:10px;color:#fff;display:flex;justify-content:space-between;align-items:center}
+.color-panel h3 button{background:0 0;border:none;color:#aaa;cursor:pointer;font-size:16px}
+.color-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.color-row label{flex:1;color:#ccc}
+.color-row input[type=color]{width:36px;height:22px;border:none;border-radius:3px;cursor:pointer;background:0 0;padding:0}
+.color-panel .hint{margin-top:8px;font-size:10px;color:#777}
+.color-panel .actions{display:flex;gap:6px;margin-top:10px}
+.color-panel .actions button{flex:1;padding:5px;border:1px solid #555;background:#333;color:#ddd;border-radius:4px;cursor:pointer;font-size:11px}
+.save-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e7e34;color:#fff;padding:8px 18px;border-radius:6px;font-size:13px;display:none;z-index:10000}
+.save-toast.show{display:block}
+</style>
+</head>
+<body>
+<div id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-icon">🔒</div>
+    <h1>Access Denied</h1>
+    <p>You must log in to view the student portal.<br>Unauthorized access is not allowed.</p>
+    <a href="login.html">Go to Login</a>
+    <div class="countdown" id="countdown">Redirecting in 3 seconds...</div>
+  </div>
+</div>
+<div id="portalApp">
+<div class="top-header">
+  <div class="logo-area">
+    <div class="logo-box">
+      <img src="pngs/logo.png" height="32" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;align-items:center;gap:4px">
+        <div class="logo-icon">B</div>
+        <div class="logo-text" contenteditable="true">BROWARD<br><small contenteditable="true">County Public Schools</small></div>
+      </div>
+    </div>
+    <div class="portal-title" contenteditable="true">Portal <span class="help">?</span></div>
+  </div>
+  <div class="header-right">
+    <button class="user-btn" id="userBtn" contenteditable="true">STUDENT</button>
+    <button class="logout-btn" id="logoutBtn" title="Log out">⏻</button>
+    <div class="school-select">
+      <span class="school-name" id="schoolName" contenteditable="true">HOLLYWOOD HILLS HIGH (1661)</span>
+      <span class="year" id="yearText" contenteditable="true">2026-2027</span>
+    </div>
+  </div>
+</div>
+<div class="main-layout">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="content">
+    <div class="left-panel">
+      <div class="announcements-box">
+        <div class="announcements-header" contenteditable="true">District & School Announcements</div>
+        <div class="tabs">
+          <div class="tab active" contenteditable="true">News</div>
+          <div class="tab" contenteditable="true">Events</div>
+        </div>
+        <div class="alerts-section">
+          <div class="alerts-title"><span class="alert-icon">⚠</span><span contenteditable="true">Alerts</span></div>
+          <div class="alert-item"><span>🔗</span><span contenteditable="true">You are not set to receive email notifications.</span></div>
+          <div class="alert-item"><span>📅</span><span contenteditable="true">You have been absent 2 periods in the last 30 days</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="right-panel">
+      <div class="student-card">
+        <div class="student-header">
+          <div class="avatar"><img src="pngs/avatar.png" onerror="this.style.display='none';this.parentElement.textContent='👤'"></div>
+          <div class="student-info">
+            <div class="name" id="studentName" contenteditable="true">STUDENT</div>
+            <div class="school" id="studentSchool" contenteditable="true">HOLLYWOOD HILLS HIGH (1661)</div>
+          </div>
+        </div>
+        <div class="florida-logo-wrap">
+          <img src="pngs/florida-logo.png" height="36" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <div class="florida-logo" style="display:none" contenteditable="true">Florida<small contenteditable="true">Statewide Assessments</small></div>
+        </div>
+        <div class="student-tabs">
+          <div class="student-tab active" contenteditable="true">Grades</div>
+          <div class="student-tab" contenteditable="true">News</div>
+          <div class="student-tab" contenteditable="true">Planner</div>
+          <div class="student-tab" contenteditable="true">Reports</div>
+        </div>
+        <div class="quarter-row">
+          <div class="quarters">
+            <div class="quarter active" contenteditable="true">Q1</div>
+            <div class="quarter" contenteditable="true">Q2</div>
+            <div class="quarter" contenteditable="true">Q3</div>
+            <div class="quarter" contenteditable="true">Q4</div>
+          </div>
+          <div class="date-range" contenteditable="true">08/10 - 10/09</div>
+        </div>
+        <table class="grades-table">
+          <thead><tr>
+            <th class="col-pd">Pd</th><th class="col-rot">Rot</th><th>Course</th><th>Teacher</th>
+            <th class="col-ex">Ex</th><th class="col-unx">Unx</th><th class="col-tardy">Tardy</th><th class="col-grade">Grade</th>
+          </tr></thead>
+          <tbody id="gradesBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="color-panel" id="colorPanel">
+  <h3>Color Customizer <button onclick="toggleColors()">✕</button></h3>
+  <div class="color-row"><label>Header background</label><input type="color" data-var="--header-bg" value="#1e4d7b"></div>
+  <div class="color-row"><label>Header buttons</label><input type="color" data-var="--header-btn" value="#2a5f8f"></div>
+  <div class="color-row"><label>Sidebar background</label><input type="color" data-var="--sidebar-bg" value="#f4f4f4"></div>
+  <div class="color-row"><label>Sidebar active</label><input type="color" data-var="--sidebar-active" value="#d6e4f0"></div>
+  <div class="color-row"><label>Announcements header</label><input type="color" data-var="--announcements-header" value="#e67e22"></div>
+  <div class="color-row"><label>Student header</label><input type="color" data-var="--student-header" value="#1e4d7b"></div>
+  <div class="color-row"><label>Quarter / Tab active</label><input type="color" data-var="--quarter-active" value="#1e4d7b"></div>
+  <div class="color-row"><label>Link / Grade blue</label><input type="color" data-var="--link-blue" value="#3a7ab8"></div>
+  <div class="color-row"><label>Table header bg</label><input type="color" data-var="--table-header" value="#dce4ec"></div>
+  <div class="color-row"><label>Table stripe bg</label><input type="color" data-var="--table-stripe" value="#f0f4f8"></div>
+  <div class="color-row"><label>Body background</label><input type="color" data-var="--body-bg" value="#e8e8e8"></div>
+  <div class="color-row"><label>Content background</label><input type="color" data-var="--content-bg" value="#ececec"></div>
+  <div class="actions"><button onclick="resetColors()">Reset</button><button onclick="saveAll()">Save All</button></div>
+  <div class="hint">Ctrl+Shift+K to toggle. Changes save to your account.</div>
+</div>
+<div class="save-toast" id="saveToast">Saved!</div>
+<script src="portal-app.js"></script>
+</body>
+</html>
