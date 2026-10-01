@@ -5,279 +5,412 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Broward County Public Schools - Portal</title>
   <style>
+    :root {
+      --header-bg: #1e4d7b;
+      --header-btn: #2a5f8f;
+      --sidebar-bg: #f4f4f4;
+      --sidebar-active: #d6e4f0;
+      --sidebar-active-border: #1e4d7b;
+      --announcements-header: #e67e22;
+      --student-header: #1e4d7b;
+      --quarter-active: #1e4d7b;
+      --tab-active: #1e4d7b;
+      --alert-link: #2a6bb5;
+      --grade-fail: #c0392b;
+      --grade-mid: #d68910;
+      --body-bg: #e9e9e9;
+      --content-bg: #f0f0f0;
+      --card-bg: #ffffff;
+      --table-header: #e4ecf4;
+      --table-stripe: #f5f8fb;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #e8e8e8;
+      font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+      background: var(--body-bg);
       color: #333;
       font-size: 13px;
+      overflow: hidden;
     }
 
     /* ===== TOP HEADER ===== */
     .top-header {
-      background: #1a4a7a;
-      height: 48px;
+      background: var(--header-bg);
+      height: 50px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 12px;
+      padding: 0 10px 0 8px;
       color: white;
+      border-bottom: 1px solid #163a5c;
     }
     .logo-area {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
     .logo-box {
-      background: white;
-      border-radius: 4px;
-      padding: 4px 8px;
+      background: #fff;
+      border-radius: 3px;
+      padding: 3px 7px 3px 5px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
+      height: 38px;
+    }
+    .logo-box img {
+      height: 32px;
+      width: auto;
+    }
+    .logo-fallback {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #1e4d7b 0%, #2a6bb5 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
     }
     .logo-text {
       font-size: 11px;
-      color: #1a4a7a;
+      color: #1a3a5c;
       font-weight: 700;
-      line-height: 1.15;
+      line-height: 1.1;
+      letter-spacing: 0.3px;
     }
     .logo-text small {
-      font-size: 9px;
+      font-size: 8.5px;
       font-weight: 400;
       color: #555;
+      letter-spacing: 0;
     }
     .portal-title {
-      font-size: 18px;
-      font-weight: 500;
-      margin-left: 8px;
+      font-size: 17px;
+      font-weight: 400;
+      margin-left: 6px;
+      letter-spacing: 0.2px;
     }
-    .portal-title span {
-      font-size: 14px;
-      opacity: 0.8;
+    .portal-title .help {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border: 1.5px solid rgba(255,255,255,0.7);
+      border-radius: 50%;
+      font-size: 11px;
+      margin-left: 4px;
+      opacity: 0.85;
+      vertical-align: middle;
     }
     .header-right {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
     .user-btn {
-      background: #2c5f8a;
+      background: var(--header-btn);
       border: 1px solid #3a6f9a;
       color: white;
-      padding: 5px 14px;
+      padding: 5px 16px;
       border-radius: 3px;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
+      letter-spacing: 0.3px;
+    }
+    .logout-btn {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      opacity: 0.85;
+      padding: 4px;
     }
     .school-select {
-      background: #2c5f8a;
+      background: var(--header-btn);
       border: 1px solid #3a6f9a;
       color: white;
-      padding: 5px 10px;
+      padding: 4px 12px 4px 10px;
       border-radius: 3px;
       font-size: 11px;
       display: flex;
       flex-direction: column;
-      align-items: flex-end;
-      line-height: 1.2;
+      align-items: flex-start;
+      line-height: 1.25;
+      min-width: 175px;
     }
-    .school-select .school-name { font-weight: 600; }
-    .school-select .year { font-size: 10px; opacity: 0.9; }
+    .school-select .school-name { font-weight: 600; font-size: 11.5px; }
+    .school-select .year {
+      font-size: 10.5px;
+      opacity: 0.95;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .school-select .year::after {
+      content: '▾';
+      font-size: 9px;
+      opacity: 0.8;
+    }
 
     /* ===== LAYOUT ===== */
     .main-layout {
       display: flex;
-      height: calc(100vh - 48px);
+      height: calc(100vh - 50px);
     }
 
     /* ===== SIDEBAR ===== */
     .sidebar {
-      width: 180px;
-      background: #f0f0f0;
+      width: 175px;
+      background: var(--sidebar-bg);
       border-right: 1px solid #ccc;
-      padding-top: 8px;
+      padding-top: 6px;
       flex-shrink: 0;
+      overflow-y: auto;
     }
     .nav-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 9px 14px;
+      gap: 9px;
+      padding: 8px 12px;
       cursor: pointer;
       color: #333;
-      font-size: 13px;
+      font-size: 12.5px;
       border-left: 3px solid transparent;
+      transition: background 0.1s;
     }
-    .nav-item:hover { background: #e4e4e4; }
+    .nav-item:hover { background: #e8e8e8; }
     .nav-item.active {
-      background: #dce6f0;
-      border-left-color: #1a4a7a;
+      background: var(--sidebar-active);
+      border-left-color: var(--sidebar-active-border);
       font-weight: 600;
-      color: #1a4a7a;
+      color: #1a3a5c;
     }
     .nav-icon {
       width: 18px;
-      text-align: center;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .nav-icon img {
+      width: 16px;
+      height: 16px;
+      object-fit: contain;
+    }
+    .nav-icon .emoji {
       font-size: 14px;
-      opacity: 0.8;
+      line-height: 1;
     }
 
     /* ===== CONTENT AREA ===== */
     .content {
       flex: 1;
       display: flex;
-      gap: 12px;
-      padding: 12px;
+      gap: 10px;
+      padding: 10px;
       overflow: auto;
-      background: #f5f5f5;
+      background: var(--content-bg);
     }
 
-    /* ===== LEFT PANEL (Announcements) ===== */
+    /* ===== LEFT PANEL ===== */
     .left-panel {
       flex: 1;
-      min-width: 320px;
+      min-width: 300px;
+      max-width: 520px;
     }
     .announcements-box {
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 3px;
+      background: var(--card-bg);
+      border: 1px solid #c8c8c8;
+      border-radius: 2px;
       overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
     }
     .announcements-header {
-      background: #e67e22;
+      background: var(--announcements-header);
       color: white;
-      padding: 8px 14px;
-      font-size: 15px;
+      padding: 7px 12px;
+      font-size: 14.5px;
       font-weight: 600;
+      letter-spacing: 0.2px;
     }
     .tabs {
       display: flex;
       border-bottom: 1px solid #ddd;
-      background: #fafafa;
+      background: #f7f7f7;
     }
     .tab {
-      padding: 7px 16px;
+      padding: 6px 14px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12.5px;
       border-bottom: 2px solid transparent;
       color: #555;
+      margin-bottom: -1px;
     }
     .tab.active {
       background: white;
-      border-bottom-color: #e67e22;
-      color: #e67e22;
+      border-bottom-color: var(--announcements-header);
+      color: var(--announcements-header);
       font-weight: 600;
     }
     .alerts-section {
-      padding: 12px 14px;
+      padding: 10px 12px 14px;
     }
     .alerts-title {
       display: flex;
       align-items: center;
-      gap: 8px;
-      background: #f0f0f0;
-      padding: 8px 12px;
-      border-radius: 3px;
+      gap: 7px;
+      background: #ececec;
+      padding: 6px 10px;
+      border-radius: 2px;
       font-weight: 600;
-      margin-bottom: 12px;
+      font-size: 13px;
+      margin-bottom: 10px;
+      color: #333;
     }
     .alert-icon {
       background: #5b9bd5;
       color: white;
-      width: 22px;
-      height: 22px;
-      border-radius: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 2px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+    .alert-icon img {
+      width: 14px;
+      height: 14px;
     }
     .alert-item {
       display: flex;
       align-items: flex-start;
-      gap: 8px;
-      padding: 6px 0;
-      color: #2a6bb5;
-      font-size: 13px;
+      gap: 7px;
+      padding: 4px 0;
+      color: var(--alert-link);
+      font-size: 12.5px;
+      line-height: 1.35;
     }
-    .alert-item .icon { font-size: 14px; margin-top: 1px; }
+    .alert-item .icon {
+      font-size: 13px;
+      margin-top: 1px;
+      flex-shrink: 0;
+      width: 16px;
+      text-align: center;
+    }
+    .alert-item .icon img {
+      width: 14px;
+      height: 14px;
+    }
 
-    /* ===== RIGHT PANEL (Student Card) ===== */
+    /* ===== RIGHT PANEL ===== */
     .right-panel {
-      width: 480px;
+      width: 470px;
       flex-shrink: 0;
     }
     .student-card {
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 3px;
+      background: var(--card-bg);
+      border: 1px solid #c8c8c8;
+      border-radius: 2px;
       overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
     }
     .student-header {
-      background: #1a4a7a;
+      background: var(--student-header);
       color: white;
-      padding: 10px 14px;
+      padding: 9px 12px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
     .avatar {
-      width: 42px;
-      height: 42px;
+      width: 40px;
+      height: 40px;
       background: #8a9ba8;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
+      font-size: 20px;
       color: #ddd;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
     .student-info .name {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
     }
     .student-info .school {
-      font-size: 12px;
-      opacity: 0.9;
+      font-size: 11.5px;
+      opacity: 0.92;
+      margin-top: 1px;
+    }
+
+    .florida-logo-wrap {
+      text-align: center;
+      padding: 8px 0 4px;
+    }
+    .florida-logo-wrap img {
+      height: 36px;
+      width: auto;
     }
     .florida-logo {
-      text-align: center;
-      padding: 10px 0 6px;
-      font-family: Georgia, serif;
-      font-size: 20px;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 22px;
       color: #1a3a5c;
       font-weight: 600;
+      letter-spacing: 0.5px;
+      line-height: 1.1;
     }
     .florida-logo small {
       display: block;
-      font-size: 10px;
-      font-family: 'Segoe UI', sans-serif;
+      font-size: 9.5px;
+      font-family: 'Segoe UI', Arial, sans-serif;
       font-weight: 400;
-      color: #666;
-      letter-spacing: 0.5px;
+      color: #555;
+      letter-spacing: 0.8px;
+      margin-top: 1px;
     }
 
-    /* Tabs under student */
+    /* Student tabs */
     .student-tabs {
       display: flex;
-      border-bottom: 1px solid #ddd;
-      background: #f8f8f8;
-      padding: 0 8px;
+      border-bottom: 1px solid #ccc;
+      background: #f5f5f5;
+      padding: 0 6px;
     }
     .student-tab {
-      padding: 8px 14px;
+      padding: 7px 13px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12.5px;
       color: #555;
       border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
     }
     .student-tab.active {
-      color: #1a4a7a;
+      color: var(--tab-active);
       font-weight: 600;
-      border-bottom-color: #1a4a7a;
+      border-bottom-color: var(--tab-active);
       background: white;
     }
 
@@ -286,71 +419,157 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 6px 10px 0;
-      background: #f0f4f8;
+      padding: 5px 8px 0;
+      background: #e8eef4;
     }
     .quarters {
       display: flex;
-      gap: 2px;
+      gap: 1px;
     }
     .quarter {
-      padding: 5px 12px;
-      font-size: 12px;
+      padding: 4px 11px;
+      font-size: 11.5px;
       font-weight: 600;
       cursor: pointer;
-      background: #d0d8e0;
-      color: #555;
-      border-radius: 3px 3px 0 0;
+      background: #c8d4e0;
+      color: #444;
+      border-radius: 2px 2px 0 0;
     }
     .quarter.active {
-      background: #1a4a7a;
+      background: var(--quarter-active);
       color: white;
     }
     .date-range {
       font-size: 11px;
-      color: #666;
-      padding-right: 6px;
+      color: #555;
+      padding-right: 4px;
     }
 
     /* Grades table */
     .grades-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 12px;
+      font-size: 11.5px;
     }
     .grades-table th {
-      background: #e8eef4;
-      padding: 6px 8px;
+      background: var(--table-header);
+      padding: 5px 6px;
       text-align: left;
       font-weight: 600;
-      border-bottom: 1px solid #ccc;
+      border-bottom: 1px solid #bbb;
       color: #333;
+      white-space: nowrap;
     }
     .grades-table td {
-      padding: 5px 8px;
-      border-bottom: 1px solid #eee;
+      padding: 4px 6px;
+      border-bottom: 1px solid #e5e5e5;
+      white-space: nowrap;
     }
-    .grades-table tr:nth-child(even) { background: #f7f9fb; }
+    .grades-table tr:nth-child(even) { background: var(--table-stripe); }
     .grades-table tr:hover { background: #eef3f8; }
+    .grades-table .col-pd { width: 28px; text-align: center; }
+    .grades-table .col-rot { width: 28px; text-align: center; }
+    .grades-table .col-ex,
+    .grades-table .col-unx,
+    .grades-table .col-tardy { width: 32px; text-align: center; }
+    .grades-table .col-grade { width: 55px; text-align: right; }
     .grade-cell {
       font-weight: 600;
-      color: #c0392b;
+      color: var(--grade-fail);
     }
     .grade-cell.ok { color: #27ae60; }
-    .grade-cell.mid { color: #d68910; }
+    .grade-cell.mid { color: var(--grade-mid); }
+    .grade-cell.ng { color: #555; font-weight: 500; }
 
-    /* Make all text editable */
+    /* Editable text */
     [contenteditable="true"] {
       outline: none;
-      border-radius: 2px;
-      transition: background 0.15s;
+      border-radius: 1px;
+      transition: background 0.12s;
     }
     [contenteditable="true"]:hover {
-      background: rgba(255, 230, 100, 0.25);
+      background: rgba(255, 230, 80, 0.22);
     }
     [contenteditable="true"]:focus {
-      background: rgba(255, 230, 100, 0.4);
-      box-shadow: 0 0 0 1px #e6b800;
+      background: rgba(255, 230, 80, 0.38);
+      box-shadow: 0 0 0 1px #d4a800;
+    }
+
+    /* ===== HIDDEN COLOR PANEL ===== */
+    .color-panel {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      width: 260px;
+      background: #1e1e1e;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 12px 14px;
+      z-index: 9999;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      color: #eee;
+      font-size: 12px;
+    }
+    .color-panel.open { display: block; }
+    .color-panel h3 {
+      font-size: 13px;
+      margin-bottom: 10px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .color-panel h3 button {
+      background: none;
+      border: none;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+    }
+    .color-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+    }
+    .color-row label {
+      flex: 1;
+      color: #ccc;
+    }
+    .color-row input[type="color"] {
+      width: 36px;
+      height: 22px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      background: none;
+      padding: 0;
+    }
+    .color-panel .hint {
+      margin-top: 8px;
+      font-size: 10px;
+      color: #777;
+      line-height: 1.3;
+    }
+    .color-panel .actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .color-panel .actions button {
+      flex: 1;
+      padding: 5px;
+      border: 1px solid #555;
+      background: #333;
+      color: #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .color-panel .actions button:hover {
+      background: #444;
     }
   </style>
 </head>
@@ -360,18 +579,23 @@
   <div class="top-header">
     <div class="logo-area">
       <div class="logo-box">
-        <div style="font-size:20px;">🎓</div>
-        <div class="logo-text" contenteditable="true">
-          BROWARD<br><small contenteditable="true">County Public Schools</small>
+        <!-- Put your logo here: pngs/logo.png -->
+        <img id="logo-img" src="pngs/logo.png" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="logo-fallback" style="display:none;">
+          <div class="logo-icon">B</div>
+          <div class="logo-text" contenteditable="true">
+            BROWARD<br><small contenteditable="true">County Public Schools</small>
+          </div>
         </div>
       </div>
-      <div class="portal-title" contenteditable="true">Portal <span>?</span></div>
+      <div class="portal-title" contenteditable="true">Portal <span class="help">?</span></div>
     </div>
     <div class="header-right">
       <button class="user-btn" contenteditable="true">VICTOR</button>
+      <button class="logout-btn" title="Logout">⏻</button>
       <div class="school-select">
         <span class="school-name" contenteditable="true">HOLLYWOOD HILLS HIGH (1661)</span>
-        <span class="year" contenteditable="true">2026-2027 ▾</span>
+        <span class="year" contenteditable="true">2026-2027</span>
       </div>
     </div>
   </div>
@@ -379,19 +603,58 @@
   <div class="main-layout">
     <!-- SIDEBAR -->
     <div class="sidebar">
-      <div class="nav-item active"><span class="nav-icon">🏠</span> <span contenteditable="true">Portal</span></div>
-      <div class="nav-item"><span class="nav-icon">ℹ️</span> <span contenteditable="true">School Info</span></div>
-      <div class="nav-item"><span class="nav-icon">👤</span> <span contenteditable="true">My Information</span></div>
-      <div class="nav-item"><span class="nav-icon">📋</span> <span contenteditable="true">Class Schedule</span></div>
-      <div class="nav-item"><span class="nav-icon">📄</span> <span contenteditable="true">Class Requests</span></div>
-      <div class="nav-item"><span class="nav-icon">🅰️</span> <span contenteditable="true">Grades</span></div>
-      <div class="nav-item"><span class="nav-icon">🏛️</span> <span contenteditable="true">Grad Reqs</span></div>
-      <div class="nav-item"><span class="nav-icon">📈</span> <span contenteditable="true">Test History</span></div>
-      <div class="nav-item"><span class="nav-icon">🚫</span> <span contenteditable="true">Absences</span></div>
-      <div class="nav-item"><span class="nav-icon">🔔</span> <span contenteditable="true">Attendance</span></div>
-      <div class="nav-item"><span class="nav-icon">🚩</span> <span contenteditable="true">Referrals</span></div>
-      <div class="nav-item"><span class="nav-icon">✍️</span> <span contenteditable="true">Applications & Forms</span></div>
-      <div class="nav-item"><span class="nav-icon">📁</span> <span contenteditable="true">Forms</span></div>
+      <div class="nav-item active">
+        <span class="nav-icon"><img src="pngs/icon-portal.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🏠</span></span>
+        <span contenteditable="true">Portal</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><img src="pngs/icon-schoolinfo.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">ℹ️</span></span>
+        <span contenteditable="true">School Info</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><img src="pngs/icon-myinfo.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">👤</span></span>
+        <span contenteditable="true">My Information</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><img src="pngs/icon-schedule.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">📋</span></span>
+        <span contenteditable="true">Class Schedule</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><img src="pngs/icon-requests.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">📄</span></span>
+        <span contenteditable="true">Class Requests</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><img src="pngs/icon-grades.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🅰️</span></span>
+        <span contenteditable="true">Grades</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><img src="pngs/icon-gradreqs.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🏛️</span></span>
+        <span contenteditable="true">Grad Reqs</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><img src="pngs/icon-testhistory.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">📈</span></span>
+        <span contenteditable="true">Test History</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><img src="pngs/icon-absences.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🚫</span></span>
+        <span contenteditable="true">Absences</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><img src="pngs/icon-attendance.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🔔</span></span>
+        <span contenteditable="true">Attendance</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><img src="pngs/icon-referrals.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🚩</span></span>
+        <span contenteditable="true">Referrals</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><img src="pngs/icon-applications.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">✍️</span></span>
+        <span contenteditable="true">Applications & Forms</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><img src="pngs/icon-forms.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">📁</span></span>
+        <span contenteditable="true">Forms</span>
+      </div>
     </div>
 
     <!-- CONTENT -->
@@ -406,15 +669,21 @@
           </div>
           <div class="alerts-section">
             <div class="alerts-title">
-              <span class="alert-icon">⚠</span>
+              <span class="alert-icon">
+                <img src="pngs/icon-alert.png" onerror="this.style.display='none';this.parentElement.textContent='⚠'">
+              </span>
               <span contenteditable="true">Alerts</span>
             </div>
             <div class="alert-item">
-              <span class="icon">🔗</span>
+              <span class="icon">
+                <img src="pngs/icon-email.png" onerror="this.style.display='none';this.parentElement.textContent='🔗'">
+              </span>
               <span contenteditable="true">You are not set to receive email notifications.</span>
             </div>
             <div class="alert-item">
-              <span class="icon">📅</span>
+              <span class="icon">
+                <img src="pngs/icon-absent.png" onerror="this.style.display='none';this.parentElement.textContent='📅'">
+              </span>
               <span contenteditable="true">You have been absent 2 periods in the last 30 days</span>
             </div>
           </div>
@@ -425,16 +694,23 @@
       <div class="right-panel">
         <div class="student-card">
           <div class="student-header">
-            <div class="avatar">👤</div>
+            <div class="avatar">
+              <!-- Put student photo here: pngs/avatar.png -->
+              <img src="pngs/avatar.png" onerror="this.style.display='none';this.parentElement.textContent='👤'">
+            </div>
             <div class="student-info">
               <div class="name" contenteditable="true">VICTOR</div>
               <div class="school" contenteditable="true">HOLLYWOOD HILLS HIGH (1661)</div>
             </div>
           </div>
 
-          <div class="florida-logo" contenteditable="true">
-            Florida
-            <small contenteditable="true">Statewide Assessments</small>
+          <div class="florida-logo-wrap">
+            <!-- Put Florida logo here: pngs/florida-logo.png -->
+            <img src="pngs/florida-logo.png" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+            <div class="florida-logo" style="display:none" contenteditable="true">
+              Florida
+              <small contenteditable="true">Statewide Assessments</small>
+            </div>
           </div>
 
           <div class="student-tabs">
@@ -457,96 +733,96 @@
           <table class="grades-table">
             <thead>
               <tr>
-                <th contenteditable="true">Pd</th>
-                <th contenteditable="true">Rot</th>
+                <th class="col-pd" contenteditable="true">Pd</th>
+                <th class="col-rot" contenteditable="true">Rot</th>
                 <th contenteditable="true">Course</th>
                 <th contenteditable="true">Teacher</th>
-                <th contenteditable="true">Ex</th>
-                <th contenteditable="true">Unx</th>
-                <th contenteditable="true">Tardy</th>
-                <th contenteditable="true">Grade</th>
+                <th class="col-ex" contenteditable="true">Ex</th>
+                <th class="col-unx" contenteditable="true">Unx</th>
+                <th class="col-tardy" contenteditable="true">Tardy</th>
+                <th class="col-grade" contenteditable="true">Grade</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td contenteditable="true">01</td>
-                <td contenteditable="true">A</td>
+                <td class="col-pd" contenteditable="true">01</td>
+                <td class="col-rot" contenteditable="true">A</td>
                 <td contenteditable="true">WORLD HISTORY</td>
                 <td contenteditable="true">Rosales, S</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td class="grade-cell" contenteditable="true">60% D</td>
+                <td class="col-ex" contenteditable="true">0</td>
+                <td class="col-unx" contenteditable="true">0</td>
+                <td class="col-tardy" contenteditable="true">0</td>
+                <td class="col-grade grade-cell" contenteditable="true">60% D</td>
               </tr>
               <tr>
-                <td contenteditable="true">02</td>
-                <td contenteditable="true">A</td>
+                <td class="col-pd" contenteditable="true">02</td>
+                <td class="col-rot" contenteditable="true">A</td>
                 <td contenteditable="true">ENG 2</td>
                 <td contenteditable="true">Gulla, A</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td class="grade-cell" contenteditable="true">51% F</td>
+                <td class="col-ex" contenteditable="true">0</td>
+                <td class="col-unx" contenteditable="true">0</td>
+                <td class="col-tardy" contenteditable="true">0</td>
+                <td class="col-grade grade-cell" contenteditable="true">51% F</td>
               </tr>
               <tr>
-                <td contenteditable="true">03</td>
-                <td contenteditable="true">A</td>
+                <td class="col-pd" contenteditable="true">03</td>
+                <td class="col-rot" contenteditable="true">A</td>
                 <td contenteditable="true">PER CAR SCH DEV 1</td>
                 <td contenteditable="true">Searcy, M</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td class="grade-cell mid" contenteditable="true">67% D+</td>
+                <td class="col-ex" contenteditable="true">0</td>
+                <td class="col-unx" contenteditable="true">0</td>
+                <td class="col-tardy" contenteditable="true">0</td>
+                <td class="col-grade grade-cell mid" contenteditable="true">67% D+</td>
               </tr>
               <tr>
-                <td contenteditable="true">04</td>
-                <td contenteditable="true">A</td>
+                <td class="col-pd" contenteditable="true">04</td>
+                <td class="col-rot" contenteditable="true">A</td>
                 <td contenteditable="true">GEOMETRY</td>
                 <td contenteditable="true">Tran, T</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">2</td>
-                <td contenteditable="true">0</td>
-                <td class="grade-cell" contenteditable="true">23% F</td>
+                <td class="col-ex" contenteditable="true">0</td>
+                <td class="col-unx" contenteditable="true">2</td>
+                <td class="col-tardy" contenteditable="true">0</td>
+                <td class="col-grade grade-cell" contenteditable="true">23% F</td>
               </tr>
               <tr>
-                <td contenteditable="true">05</td>
-                <td contenteditable="true">B</td>
+                <td class="col-pd" contenteditable="true">05</td>
+                <td class="col-rot" contenteditable="true">B</td>
                 <td contenteditable="true">MKT APPLCTNS LH</td>
                 <td contenteditable="true">Saunders, K</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td class="grade-cell mid" contenteditable="true">68% D+</td>
+                <td class="col-ex" contenteditable="true">0</td>
+                <td class="col-unx" contenteditable="true">0</td>
+                <td class="col-tardy" contenteditable="true">0</td>
+                <td class="col-grade grade-cell mid" contenteditable="true">68% D+</td>
               </tr>
               <tr>
-                <td contenteditable="true">06</td>
-                <td contenteditable="true">B</td>
+                <td class="col-pd" contenteditable="true">06</td>
+                <td class="col-rot" contenteditable="true">B</td>
                 <td contenteditable="true">NC STUDY HALL 1</td>
                 <td contenteditable="true">Beamer Ii, B</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td class="grade-cell" contenteditable="true">NG</td>
+                <td class="col-ex" contenteditable="true">0</td>
+                <td class="col-unx" contenteditable="true">0</td>
+                <td class="col-tardy" contenteditable="true">0</td>
+                <td class="col-grade grade-cell ng" contenteditable="true">NG</td>
               </tr>
               <tr>
-                <td contenteditable="true">07</td>
-                <td contenteditable="true">B</td>
+                <td class="col-pd" contenteditable="true">07</td>
+                <td class="col-rot" contenteditable="true">B</td>
                 <td contenteditable="true">PERS FIT</td>
                 <td contenteditable="true">Kontsis, C</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td class="grade-cell mid" contenteditable="true">65% D</td>
+                <td class="col-ex" contenteditable="true">0</td>
+                <td class="col-unx" contenteditable="true">0</td>
+                <td class="col-tardy" contenteditable="true">0</td>
+                <td class="col-grade grade-cell mid" contenteditable="true">65% D</td>
               </tr>
               <tr>
-                <td contenteditable="true">08</td>
-                <td contenteditable="true">B</td>
+                <td class="col-pd" contenteditable="true">08</td>
+                <td class="col-rot" contenteditable="true">B</td>
                 <td contenteditable="true">BIOLOGY 1</td>
                 <td contenteditable="true">Hatcher, D</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td contenteditable="true">0</td>
-                <td class="grade-cell" contenteditable="true">43% F</td>
+                <td class="col-ex" contenteditable="true">0</td>
+                <td class="col-unx" contenteditable="true">0</td>
+                <td class="col-tardy" contenteditable="true">0</td>
+                <td class="col-grade grade-cell" contenteditable="true">43% F</td>
               </tr>
             </tbody>
           </table>
@@ -555,15 +831,113 @@
     </div>
   </div>
 
+  <!-- HIDDEN COLOR CUSTOMIZER (Ctrl+Shift+K to toggle) -->
+  <div class="color-panel" id="colorPanel">
+    <h3>
+      Color Customizer
+      <button onclick="toggleColors()">✕</button>
+    </h3>
+    <div class="color-row"><label>Header background</label><input type="color" data-var="--header-bg" value="#1e4d7b"></div>
+    <div class="color-row"><label>Header buttons</label><input type="color" data-var="--header-btn" value="#2a5f8f"></div>
+    <div class="color-row"><label>Sidebar background</label><input type="color" data-var="--sidebar-bg" value="#f4f4f4"></div>
+    <div class="color-row"><label>Sidebar active</label><input type="color" data-var="--sidebar-active" value="#d6e4f0"></div>
+    <div class="color-row"><label>Announcements header</label><input type="color" data-var="--announcements-header" value="#e67e22"></div>
+    <div class="color-row"><label>Student header</label><input type="color" data-var="--student-header" value="#1e4d7b"></div>
+    <div class="color-row"><label>Quarter / Tab active</label><input type="color" data-var="--quarter-active" value="#1e4d7b"></div>
+    <div class="color-row"><label>Alert links</label><input type="color" data-var="--alert-link" value="#2a6bb5"></div>
+    <div class="color-row"><label>Fail grade color</label><input type="color" data-var="--grade-fail" value="#c0392b"></div>
+    <div class="color-row"><label>Mid grade color</label><input type="color" data-var="--grade-mid" value="#d68910"></div>
+    <div class="color-row"><label>Body background</label><input type="color" data-var="--body-bg" value="#e9e9e9"></div>
+    <div class="color-row"><label>Content background</label><input type="color" data-var="--content-bg" value="#f0f0f0"></div>
+    <div class="actions">
+      <button onclick="resetColors()">Reset</button>
+      <button onclick="saveColors()">Save</button>
+    </div>
+    <div class="hint">Press Ctrl+Shift+K to show/hide this panel. Colors save to this browser.</div>
+  </div>
+
   <script>
-    // Optional: click tabs to switch active state (visual only)
+    // Tab switching
     document.querySelectorAll('.tab, .student-tab, .quarter, .nav-item').forEach(el => {
       el.addEventListener('click', function (e) {
-        if (e.target.isContentEditable) return; // don't steal focus while editing
-        const parent = this.parentElement;
-        parent.querySelectorAll('.tab, .student-tab, .quarter, .nav-item').forEach(s => s.classList.remove('active'));
+        if (e.target.isContentEditable && document.activeElement === e.target) return;
+        const group = this.classList.contains('nav-item') ? this.parentElement :
+                      this.classList.contains('quarter') ? this.parentElement :
+                      this.parentElement;
+        group.querySelectorAll('.' + [...this.classList].find(c => ['tab','student-tab','quarter','nav-item'].includes(c))).forEach(s => s.classList.remove('active'));
         this.classList.add('active');
       });
+    });
+
+    // Color panel toggle: Ctrl+Shift+K
+    function toggleColors() {
+      document.getElementById('colorPanel').classList.toggle('open');
+    }
+    document.addEventListener('keydown', e => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        toggleColors();
+      }
+    });
+
+    // Color inputs
+    document.querySelectorAll('#colorPanel input[type=color]').forEach(input => {
+      input.addEventListener('input', () => {
+        document.documentElement.style.setProperty(input.dataset.var, input.value);
+      });
+    });
+
+    function resetColors() {
+      const defaults = {
+        '--header-bg': '#1e4d7b',
+        '--header-btn': '#2a5f8f',
+        '--sidebar-bg': '#f4f4f4',
+        '--sidebar-active': '#d6e4f0',
+        '--announcements-header': '#e67e22',
+        '--student-header': '#1e4d7b',
+        '--quarter-active': '#1e4d7b',
+        '--tab-active': '#1e4d7b',
+        '--alert-link': '#2a6bb5',
+        '--grade-fail': '#c0392b',
+        '--grade-mid': '#d68910',
+        '--body-bg': '#e9e9e9',
+        '--content-bg': '#f0f0f0'
+      };
+      Object.entries(defaults).forEach(([k, v]) => {
+        document.documentElement.style.setProperty(k, v);
+        const input = document.querySelector(`input[data-var="${k}"]`);
+        if (input) input.value = v;
+      });
+      localStorage.removeItem('portal-colors');
+    }
+
+    function saveColors() {
+      const colors = {};
+      document.querySelectorAll('#colorPanel input[type=color]').forEach(input => {
+        colors[input.dataset.var] = input.value;
+      });
+      localStorage.setItem('portal-colors', JSON.stringify(colors));
+      alert('Colors saved!');
+    }
+
+    // Load saved colors
+    (function loadColors() {
+      try {
+        const saved = JSON.parse(localStorage.getItem('portal-colors') || '{}');
+        Object.entries(saved).forEach(([k, v]) => {
+          document.documentElement.style.setProperty(k, v);
+          const input = document.querySelector(`input[data-var="${k}"]`);
+          if (input) input.value = v;
+        });
+      } catch(e) {}
+    })();
+
+    // Auto-show emoji fallbacks when images fail
+    document.querySelectorAll('.nav-icon img').forEach(img => {
+      if (!img.complete || img.naturalWidth === 0) {
+        img.style.display = 'none';
+        if (img.nextElementSibling) img.nextElementSibling.style.display = 'inline';
+      }
     });
   </script>
 </body>
