@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Broward County Public Schools - Portal</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --header-bg: #1e4d7b;
@@ -16,13 +17,13 @@
       --quarter-active: #1e4d7b;
       --tab-active: #1e4d7b;
       --alert-link: #2a6bb5;
-      --grade-fail: #c0392b;
-      --grade-mid: #d68910;
-      --body-bg: #e9e9e9;
-      --content-bg: #f0f0f0;
+      --link-blue: #3a7ab8;
+      --body-bg: #e8e8e8;
+      --content-bg: #ececec;
       --card-bg: #ffffff;
-      --table-header: #e4ecf4;
-      --table-stripe: #f5f8fb;
+      --table-header: #dce4ec;
+      --table-stripe: #f0f4f8;
+      --table-border: #c8d0d8;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -34,7 +35,6 @@
       overflow: hidden;
     }
 
-    /* ===== TOP HEADER ===== */
     .top-header {
       background: var(--header-bg);
       height: 50px;
@@ -43,13 +43,8 @@
       justify-content: space-between;
       padding: 0 10px 0 8px;
       color: white;
-      border-bottom: 1px solid #163a5c;
     }
-    .logo-area {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .logo-area { display: flex; align-items: center; gap: 8px; }
     .logo-box {
       background: #fff;
       border-radius: 3px;
@@ -59,607 +54,293 @@
       gap: 5px;
       height: 38px;
     }
-    .logo-box img {
-      height: 32px;
-      width: auto;
-    }
-    .logo-fallback {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
+    .logo-box img { height: 32px; width: auto; }
+    .logo-fallback { display: flex; align-items: center; gap: 4px; }
     .logo-icon {
-      width: 28px;
-      height: 28px;
-      background: linear-gradient(135deg, #1e4d7b 0%, #2a6bb5 100%);
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #1e4d7b, #2a6bb5);
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 14px;
-      font-weight: bold;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 14px; font-weight: bold;
     }
     .logo-text {
-      font-size: 11px;
-      color: #1a3a5c;
-      font-weight: 700;
-      line-height: 1.1;
-      letter-spacing: 0.3px;
+      font-size: 11px; color: #1a3a5c; font-weight: 700; line-height: 1.1;
     }
-    .logo-text small {
-      font-size: 8.5px;
-      font-weight: 400;
-      color: #555;
-      letter-spacing: 0;
-    }
-    .portal-title {
-      font-size: 17px;
-      font-weight: 400;
-      margin-left: 6px;
-      letter-spacing: 0.2px;
-    }
+    .logo-text small { font-size: 8.5px; font-weight: 400; color: #555; }
+    .portal-title { font-size: 17px; font-weight: 400; margin-left: 6px; }
     .portal-title .help {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 16px;
-      height: 16px;
-      border: 1.5px solid rgba(255,255,255,0.7);
-      border-radius: 50%;
-      font-size: 11px;
-      margin-left: 4px;
-      opacity: 0.85;
-      vertical-align: middle;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px; border: 1.5px solid rgba(255,255,255,0.7);
+      border-radius: 50%; font-size: 11px; margin-left: 4px; opacity: 0.85;
     }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .header-right { display: flex; align-items: center; gap: 8px; }
     .user-btn {
-      background: var(--header-btn);
-      border: 1px solid #3a6f9a;
-      color: white;
-      padding: 5px 16px;
-      border-radius: 3px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      letter-spacing: 0.3px;
+      background: var(--header-btn); border: 1px solid #3a6f9a;
+      color: white; padding: 5px 16px; border-radius: 3px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
     }
     .logout-btn {
-      background: transparent;
-      border: none;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-      opacity: 0.85;
-      padding: 4px;
+      background: transparent; border: none; color: white;
+      font-size: 15px; cursor: pointer; opacity: 0.85; padding: 4px 6px;
     }
+    .logout-btn:hover { opacity: 1; }
     .school-select {
-      background: var(--header-btn);
-      border: 1px solid #3a6f9a;
-      color: white;
-      padding: 4px 12px 4px 10px;
-      border-radius: 3px;
-      font-size: 11px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      line-height: 1.25;
-      min-width: 175px;
+      background: var(--header-btn); border: 1px solid #3a6f9a;
+      color: white; padding: 4px 12px 4px 10px; border-radius: 3px;
+      font-size: 11px; display: flex; flex-direction: column;
+      align-items: flex-start; line-height: 1.25; min-width: 175px;
     }
     .school-select .school-name { font-weight: 600; font-size: 11.5px; }
-    .school-select .year {
-      font-size: 10.5px;
-      opacity: 0.95;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .school-select .year::after {
-      content: '▾';
-      font-size: 9px;
-      opacity: 0.8;
-    }
+    .school-select .year { font-size: 10.5px; opacity: 0.95; }
+    .school-select .year::after { content: ' ▾'; font-size: 9px; }
 
-    /* ===== LAYOUT ===== */
-    .main-layout {
-      display: flex;
-      height: calc(100vh - 50px);
-    }
+    .main-layout { display: flex; height: calc(100vh - 50px); }
 
-    /* ===== SIDEBAR ===== */
     .sidebar {
-      width: 175px;
-      background: var(--sidebar-bg);
-      border-right: 1px solid #ccc;
-      padding-top: 6px;
-      flex-shrink: 0;
-      overflow-y: auto;
+      width: 175px; background: var(--sidebar-bg);
+      border-right: 1px solid #ccc; padding-top: 6px;
+      flex-shrink: 0; overflow-y: auto;
     }
     .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      padding: 8px 12px;
-      cursor: pointer;
-      color: #333;
-      font-size: 12.5px;
-      border-left: 3px solid transparent;
-      transition: background 0.1s;
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 12px; cursor: pointer; color: #333;
+      font-size: 12.5px; border-left: 3px solid transparent;
     }
     .nav-item:hover { background: #e8e8e8; }
     .nav-item.active {
       background: var(--sidebar-active);
       border-left-color: var(--sidebar-active-border);
-      font-weight: 600;
-      color: #1a3a5c;
+      font-weight: 600; color: #1a3a5c;
     }
     .nav-icon {
-      width: 18px;
-      height: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
+      width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
-    .nav-icon img {
-      width: 16px;
-      height: 16px;
-      object-fit: contain;
-    }
-    .nav-icon .emoji {
-      font-size: 14px;
-      line-height: 1;
-    }
+    .nav-icon img { width: 16px; height: 16px; object-fit: contain; }
+    .nav-icon .emoji { font-size: 14px; line-height: 1; }
 
-    /* ===== CONTENT AREA ===== */
     .content {
-      flex: 1;
-      display: flex;
-      gap: 10px;
-      padding: 10px;
-      overflow: auto;
+      flex: 1; display: flex; gap: 10px;
+      padding: 10px; overflow: auto;
       background: var(--content-bg);
     }
 
-    /* ===== LEFT PANEL ===== */
-    .left-panel {
-      flex: 1;
-      min-width: 300px;
-      max-width: 520px;
-    }
+    .left-panel { flex: 1; min-width: 300px; max-width: 520px; }
     .announcements-box {
-      background: var(--card-bg);
-      border: 1px solid #c8c8c8;
-      border-radius: 2px;
-      overflow: hidden;
+      background: var(--card-bg); border: 1px solid #c8c8c8;
+      border-radius: 2px; overflow: hidden;
       box-shadow: 0 1px 2px rgba(0,0,0,0.06);
     }
     .announcements-header {
-      background: var(--announcements-header);
-      color: white;
-      padding: 7px 12px;
-      font-size: 14.5px;
-      font-weight: 600;
-      letter-spacing: 0.2px;
+      background: var(--announcements-header); color: white;
+      padding: 7px 12px; font-size: 14.5px; font-weight: 600;
     }
-    .tabs {
-      display: flex;
-      border-bottom: 1px solid #ddd;
-      background: #f7f7f7;
-    }
+    .tabs { display: flex; border-bottom: 1px solid #ddd; background: #f7f7f7; }
     .tab {
-      padding: 6px 14px;
-      cursor: pointer;
-      font-size: 12.5px;
-      border-bottom: 2px solid transparent;
-      color: #555;
-      margin-bottom: -1px;
+      padding: 6px 14px; cursor: pointer; font-size: 12.5px;
+      border-bottom: 2px solid transparent; color: #555; margin-bottom: -1px;
     }
     .tab.active {
-      background: white;
-      border-bottom-color: var(--announcements-header);
-      color: var(--announcements-header);
-      font-weight: 600;
+      background: white; border-bottom-color: var(--announcements-header);
+      color: var(--announcements-header); font-weight: 600;
     }
-    .alerts-section {
-      padding: 10px 12px 14px;
-    }
+    .alerts-section { padding: 10px 12px 14px; }
     .alerts-title {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      background: #ececec;
-      padding: 6px 10px;
-      border-radius: 2px;
-      font-weight: 600;
-      font-size: 13px;
-      margin-bottom: 10px;
-      color: #333;
+      display: flex; align-items: center; gap: 7px;
+      background: #ececec; padding: 6px 10px; border-radius: 2px;
+      font-weight: 600; font-size: 13px; margin-bottom: 10px;
     }
     .alert-icon {
-      background: #5b9bd5;
-      color: white;
-      width: 20px;
-      height: 20px;
-      border-radius: 2px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      flex-shrink: 0;
-    }
-    .alert-icon img {
-      width: 14px;
-      height: 14px;
+      background: #5b9bd5; color: white; width: 20px; height: 20px;
+      border-radius: 2px; display: flex; align-items: center;
+      justify-content: center; font-size: 11px; flex-shrink: 0;
     }
     .alert-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 7px;
-      padding: 4px 0;
-      color: var(--alert-link);
-      font-size: 12.5px;
-      line-height: 1.35;
+      display: flex; align-items: flex-start; gap: 7px;
+      padding: 4px 0; color: var(--alert-link); font-size: 12.5px;
     }
-    .alert-item .icon {
-      font-size: 13px;
-      margin-top: 1px;
-      flex-shrink: 0;
-      width: 16px;
-      text-align: center;
-    }
-    .alert-item .icon img {
-      width: 14px;
-      height: 14px;
-    }
+    .alert-item .icon { font-size: 13px; margin-top: 1px; flex-shrink: 0; width: 16px; text-align: center; }
 
-    /* ===== RIGHT PANEL ===== */
-    .right-panel {
-      width: 470px;
-      flex-shrink: 0;
-    }
+    .right-panel { width: 470px; flex-shrink: 0; }
     .student-card {
-      background: var(--card-bg);
-      border: 1px solid #c8c8c8;
-      border-radius: 2px;
-      overflow: hidden;
+      background: var(--card-bg); border: 1px solid #c8c8c8;
+      border-radius: 2px; overflow: hidden;
       box-shadow: 0 1px 2px rgba(0,0,0,0.06);
     }
     .student-header {
-      background: var(--student-header);
-      color: white;
-      padding: 9px 12px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      background: var(--student-header); color: white;
+      padding: 9px 12px; display: flex; align-items: center; gap: 10px;
     }
     .avatar {
-      width: 40px;
-      height: 40px;
-      background: #8a9ba8;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      color: #ddd;
-      overflow: hidden;
-      flex-shrink: 0;
+      width: 40px; height: 40px; background: #8a9ba8; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; color: #ddd; overflow: hidden; flex-shrink: 0;
     }
-    .avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .student-info .name {
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-    }
-    .student-info .school {
-      font-size: 11.5px;
-      opacity: 0.92;
-      margin-top: 1px;
-    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .student-info .name { font-size: 15px; font-weight: 700; letter-spacing: 0.4px; }
+    .student-info .school { font-size: 11.5px; opacity: 0.92; margin-top: 1px; }
 
-    .florida-logo-wrap {
-      text-align: center;
-      padding: 8px 0 4px;
-    }
-    .florida-logo-wrap img {
-      height: 36px;
-      width: auto;
-    }
+    .florida-logo-wrap { text-align: center; padding: 8px 0 4px; }
+    .florida-logo-wrap img { height: 36px; width: auto; }
     .florida-logo {
       font-family: Georgia, 'Times New Roman', serif;
-      font-size: 22px;
-      color: #1a3a5c;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      line-height: 1.1;
+      font-size: 22px; color: #1a3a5c; font-weight: 600;
     }
     .florida-logo small {
-      display: block;
-      font-size: 9.5px;
+      display: block; font-size: 9.5px;
       font-family: 'Segoe UI', Arial, sans-serif;
-      font-weight: 400;
-      color: #555;
-      letter-spacing: 0.8px;
-      margin-top: 1px;
+      font-weight: 400; color: #555; letter-spacing: 0.8px;
     }
 
-    /* Student tabs */
     .student-tabs {
-      display: flex;
-      border-bottom: 1px solid #ccc;
-      background: #f5f5f5;
-      padding: 0 6px;
+      display: flex; border-bottom: 1px solid #ccc;
+      background: #f5f5f5; padding: 0 6px;
     }
     .student-tab {
-      padding: 7px 13px;
-      cursor: pointer;
-      font-size: 12.5px;
-      color: #555;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
+      padding: 7px 13px; cursor: pointer; font-size: 12.5px;
+      color: #555; border-bottom: 2px solid transparent; margin-bottom: -1px;
     }
     .student-tab.active {
-      color: var(--tab-active);
-      font-weight: 600;
-      border-bottom-color: var(--tab-active);
-      background: white;
+      color: var(--tab-active); font-weight: 600;
+      border-bottom-color: var(--tab-active); background: white;
     }
 
-    /* Quarter tabs */
     .quarter-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 5px 8px 0;
-      background: #e8eef4;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 5px 8px 0; background: #e4ecf4;
     }
-    .quarters {
-      display: flex;
-      gap: 1px;
-    }
+    .quarters { display: flex; gap: 1px; }
     .quarter {
-      padding: 4px 11px;
-      font-size: 11.5px;
-      font-weight: 600;
-      cursor: pointer;
-      background: #c8d4e0;
-      color: #444;
+      padding: 4px 11px; font-size: 11.5px; font-weight: 600;
+      cursor: pointer; background: #c8d4e0; color: #444;
       border-radius: 2px 2px 0 0;
     }
-    .quarter.active {
-      background: var(--quarter-active);
-      color: white;
-    }
-    .date-range {
-      font-size: 11px;
-      color: #555;
-      padding-right: 4px;
-    }
+    .quarter.active { background: var(--quarter-active); color: white; }
+    .date-range { font-size: 11px; color: #555; padding-right: 4px; }
 
-    /* Grades table */
+    /* Grades table – matches real portal: blue links, light stripe bg */
     .grades-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11.5px;
+      width: 100%; border-collapse: collapse; font-size: 11.5px;
     }
     .grades-table th {
       background: var(--table-header);
-      padding: 5px 6px;
-      text-align: left;
-      font-weight: 600;
-      border-bottom: 1px solid #bbb;
-      color: #333;
+      padding: 5px 6px; text-align: left; font-weight: 600;
+      border-bottom: 1px solid var(--table-border); color: #333;
       white-space: nowrap;
     }
     .grades-table td {
-      padding: 4px 6px;
-      border-bottom: 1px solid #e5e5e5;
-      white-space: nowrap;
+      padding: 4px 6px; border-bottom: 1px solid #e0e5ea;
+      white-space: nowrap; background: #fff;
     }
-    .grades-table tr:nth-child(even) { background: var(--table-stripe); }
-    .grades-table tr:hover { background: #eef3f8; }
+    .grades-table tbody tr:nth-child(even) td {
+      background: var(--table-stripe);
+    }
+    .grades-table tbody tr:hover td { background: #e8f0f8; }
     .grades-table .col-pd { width: 28px; text-align: center; }
     .grades-table .col-rot { width: 28px; text-align: center; }
     .grades-table .col-ex,
     .grades-table .col-unx,
-    .grades-table .col-tardy { width: 32px; text-align: center; }
+    .grades-table .col-tardy { width: 32px; text-align: center; color: #555; }
     .grades-table .col-grade { width: 55px; text-align: right; }
-    .grade-cell {
-      font-weight: 600;
-      color: var(--grade-fail);
-    }
-    .grade-cell.ok { color: #27ae60; }
-    .grade-cell.mid { color: var(--grade-mid); }
-    .grade-cell.ng { color: #555; font-weight: 500; }
 
-    /* Editable text */
+    /* Real portal: course, teacher, grade are ALL the same blue link color – no red */
+    .link-blue {
+      color: var(--link-blue);
+      font-weight: 400;
+    }
+    .grade-cell {
+      color: var(--link-blue);
+      font-weight: 400;
+    }
+
     [contenteditable="true"] {
-      outline: none;
-      border-radius: 1px;
-      transition: background 0.12s;
+      outline: none; border-radius: 1px; transition: background 0.12s;
     }
-    [contenteditable="true"]:hover {
-      background: rgba(255, 230, 80, 0.22);
-    }
+    [contenteditable="true"]:hover { background: rgba(255, 230, 80, 0.22); }
     [contenteditable="true"]:focus {
       background: rgba(255, 230, 80, 0.38);
       box-shadow: 0 0 0 1px #d4a800;
     }
 
-    /* ===== HIDDEN COLOR PANEL ===== */
+    /* Color panel */
     .color-panel {
-      display: none;
-      position: fixed;
-      bottom: 16px;
-      right: 16px;
-      width: 260px;
-      background: #1e1e1e;
-      border: 1px solid #444;
-      border-radius: 8px;
-      padding: 12px 14px;
-      z-index: 9999;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-      color: #eee;
-      font-size: 12px;
+      display: none; position: fixed; bottom: 16px; right: 16px;
+      width: 260px; background: #1e1e1e; border: 1px solid #444;
+      border-radius: 8px; padding: 12px 14px; z-index: 9999;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4); color: #eee; font-size: 12px;
     }
     .color-panel.open { display: block; }
     .color-panel h3 {
-      font-size: 13px;
-      margin-bottom: 10px;
-      color: #fff;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      font-size: 13px; margin-bottom: 10px; color: #fff;
+      display: flex; justify-content: space-between; align-items: center;
     }
     .color-panel h3 button {
-      background: none;
-      border: none;
-      color: #aaa;
-      cursor: pointer;
-      font-size: 16px;
-      line-height: 1;
+      background: none; border: none; color: #aaa; cursor: pointer; font-size: 16px;
     }
     .color-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 7px;
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px;
     }
-    .color-row label {
-      flex: 1;
-      color: #ccc;
-    }
+    .color-row label { flex: 1; color: #ccc; }
     .color-row input[type="color"] {
-      width: 36px;
-      height: 22px;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      background: none;
-      padding: 0;
+      width: 36px; height: 22px; border: none; border-radius: 3px;
+      cursor: pointer; background: none; padding: 0;
     }
-    .color-panel .hint {
-      margin-top: 8px;
-      font-size: 10px;
-      color: #777;
-      line-height: 1.3;
-    }
-    .color-panel .actions {
-      display: flex;
-      gap: 6px;
-      margin-top: 10px;
-    }
+    .color-panel .hint { margin-top: 8px; font-size: 10px; color: #777; line-height: 1.3; }
+    .color-panel .actions { display: flex; gap: 6px; margin-top: 10px; }
     .color-panel .actions button {
-      flex: 1;
-      padding: 5px;
-      border: 1px solid #555;
-      background: #333;
-      color: #ddd;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 11px;
+      flex: 1; padding: 5px; border: 1px solid #555; background: #333;
+      color: #ddd; border-radius: 4px; cursor: pointer; font-size: 11px;
     }
-    .color-panel .actions button:hover {
-      background: #444;
+
+    .save-toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #1e7e34; color: white; padding: 8px 18px;
+      border-radius: 6px; font-size: 13px; display: none; z-index: 10000;
     }
+    .save-toast.show { display: block; }
   </style>
 </head>
 <body>
 
-  <!-- TOP HEADER -->
   <div class="top-header">
     <div class="logo-area">
       <div class="logo-box">
-        <!-- Put your logo here: pngs/logo.png -->
         <img id="logo-img" src="pngs/logo.png" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
         <div class="logo-fallback" style="display:none;">
           <div class="logo-icon">B</div>
-          <div class="logo-text" contenteditable="true">
-            BROWARD<br><small contenteditable="true">County Public Schools</small>
-          </div>
+          <div class="logo-text" contenteditable="true">BROWARD<br><small contenteditable="true">County Public Schools</small></div>
         </div>
       </div>
       <div class="portal-title" contenteditable="true">Portal <span class="help">?</span></div>
     </div>
     <div class="header-right">
-      <button class="user-btn" contenteditable="true">VICTOR</button>
-      <button class="logout-btn" title="Logout">⏻</button>
+      <button class="user-btn" id="userBtn" contenteditable="true">STUDENT</button>
+      <button class="logout-btn" id="logoutBtn" title="Log out">⏻</button>
       <div class="school-select">
-        <span class="school-name" contenteditable="true">HOLLYWOOD HILLS HIGH (1661)</span>
-        <span class="year" contenteditable="true">2026-2027</span>
+        <span class="school-name" id="schoolName" contenteditable="true">HOLLYWOOD HILLS HIGH (1661)</span>
+        <span class="year" id="yearText" contenteditable="true">2026-2027</span>
       </div>
     </div>
   </div>
 
   <div class="main-layout">
-    <!-- SIDEBAR -->
     <div class="sidebar">
-      <div class="nav-item active">
-        <span class="nav-icon"><img src="pngs/icon-portal.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🏠</span></span>
-        <span contenteditable="true">Portal</span>
-      </div>
-      <div class="nav-item">
-        <span class="nav-icon"><img src="pngs/icon-schoolinfo.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">ℹ️</span></span>
-        <span contenteditable="true">School Info</span>
-      </div>
-      <div class="nav-item">
-        <span class="nav-icon"><img src="pngs/icon-myinfo.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">👤</span></span>
-        <span contenteditable="true">My Information</span>
-      </div>
-      <div class="nav-item">
-        <span class="nav-icon"><img src="pngs/icon-schedule.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">📋</span></span>
-        <span contenteditable="true">Class Schedule</span>
-      </div>
-      <div class="nav-item">
-        <span class="nav-icon"><img src="pngs/icon-requests.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">📄</span></span>
-        <span contenteditable="true">Class Requests</span>
-      </div>
-      <div class="nav-item">
-        <span class="nav-icon"><img src="pngs/icon-grades.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🅰️</span></span>
-        <span contenteditable="true">Grades</span>
-      </div>
-      <div class="nav-item">
-        <span class="nav-icon"><img src="pngs/icon-gradreqs.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🏛️</span></span>
-        <span contenteditable="true">Grad Reqs</span>
-      </div>
-      <div class="nav-item">
-        <span class="nav-icon"><img src="pngs/icon-testhistory.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">📈</span></span>
-        <span contenteditable="true">Test History</span>
-      </div>
-      <div class="nav-item">
-        <span class="nav-icon"><img src="pngs/icon-absences.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🚫</span></span>
-        <span contenteditable="true">Absences</span>
-      </div>
-      <div class="nav-item">
-        <span class="nav-icon"><img src="pngs/icon-attendance.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🔔</span></span>
-        <span contenteditable="true">Attendance</span>
-      </div>
-      <div class="nav-item">
-        <span class="nav-icon"><img src="pngs/icon-referrals.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🚩</span></span>
-        <span contenteditable="true">Referrals</span>
-      </div>
-      <div class="nav-item">
-        <span class="nav-icon"><img src="pngs/icon-applications.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">✍️</span></span>
-        <span contenteditable="true">Applications & Forms</span>
-      </div>
-      <div class="nav-item">
-        <span class="nav-icon"><img src="pngs/icon-forms.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">📁</span></span>
-        <span contenteditable="true">Forms</span>
-      </div>
+      <div class="nav-item active"><span class="nav-icon"><img src="pngs/icon-portal.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🏠</span></span><span contenteditable="true">Portal</span></div>
+      <div class="nav-item"><span class="nav-icon"><img src="pngs/icon-schoolinfo.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">ℹ️</span></span><span contenteditable="true">School Info</span></div>
+      <div class="nav-item"><span class="nav-icon"><img src="pngs/icon-myinfo.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">👤</span></span><span contenteditable="true">My Information</span></div>
+      <div class="nav-item"><span class="nav-icon"><img src="pngs/icon-schedule.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">📋</span></span><span contenteditable="true">Class Schedule</span></div>
+      <div class="nav-item"><span class="nav-icon"><img src="pngs/icon-requests.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">📄</span></span><span contenteditable="true">Class Requests</span></div>
+      <div class="nav-item"><span class="nav-icon"><img src="pngs/icon-grades.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🅰️</span></span><span contenteditable="true">Grades</span></div>
+      <div class="nav-item"><span class="nav-icon"><img src="pngs/icon-gradreqs.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🏛️</span></span><span contenteditable="true">Grad Reqs</span></div>
+      <div class="nav-item"><span class="nav-icon"><img src="pngs/icon-testhistory.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">📈</span></span><span contenteditable="true">Test History</span></div>
+      <div class="nav-item"><span class="nav-icon"><img src="pngs/icon-absences.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🚫</span></span><span contenteditable="true">Absences</span></div>
+      <div class="nav-item"><span class="nav-icon"><img src="pngs/icon-attendance.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🔔</span></span><span contenteditable="true">Attendance</span></div>
+      <div class="nav-item"><span class="nav-icon"><img src="pngs/icon-referrals.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">🚩</span></span><span contenteditable="true">Referrals</span></div>
+      <div class="nav-item"><span class="nav-icon"><img src="pngs/icon-applications.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">✍️</span></span><span contenteditable="true">Applications & Forms</span></div>
+      <div class="nav-item"><span class="nav-icon"><img src="pngs/icon-forms.png" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="emoji" style="display:none">📁</span></span><span contenteditable="true">Forms</span></div>
     </div>
 
-    <!-- CONTENT -->
     <div class="content">
-      <!-- LEFT: Announcements -->
       <div class="left-panel">
         <div class="announcements-box">
           <div class="announcements-header" contenteditable="true">District & School Announcements</div>
@@ -669,48 +350,36 @@
           </div>
           <div class="alerts-section">
             <div class="alerts-title">
-              <span class="alert-icon">
-                <img src="pngs/icon-alert.png" onerror="this.style.display='none';this.parentElement.textContent='⚠'">
-              </span>
+              <span class="alert-icon">⚠</span>
               <span contenteditable="true">Alerts</span>
             </div>
             <div class="alert-item">
-              <span class="icon">
-                <img src="pngs/icon-email.png" onerror="this.style.display='none';this.parentElement.textContent='🔗'">
-              </span>
+              <span class="icon">🔗</span>
               <span contenteditable="true">You are not set to receive email notifications.</span>
             </div>
             <div class="alert-item">
-              <span class="icon">
-                <img src="pngs/icon-absent.png" onerror="this.style.display='none';this.parentElement.textContent='📅'">
-              </span>
+              <span class="icon">📅</span>
               <span contenteditable="true">You have been absent 2 periods in the last 30 days</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- RIGHT: Student Grades Card -->
       <div class="right-panel">
         <div class="student-card">
           <div class="student-header">
             <div class="avatar">
-              <!-- Put student photo here: pngs/avatar.png -->
               <img src="pngs/avatar.png" onerror="this.style.display='none';this.parentElement.textContent='👤'">
             </div>
             <div class="student-info">
-              <div class="name" contenteditable="true">VICTOR</div>
-              <div class="school" contenteditable="true">HOLLYWOOD HILLS HIGH (1661)</div>
+              <div class="name" id="studentName" contenteditable="true">STUDENT</div>
+              <div class="school" id="studentSchool" contenteditable="true">HOLLYWOOD HILLS HIGH (1661)</div>
             </div>
           </div>
 
           <div class="florida-logo-wrap">
-            <!-- Put Florida logo here: pngs/florida-logo.png -->
             <img src="pngs/florida-logo.png" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-            <div class="florida-logo" style="display:none" contenteditable="true">
-              Florida
-              <small contenteditable="true">Statewide Assessments</small>
-            </div>
+            <div class="florida-logo" style="display:none" contenteditable="true">Florida<small contenteditable="true">Statewide Assessments</small></div>
           </div>
 
           <div class="student-tabs">
@@ -733,97 +402,18 @@
           <table class="grades-table">
             <thead>
               <tr>
-                <th class="col-pd" contenteditable="true">Pd</th>
-                <th class="col-rot" contenteditable="true">Rot</th>
-                <th contenteditable="true">Course</th>
-                <th contenteditable="true">Teacher</th>
-                <th class="col-ex" contenteditable="true">Ex</th>
-                <th class="col-unx" contenteditable="true">Unx</th>
-                <th class="col-tardy" contenteditable="true">Tardy</th>
-                <th class="col-grade" contenteditable="true">Grade</th>
+                <th class="col-pd">Pd</th>
+                <th class="col-rot">Rot</th>
+                <th>Course</th>
+                <th>Teacher</th>
+                <th class="col-ex">Ex</th>
+                <th class="col-unx">Unx</th>
+                <th class="col-tardy">Tardy</th>
+                <th class="col-grade">Grade</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td class="col-pd" contenteditable="true">01</td>
-                <td class="col-rot" contenteditable="true">A</td>
-                <td contenteditable="true">WORLD HISTORY</td>
-                <td contenteditable="true">Rosales, S</td>
-                <td class="col-ex" contenteditable="true">0</td>
-                <td class="col-unx" contenteditable="true">0</td>
-                <td class="col-tardy" contenteditable="true">0</td>
-                <td class="col-grade grade-cell" contenteditable="true">60% D</td>
-              </tr>
-              <tr>
-                <td class="col-pd" contenteditable="true">02</td>
-                <td class="col-rot" contenteditable="true">A</td>
-                <td contenteditable="true">ENG 2</td>
-                <td contenteditable="true">Gulla, A</td>
-                <td class="col-ex" contenteditable="true">0</td>
-                <td class="col-unx" contenteditable="true">0</td>
-                <td class="col-tardy" contenteditable="true">0</td>
-                <td class="col-grade grade-cell" contenteditable="true">51% F</td>
-              </tr>
-              <tr>
-                <td class="col-pd" contenteditable="true">03</td>
-                <td class="col-rot" contenteditable="true">A</td>
-                <td contenteditable="true">PER CAR SCH DEV 1</td>
-                <td contenteditable="true">Searcy, M</td>
-                <td class="col-ex" contenteditable="true">0</td>
-                <td class="col-unx" contenteditable="true">0</td>
-                <td class="col-tardy" contenteditable="true">0</td>
-                <td class="col-grade grade-cell mid" contenteditable="true">67% D+</td>
-              </tr>
-              <tr>
-                <td class="col-pd" contenteditable="true">04</td>
-                <td class="col-rot" contenteditable="true">A</td>
-                <td contenteditable="true">GEOMETRY</td>
-                <td contenteditable="true">Tran, T</td>
-                <td class="col-ex" contenteditable="true">0</td>
-                <td class="col-unx" contenteditable="true">2</td>
-                <td class="col-tardy" contenteditable="true">0</td>
-                <td class="col-grade grade-cell" contenteditable="true">23% F</td>
-              </tr>
-              <tr>
-                <td class="col-pd" contenteditable="true">05</td>
-                <td class="col-rot" contenteditable="true">B</td>
-                <td contenteditable="true">MKT APPLCTNS LH</td>
-                <td contenteditable="true">Saunders, K</td>
-                <td class="col-ex" contenteditable="true">0</td>
-                <td class="col-unx" contenteditable="true">0</td>
-                <td class="col-tardy" contenteditable="true">0</td>
-                <td class="col-grade grade-cell mid" contenteditable="true">68% D+</td>
-              </tr>
-              <tr>
-                <td class="col-pd" contenteditable="true">06</td>
-                <td class="col-rot" contenteditable="true">B</td>
-                <td contenteditable="true">NC STUDY HALL 1</td>
-                <td contenteditable="true">Beamer Ii, B</td>
-                <td class="col-ex" contenteditable="true">0</td>
-                <td class="col-unx" contenteditable="true">0</td>
-                <td class="col-tardy" contenteditable="true">0</td>
-                <td class="col-grade grade-cell ng" contenteditable="true">NG</td>
-              </tr>
-              <tr>
-                <td class="col-pd" contenteditable="true">07</td>
-                <td class="col-rot" contenteditable="true">B</td>
-                <td contenteditable="true">PERS FIT</td>
-                <td contenteditable="true">Kontsis, C</td>
-                <td class="col-ex" contenteditable="true">0</td>
-                <td class="col-unx" contenteditable="true">0</td>
-                <td class="col-tardy" contenteditable="true">0</td>
-                <td class="col-grade grade-cell mid" contenteditable="true">65% D</td>
-              </tr>
-              <tr>
-                <td class="col-pd" contenteditable="true">08</td>
-                <td class="col-rot" contenteditable="true">B</td>
-                <td contenteditable="true">BIOLOGY 1</td>
-                <td contenteditable="true">Hatcher, D</td>
-                <td class="col-ex" contenteditable="true">0</td>
-                <td class="col-unx" contenteditable="true">0</td>
-                <td class="col-tardy" contenteditable="true">0</td>
-                <td class="col-grade grade-cell" contenteditable="true">43% F</td>
-              </tr>
+            <tbody id="gradesBody">
+              <!-- filled by JS -->
             </tbody>
           </table>
         </div>
@@ -831,12 +421,8 @@
     </div>
   </div>
 
-  <!-- HIDDEN COLOR CUSTOMIZER (Ctrl+Shift+K to toggle) -->
   <div class="color-panel" id="colorPanel">
-    <h3>
-      Color Customizer
-      <button onclick="toggleColors()">✕</button>
-    </h3>
+    <h3>Color Customizer <button onclick="toggleColors()">✕</button></h3>
     <div class="color-row"><label>Header background</label><input type="color" data-var="--header-bg" value="#1e4d7b"></div>
     <div class="color-row"><label>Header buttons</label><input type="color" data-var="--header-btn" value="#2a5f8f"></div>
     <div class="color-row"><label>Sidebar background</label><input type="color" data-var="--sidebar-bg" value="#f4f4f4"></div>
@@ -844,32 +430,207 @@
     <div class="color-row"><label>Announcements header</label><input type="color" data-var="--announcements-header" value="#e67e22"></div>
     <div class="color-row"><label>Student header</label><input type="color" data-var="--student-header" value="#1e4d7b"></div>
     <div class="color-row"><label>Quarter / Tab active</label><input type="color" data-var="--quarter-active" value="#1e4d7b"></div>
-    <div class="color-row"><label>Alert links</label><input type="color" data-var="--alert-link" value="#2a6bb5"></div>
-    <div class="color-row"><label>Fail grade color</label><input type="color" data-var="--grade-fail" value="#c0392b"></div>
-    <div class="color-row"><label>Mid grade color</label><input type="color" data-var="--grade-mid" value="#d68910"></div>
-    <div class="color-row"><label>Body background</label><input type="color" data-var="--body-bg" value="#e9e9e9"></div>
-    <div class="color-row"><label>Content background</label><input type="color" data-var="--content-bg" value="#f0f0f0"></div>
+    <div class="color-row"><label>Link / Grade blue</label><input type="color" data-var="--link-blue" value="#3a7ab8"></div>
+    <div class="color-row"><label>Table header bg</label><input type="color" data-var="--table-header" value="#dce4ec"></div>
+    <div class="color-row"><label>Table stripe bg</label><input type="color" data-var="--table-stripe" value="#f0f4f8"></div>
+    <div class="color-row"><label>Body background</label><input type="color" data-var="--body-bg" value="#e8e8e8"></div>
+    <div class="color-row"><label>Content background</label><input type="color" data-var="--content-bg" value="#ececec"></div>
     <div class="actions">
       <button onclick="resetColors()">Reset</button>
-      <button onclick="saveColors()">Save</button>
+      <button onclick="saveAll()">Save All</button>
     </div>
-    <div class="hint">Press Ctrl+Shift+K to show/hide this panel. Colors save to this browser.</div>
+    <div class="hint">Ctrl+Shift+K to toggle. Changes save to your account.</div>
   </div>
 
+  <div class="save-toast" id="saveToast">Saved!</div>
+
   <script>
-    // Tab switching
+    const SUPABASE_URL = 'https://cfwsxpdbmefnnxrunoue.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_ByXgX6dPutVaTbluUs2fwg_p1A6Gc8I';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const DEFAULT_GRADES = [
+      { pd: '01', rot: 'A', course: 'WORLD HISTORY', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '02', rot: 'A', course: 'ENG 2', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '03', rot: 'A', course: 'PER CAR SCH DEV 1', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '04', rot: 'A', course: 'GEOMETRY', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '05', rot: 'B', course: 'MKT APPLCTNS LH', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '06', rot: 'B', course: 'NC STUDY HALL 1', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '07', rot: 'B', course: 'PERS FIT', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '08', rot: 'B', course: 'BIOLOGY 1', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' }
+    ];
+
+    let currentUser = null;
+    let portalData = null;
+
+    // Auth guard
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.href = 'login.html';
+        return;
+      }
+      currentUser = session.user;
+      await loadPortalData();
+      renderGrades();
+      applyMeta();
+    }
+
+    async function loadPortalData() {
+      try {
+        const { data, error } = await supabase
+          .from('portal_data')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          portalData = data;
+        } else {
+          portalData = {
+            display_name: currentUser.user_metadata?.display_name || 'STUDENT',
+            school: 'HOLLYWOOD HILLS HIGH (1661)',
+            year: '2026-2027',
+            grades: DEFAULT_GRADES,
+            colors: {}
+          };
+          await supabase.from('portal_data').insert({
+            user_id: currentUser.id,
+            ...portalData
+          });
+        }
+      } catch (e) {
+        console.warn('Using localStorage fallback', e);
+        const key = 'portal_' + currentUser.id;
+        const saved = localStorage.getItem(key);
+        portalData = saved ? JSON.parse(saved) : {
+          display_name: currentUser.user_metadata?.display_name || 'STUDENT',
+          school: 'HOLLYWOOD HILLS HIGH (1661)',
+          year: '2026-2027',
+          grades: DEFAULT_GRADES,
+          colors: {}
+        };
+      }
+
+      // Apply saved colors
+      if (portalData.colors) {
+        Object.entries(portalData.colors).forEach(([k, v]) => {
+          document.documentElement.style.setProperty(k, v);
+          const input = document.querySelector(`input[data-var="${k}"]`);
+          if (input) input.value = v;
+        });
+      }
+    }
+
+    function applyMeta() {
+      const name = portalData.display_name || 'STUDENT';
+      document.getElementById('userBtn').textContent = name;
+      document.getElementById('studentName').textContent = name;
+      document.getElementById('schoolName').textContent = portalData.school || 'HOLLYWOOD HILLS HIGH (1661)';
+      document.getElementById('studentSchool').textContent = portalData.school || 'HOLLYWOOD HILLS HIGH (1661)';
+      document.getElementById('yearText').textContent = portalData.year || '2026-2027';
+    }
+
+    function renderGrades() {
+      const tbody = document.getElementById('gradesBody');
+      const grades = portalData.grades || DEFAULT_GRADES;
+      tbody.innerHTML = grades.map((g, i) => `
+        <tr data-idx="${i}">
+          <td class="col-pd" contenteditable="true">${esc(g.pd)}</td>
+          <td class="col-rot" contenteditable="true">${esc(g.rot)}</td>
+          <td class="link-blue" contenteditable="true">${esc(g.course)}</td>
+          <td class="link-blue" contenteditable="true">${esc(g.teacher)}</td>
+          <td class="col-ex" contenteditable="true">${esc(g.ex)}</td>
+          <td class="col-unx" contenteditable="true">${esc(g.unx)}</td>
+          <td class="col-tardy" contenteditable="true">${esc(g.tardy)}</td>
+          <td class="col-grade grade-cell" contenteditable="true">${esc(g.grade)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function esc(s) {
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function collectGrades() {
+      const rows = document.querySelectorAll('#gradesBody tr');
+      return [...rows].map(tr => {
+        const cells = tr.querySelectorAll('td');
+        return {
+          pd: cells[0].textContent.trim(),
+          rot: cells[1].textContent.trim(),
+          course: cells[2].textContent.trim(),
+          teacher: cells[3].textContent.trim(),
+          ex: cells[4].textContent.trim(),
+          unx: cells[5].textContent.trim(),
+          tardy: cells[6].textContent.trim(),
+          grade: cells[7].textContent.trim()
+        };
+      });
+    }
+
+    function collectColors() {
+      const colors = {};
+      document.querySelectorAll('#colorPanel input[type=color]').forEach(input => {
+        colors[input.dataset.var] = input.value;
+      });
+      return colors;
+    }
+
+    async function saveAll() {
+      portalData.display_name = document.getElementById('studentName').textContent.trim();
+      portalData.school = document.getElementById('studentSchool').textContent.trim();
+      portalData.year = document.getElementById('yearText').textContent.trim();
+      portalData.grades = collectGrades();
+      portalData.colors = collectColors();
+
+      // Sync header button + school select
+      document.getElementById('userBtn').textContent = portalData.display_name;
+      document.getElementById('schoolName').textContent = portalData.school;
+
+      try {
+        const { error } = await supabase.from('portal_data').upsert({
+          user_id: currentUser.id,
+          display_name: portalData.display_name,
+          school: portalData.school,
+          year: portalData.year,
+          grades: portalData.grades,
+          colors: portalData.colors,
+          updated_at: new Date().toISOString()
+        });
+        if (error) throw error;
+      } catch (e) {
+        console.warn('Supabase save failed, using localStorage', e);
+        localStorage.setItem('portal_' + currentUser.id, JSON.stringify(portalData));
+      }
+
+      const toast = document.getElementById('saveToast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1500);
+    }
+
+    // Auto-save on blur of editable fields (debounced)
+    let saveTimer;
+    document.addEventListener('focusout', (e) => {
+      if (e.target.isContentEditable) {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(saveAll, 800);
+      }
+    });
+
+    // Tabs
     document.querySelectorAll('.tab, .student-tab, .quarter, .nav-item').forEach(el => {
       el.addEventListener('click', function (e) {
         if (e.target.isContentEditable && document.activeElement === e.target) return;
-        const group = this.classList.contains('nav-item') ? this.parentElement :
-                      this.classList.contains('quarter') ? this.parentElement :
-                      this.parentElement;
-        group.querySelectorAll('.' + [...this.classList].find(c => ['tab','student-tab','quarter','nav-item'].includes(c))).forEach(s => s.classList.remove('active'));
+        const cls = [...this.classList].find(c => ['tab','student-tab','quarter','nav-item'].includes(c));
+        this.parentElement.querySelectorAll('.' + cls).forEach(s => s.classList.remove('active'));
         this.classList.add('active');
       });
     });
 
-    // Color panel toggle: Ctrl+Shift+K
+    // Color panel
     function toggleColors() {
       document.getElementById('colorPanel').classList.toggle('open');
     }
@@ -879,8 +640,6 @@
         toggleColors();
       }
     });
-
-    // Color inputs
     document.querySelectorAll('#colorPanel input[type=color]').forEach(input => {
       input.addEventListener('input', () => {
         document.documentElement.style.setProperty(input.dataset.var, input.value);
@@ -889,56 +648,35 @@
 
     function resetColors() {
       const defaults = {
-        '--header-bg': '#1e4d7b',
-        '--header-btn': '#2a5f8f',
-        '--sidebar-bg': '#f4f4f4',
-        '--sidebar-active': '#d6e4f0',
-        '--announcements-header': '#e67e22',
-        '--student-header': '#1e4d7b',
-        '--quarter-active': '#1e4d7b',
-        '--tab-active': '#1e4d7b',
-        '--alert-link': '#2a6bb5',
-        '--grade-fail': '#c0392b',
-        '--grade-mid': '#d68910',
-        '--body-bg': '#e9e9e9',
-        '--content-bg': '#f0f0f0'
+        '--header-bg': '#1e4d7b', '--header-btn': '#2a5f8f',
+        '--sidebar-bg': '#f4f4f4', '--sidebar-active': '#d6e4f0',
+        '--announcements-header': '#e67e22', '--student-header': '#1e4d7b',
+        '--quarter-active': '#1e4d7b', '--link-blue': '#3a7ab8',
+        '--table-header': '#dce4ec', '--table-stripe': '#f0f4f8',
+        '--body-bg': '#e8e8e8', '--content-bg': '#ececec'
       };
       Object.entries(defaults).forEach(([k, v]) => {
         document.documentElement.style.setProperty(k, v);
         const input = document.querySelector(`input[data-var="${k}"]`);
         if (input) input.value = v;
       });
-      localStorage.removeItem('portal-colors');
     }
 
-    function saveColors() {
-      const colors = {};
-      document.querySelectorAll('#colorPanel input[type=color]').forEach(input => {
-        colors[input.dataset.var] = input.value;
-      });
-      localStorage.setItem('portal-colors', JSON.stringify(colors));
-      alert('Colors saved!');
-    }
-
-    // Load saved colors
-    (function loadColors() {
-      try {
-        const saved = JSON.parse(localStorage.getItem('portal-colors') || '{}');
-        Object.entries(saved).forEach(([k, v]) => {
-          document.documentElement.style.setProperty(k, v);
-          const input = document.querySelector(`input[data-var="${k}"]`);
-          if (input) input.value = v;
-        });
-      } catch(e) {}
-    })();
-
-    // Auto-show emoji fallbacks when images fail
-    document.querySelectorAll('.nav-icon img').forEach(img => {
-      if (!img.complete || img.naturalWidth === 0) {
-        img.style.display = 'none';
-        if (img.nextElementSibling) img.nextElementSibling.style.display = 'inline';
-      }
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      window.location.href = 'login.html';
     });
+
+    // Image fallbacks
+    document.querySelectorAll('.nav-icon img').forEach(img => {
+      img.addEventListener('error', function() {
+        this.style.display = 'none';
+        if (this.nextElementSibling) this.nextElementSibling.style.display = 'inline';
+      });
+    });
+
+    init();
   </script>
 </body>
 </html>

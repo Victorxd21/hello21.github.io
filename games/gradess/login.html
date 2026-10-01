@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Broward County Public Schools</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Lato, 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(160deg, #1a3a5c 0%, #213c6b 40%, #2a5080 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-page {
+      width: 100%;
+      max-width: 420px;
+    }
+    .login-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .login-header img {
+      max-width: 280px;
+      height: auto;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+    }
+    .logo-fallback {
+      background: white;
+      border-radius: 8px;
+      padding: 16px 24px;
+      display: inline-block;
+    }
+    .logo-fallback .title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a3a5c;
+      letter-spacing: 1px;
+    }
+    .logo-fallback .sub {
+      font-size: 12px;
+      color: #555;
+    }
+    .form-container {
+      background: white;
+      border-radius: 8px;
+      padding: 28px 28px 24px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    }
+    .login-section-title {
+      font-size: 18px;
+      color: #213c6b;
+      margin-bottom: 16px;
+      text-align: center;
+      font-weight: 700;
+    }
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus {
+      border-color: #e67e22;
+      box-shadow: 0 0 0 2px rgba(230,126,34,0.2);
+    }
+    .form-button {
+      width: 100%;
+      padding: 12px;
+      background: #e67e22;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .form-button:hover { background: #d35400; }
+    .form-button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .action-links {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 13px;
+    }
+    .action-links a {
+      color: #2a6bb5;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .action-links a:hover { text-decoration: underline; }
+    .toggle-mode {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 13px;
+      color: #666;
+    }
+    .toggle-mode span {
+      color: #e67e22;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .toggle-mode span:hover { text-decoration: underline; }
+    .error-msg {
+      background: #fdecea;
+      color: #c0392b;
+      padding: 10px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-bottom: 12px;
+      display: none;
+      border: 1px solid #f5c6cb;
+    }
+    .error-msg.show { display: block; }
+    .success-msg {
+      background: #e8f8ef;
+      color: #1e7e34;
+      padding: 10px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-bottom: 12px;
+      display: none;
+      border: 1px solid #a3d9b1;
+    }
+    .success-msg.show { display: block; }
+    .hint {
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+      margin-top: 12px;
+      line-height: 1.4;
+    }
+    .sso-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 18px 0;
+      color: #aaa;
+      font-size: 12px;
+    }
+    .sso-divider::before, .sso-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-header">
+      <div class="logo-fallback">
+        <div class="title">BROWARD</div>
+        <div class="sub">County Public Schools</div>
+      </div>
+    </div>
+
+    <div class="form-container">
+      <h3 class="login-section-title" id="formTitle">Log In</h3>
+
+      <div class="error-msg" id="errorMsg"></div>
+      <div class="success-msg" id="successMsg"></div>
+
+      <form id="authForm">
+        <input type="email" id="email" class="form-input" placeholder="Email / Username" required autocomplete="username">
+        <input type="password" id="password" class="form-input" placeholder="Password" required autocomplete="current-password" minlength="6">
+        <input type="password" id="password2" class="form-input" placeholder="Confirm Password" style="display:none" minlength="6">
+        <input type="text" id="displayName" class="form-input" placeholder="Display Name (e.g. VICTOR)" style="display:none" maxlength="40">
+
+        <button type="submit" class="form-button" id="submitBtn">Log In</button>
+      </form>
+
+      <div class="toggle-mode" id="toggleMode">
+        Don't have an account? <span id="toggleLink">Sign Up</span>
+      </div>
+
+      <p class="hint" id="hintText">Use your email and password to access the student portal.</p>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://cfwsxpdbmefnnxrunoue.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_ByXgX6dPutVaTbluUs2fwg_p1A6Gc8I';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let isSignup = false;
+
+    const form = document.getElementById('authForm');
+    const emailEl = document.getElementById('email');
+    const passwordEl = document.getElementById('password');
+    const password2El = document.getElementById('password2');
+    const displayNameEl = document.getElementById('displayName');
+    const submitBtn = document.getElementById('submitBtn');
+    const formTitle = document.getElementById('formTitle');
+    const toggleLink = document.getElementById('toggleLink');
+    const errorMsg = document.getElementById('errorMsg');
+    const successMsg = document.getElementById('successMsg');
+    const hintText = document.getElementById('hintText');
+
+    // Already logged in?
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.href = 'index.html';
+    });
+
+    toggleLink.addEventListener('click', () => {
+      isSignup = !isSignup;
+      errorMsg.classList.remove('show');
+      successMsg.classList.remove('show');
+
+      if (isSignup) {
+        formTitle.textContent = 'Sign Up';
+        submitBtn.textContent = 'Create Account';
+        password2El.style.display = 'block';
+        displayNameEl.style.display = 'block';
+        password2El.required = true;
+        toggleLink.textContent = 'Log In';
+        toggleLink.parentElement.innerHTML = 'Already have an account? <span id="toggleLink">Log In</span>';
+        document.getElementById('toggleLink').addEventListener('click', arguments.callee);
+        hintText.textContent = 'Create an account. You will receive a confirmation email from Supabase.';
+      } else {
+        formTitle.textContent = 'Log In';
+        submitBtn.textContent = 'Log In';
+        password2El.style.display = 'none';
+        displayNameEl.style.display = 'none';
+        password2El.required = false;
+        toggleLink.textContent = 'Sign Up';
+        toggleLink.parentElement.innerHTML = 'Don\'t have an account? <span id="toggleLink">Sign Up</span>';
+        document.getElementById('toggleLink').addEventListener('click', arguments.callee);
+        hintText.textContent = 'Use your email and password to access the student portal.';
+      }
+    });
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.add('show');
+      successMsg.classList.remove('show');
+    }
+    function showSuccess(msg) {
+      successMsg.textContent = msg;
+      successMsg.classList.add('show');
+      errorMsg.classList.remove('show');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.classList.remove('show');
+      successMsg.classList.remove('show');
+      submitBtn.disabled = true;
+      submitBtn.textContent = isSignup ? 'Creating...' : 'Logging in...';
+
+      const email = emailEl.value.trim();
+      const password = passwordEl.value;
+
+      try {
+        if (isSignup) {
+          if (password !== password2El.value) {
+            showError('Passwords do not match.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Account';
+            return;
+          }
+          if (password.length < 6) {
+            showError('Password must be at least 6 characters.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Account';
+            return;
+          }
+
+          const name = displayNameEl.value.trim() || email.split('@')[0].toUpperCase();
+
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: { display_name: name },
+              emailRedirectTo: window.location.origin + window.location.pathname.replace('login.html', 'index.html')
+            }
+          });
+
+          if (error) throw error;
+
+          // Create default portal data
+          if (data.user) {
+            await ensurePortalData(data.user.id, name);
+          }
+
+          showSuccess('Account created! Check your email for a confirmation link, then log in.');
+          // Switch back to login mode after short delay
+          setTimeout(() => {
+            isSignup = false;
+            formTitle.textContent = 'Log In';
+            submitBtn.textContent = 'Log In';
+            password2El.style.display = 'none';
+            displayNameEl.style.display = 'none';
+            document.getElementById('toggleMode').innerHTML = 'Don\'t have an account? <span id="toggleLink">Sign Up</span>';
+            document.getElementById('toggleLink').addEventListener('click', () => location.reload());
+          }, 2000);
+        } else {
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) {
+            if (error.message.includes('Invalid login') || error.message.includes('invalid')) {
+              throw new Error('Wrong email or password. Please try again.');
+            }
+            throw error;
+          }
+
+          // Ensure portal row exists
+          await ensurePortalData(data.user.id, data.user.user_metadata?.display_name || email.split('@')[0].toUpperCase());
+
+          window.location.href = 'index.html';
+          return;
+        }
+      } catch (err) {
+        showError(err.message || 'Something went wrong. Please try again.');
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = isSignup ? 'Create Account' : 'Log In';
+    });
+
+    const DEFAULT_GRADES = [
+      { pd: '01', rot: 'A', course: 'WORLD HISTORY', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '02', rot: 'A', course: 'ENG 2', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '03', rot: 'A', course: 'PER CAR SCH DEV 1', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '04', rot: 'A', course: 'GEOMETRY', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '05', rot: 'B', course: 'MKT APPLCTNS LH', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '06', rot: 'B', course: 'NC STUDY HALL 1', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '07', rot: 'B', course: 'PERS FIT', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' },
+      { pd: '08', rot: 'B', course: 'BIOLOGY 1', teacher: 'default', ex: 0, unx: 0, tardy: 0, grade: 'x' }
+    ];
+
+    async function ensurePortalData(userId, displayName) {
+      try {
+        const { data } = await supabase.from('portal_data').select('user_id').eq('user_id', userId).maybeSingle();
+        if (!data) {
+          await supabase.from('portal_data').insert({
+            user_id: userId,
+            display_name: displayName,
+            school: 'HOLLYWOOD HILLS HIGH (1661)',
+            year: '2026-2027',
+            grades: DEFAULT_GRADES,
+            colors: {}
+          });
+        }
+      } catch (e) {
+        // Table might not exist yet – store in localStorage as fallback
+        console.warn('portal_data table unavailable, using localStorage', e);
+        localStorage.setItem('portal_' + userId, JSON.stringify({
+          display_name: displayName,
+          school: 'HOLLYWOOD HILLS HIGH (1661)',
+          year: '2026-2027',
+          grades: DEFAULT_GRADES,
+          colors: {}
+        }));
+      }
+    }
+  </script>
+</body>
+</html>
