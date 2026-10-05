@@ -28,9 +28,11 @@ body {
 
 /* Auth */
 #auth-screen {
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   background: linear-gradient(180deg, #161616 0%, #000 100%);
+  overflow-y: auto;
+  padding: 40px 0 20px;
 }
 .auth-container {
   width: 90%;
@@ -92,6 +94,54 @@ body {
   color: #fe2c55;
   margin-top: 12px;
   font-size: 14px;
+}
+
+/* Debug console */
+#debug-console {
+  margin-top: 24px;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  text-align: left;
+  overflow: hidden;
+}
+.debug-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #1a1a1a;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+}
+#clear-debug {
+  background: #333;
+  border: none;
+  color: #fff;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+#debug-log {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 8px 12px;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #0f0;
+  word-break: break-all;
+}
+#debug-log .log-error {
+  color: #fe2c55;
+}
+#debug-log .log-info {
+  color: #25f4ee;
+}
+#debug-log .log-warn {
+  color: #ffcc00;
 }
 
 /* App pages */
