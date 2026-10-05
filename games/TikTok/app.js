@@ -1,7 +1,45 @@
 const SUPABASE_URL = 'https://lvdbmnkezmdofyllusob.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_SfzyGGmjT4ZkbfSAxbjvJg_qH1aImPQ';
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ===== On-screen debug console =====
+function dbg(msg, type = 'info') {
+  const log = document.getElementById('debug-log');
+  if (!log) return;
+  const line = document.createElement('div');
+  line.className = 'log-' + type;
+  const time = new Date().toLocaleTimeString();
+  line.textContent = '[' + time + '] ' + msg;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+// Catch global JS errors and show them on screen
+window.onerror = function(message, source, lineno, colno, error) {
+  dbg('JS ERROR: ' + message + ' (line ' + lineno + ')', 'error');
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  dbg('Promise error: ' + (e.reason?.message || e.reason), 'error');
+});
+
+// Clear button
+document.getElementById('clear-debug')?.addEventListener('click', () => {
+  document.getElementById('debug-log').innerHTML = '';
+});
+
+dbg('App starting...', 'info');
+
+let sb;
+try {
+  if (!window.supabase) {
+    dbg('Supabase library NOT loaded!', 'error');
+  } else {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    dbg('Supabase client created OK', 'info');
+  }
+} catch (err) {
+  dbg('Failed to create Supabase client: ' + err.message, 'error');
+}
 
 let currentUser = null;
 let currentVideoIndex = 0;
@@ -70,12 +108,27 @@ loginForm.addEventListener('submit', async (e) => {
   authError.textContent = '';
   const email = document.getElementById('login-email').value;
   const password = document.getElementById('login-password').value;
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) {
-    authError.textContent = error.message;
+  dbg('Trying login for: ' + email, 'info');
+
+  if (!sb) {
+    authError.textContent = 'Supabase not ready';
+    dbg('Login failed: sb is null', 'error');
     return;
   }
-  await onAuthSuccess(data.user);
+
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      authError.textContent = error.message;
+      dbg('Login error: ' + error.message, 'error');
+      return;
+    }
+    dbg('Login success!', 'info');
+    await onAuthSuccess(data.user);
+  } catch (err) {
+    authError.textContent = err.message;
+    dbg('Login exception: ' + err.message, 'error');
+  }
 });
 
 signupForm.addEventListener('submit', async (e) => {
@@ -85,51 +138,77 @@ signupForm.addEventListener('submit', async (e) => {
   const email = document.getElementById('signup-email').value;
   const password = document.getElementById('signup-password').value;
 
+  dbg('Trying signup: ' + username + ' / ' + email, 'info');
+
   if (username.length < 3) {
     authError.textContent = 'Username must be at least 3 characters';
+    dbg('Username too short', 'warn');
     return;
   }
 
-  const { data, error } = await sb.auth.signUp({
-    email,
-    password,
-    options: { data: { username } }
-  });
-
-  if (error) {
-    authError.textContent = error.message;
+  if (!sb) {
+    authError.textContent = 'Supabase not ready';
+    dbg('Signup failed: sb is null', 'error');
     return;
   }
 
-  // Create profile row
-  if (data.user) {
-    await sb.from('profiles').upsert({
-      id: data.user.id,
-      username,
-      avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
-      bio: 'New to TikTok',
-      following: 0,
-      followers: 0,
-      likes: 0
+  try {
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password,
+      options: { data: { username } }
     });
-  }
 
-  authError.textContent = 'Account created! You can log in now.';
-  // Auto switch to login
-  document.querySelector('[data-tab="login"]').click();
+    if (error) {
+      authError.textContent = error.message;
+      dbg('Signup error: ' + error.message, 'error');
+      return;
+    }
+
+    dbg('Signup OK, user id: ' + (data.user?.id || 'none'), 'info');
+
+    // Create profile row
+    if (data.user) {
+      const { error: profileErr } = await sb.from('profiles').upsert({
+        id: data.user.id,
+        username,
+        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+        bio: 'New to TikTok',
+        following: 0,
+        followers: 0,
+        likes: 0
+      });
+      if (profileErr) {
+        dbg('Profile create error: ' + profileErr.message, 'warn');
+      } else {
+        dbg('Profile created', 'info');
+      }
+    }
+
+    authError.textContent = 'Account created! You can log in now.';
+    document.querySelector('[data-tab="login"]').click();
+  } catch (err) {
+    authError.textContent = err.message;
+    dbg('Signup exception: ' + err.message, 'error');
+  }
 });
 
 async function onAuthSuccess(user) {
   currentUser = user;
   authScreen.classList.remove('active');
   app.classList.add('active');
+  dbg('Logged in as: ' + user.email, 'info');
 
   // Load profile
-  const { data: profile } = await sb
+  const { data: profile, error: profileError } = await sb
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single();
+
+  if (profileError) {
+    dbg('Profile load: ' + profileError.message, 'warn');
+  }
 
   if (profile) {
     document.getElementById('profile-username').textContent = '@' + (profile.username || 'user');
@@ -160,9 +239,17 @@ async function onAuthSuccess(user) {
 
 // Check session on load
 (async () => {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    await onAuthSuccess(session.user);
+  if (!sb) return;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      dbg('Existing session found', 'info');
+      await onAuthSuccess(session.user);
+    } else {
+      dbg('No existing session', 'info');
+    }
+  } catch (err) {
+    dbg('Session check error: ' + err.message, 'error');
   }
 })();
 
@@ -172,6 +259,7 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   currentUser = null;
   app.classList.remove('active');
   authScreen.classList.add('active');
+  dbg('Logged out', 'info');
 });
 
 // Navigation
@@ -186,7 +274,6 @@ document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
     else if (page === 'inbox') document.getElementById('inbox-screen').classList.add('active');
     else if (page === 'profile') document.getElementById('profile-screen').classList.add('active');
     else if (page === 'friends') {
-      // simple redirect to feed for now
       document.getElementById('feed-screen').classList.add('active');
       document.querySelector('[data-page="feed"]').classList.add('active');
     }
@@ -338,7 +425,6 @@ document.querySelectorAll('.action').forEach(btn => {
     if (action === 'like') {
       v.likes++;
       document.getElementById('like-count').textContent = formatCount(v.likes);
-      // optionally persist
       if (v.id && !isNaN(v.id)) {
         sb.from('videos').update({ likes: v.likes }).eq('id', v.id);
       }
