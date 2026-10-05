@@ -8,7 +8,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <!-- Auth -->
   <div id="auth-screen" class="screen active">
     <div class="auth-container">
       <div class="logo">TikTok</div>
@@ -22,6 +21,7 @@
         <button type="submit">Log in</button>
       </form>
       <form id="signup-form" class="auth-form">
+        <input type="text" id="signup-name" placeholder="Name" required>
         <input type="text" id="signup-username" placeholder="Username" required>
         <input type="email" id="signup-email" placeholder="Email" required>
         <input type="password" id="signup-password" placeholder="Password" required>
@@ -29,122 +29,130 @@
       </form>
       <p id="auth-error" class="error"></p>
       <div id="debug-console">
-        <div class="debug-header"><span>Debug Log</span><button id="clear-debug">Clear</button></div>
+        <div class="debug-header"><span>Debug</span><button id="clear-debug">Clear</button></div>
         <div id="debug-log"></div>
       </div>
     </div>
   </div>
 
-  <!-- App -->
   <div id="app" class="screen">
-    <!-- Feed -->
     <div id="feed-screen" class="page active">
       <div class="top-nav">
         <span class="live-badge">LIVE</span>
         <div class="tabs"><span>Following</span><span class="active">For You</span></div>
-        <span class="search-icon">🔍</span>
+        <span class="search-icon">⌕</span>
       </div>
       <div id="video-feed" class="video-feed"></div>
       <div class="side-actions">
-        <div class="avatar-btn" id="creator-avatar">
-          <div class="letter-avatar" id="creator-letter">?</div>
-          <span class="follow-plus">+</span>
+        <div class="avatar-btn" id="creator-avatar-btn">
+          <div class="pfp" id="creator-pfp">?</div>
+          <span class="follow-plus" id="follow-plus">+</span>
         </div>
-        <div class="action" data-action="like"><span class="icon">❤️</span><span class="count" id="like-count">0</span></div>
-        <div class="action" data-action="comment"><span class="icon">💬</span><span class="count" id="comment-count">0</span></div>
-        <div class="action" data-action="bookmark"><span class="icon">🔖</span><span class="count" id="bookmark-count">0</span></div>
-        <div class="action" data-action="share"><span class="icon">↗️</span><span class="count" id="share-count">0</span></div>
+        <div class="action" data-action="like">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          <span class="count" id="like-count">0</span>
+        </div>
+        <div class="action" data-action="comment">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M21 6h-2v9H6v2c0 .55.45 1 1 1h11l4 4V7c0-.55-.45-1-1-1zm-4 6V3c0-.55-.45-1-1-1H3c-.55 0-1 .45-1 1v14l4-4h10c.55 0 1-.45 1-1z"/></svg>
+          <span class="count" id="comment-count">0</span>
+        </div>
+        <div class="action" data-action="bookmark">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+          <span class="count" id="bookmark-count">0</span>
+        </div>
+        <div class="action" data-action="share">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+          <span class="count" id="share-count">0</span>
+        </div>
       </div>
       <div class="caption-area">
-        <p class="username" id="video-username">@user</p>
+        <p class="username clickable" id="video-username">@user</p>
         <p class="caption" id="video-caption"></p>
-        <p class="music">🎵 Original sound</p>
+        <p class="music">Original sound</p>
       </div>
     </div>
 
-    <!-- Inbox -->
     <div id="inbox-screen" class="page">
-      <div class="inbox-header"><h2>Inbox</h2><span class="search-icon">🔍</span></div>
-      <div class="story-row">
-        <div class="story create"><div class="story-avatar">+</div><span>Create</span></div>
-      </div>
-      <div class="activity-banner">Activity will appear here</div>
-      <div id="inbox-list" class="inbox-list"></div>
+      <div class="inbox-header"><h2>Inbox</h2></div>
+      <div id="inbox-list" class="inbox-list"><div class="empty-msg">No messages yet</div></div>
     </div>
 
-    <!-- Profile -->
     <div id="profile-screen" class="page">
       <div class="profile-header">
         <div class="profile-top">
+          <button id="back-from-profile" class="back-btn" style="display:none">←</button>
           <span class="username-display" id="profile-username">@user</span>
           <button id="logout-btn">Logout</button>
         </div>
         <div class="profile-info">
-          <div class="big-letter-avatar" id="profile-letter">?</div>
+          <div class="pfp big" id="profile-pfp">?</div>
           <div class="stats">
             <div><strong id="following-count">0</strong><span>Following</span></div>
             <div><strong id="followers-count">0</strong><span>Followers</span></div>
             <div><strong id="likes-count">0</strong><span>Likes</span></div>
           </div>
         </div>
+        <p class="display-name" id="profile-name"></p>
         <p class="bio" id="profile-bio"></p>
         <button class="edit-btn" id="edit-profile-btn">Edit profile</button>
+        <button class="edit-btn follow-btn" id="follow-btn" style="display:none">Follow</button>
       </div>
-      <div class="profile-tabs">
-        <button class="ptab active">Videos</button>
-        <button class="ptab">Liked</button>
-      </div>
+      <div class="profile-tabs"><button class="ptab active">Videos</button></div>
       <div id="user-videos" class="user-videos"></div>
     </div>
 
     <nav class="bottom-nav">
-      <button class="nav-btn active" data-page="feed"><span class="nav-icon">🏠</span><span>Home</span></button>
-      <button class="nav-btn" data-page="friends"><span class="nav-icon">👥</span><span>Friends</span></button>
+      <button class="nav-btn active" data-page="feed"><span class="nav-icon">⌂</span><span>Home</span></button>
+      <button class="nav-btn" data-page="friends"><span class="nav-icon">☺</span><span>Friends</span></button>
       <button class="nav-btn create-btn"><span class="plus">+</span></button>
-      <button class="nav-btn" data-page="inbox"><span class="nav-icon">💬</span><span>Inbox</span><span class="badge" id="inbox-badge">0</span></button>
-      <button class="nav-btn" data-page="profile"><span class="nav-icon">👤</span><span>Profile</span></button>
+      <button class="nav-btn" data-page="inbox"><span class="nav-icon">✉</span><span>Inbox</span></button>
+      <button class="nav-btn" data-page="profile"><span class="nav-icon">☺</span><span>Profile</span></button>
     </nav>
   </div>
 
-  <!-- Create Video Modal -->
+  <!-- Create -->
   <div id="create-modal" class="modal">
     <div class="modal-content">
       <h3>Create Video</h3>
       <input type="text" id="new-caption" placeholder="Write a caption...">
-      <label class="file-label">
-        <span id="file-label-text">Choose video file</span>
-        <input type="file" id="new-video-file" accept="video/*" hidden>
-      </label>
+      <label class="file-label"><span id="file-label-text">Choose video file</span>
+        <input type="file" id="new-video-file" accept="video/*" hidden></label>
       <button id="post-video-btn">Post</button>
-      <button id="close-modal">Cancel</button>
+      <button id="close-modal" class="secondary">Cancel</button>
     </div>
   </div>
 
-  <!-- Edit Profile Modal -->
+  <!-- Edit Profile -->
   <div id="edit-modal" class="modal">
     <div class="modal-content">
       <h3>Edit Profile</h3>
+      <div class="edit-pfp-row">
+        <div class="pfp mid" id="edit-pfp-preview">?</div>
+        <label class="file-label small"><span>Change photo</span>
+          <input type="file" id="edit-avatar-file" accept="image/*" hidden></label>
+      </div>
+      <input type="text" id="edit-name" placeholder="Name">
       <input type="text" id="edit-username" placeholder="Username">
       <input type="text" id="edit-bio" placeholder="Bio">
       <button id="save-profile-btn">Save</button>
-      <button id="close-edit-modal">Cancel</button>
+      <button id="close-edit-modal" class="secondary">Cancel</button>
     </div>
   </div>
 
-  <!-- Comments Modal -->
-  <div id="comments-modal" class="modal">
-    <div class="modal-content comments-panel">
-      <div class="comments-header">
-        <h3>Comments</h3>
-        <button id="close-comments">✕</button>
-      </div>
-      <div id="comments-list"></div>
-      <div class="comment-input-row">
-        <input type="text" id="new-comment" placeholder="Add a comment...">
-        <button id="send-comment">Post</button>
-      </div>
+  <!-- Comments bottom sheet -->
+  <div id="comments-sheet" class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span id="comments-title">Comments</span>
+      <button id="close-comments">✕</button>
+    </div>
+    <div id="comments-list" class="sheet-body"></div>
+    <div class="sheet-footer">
+      <input type="text" id="new-comment" placeholder="Add comment...">
+      <button id="send-comment">Post</button>
     </div>
   </div>
+  <div id="sheet-backdrop" class="sheet-backdrop"></div>
 
   <script src="app.js"></script>
 </body>
