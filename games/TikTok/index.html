@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TikTok</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <!-- Auth Overlay -->
+  <div id="auth-screen" class="screen active">
+    <div class="auth-container">
+      <div class="logo">TikTok</div>
+      <div class="auth-tabs">
+        <button class="tab active" data-tab="login">Log in</button>
+        <button class="tab" data-tab="signup">Sign up</button>
+      </div>
+      <form id="login-form" class="auth-form active">
+        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="password" id="login-password" placeholder="Password" required>
+        <button type="submit">Log in</button>
+      </form>
+      <form id="signup-form" class="auth-form">
+        <input type="text" id="signup-username" placeholder="Username" required>
+        <input type="email" id="signup-email" placeholder="Email" required>
+        <input type="password" id="signup-password" placeholder="Password" required>
+        <button type="submit">Sign up</button>
+      </form>
+      <p id="auth-error" class="error"></p>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" class="screen">
+    <!-- For You Feed -->
+    <div id="feed-screen" class="page active">
+      <div class="top-nav">
+        <span class="live-badge">LIVE</span>
+        <div class="tabs">
+          <span>Following</span>
+          <span class="active">For You</span>
+        </div>
+        <span class="search-icon">🔍</span>
+      </div>
+      <div id="video-feed" class="video-feed">
+        <!-- Videos injected here -->
+      </div>
+      <div class="side-actions">
+        <div class="avatar-btn" id="creator-avatar">
+          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" alt="avatar">
+          <span class="follow-plus">+</span>
+        </div>
+        <div class="action" data-action="like">
+          <span class="icon">❤️</span>
+          <span class="count" id="like-count">0</span>
+        </div>
+        <div class="action" data-action="comment">
+          <span class="icon">💬</span>
+          <span class="count" id="comment-count">0</span>
+        </div>
+        <div class="action" data-action="bookmark">
+          <span class="icon">🔖</span>
+          <span class="count" id="bookmark-count">0</span>
+        </div>
+        <div class="action" data-action="share">
+          <span class="icon">↗️</span>
+          <span class="count" id="share-count">0</span>
+        </div>
+      </div>
+      <div class="caption-area">
+        <p class="username" id="video-username">@user</p>
+        <p class="caption" id="video-caption">Caption here</p>
+        <p class="music">🎵 Original sound</p>
+      </div>
+    </div>
+
+    <!-- Inbox -->
+    <div id="inbox-screen" class="page">
+      <div class="inbox-header">
+        <h2>Inbox</h2>
+        <span class="search-icon">🔍</span>
+      </div>
+      <div class="story-row">
+        <div class="story create">
+          <div class="story-avatar">+</div>
+          <span>Create</span>
+        </div>
+        <div class="story">
+          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=1" class="story-avatar">
+          <span>User1</span>
+        </div>
+        <div class="story">
+          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=2" class="story-avatar">
+          <span>User2</span>
+        </div>
+      </div>
+      <div class="activity-banner">
+        New followers has moved. Find it in Activity
+      </div>
+      <div id="inbox-list" class="inbox-list">
+        <!-- Messages injected -->
+      </div>
+    </div>
+
+    <!-- Profile -->
+    <div id="profile-screen" class="page">
+      <div class="profile-header">
+        <div class="profile-top">
+          <span class="username-display" id="profile-username">@user</span>
+          <div class="profile-actions">
+            <button id="logout-btn">Logout</button>
+          </div>
+        </div>
+        <div class="profile-info">
+          <img id="profile-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=me" class="big-avatar">
+          <div class="stats">
+            <div><strong id="following-count">0</strong><span>Following</span></div>
+            <div><strong id="followers-count">0</strong><span>Followers</span></div>
+            <div><strong id="likes-count">0</strong><span>Likes</span></div>
+          </div>
+        </div>
+        <p class="bio" id="profile-bio">he/him · Repost master</p>
+        <button class="edit-btn">Edit profile</button>
+      </div>
+      <div class="profile-tabs">
+        <button class="ptab active">Videos</button>
+        <button class="ptab">Liked</button>
+      </div>
+      <div id="user-videos" class="user-videos grid">
+        <!-- User posts -->
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-page="feed">
+        <span class="nav-icon">🏠</span>
+        <span>Home</span>
+      </button>
+      <button class="nav-btn" data-page="friends">
+        <span class="nav-icon">👥</span>
+        <span>Friends</span>
+      </button>
+      <button class="nav-btn create-btn">
+        <span class="plus">+</span>
+      </button>
+      <button class="nav-btn" data-page="inbox">
+        <span class="nav-icon">💬</span>
+        <span>Inbox</span>
+        <span class="badge" id="inbox-badge">0</span>
+      </button>
+      <button class="nav-btn" data-page="profile">
+        <span class="nav-icon">👤</span>
+        <span>Profile</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Create Modal -->
+  <div id="create-modal" class="modal">
+    <div class="modal-content">
+      <h3>Create Video</h3>
+      <input type="text" id="new-caption" placeholder="Write a caption...">
+      <input type="url" id="new-video-url" placeholder="Video URL (mp4 or youtube)">
+      <button id="post-video-btn">Post</button>
+      <button id="close-modal">Cancel</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
