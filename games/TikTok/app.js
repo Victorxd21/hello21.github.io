@@ -1,7 +1,7 @@
 const SUPABASE_URL = 'https://lvdbmnkezmdofyllusob.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_SfzyGGmjT4ZkbfSAxbjvJg_qH1aImPQ';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 let currentVideoIndex = 0;
@@ -70,7 +70,7 @@ loginForm.addEventListener('submit', async (e) => {
   authError.textContent = '';
   const email = document.getElementById('login-email').value;
   const password = document.getElementById('login-password').value;
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) {
     authError.textContent = error.message;
     return;
@@ -90,7 +90,7 @@ signupForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await sb.auth.signUp({
     email,
     password,
     options: { data: { username } }
@@ -103,7 +103,7 @@ signupForm.addEventListener('submit', async (e) => {
 
   // Create profile row
   if (data.user) {
-    await supabase.from('profiles').upsert({
+    await sb.from('profiles').upsert({
       id: data.user.id,
       username,
       avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
@@ -114,7 +114,7 @@ signupForm.addEventListener('submit', async (e) => {
     });
   }
 
-  authError.textContent = 'Check your email to confirm, or just log in if confirmation is disabled.';
+  authError.textContent = 'Account created! You can log in now.';
   // Auto switch to login
   document.querySelector('[data-tab="login"]').click();
 });
@@ -125,7 +125,7 @@ async function onAuthSuccess(user) {
   app.classList.add('active');
 
   // Load profile
-  const { data: profile } = await supabase
+  const { data: profile } = await sb
     .from('profiles')
     .select('*')
     .eq('id', user.id)
@@ -141,7 +141,7 @@ async function onAuthSuccess(user) {
   } else {
     // Create default profile
     const username = user.user_metadata?.username || user.email.split('@')[0];
-    await supabase.from('profiles').upsert({
+    await sb.from('profiles').upsert({
       id: user.id,
       username,
       avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
@@ -160,7 +160,7 @@ async function onAuthSuccess(user) {
 
 // Check session on load
 (async () => {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if (session) {
     await onAuthSuccess(session.user);
   }
@@ -168,7 +168,7 @@ async function onAuthSuccess(user) {
 
 // Logout
 document.getElementById('logout-btn').addEventListener('click', async () => {
-  await supabase.auth.signOut();
+  await sb.auth.signOut();
   currentUser = null;
   app.classList.remove('active');
   authScreen.classList.add('active');
@@ -209,7 +209,7 @@ document.getElementById('post-video-btn').addEventListener('click', async () => 
     return;
   }
 
-  const { error } = await supabase.from('videos').insert({
+  const { error } = await sb.from('videos').insert({
     user_id: currentUser.id,
     caption,
     video_url: videoUrl,
@@ -234,7 +234,7 @@ document.getElementById('post-video-btn').addEventListener('click', async () => 
 
 // Load videos
 async function loadVideos() {
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from('videos')
     .select('*, profiles(username, avatar_url)')
     .order('created_at', { ascending: false })
@@ -340,7 +340,7 @@ document.querySelectorAll('.action').forEach(btn => {
       document.getElementById('like-count').textContent = formatCount(v.likes);
       // optionally persist
       if (v.id && !isNaN(v.id)) {
-        supabase.from('videos').update({ likes: v.likes }).eq('id', v.id);
+        sb.from('videos').update({ likes: v.likes }).eq('id', v.id);
       }
     }
   });
@@ -382,7 +382,7 @@ function loadInbox() {
 async function loadUserVideos() {
   if (!currentUser) return;
   const grid = document.getElementById('user-videos');
-  const { data } = await supabase
+  const { data } = await sb
     .from('videos')
     .select('*')
     .eq('user_id', currentUser.id)
