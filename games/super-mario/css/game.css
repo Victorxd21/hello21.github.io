@@ -3,24 +3,23 @@ body {
   margin: 0;
   padding: 0;
   text-align: center;
+  font-family: sans-serif;
 }
 
 canvas {
-  margin: 0 auto;
+  margin: 20px auto 0;
   display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 .info {
-  color: white;
-  font-family: sans-serif;
-  margin-top: 10px;
+  color: #ccc;
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .controls {
-  font-size: 14px;
-}
-
-.links a {
-  color: #0af;
-  margin: 0 8px;
+  margin: 0;
 }
