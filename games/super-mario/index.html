@@ -1,52 +1,112 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>Super Mario + Angry Birds</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="css/game.css">
-  </head>
-  <body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<head>
+  <meta charset="utf-8">
+  <title>Super Mario Bros</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      background: #000;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      max-width: 100vw;
+      max-height: 80vh;
+      margin-top: 8px;
+    }
+    .info {
+      color: #aaa;
+      text-align: center;
+      font-size: 13px;
+      padding: 8px 12px;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
 
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/util.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/resources.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/util.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/resources.js"></script>
 
-    <!-- CRITICAL: patch asset paths before any Sprite / level code runs -->
-    <script src="js/fix-assets.js"></script>
+<script>
+(function () {
+  var BASE = 'https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/';
+  function fix(url) {
+    if (!url || url.indexOf('http') === 0 || url.indexOf('data:') === 0) return url;
+    return BASE + url.replace(/^\.\//, '').replace(/^\//, '');
+  }
+  var origLoad = resources.load;
+  var origGet  = resources.get;
+  resources.load = function (u) {
+    if (Array.isArray(u)) return origLoad.call(resources, u.map(fix));
+    return origLoad.call(resources, fix(u));
+  };
+  resources.get = function (u) { return origGet.call(resources, fix(u)); };
+  window.__marioAssetBase = BASE;
+  window.__fixAssetUrl = fix;
+})();
+</script>
 
-    <script src="js/input.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/sprite.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/entity.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/pipe.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/mushroom.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/fireflower.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/star.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/fireball.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/coin.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/bcoin.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/goomba.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/koopa.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/floor.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/block.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/rubble.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/prop.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/player.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/flag.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/level.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/11.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/11tunnel.js"></script>
+<script src="https://victorxd21.github.io/games/super-mario/js/input.js"></script>
 
-    <script src="js/angry-physics.js"></script>
-    <script src="js/levels/angry.js"></script>
-    <script src="js/game.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/sprite.js"></script>
+<script>
+(function () {
+  if (!window.Mario || !Mario.Sprite) return;
+  var Orig = Mario.Sprite;
+  Mario.Sprite = function (img, pos, size, speed, frames, once) {
+    return new Orig(window.__fixAssetUrl(img), pos, size, speed, frames, once);
+  };
+  Mario.Sprite.prototype = Orig.prototype;
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/entity.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/pipe.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/mushroom.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/fireflower.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/star.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/fireball.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/coin.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/bcoin.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/goomba.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/koopa.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/floor.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/block.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/rubble.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/prop.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/player.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/flag.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/level.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/11.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/11tunnel.js"></script>
 
-    <div class="info">
-      <p class="controls">
-        <strong>Keyboard:</strong> Arrow Keys · X = Jump · Z = Run<br>
-        <strong>Controller:</strong> D-Pad / Stick · ✕ Jump · □ Run<br>
-        Push the wooden towers and POP the pigs!
-      </p>
-    </div>
-  </body>
+<script>
+(function () {
+  var BASE = window.__marioAssetBase;
+  var OrigAudio = window.Audio;
+  window.Audio = function (src) {
+    if (src && src.indexOf('http') !== 0) src = BASE + src.replace(/^\.\//, '');
+    return new OrigAudio(src);
+  };
+  window.Audio.prototype = OrigAudio.prototype;
+})();
+</script>
+
+<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/game.js"></script>
+
+<div class="info">
+  <b>Keyboard:</b> Arrows · X = Jump · Z = Run<br>
+  <b>Controller:</b> D-Pad / Stick · ✕ Jump · □ Run
+</div>
+
+</body>
 </html>
