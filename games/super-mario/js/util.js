@@ -1,6 +1,14 @@
-var Mario = {
-  // sprite data will go here
-};
+(function() {
+    if (typeof Mario === 'undefined') {
+        window.Mario = {};
+    }
 
-Mario.Sprite = function() {};
-Mario.Entity = function() {};
+    var Util = Mario.Util = {};
+
+    Util.inherits = function(subclass, superclass) {
+        function Surrogate() {};
+
+        Surrogate.prototype = superclass.prototype;
+        subclass.prototype = new Surrogate();
+    }
+})()
