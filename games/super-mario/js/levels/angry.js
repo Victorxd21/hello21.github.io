@@ -4,10 +4,19 @@
   Mario.angryLevel = function() {
     if (typeof Mario.oneone === 'function') {
       Mario.oneone();
+    } else {
+      console.error('Mario.oneone not found');
+      return;
     }
 
-    if (Mario.AngryPhysics) {
-      Mario.AngryPhysics.start(1180);
-    }
+    setTimeout(function() {
+      if (Mario.AngryPhysics) {
+        try {
+          Mario.AngryPhysics.start(1180);
+        } catch (e) {
+          console.error('AngryPhysics start failed:', e);
+        }
+      }
+    }, 100);
   };
 })();
