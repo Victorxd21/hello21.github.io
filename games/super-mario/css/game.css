@@ -1,0 +1,26 @@
+body {
+  background-color: #000;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+canvas {
+  margin: 0 auto;
+  display: block;
+}
+
+.info {
+  color: white;
+  font-family: sans-serif;
+  margin-top: 10px;
+}
+
+.controls {
+  font-size: 14px;
+}
+
+.links a {
+  color: #0af;
+  margin: 0 8px;
+}
