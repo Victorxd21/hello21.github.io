@@ -3,38 +3,41 @@
   <head>
     <meta charset="utf-8">
     <title>Super Mario Bros</title>
-    <meta name="description" content="Super Mario Bros HTML5 clone">
+    <meta name="description" content="Super Mario Bros HTML5 clone with gamepad support">
     <meta name="viewport" content="width=device-width">
     <link rel="stylesheet" href="css/game.css">
   </head>
   <body>
-    <script type="text/javascript" src="js/util.js"></script>
-    <script type="text/javascript" src="js/input.js"></script>
-    <script type="text/javascript" src="js/resources.js"></script>
-    <script type="text/javascript" src="js/sprite.js"></script>
-    <script type="text/javascript" src="js/entity.js"></script>
-    <script type="text/javascript" src="js/pipe.js"></script>
-    <script type="text/javascript" src="js/mushroom.js"></script>
-    <script type="text/javascript" src="js/fireflower.js"></script>
-    <script type="text/javascript" src="js/star.js"></script>
-    <script type="text/javascript" src="js/fireball.js"></script>
-    <script type="text/javascript" src="js/coin.js"></script>
-    <script type="text/javascript" src="js/bcoin.js"></script>
-    <script type="text/javascript" src="js/goomba.js"></script>
-    <script type="text/javascript" src="js/koopa.js"></script>
-    <script type="text/javascript" src="js/floor.js"></script>
-    <script type="text/javascript" src="js/block.js"></script>
-    <script type="text/javascript" src="js/rubble.js"></script>
-    <script type="text/javascript" src="js/prop.js"></script>
-    <script type="text/javascript" src="js/player.js"></script>
-    <script type="text/javascript" src="js/flag.js"></script>
-    <script type="text/javascript" src="js/levels/level.js"></script>
-    <script type="text/javascript" src="js/levels/11.js"></script>
-    <script type="text/javascript" src="js/levels/11tunnel.js"></script>
-    <script type="text/javascript" src="js/game.js"></script>
+    <!-- Load original engine files from CDN (jsDelivr) -->
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/util.js"></script>
+    <script src="js/input.js"></script> <!-- local: has PS4/gamepad support -->
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/resources.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/sprite.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/entity.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/pipe.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/mushroom.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/fireflower.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/star.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/fireball.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/coin.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/bcoin.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/goomba.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/koopa.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/floor.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/block.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/rubble.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/prop.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/player.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/flag.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/level.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/11.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/11tunnel.js"></script>
+    <script src="js/game.js"></script> <!-- local: has CDN asset base + full game loop -->
     <div class="info">
-      <p class="controls">Keyboard: Arrow Keys + X (Jump) + Z (Run)<br>
-      Controller (PS4 / Xbox / generic): D-Pad or Left Stick + Cross/A (Jump) + Square/X (Run)</p>
+      <p class="controls">
+        <strong>Keyboard:</strong> Arrow Keys · X = Jump · Z = Run<br>
+        <strong>PS4 / Controller:</strong> D-Pad or Left Stick · ✕ Cross = Jump · □ Square = Run
+      </p>
     </div>
   </body>
 </html>
