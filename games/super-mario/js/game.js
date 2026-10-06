@@ -16,11 +16,6 @@ var updateables = [];
 var fireballs = [];
 var player = new Mario.Player([0,0]);
 
-//we might have to get the size and calculate the scaling
-//but this method should let us make it however big.
-//Cool!
-//TODO: Automatically scale the game to work and look good on widescreen.
-//TODO: fiddling with scaled sprites looks BETTER, but not perfect. Hmm.
 canvas.width = 762;
 canvas.height = 720;
 ctx.scale(3,3);
@@ -71,14 +66,14 @@ function init() {
     powerup: new Audio(ASSET_BASE + 'sounds/powerup.wav'),
     stomp: new Audio(ASSET_BASE + 'sounds/stomp.wav')
   };
-  Mario.oneone();
+  // Hybrid Mario + Angry Birds level
+  Mario.angryLevel();
   lastTime = Date.now();
   main();
 }
 
 var gameTime = 0;
 
-//set up the game loop
 function main() {
   var now = Date.now();
   var dt = (now - lastTime) / 1000.0;
@@ -95,18 +90,16 @@ function update(dt) {
 
   handleInput(dt);
   updateEntities(dt);
-
-  //check collisions
   checkCollisions();
 
-  //update the viewport
+  // scroll camera
   if (player.pos[0] > vX + 80) {
     vX = player.pos[0] - 80;
   }
 }
 
 function handleInput(dt) {
-  if (player.piping || player.dying || player.noInput) return; //don't accept input
+  if (player.piping || player.dying || player.noInput) return;
 
   if (input.isDown('RUN')){
     player.run();
@@ -116,7 +109,6 @@ function handleInput(dt) {
   if (input.isDown('JUMP')) {
     player.jump();
   } else {
-    //we need this to detect the beginning of a jump
     player.noJump();
   }
 
@@ -142,9 +134,17 @@ function updateEntities(dt) {
     ent.update(dt, vX);
   });
 
-  //We use a special array for fireballs because they can be deleted mid-update
   for (var i = fireballs.length - 1; i >= 0; i--) {
     fireballs[i].update(dt, vX);
+  }
+
+  // Also update enemies list (includes wood + pigs)
+  if (level && level.enemies) {
+    for (var i = 0; i < level.enemies.length; i++) {
+      if (level.enemies[i] && level.enemies[i].update) {
+        level.enemies[i].update(dt, vX);
+      }
+    }
   }
 }
 
@@ -152,14 +152,21 @@ function checkCollisions() {
   if (player.piping || player.dying) return;
   player.checkCollisions();
 
-  //Still use fireballs for this because they can be deleted mid-check
   for (var i = fireballs.length - 1; i >= 0; i--) {
     fireballs[i].checkCollisions();
   }
 
-  //same for updateables
   for (var i = updateables.length - 1; i >= 0; i--) {
     updateables[i].checkCollisions();
+  }
+
+  // Wood + Pig collisions
+  if (level && level.enemies) {
+    for (var i = 0; i < level.enemies.length; i++) {
+      if (level.enemies[i] && level.enemies[i].checkCollisions) {
+        level.enemies[i].checkCollisions();
+      }
+    }
   }
 }
 
@@ -169,52 +176,61 @@ function render() {
   ctx.fillStyle = "#5C94FC";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  //draw the scenery first
+  if (!level) return;
+
+  // scenery
   for(var i = 0; i < 15; i++) {
     for (var j = Math.floor(vX / 16) - 1; j < Math.floor(vX / 16) + 20; j++){
-      if (level.scenery[i][j]) {
+      if (level.scenery && level.scenery[i] && level.scenery[i][j]) {
         renderEntity(level.scenery[i][j]);
       }
     }
   }
 
-  //then items
-  level.items.forEach (function (item) {
-    renderEntity(item);
-  });
+  // items
+  if (level.items) {
+    level.items.forEach (function (item) {
+      if (item) renderEntity(item);
+    });
+  }
 
-  level.enemies.forEach (function(enemy) {
-    renderEntity(enemy);
-  });
+  // enemies (includes wood + pigs + goombas etc)
+  if (level.enemies) {
+    level.enemies.forEach (function(enemy) {
+      if (enemy) renderEntity(enemy);
+    });
+  }
 
   fireballs.forEach(function(fireball) {
     renderEntity(fireball);
-  })
+  });
 
-  //then we draw every static object.
+  // statics + blocks
   for(var i = 0; i < 15; i++) {
     for (var j = Math.floor(vX / 16) - 1; j < Math.floor(vX / 16) + 20; j++){
-      if (level.statics[i][j]) {
+      if (level.statics && level.statics[i] && level.statics[i][j]) {
         renderEntity(level.statics[i][j]);
       }
-      if (level.blocks[i][j]) {
+      if (level.blocks && level.blocks[i] && level.blocks[i][j]) {
         renderEntity(level.blocks[i][j]);
         updateables.push(level.blocks[i][j]);
       }
     }
   }
 
-  //then the player
+  // player
   if (player.invincibility % 2 === 0) {
     renderEntity(player);
   }
 
-  //Mario goes INTO pipes, so naturally they go after.
-  level.pipes.forEach (function(pipe) {
-    renderEntity(pipe);
-  });
+  // pipes
+  if (level.pipes) {
+    level.pipes.forEach (function(pipe) {
+      renderEntity(pipe);
+    });
+  }
 }
 
 function renderEntity(entity) {
-  entity.render(ctx, vX, vY);
+  if (entity && entity.render) entity.render(ctx, vX, vY);
 }

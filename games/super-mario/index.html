@@ -2,15 +2,15 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Super Mario Bros</title>
-    <meta name="description" content="Super Mario Bros HTML5 clone with gamepad support">
+    <title>Super Mario + Angry Birds</title>
+    <meta name="description" content="Mario meets Angry Birds – push wooden structures and kill the pigs!">
     <meta name="viewport" content="width=device-width">
     <link rel="stylesheet" href="css/game.css">
   </head>
   <body>
-    <!-- Load original engine files from CDN (jsDelivr) -->
+    <!-- Original Mario engine from CDN -->
     <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/util.js"></script>
-    <script src="js/input.js"></script> <!-- local: has PS4/gamepad support -->
+    <script src="js/input.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/resources.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/sprite.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/entity.js"></script>
@@ -32,11 +32,19 @@
     <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/level.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/11.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/11tunnel.js"></script>
-    <script src="js/game.js"></script> <!-- local: has CDN asset base + full game loop -->
+
+    <!-- NEW: Angry Birds hybrid entities + level -->
+    <script src="js/wood.js"></script>
+    <script src="js/pig.js"></script>
+    <script src="js/levels/angry.js"></script>
+
+    <script src="js/game.js"></script>
+
     <div class="info">
       <p class="controls">
         <strong>Keyboard:</strong> Arrow Keys · X = Jump · Z = Run<br>
-        <strong>PS4 / Controller:</strong> D-Pad or Left Stick · ✕ Cross = Jump · □ Square = Run
+        <strong>PS4 / Controller:</strong> D-Pad or Left Stick · ✕ = Jump · □ = Run<br>
+        <strong>Hybrid mode:</strong> Run into wooden structures to push them. Stomp pigs or drop wood on them to POP them!
       </p>
     </div>
   </body>
