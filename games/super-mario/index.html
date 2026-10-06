@@ -3,12 +3,13 @@
   <head>
     <meta charset="utf-8">
     <title>Super Mario + Angry Birds</title>
-    <meta name="description" content="Mario meets Angry Birds – push wooden structures and kill the pigs!">
+    <meta name="description" content="Mario meets Angry Birds – real physics wood structures and pigs">
     <meta name="viewport" content="width=device-width">
     <link rel="stylesheet" href="css/game.css">
   </head>
   <body>
-    <!-- Original Mario engine from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/util.js"></script>
     <script src="js/input.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/resources.js"></script>
@@ -33,18 +34,15 @@
     <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/11.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/levels/11tunnel.js"></script>
 
-    <!-- NEW: Angry Birds hybrid entities + level -->
-    <script src="js/wood.js"></script>
-    <script src="js/pig.js"></script>
+    <script src="js/angry-physics.js"></script>
     <script src="js/levels/angry.js"></script>
-
     <script src="js/game.js"></script>
 
     <div class="info">
       <p class="controls">
         <strong>Keyboard:</strong> Arrow Keys · X = Jump · Z = Run<br>
         <strong>PS4 / Controller:</strong> D-Pad or Left Stick · ✕ = Jump · □ = Run<br>
-        <strong>Hybrid mode:</strong> Run into wooden structures to push them. Stomp pigs or drop wood on them to POP them!
+        <strong>Angry Birds zone:</strong> Run into the wooden towers – real physics! Push / knock them over and POP the pigs.
       </p>
     </div>
   </body>
