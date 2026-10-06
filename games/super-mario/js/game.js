@@ -98,6 +98,11 @@ function update(dt) {
 
   //check collisions
   checkCollisions();
+
+  //update the viewport
+  if (player.pos[0] > vX + 80) {
+    vX = player.pos[0] - 80;
+  }
 }
 
 function handleInput(dt) {
@@ -160,18 +165,56 @@ function checkCollisions() {
 
 function render() {
   updateables = [];
-  //Render the level
-  level.render(ctx, vX, vY);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#5C94FC";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  //Render the player
-  player.render(ctx, vX, vY);
+  //draw the scenery first
+  for(var i = 0; i < 15; i++) {
+    for (var j = Math.floor(vX / 16) - 1; j < Math.floor(vX / 16) + 20; j++){
+      if (level.scenery[i][j]) {
+        renderEntity(level.scenery[i][j]);
+      }
+    }
+  }
+
+  //then items
+  level.items.forEach (function (item) {
+    renderEntity(item);
+  });
+
+  level.enemies.forEach (function(enemy) {
+    renderEntity(enemy);
+  });
+
+  fireballs.forEach(function(fireball) {
+    renderEntity(fireball);
+  })
+
+  //then we draw every static object.
+  for(var i = 0; i < 15; i++) {
+    for (var j = Math.floor(vX / 16) - 1; j < Math.floor(vX / 16) + 20; j++){
+      if (level.statics[i][j]) {
+        renderEntity(level.statics[i][j]);
+      }
+      if (level.blocks[i][j]) {
+        renderEntity(level.blocks[i][j]);
+        updateables.push(level.blocks[i][j]);
+      }
+    }
+  }
+
+  //then the player
+  if (player.invincibility % 2 === 0) {
+    renderEntity(player);
+  }
+
+  //Mario goes INTO pipes, so naturally they go after.
+  level.pipes.forEach (function(pipe) {
+    renderEntity(pipe);
+  });
 }
 
-// Handle window focus/blur for pausing music etc if needed
-window.addEventListener("blur", function() {
-  // optional pause
-}, false);
-
-window.addEventListener("focus", function() {
-  // optional resume
-}, false);
+function renderEntity(entity) {
+  entity.render(ctx, vX, vY);
+}
