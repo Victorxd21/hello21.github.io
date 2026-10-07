@@ -26,7 +26,7 @@
       </div>
 
       <p id="lobbyError" class="error"></p>
-      <p class="hint">Share the room code. Need at least 2 players. Host starts the game.</p>
+      <p class="hint">Share the room code. Need at least 2 players. Host picks the mode &amp; starts.</p>
     </div>
   </div>
 
@@ -34,6 +34,7 @@
   <div id="table" class="screen hidden">
     <header class="topbar">
       <div class="room-badge">Room <span id="roomCodeDisplay">----</span></div>
+      <div id="modeBadge" class="mode-badge">Classic</div>
       <div id="statusText" class="status">Waiting…</div>
       <div class="player-count" id="playerCount">0 players</div>
       <button id="btnLeave" class="btn small ghost" type="button">Leave</button>
@@ -45,6 +46,13 @@
         <h2>Room Lobby</h2>
         <p id="waitingMsg">Waiting for players…</p>
         <ul id="waitingList"></ul>
+
+        <div class="mode-section">
+          <div class="mode-label">Game mode</div>
+          <div id="modePicker" class="mode-picker"></div>
+          <p id="modeDesc" class="mode-desc"></p>
+        </div>
+
         <p class="min-note">Minimum <strong>2</strong> players to start</p>
         <button id="btnStartGame" class="btn primary" type="button" disabled>Start Game</button>
         <p id="waitingHint" class="hint">Only the host can start</p>
@@ -68,6 +76,7 @@
           <div id="playerControls" class="hidden">
             <button id="btnHit" class="btn primary" type="button">Hit</button>
             <button id="btnStand" class="btn" type="button">Stand</button>
+            <button id="btnDouble" class="btn gold hidden" type="button">Double</button>
           </div>
           <div id="spectateNote" class="spectate hidden">Waiting for your turn…</div>
         </section>
@@ -77,6 +86,7 @@
         <h3>Players</h3>
         <ul id="playerList"></ul>
         <div class="chip-info">You: <strong id="myChips">1000</strong> chips</div>
+        <div class="mode-side" id="modeSideInfo"></div>
         <div class="log" id="gameLog"></div>
       </aside>
     </div>
