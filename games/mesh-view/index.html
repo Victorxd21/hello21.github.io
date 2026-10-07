@@ -3,251 +3,457 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mesh View — 2D Creature</title>
+  <title>Mesh View — 2D Creature on 3D Mesh</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a12; font-family: system-ui, -apple-system, sans-serif; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #06060c; font-family: system-ui, -apple-system, sans-serif; }
+    #wrap { display: flex; width: 100%; height: 100%; }
+    #left, #right { position: relative; width: 50%; height: 100%; }
+    #view2d { display: block; width: 100%; height: 100%; background: #0a0a14; }
+    #view3d { display: block; width: 100%; height: 100%; }
     #ui {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 20;
       display: flex; justify-content: space-between; align-items: center;
       padding: 10px 16px; pointer-events: none;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.55), transparent);
+      background: linear-gradient(to bottom, rgba(0,0,0,0.65), transparent);
     }
-    #ui h1 { font-size: 15px; color: #c8bfff; font-weight: 600; letter-spacing: 0.03em; }
-    #ui .hint { font-size: 12px; color: #888; }
-    #labels {
-      position: fixed; top: 44px; left: 0; right: 0; display: flex; z-index: 5; pointer-events: none;
+    #ui h1 { font-size: 15px; color: #c8bfff; font-weight: 600; }
+    #ui .hint { font-size: 12px; color: #999; }
+    .label {
+      position: absolute; top: 42px; left: 0; right: 0; text-align: center;
+      font-size: 11px; color: #9b8cff; text-transform: uppercase;
+      letter-spacing: 0.14em; opacity: 0.9; pointer-events: none; z-index: 5;
     }
-    #labels span {
-      flex: 1; text-align: center; font-size: 11px; color: #9b8cff;
-      text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.85;
-    }
-    canvas { display: block; }
   </style>
 </head>
 <body>
   <div id="ui">
     <h1>Mesh View</h1>
-    <div class="hint">← → turn &nbsp;↑ ↓ move &nbsp;|&nbsp; Left: 2D creature eyes &nbsp;·&nbsp; Right: 3D world</div>
+    <div class="hint">← → turn &nbsp;↑ ↓ walk on surface &nbsp;|&nbsp; You are stuck to the meshes like a 2D creature</div>
   </div>
-  <div id="labels">
-    <span>2D Creature Perspective</span>
-    <span>3D Mesh (camera follows you)</span>
+  <div id="wrap">
+    <div id="left">
+      <div class="label">2D Creature Vision (raycast)</div>
+      <canvas id="view2d"></canvas>
+    </div>
+    <div id="right">
+      <div class="label">3D World — camera follows you</div>
+      <canvas id="view3d"></canvas>
+    </div>
   </div>
+
   <script type="importmap">
   {
     "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
     }
   }
   </script>
   <script type="module">
     import * as THREE from 'three';
 
-    // ─── renderer & size ───────────────────────────────────────
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setScissorTest(true);
-    document.body.appendChild(renderer.domElement);
+    // ═══════════════════════════════════════════════════════════
+    //  MATERIALS (max 2 colors per object)
+    // ═══════════════════════════════════════════════════════════
+    const COL = {
+      planeA: 0x2a9d8f,
+      planeB: 0x1a535c,
+      cubeA:  0x4a6cf7,
+      cubeB:  0xe85d4c,
+      torusA: 0xf4a261,
+      torusB: 0xe76f51,
+      player: 0xffdd55,
+    };
 
-    // ─── shared scene ──────────────────────────────────────────
+    const matPlaneA = new THREE.MeshStandardMaterial({ color: COL.planeA, roughness: 0.75 });
+    const matPlaneB = new THREE.MeshStandardMaterial({ color: COL.planeB, roughness: 0.75 });
+    const matCubeA  = new THREE.MeshStandardMaterial({ color: COL.cubeA,  roughness: 0.4 });
+    const matCubeB  = new THREE.MeshStandardMaterial({ color: COL.cubeB,  roughness: 0.4 });
+    const matTorusA = new THREE.MeshStandardMaterial({ color: COL.torusA, roughness: 0.45 });
+    const matTorusB = new THREE.MeshStandardMaterial({ color: COL.torusB, roughness: 0.45 });
+
+    // ═══════════════════════════════════════════════════════════
+    //  3D SCENE
+    // ═══════════════════════════════════════════════════════════
+    const canvas3d = document.getElementById('view3d');
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0e0e18);
-    scene.fog = new THREE.Fog(0x0e0e18, 12, 45);
+    scene.background = new THREE.Color(0x0c0c16);
+    scene.fog = new THREE.Fog(0x0c0c16, 18, 55);
 
-    // lights
-    const ambient = new THREE.AmbientLight(0xffffff, 0.45);
-    scene.add(ambient);
-    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
-    dir.position.set(8, 14, 6);
-    scene.add(dir);
-    const fill = new THREE.DirectionalLight(0x8899ff, 0.25);
-    fill.position.set(-6, 4, -4);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.85);
+    sun.position.set(10, 16, 8);
+    scene.add(sun);
+    const fill = new THREE.DirectionalLight(0x8899ff, 0.3);
+    fill.position.set(-8, 5, -5);
     scene.add(fill);
 
-    // ─── materials (max 2 colors per object) ───────────────────
-    const matA = new THREE.MeshStandardMaterial({ color: 0x4a6cf7, roughness: 0.35, metalness: 0.1 });
-    const matB = new THREE.MeshStandardMaterial({ color: 0xe85d4c, roughness: 0.35, metalness: 0.1 });
-    const matPlane1 = new THREE.MeshStandardMaterial({ color: 0x2a9d8f, roughness: 0.7, metalness: 0.05 });
-    const matPlane2 = new THREE.MeshStandardMaterial({ color: 0x264653, roughness: 0.7, metalness: 0.05 });
+    // ── walkable meshes ────────────────────────────────────────
+    const walkables = [];
 
-    // ─── plane (ground) — two colors ───────────────────────────
-    const planeGeo = new THREE.PlaneGeometry(24, 24, 1, 1);
-    // paint left half one color, right half another via groups
-    const planeLeft = new THREE.Mesh(
-      new THREE.PlaneGeometry(12, 24),
-      matPlane1
-    );
-    planeLeft.rotation.x = -Math.PI / 2;
-    planeLeft.position.set(-6, 0, 0);
-    scene.add(planeLeft);
+    // Plane (two halves, two colors)
+    const planeL = new THREE.Mesh(new THREE.PlaneGeometry(14, 28), matPlaneA);
+    planeL.rotation.x = -Math.PI / 2;
+    planeL.position.set(-7, 0, 0);
+    planeL.userData.color = COL.planeA;
+    scene.add(planeL);
+    walkables.push(planeL);
 
-    const planeRight = new THREE.Mesh(
-      new THREE.PlaneGeometry(12, 24),
-      matPlane2
-    );
-    planeRight.rotation.x = -Math.PI / 2;
-    planeRight.position.set(6, 0, 0);
-    scene.add(planeRight);
+    const planeR = new THREE.Mesh(new THREE.PlaneGeometry(14, 28), matPlaneB);
+    planeR.rotation.x = -Math.PI / 2;
+    planeR.position.set(7, 0, 0);
+    planeR.userData.color = COL.planeB;
+    scene.add(planeR);
+    walkables.push(planeR);
 
-    // grid helper for orientation
-    const grid = new THREE.GridHelper(24, 24, 0x444466, 0x222233);
-    grid.position.y = 0.01;
+    // Grid (visual only)
+    const grid = new THREE.GridHelper(28, 28, 0x333355, 0x1a1a2a);
+    grid.position.y = 0.02;
     scene.add(grid);
 
-    // ─── cube — alternating two colors on faces ────────────────
-    const cubeGeo = new THREE.BoxGeometry(2.4, 2.4, 2.4);
-    const cubeMats = [
-      matA, matB, matA, matB, matA, matB  // +x -x +y -y +z -z
-    ];
-    const cube = new THREE.Mesh(cubeGeo, cubeMats);
-    cube.position.set(5, 1.2, -4);
+    // Cube — 2 colors alternating faces
+    const cubeSize = 3.2;
+    const cube = new THREE.Mesh(
+      new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize),
+      [matCubeA, matCubeB, matCubeA, matCubeB, matCubeA, matCubeB]
+    );
+    cube.position.set(6, cubeSize / 2, -5);
+    cube.userData.color = COL.cubeA;
+    cube.userData.colors = [COL.cubeA, COL.cubeB];
     scene.add(cube);
+    walkables.push(cube);
 
-    // ─── torus (donut) — two colors via material array ─────────
-    const torusGeo = new THREE.TorusGeometry(1.6, 0.55, 24, 48);
-    // simple solid + ring accent
-    const torus = new THREE.Mesh(torusGeo, matA);
-    torus.position.set(-5, 1.2, -3);
-    torus.rotation.x = Math.PI / 2.4;
+    // Torus (donut) — two colors
+    const torus = new THREE.Mesh(
+      new THREE.TorusGeometry(2.2, 0.7, 32, 64),
+      matTorusA
+    );
+    torus.position.set(-6, 1.4, -4);
+    torus.rotation.x = Math.PI / 2;
+    torus.userData.color = COL.torusA;
     scene.add(torus);
+    walkables.push(torus);
 
-    const torusInner = new THREE.Mesh(
-      new THREE.TorusGeometry(1.6, 0.18, 16, 48),
-      matB
+    // thin accent ring (2nd color)
+    const torusRing = new THREE.Mesh(
+      new THREE.TorusGeometry(2.2, 0.22, 16, 64),
+      matTorusB
     );
-    torusInner.position.copy(torus.position);
-    torusInner.rotation.copy(torus.rotation);
-    scene.add(torusInner);
+    torusRing.position.copy(torus.position);
+    torusRing.rotation.copy(torus.rotation);
+    scene.add(torusRing);
 
-    // ─── player (flat 2D-ish creature) ─────────────────────────
-    const playerGroup = new THREE.Group();
-    // body — thin disk (the “2D” look)
+    // ── player (flat disk = 2D creature) ────────────────────────
+    const player = new THREE.Group();
     const body = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.35, 0.35, 0.08, 24),
-      new THREE.MeshStandardMaterial({ color: 0xffdd55, roughness: 0.4, metalness: 0.2 })
+      new THREE.CylinderGeometry(0.28, 0.28, 0.06, 20),
+      new THREE.MeshStandardMaterial({ color: COL.player, roughness: 0.35, metalness: 0.15 })
     );
-    body.rotation.x = Math.PI / 2; // flat on ground
-    playerGroup.add(body);
+    body.rotation.x = Math.PI / 2;
+    player.add(body);
 
-    // tiny “eye” so facing direction is clear in 3D view
-    const eye = new THREE.Mesh(
-      new THREE.SphereGeometry(0.09, 12, 12),
+    const nose = new THREE.Mesh(
+      new THREE.ConeGeometry(0.1, 0.22, 8),
       new THREE.MeshStandardMaterial({ color: 0x222222 })
     );
-    eye.position.set(0, 0.12, 0.28);
-    playerGroup.add(eye);
+    nose.rotation.x = Math.PI / 2;
+    nose.position.set(0, 0.04, 0.28);
+    player.add(nose);
 
-    playerGroup.position.set(0, 0.06, 4);
-    scene.add(playerGroup);
+    const nArrow = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 0.55, 0xff66aa, 0.12, 0.08
+    );
+    player.add(nArrow);
 
-    // ─── cameras ───────────────────────────────────────────────
-    // left: first-person from the 2D creature
-    const camFP = new THREE.PerspectiveCamera(70, 1, 0.05, 80);
-    // right: third-person overview that follows the player
-    const cam3D = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+    player.position.set(0, 0.05, 6);
+    scene.add(player);
 
-    // ─── input ─────────────────────────────────────────────────
+    // ── 3D camera (follows player) ──────────────────────────────
+    const cam3d = new THREE.PerspectiveCamera(48, 1, 0.1, 100);
+    cam3d.position.set(0, 10, 14);
+
+    // ═══════════════════════════════════════════════════════════
+    //  SURFACE STICKING + MOVEMENT
+    // ═══════════════════════════════════════════════════════════
+    const raycaster = new THREE.Raycaster();
+
+    let surfNormal = new THREE.Vector3(0, 1, 0);
+    let facing = 0;
+    const moveSpeed = 3.8;
+    const turnSpeed = 2.6;
+    const stickOffset = 0.04;
+
     const keys = {};
-    window.addEventListener('keydown', e => { keys[e.code] = true; e.preventDefault(); });
-    window.addEventListener('keyup',   e => { keys[e.code] = false; });
+    addEventListener('keydown', e => { keys[e.code] = true; e.preventDefault(); });
+    addEventListener('keyup',   e => { keys[e.code] = false; });
 
-    let facing = 0; // radians, 0 = +Z
-    const moveSpeed = 4.5;
-    const turnSpeed = 2.4;
-
-    // ─── resize ────────────────────────────────────────────────
-    function onResize() {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      renderer.setSize(w, h);
-      const aspect = (w / 2) / h;
-      camFP.aspect = aspect;
-      camFP.updateProjectionMatrix();
-      cam3D.aspect = aspect;
-      cam3D.updateProjectionMatrix();
+    function getTangentBasis(normal, angle) {
+      let up = normal.clone().normalize();
+      let ref = Math.abs(up.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1);
+      let right = new THREE.Vector3().crossVectors(ref, up).normalize();
+      let forward = new THREE.Vector3().crossVectors(up, right).normalize();
+      const cos = Math.cos(angle), sin = Math.sin(angle);
+      const f = forward.clone().multiplyScalar(cos).add(right.clone().multiplyScalar(sin));
+      const r = right.clone().multiplyScalar(cos).sub(forward.clone().multiplyScalar(sin));
+      return { up, forward: f.normalize(), right: r.normalize() };
     }
-    window.addEventListener('resize', onResize);
-    onResize();
 
-    // ─── loop ──────────────────────────────────────────────────
-    const clock = new THREE.Clock();
+    function stickToSurface(fromPos, preferNormal) {
+      const dirs = [];
+      if (preferNormal) dirs.push(preferNormal.clone().negate());
+      dirs.push(new THREE.Vector3(0, -1, 0));
+      dirs.push(new THREE.Vector3(0, 1, 0));
+      dirs.push(new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0));
+      dirs.push(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -1));
 
-    function update(dt) {
-      // turn
+      let best = null;
+      let bestDist = Infinity;
+
+      for (const d of dirs) {
+        d.normalize();
+        const origin = fromPos.clone().add(d.clone().multiplyScalar(-0.6));
+        raycaster.set(origin, d);
+        raycaster.far = 2.5;
+        const hits = raycaster.intersectObjects(walkables, false);
+        if (hits.length && hits[0].distance < bestDist) {
+          bestDist = hits[0].distance;
+          best = hits[0];
+        }
+      }
+
+      raycaster.set(fromPos.clone().add(new THREE.Vector3(0, 1.2, 0)), new THREE.Vector3(0, -1, 0));
+      raycaster.far = 4;
+      const downHits = raycaster.intersectObjects(walkables, false);
+      if (downHits.length && downHits[0].distance < bestDist) {
+        best = downHits[0];
+      }
+
+      return best;
+    }
+
+    function updatePlayer(dt) {
       if (keys['ArrowLeft'] || keys['KeyA'])  facing += turnSpeed * dt;
       if (keys['ArrowRight'] || keys['KeyD']) facing -= turnSpeed * dt;
 
-      // move forward / back in facing direction
-      let forward = 0;
-      if (keys['ArrowUp'] || keys['KeyW'])   forward += 1;
-      if (keys['ArrowDown'] || keys['KeyS']) forward -= 1;
+      const basis = getTangentBasis(surfNormal, facing);
 
-      if (forward !== 0) {
-        playerGroup.position.x += Math.sin(facing) * moveSpeed * dt * forward;
-        playerGroup.position.z += Math.cos(facing) * moveSpeed * dt * forward;
+      let move = 0;
+      if (keys['ArrowUp'] || keys['KeyW'])   move += 1;
+      if (keys['ArrowDown'] || keys['KeyS']) move -= 1;
+
+      if (move !== 0) {
+        const step = basis.forward.clone().multiplyScalar(move * moveSpeed * dt);
+        player.position.add(step);
       }
 
-      // keep player roughly on the plane
-      playerGroup.position.x = THREE.MathUtils.clamp(playerGroup.position.x, -11.5, 11.5);
-      playerGroup.position.z = THREE.MathUtils.clamp(playerGroup.position.z, -11.5, 11.5);
-      playerGroup.position.y = 0.06;
+      const hit = stickToSurface(player.position, surfNormal);
+      if (hit) {
+        player.position.copy(hit.point).add(hit.face.normal.clone().multiplyScalar(stickOffset));
+        surfNormal.lerp(hit.face.normal, 0.35).normalize();
+      }
 
-      // orient the flat creature
-      playerGroup.rotation.y = facing;
-
-      // first-person camera (creature eyes) — slightly above the disk, looking forward
-      const eyeHeight = 0.22;
-      camFP.position.set(
-        playerGroup.position.x,
-        playerGroup.position.y + eyeHeight,
-        playerGroup.position.z
-      );
-      const lookDist = 4;
-      camFP.lookAt(
-        playerGroup.position.x + Math.sin(facing) * lookDist,
-        playerGroup.position.y + eyeHeight,
-        playerGroup.position.z + Math.cos(facing) * lookDist
-      );
-
-      // third-person camera — follows behind & above
-      const camDist = 9;
-      const camHeight = 6;
-      const targetX = playerGroup.position.x - Math.sin(facing) * camDist * 0.35;
-      const targetZ = playerGroup.position.z - Math.cos(facing) * camDist * 0.35;
-      cam3D.position.x += (targetX - cam3D.position.x) * Math.min(1, 4 * dt);
-      cam3D.position.z += (targetZ - cam3D.position.z) * Math.min(1, 4 * dt);
-      cam3D.position.y += (camHeight - cam3D.position.y) * Math.min(1, 3 * dt);
-      cam3D.lookAt(playerGroup.position.x, 0.5, playerGroup.position.z);
-
-      // gentle spin on the donut for life
-      torus.rotation.z += dt * 0.35;
-      torusInner.rotation.z = torus.rotation.z;
+      const b = getTangentBasis(surfNormal, facing);
+      const m = new THREE.Matrix4().makeBasis(b.right, b.up, b.forward);
+      player.quaternion.setFromRotationMatrix(m);
     }
 
-    function render() {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const half = Math.floor(w / 2);
+    // ═══════════════════════════════════════════════════════════
+    //  2D RAYCAST VISION — rays stay in the tangent plane so they
+    //  hug the mesh instead of flying through empty 3D space
+    // ═══════════════════════════════════════════════════════════
+    const canvas2d = document.getElementById('view2d');
+    const ctx = canvas2d.getContext('2d');
 
-      // left half — 2D creature perspective
-      renderer.setViewport(0, 0, half, h);
-      renderer.setScissor(0, 0, half, h);
-      renderer.render(scene, camFP);
+    const RAYS = 160;
+    const FOV = Math.PI * 0.85;
+    const MAX_DIST = 18;
 
-      // right half — 3D overview
-      renderer.setViewport(half, 0, w - half, h);
-      renderer.setScissor(half, 0, w - half, h);
-      renderer.render(scene, cam3D);
+    const rayHelpers = [];
+    const rayMat = new THREE.LineBasicMaterial({ color: 0xffee88, transparent: true, opacity: 0.35 });
+    for (let i = 0; i < 24; i++) {
+      const g = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(), new THREE.Vector3(0, 0, 1)
+      ]);
+      const line = new THREE.Line(g, rayMat);
+      line.visible = false;
+      scene.add(line);
+      rayHelpers.push(line);
     }
+
+    function colorFromHit(hit) {
+      if (!hit) return null;
+      const obj = hit.object;
+      if (obj.userData.colors && hit.face) {
+        const fi = hit.face.materialIndex;
+        if (fi !== undefined && obj.userData.colors[fi % 2] !== undefined) {
+          return obj.userData.colors[fi % 2];
+        }
+      }
+      return obj.userData.color ?? 0x888888;
+    }
+
+    function hexToRgb(hex) {
+      return {
+        r: (hex >> 16) & 255,
+        g: (hex >> 8) & 255,
+        b: hex & 255,
+      };
+    }
+
+    function castVisionRays() {
+      const basis = getTangentBasis(surfNormal, facing);
+      const results = [];
+      const halfFov = FOV / 2;
+      const origin = player.position.clone().add(surfNormal.clone().multiplyScalar(0.08));
+
+      for (let i = 0; i < RAYS; i++) {
+        const t = i / (RAYS - 1);
+        const ang = -halfFov + t * FOV;
+
+        // direction lies in the tangent plane of the surface
+        const dir = basis.forward.clone().multiplyScalar(Math.cos(ang))
+          .add(basis.right.clone().multiplyScalar(Math.sin(ang)))
+          .normalize();
+
+        // slight bias toward the surface so rays hug the mesh
+        dir.add(surfNormal.clone().multiplyScalar(-0.02)).normalize();
+
+        raycaster.set(origin, dir);
+        raycaster.far = MAX_DIST;
+        const hits = raycaster.intersectObjects(walkables, false);
+
+        let hit = null;
+        for (const h of hits) {
+          if (h.distance > 0.15) { hit = h; break; }
+        }
+
+        results.push({
+          dist: hit ? hit.distance : MAX_DIST,
+          color: hit ? colorFromHit(hit) : null,
+          dir,
+        });
+      }
+
+      // show a few rays in the 3D view
+      const step = Math.floor(RAYS / rayHelpers.length);
+      for (let i = 0; i < rayHelpers.length; i++) {
+        const r = results[i * step];
+        if (!r) continue;
+        const len = Math.min(r.dist, 6);
+        const end = origin.clone().add(r.dir.clone().multiplyScalar(len));
+        const pos = rayHelpers[i].geometry.attributes.position;
+        pos.setXYZ(0, origin.x, origin.y, origin.z);
+        pos.setXYZ(1, end.x, end.y, end.z);
+        pos.needsUpdate = true;
+        rayHelpers[i].visible = true;
+      }
+
+      return results;
+    }
+
+    function draw2dVision(results) {
+      const w = canvas2d.width / (window.devicePixelRatio || 1);
+      const h = canvas2d.height / (window.devicePixelRatio || 1);
+
+      // abstract sky/ground
+      const grd = ctx.createLinearGradient(0, 0, 0, h);
+      grd.addColorStop(0, '#12122a');
+      grd.addColorStop(0.5, '#0e0e1c');
+      grd.addColorStop(1, '#0a1014');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, w, h);
+
+      const mid = h * 0.5;
+      ctx.strokeStyle = 'rgba(155,140,255,0.25)';
+      ctx.beginPath();
+      ctx.moveTo(0, mid);
+      ctx.lineTo(w, mid);
+      ctx.stroke();
+
+      const colW = w / RAYS;
+
+      for (let i = 0; i < RAYS; i++) {
+        const r = results[i];
+        if (!r || r.color === null) continue;
+
+        const dist = Math.max(0.15, r.dist);
+        const wallH = Math.min(h * 0.9, (h * 1.1) / dist);
+        const top = mid - wallH / 2;
+
+        const shade = Math.max(0.2, 1 - dist / MAX_DIST);
+        const rgb = hexToRgb(r.color);
+        ctx.fillStyle = `rgb(${(rgb.r * shade) | 0},${(rgb.g * shade) | 0},${(rgb.b * shade) | 0})`;
+        ctx.fillRect(i * colW, top, colW + 1, wallH);
+
+        ctx.fillStyle = `rgba(255,255,255,${0.08 * shade})`;
+        ctx.fillRect(i * colW, top, colW + 1, 2);
+      }
+
+      // crosshair
+      ctx.strokeStyle = 'rgba(255,221,85,0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(w / 2 - 8, mid);
+      ctx.lineTo(w / 2 + 8, mid);
+      ctx.moveTo(w / 2, mid - 8);
+      ctx.lineTo(w / 2, mid + 8);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(200,190,255,0.45)';
+      ctx.font = '11px system-ui';
+      ctx.fillText('rays hug the surface · closer = taller', 12, h - 14);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  RESIZE + LOOP
+    // ═══════════════════════════════════════════════════════════
+    function resize() {
+      const halfW = Math.floor(innerWidth / 2);
+      const h = innerHeight;
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+
+      canvas2d.width = halfW * dpr;
+      canvas2d.height = h * dpr;
+      canvas2d.style.width = halfW + 'px';
+      canvas2d.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      renderer.setSize(halfW, h, false);
+      cam3d.aspect = halfW / h;
+      cam3d.updateProjectionMatrix();
+    }
+    addEventListener('resize', resize);
+    resize();
+
+    const clock = new THREE.Clock();
+    const camTarget = new THREE.Vector3();
+    const camPos = new THREE.Vector3(0, 12, 16);
 
     function animate() {
       requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05);
-      update(dt);
-      render();
+
+      updatePlayer(dt);
+
+      const b = getTangentBasis(surfNormal, facing);
+      const desired = player.position.clone()
+        .add(surfNormal.clone().multiplyScalar(5.5))
+        .add(b.forward.clone().multiplyScalar(-7));
+      camPos.lerp(desired, 1 - Math.pow(0.001, dt));
+      cam3d.position.copy(camPos);
+      camTarget.lerp(player.position, 1 - Math.pow(0.0001, dt));
+      cam3d.lookAt(camTarget);
+
+      torus.rotation.z += dt * 0.25;
+      torusRing.rotation.z = torus.rotation.z;
+
+      const rays = castVisionRays();
+      draw2dVision(rays);
+
+      renderer.render(scene, cam3d);
     }
     animate();
   </script>
