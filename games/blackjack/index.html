@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- LOBBY -->
+  <!-- ENTRY LOBBY -->
   <div id="lobby" class="screen">
     <div class="card-panel lobby-panel">
       <div class="logo">♠ Blackjack ♥</div>
@@ -17,57 +17,69 @@
       <input id="nameInput" type="text" maxlength="16" placeholder="Player name" autocomplete="off" />
 
       <div class="lobby-actions">
-        <button id="btnCreate" class="btn primary">Create Room</button>
+        <button id="btnCreate" class="btn primary" type="button">Create Room</button>
         <div class="or">or</div>
         <div class="join-row">
           <input id="roomInput" type="text" maxlength="6" placeholder="ROOM CODE" autocomplete="off" />
-          <button id="btnJoin" class="btn">Join</button>
+          <button id="btnJoin" class="btn" type="button">Join</button>
         </div>
       </div>
 
       <p id="lobbyError" class="error"></p>
-      <p class="hint">Share the room code with friends. Host deals when ready.</p>
+      <p class="hint">Share the room code. Need at least 2 players. Host starts the game.</p>
     </div>
   </div>
 
-  <!-- TABLE -->
+  <!-- ROOM / TABLE -->
   <div id="table" class="screen hidden">
     <header class="topbar">
       <div class="room-badge">Room <span id="roomCodeDisplay">----</span></div>
       <div id="statusText" class="status">Waiting…</div>
-      <button id="btnLeave" class="btn small ghost">Leave</button>
+      <div class="player-count" id="playerCount">0 players</div>
+      <button id="btnLeave" class="btn small ghost" type="button">Leave</button>
     </header>
 
-    <div class="table-felt">
-      <!-- Dealer -->
-      <section class="seat dealer-seat">
-        <div class="seat-label">Dealer <span id="dealerTotal" class="total"></span></div>
-        <div id="dealerCards" class="hand"></div>
-      </section>
-
-      <!-- Players -->
-      <section id="playersArea" class="players-area"></section>
-
-      <!-- Controls -->
-      <section class="controls">
-        <div id="hostControls" class="hidden">
-          <button id="btnDeal" class="btn primary">Deal</button>
-          <button id="btnNewRound" class="btn" disabled>New Round</button>
-        </div>
-        <div id="playerControls" class="hidden">
-          <button id="btnHit" class="btn primary">Hit</button>
-          <button id="btnStand" class="btn">Stand</button>
-        </div>
-        <div id="spectateNote" class="spectate hidden">Waiting for your turn…</div>
-      </section>
+    <!-- Waiting lobby inside room -->
+    <div id="waitingLobby" class="waiting-lobby">
+      <div class="waiting-box">
+        <h2>Room Lobby</h2>
+        <p id="waitingMsg">Waiting for players…</p>
+        <ul id="waitingList"></ul>
+        <p class="min-note">Minimum <strong>2</strong> players to start</p>
+        <button id="btnStartGame" class="btn primary" type="button" disabled>Start Game</button>
+        <p id="waitingHint" class="hint">Only the host can start</p>
+      </div>
     </div>
 
-    <aside class="sidebar">
-      <h3>Players</h3>
-      <ul id="playerList"></ul>
-      <div class="chip-info">You: <strong id="myChips">1000</strong> chips</div>
-      <div class="log" id="gameLog"></div>
-    </aside>
+    <div id="gameArea" class="hidden">
+      <div class="table-felt">
+        <section class="seat dealer-seat">
+          <div class="seat-label">Dealer <span id="dealerTotal" class="total"></span></div>
+          <div id="dealerCards" class="hand"></div>
+        </section>
+
+        <section id="playersArea" class="players-area"></section>
+
+        <section class="controls">
+          <div id="hostControls" class="hidden">
+            <button id="btnDeal" class="btn primary" type="button">Deal</button>
+            <button id="btnNewRound" class="btn" type="button" disabled>New Round</button>
+          </div>
+          <div id="playerControls" class="hidden">
+            <button id="btnHit" class="btn primary" type="button">Hit</button>
+            <button id="btnStand" class="btn" type="button">Stand</button>
+          </div>
+          <div id="spectateNote" class="spectate hidden">Waiting for your turn…</div>
+        </section>
+      </div>
+
+      <aside class="sidebar">
+        <h3>Players</h3>
+        <ul id="playerList"></ul>
+        <div class="chip-info">You: <strong id="myChips">1000</strong> chips</div>
+        <div class="log" id="gameLog"></div>
+      </aside>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

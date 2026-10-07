@@ -19,7 +19,7 @@ html, body {
 
 .hidden { display: none !important; }
 
-/* ── Lobby ─────────────────────────────────────────── */
+/* ── Entry lobby ───────────────────────────────────── */
 #lobby {
   min-height: 100%;
   display: grid;
@@ -47,6 +47,7 @@ html, body {
   letter-spacing: 0.04em;
   background: linear-gradient(135deg, #fff, var(--gold));
   -webkit-background-clip: text;
+  background-clip: text;
   color: transparent;
   margin-bottom: 6px;
 }
@@ -144,25 +145,21 @@ input:focus { border-color: #6d5dfc; }
   line-height: 1.4;
 }
 
-/* ── Table layout ──────────────────────────────────── */
+/* ── Room shell ────────────────────────────────────── */
 #table {
   height: 100%;
-  display: grid;
-  grid-template-columns: 1fr 220px;
-  grid-template-rows: auto 1fr;
-  grid-template-areas:
-    "top top"
-    "felt side";
+  display: flex;
+  flex-direction: column;
 }
 
 .topbar {
-  grid-area: top;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   padding: 10px 16px;
   background: #12121a;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .room-badge {
@@ -185,10 +182,95 @@ input:focus { border-color: #6d5dfc; }
   color: #ccc;
 }
 
-.table-felt {
-  grid-area: felt;
+.player-count {
+  font-size: 12px;
+  color: #888;
+  background: #ffffff0a;
+  padding: 5px 10px;
+  border-radius: 8px;
+}
+
+/* ── Waiting lobby ─────────────────────────────────── */
+.waiting-lobby {
+  flex: 1;
+  display: grid;
+  place-items: center;
   background:
-    radial-gradient(ellipse at center, #0f6b47 0%, var(--felt-dark) 70%);
+    radial-gradient(ellipse at center, #122a1e 0%, #0a0a10 70%);
+  padding: 24px;
+}
+
+.waiting-box {
+  width: min(420px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 28px 24px;
+  text-align: center;
+}
+
+.waiting-box h2 {
+  font-size: 22px;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+#waitingMsg {
+  color: #999;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+#waitingList {
+  list-style: none;
+  text-align: left;
+  margin-bottom: 16px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+#waitingList li {
+  padding: 10px 12px;
+  background: #ffffff0a;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+#waitingList li .tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+}
+
+#waitingList li.me {
+  outline: 1px solid #6d5dfc66;
+}
+
+.min-note {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 14px;
+}
+
+#btnStartGame {
+  margin-bottom: 8px;
+}
+
+/* ── Game area ─────────────────────────────────────── */
+#gameArea {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  min-height: 0;
+}
+
+.table-felt {
+  background: radial-gradient(ellipse at center, #0f6b47 0%, var(--felt-dark) 70%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -231,7 +313,6 @@ input:focus { border-color: #6d5dfc; }
   min-height: 96px;
 }
 
-/* Playing card */
 .pcard {
   width: 64px;
   height: 90px;
@@ -245,7 +326,6 @@ input:focus { border-color: #6d5dfc; }
   font-weight: 700;
   font-size: 15px;
   box-shadow: 0 4px 12px #0005;
-  position: relative;
   animation: dealIn 0.25s ease;
 }
 .pcard.red { color: var(--red); }
@@ -268,7 +348,7 @@ input:focus { border-color: #6d5dfc; }
   gap: 20px;
   justify-content: center;
   width: 100%;
-  max-width: 900px;
+  max-width: 960px;
 }
 
 .player-seat {
@@ -276,7 +356,7 @@ input:focus { border-color: #6d5dfc; }
   border: 1px solid #ffffff15;
   border-radius: 14px;
   padding: 12px 14px;
-  min-width: 160px;
+  min-width: 150px;
   text-align: center;
   transition: 0.2s;
 }
@@ -306,13 +386,12 @@ input:focus { border-color: #6d5dfc; }
   align-items: center;
   justify-content: center;
   min-height: 48px;
+  flex-wrap: wrap;
 }
-.controls .btn { min-width: 100px; }
+.controls .btn { min-width: 100px; width: auto; }
 .spectate { color: #aaa; font-size: 13px; }
 
-/* Sidebar */
 .sidebar {
-  grid-area: side;
   background: #12121a;
   border-left: 1px solid var(--border);
   padding: 16px;
@@ -338,11 +417,11 @@ input:focus { border-color: #6d5dfc; }
   background: #ffffff08;
   display: flex;
   justify-content: space-between;
+  gap: 8px;
 }
-#playerList li.host::after {
-  content: "HOST";
-  font-size: 10px;
+#playerList li.host .tag {
   color: var(--gold);
+  font-size: 10px;
   font-weight: 700;
 }
 #playerList li.me { outline: 1px solid #6d5dfc55; }
@@ -367,9 +446,9 @@ input:focus { border-color: #6d5dfc; }
 .log div { margin-bottom: 4px; }
 
 @media (max-width: 700px) {
-  #table {
+  #gameArea {
     grid-template-columns: 1fr;
-    grid-template-areas: "top" "felt" "side";
+    grid-template-rows: 1fr auto;
   }
   .sidebar {
     border-left: none;
