@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /* ============================================================
-   RACE – Realistic 3D Racing
-   Race mode + Explore with selectable pre-made maps
-   Maps inspired by open-world racing (forest, sakura, coast, island)
+   RACE – Real vehicle physics + pre-made Explore maps
+   Car can fall, tilt, tumble, interact with terrain
+   Water does NOT slow the car
+   Rare procedural cities in infinite world
    ============================================================ */
 
 const canvas = document.getElementById('game');
@@ -44,7 +45,6 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
 
-// ─── Renderer / Scene ────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -73,7 +73,6 @@ sun.shadow.bias = -0.0003;
 scene.add(sun);
 scene.add(sun.target);
 
-// ─── Noise helpers ───────────────────────────────────────────
 function hash(x, z) {
   const n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
   return n - Math.floor(n);
@@ -95,156 +94,81 @@ function fbm(x, z, oct = 5) {
   return val / max;
 }
 
-// ─── Map definitions (pre-made themed worlds) ────────────────
 const MAPS = {
   forest: {
     name: 'Forest Highway',
-    fogColor: 0x7a9a7a,
-    fogNear: 60,
-    fogFar: 320,
-    sky: 0x87a0b0,
-    sunColor: 0xfff0d0,
-    sunIntensity: 1.2,
-    hemiSky: 0xa0c0a0,
-    hemiGround: 0x3a5a30,
-    // Hand-crafted main road path (spline points)
+    fogColor: 0x7a9a7a, fogNear: 60, fogFar: 320, sky: 0x87a0b0,
+    sunColor: 0xfff0d0, sunIntensity: 1.2, hemiSky: 0xa0c0a0, hemiGround: 0x3a5a30,
     roads: [
-      // Long highway through forest
       [[-200, 0], [-120, 20], [-40, 10], [40, -15], [120, 5], [200, 30], [280, 10]],
-      // Cross road
       [[0, -150], [10, -80], [5, 0], [15, 80], [0, 160]],
-      // Mountain side road
       [[-80, 40], [-100, 90], [-60, 140], [20, 160], [80, 130]]
     ],
-    spawn: [0, 5, 0],
-    treeDensity: 0.55,
-    treeColor: 0x1e4a28,
-    grassHue: 0.28,
-    mountainScale: 1.1,
-    riverScale: 0.9,
-    sakura: false,
-    waterColor: 0x2a5a6a
+    spawn: [0, 8, 0], treeDensity: 0.55, treeColor: 0x1e4a28, grassHue: 0.28,
+    mountainScale: 1.1, riverScale: 0.9, sakura: false, waterColor: 0x2a5a6a
   },
   sakura: {
     name: 'Sakura Road',
-    fogColor: 0xe8c0d0,
-    fogNear: 50,
-    fogFar: 280,
-    sky: 0xd0e8f0,
-    sunColor: 0xffe8f0,
-    sunIntensity: 1.1,
-    hemiSky: 0xf0d0e0,
-    hemiGround: 0x6a8a60,
+    fogColor: 0xe8c0d0, fogNear: 50, fogFar: 280, sky: 0xd0e8f0,
+    sunColor: 0xffe8f0, sunIntensity: 1.1, hemiSky: 0xf0d0e0, hemiGround: 0x6a8a60,
     roads: [
-      // Main sakura avenue (straight-ish with gentle curves)
       [[-250, 0], [-150, 5], [-50, -5], [50, 8], [150, -3], [250, 10]],
-      // Side path through blossoms
       [[-30, -100], [-10, -40], [0, 20], [20, 80], [40, 140]]
     ],
-    spawn: [0, 4, 0],
-    treeDensity: 0.7,
-    treeColor: 0xf0a0b8, // pink foliage
-    grassHue: 0.3,
-    mountainScale: 0.7,
-    riverScale: 0.6,
-    sakura: true,
-    waterColor: 0x4a7a9a
+    spawn: [0, 6, 0], treeDensity: 0.7, treeColor: 0xf0a0b8, grassHue: 0.3,
+    mountainScale: 0.7, riverScale: 0.6, sakura: true, waterColor: 0x4a7a9a
   },
   coast: {
     name: 'Coastal Vista',
-    fogColor: 0xb0c8e0,
-    fogNear: 70,
-    fogFar: 400,
-    sky: 0x88b8e8,
-    sunColor: 0xffd8a0,
-    sunIntensity: 1.4,
-    hemiSky: 0xc0d8f0,
-    hemiGround: 0x5a7a40,
+    fogColor: 0xb0c8e0, fogNear: 70, fogFar: 400, sky: 0x88b8e8,
+    sunColor: 0xffd8a0, sunIntensity: 1.4, hemiSky: 0xc0d8f0, hemiGround: 0x5a7a40,
     roads: [
-      // Ridge road overlooking ocean
       [[-180, 40], [-100, 60], [-20, 50], [60, 70], [140, 55], [220, 80]],
-      // Descent to coast
       [[40, 50], [60, 20], [90, -20], [120, -60], [150, -100]],
-      // Coastal road
       [[-50, -120], [30, -110], [110, -100], [190, -90]]
     ],
-    spawn: [0, 8, 50],
-    treeDensity: 0.35,
-    treeColor: 0x2a5a32,
-    grassHue: 0.25,
-    mountainScale: 1.4,
-    riverScale: 0.4,
-    sakura: false,
-    waterColor: 0x1a4a7a,
-    ocean: true
+    spawn: [0, 10, 50], treeDensity: 0.35, treeColor: 0x2a5a32, grassHue: 0.25,
+    mountainScale: 1.4, riverScale: 0.4, sakura: false, waterColor: 0x1a4a7a, ocean: true
   },
   island: {
     name: 'Horizon Island',
-    fogColor: 0x90b0a0,
-    fogNear: 90,
-    fogFar: 450,
-    sky: 0x7ab0d8,
-    sunColor: 0xfff5e0,
-    sunIntensity: 1.3,
-    hemiSky: 0xb0d0f0,
-    hemiGround: 0x4a6a38,
-    // Larger road network inspired by the satellite map
+    fogColor: 0x90b0a0, fogNear: 90, fogFar: 450, sky: 0x7ab0d8,
+    sunColor: 0xfff5e0, sunIntensity: 1.3, hemiSky: 0xb0d0f0, hemiGround: 0x4a6a38,
     roads: [
-      // Ring / coastal highway
       [[-220, -80], [-180, 40], [-80, 140], [40, 180], [160, 120], [220, 20], [180, -100], [60, -160], [-80, -140], [-200, -60], [-220, -80]],
-      // North-south spine
       [[0, -180], [10, -80], [0, 20], [-10, 100], [5, 180]],
-      // East-west connector
       [[-160, 20], [-60, 30], [40, 15], [140, 40]],
-      // Mountain pass
       [[-40, 80], [-20, 120], [30, 150], [80, 130]],
-      // City approach (flattened area roads)
       [[40, -40], [70, -20], [100, 0], [90, 40]]
     ],
-    spawn: [0, 5, -20],
-    treeDensity: 0.4,
-    treeColor: 0x246030,
-    grassHue: 0.27,
-    mountainScale: 1.6,
-    riverScale: 1.0,
-    sakura: false,
-    waterColor: 0x1a5070,
-    ocean: true,
-    large: true
+    spawn: [0, 8, -20], treeDensity: 0.4, treeColor: 0x246030, grassHue: 0.27,
+    mountainScale: 1.6, riverScale: 1.0, sakura: false, waterColor: 0x1a5070, ocean: true, large: true
   }
 };
 
 let activeMap = MAPS.forest;
 
-// Terrain height – modulated per map
 function getTerrainHeight(x, z) {
   const m = activeMap;
   let h = fbm(x * 0.007, z * 0.007, 4) * 14;
-  // Mountains
   const mont = fbm(x * 0.0025 + 40, z * 0.0025 + 40, 5);
-  if (mont > 0.52) h += (mont - 0.52) * 70 * m.mountainScale;
-  // Rivers / valleys
+  if (mont > 0.52) h += (mont - 0.52) * 70 * (m.mountainScale || 1);
   const river = Math.abs(fbm(x * 0.0035 + 70, z * 0.0035 + 70, 3) - 0.5);
-  if (river < 0.05 * m.riverScale) h -= (0.05 * m.riverScale - river) * 60;
-  // Flatten near roads
+  if (river < 0.05 * (m.riverScale || 1)) h -= (0.05 * (m.riverScale || 1) - river) * 60;
   if (isNearRoad(x, z, 9)) h = Math.max(h * 0.35, 0.5);
-  // Ocean drop for coastal maps
-  if (m.ocean) {
-    const distCoast = Math.sqrt(x * x + (z + 80) * (z + 80));
-    if (m.id === 'coast' || m.id === 'island') {
-      // Soft coast on south side
-      if (z < -90) h = Math.min(h, -2 + (z + 90) * 0.15);
-    }
+  // Flatten city areas
+  if (isCityChunk(Math.floor(x / 72), Math.floor(z / 72))) h = Math.max(h * 0.15, 0.3);
+  if (m.ocean && (m.id === 'coast' || m.id === 'island') && z < -90) {
+    h = Math.min(h, -2 + (z + 90) * 0.15);
   }
   return h;
 }
 
 function isRiver(x, z) {
   const river = Math.abs(fbm(x * 0.0035 + 70, z * 0.0035 + 70, 3) - 0.5);
-  return river < 0.038 * activeMap.riverScale;
+  return river < 0.038 * (activeMap.riverScale || 1);
 }
 
-// Pre-made road system – distance to nearest road segment
 function distToSegment(px, pz, ax, az, bx, bz) {
   const dx = bx - ax, dz = bz - az;
   const len2 = dx * dx + dz * dz;
@@ -255,6 +179,7 @@ function distToSegment(px, pz, ax, az, bx, bz) {
 }
 
 function isNearRoad(x, z, width = 7) {
+  if (!activeMap.roads) return false;
   for (const path of activeMap.roads) {
     for (let i = 0; i < path.length - 1; i++) {
       const a = path[i], b = path[i + 1];
@@ -268,6 +193,13 @@ function isOnRoad(x, z) {
   return isNearRoad(x, z, 5.5);
 }
 
+// Low-chance city: ~8% of chunks, deterministic by chunk coord
+function isCityChunk(cx, cz) {
+  if (mode === 'race') return false;
+  const h = hash(cx * 19.7 + 3.1, cz * 31.3 + 7.9);
+  return h > 0.92; // ~8% chance
+}
+
 // ─── Chunk system ────────────────────────────────────────────
 const CHUNK_SIZE = 72;
 const CHUNK_RES = 36;
@@ -278,21 +210,104 @@ const trunkGeo = new THREE.CylinderGeometry(0.22, 0.32, 1.6, 6);
 const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.9 });
 const rockGeo = new THREE.DodecahedronGeometry(1.1, 0);
 const rockMat = new THREE.MeshStandardMaterial({ color: 0x6a6a5a, roughness: 0.95 });
+const bldgMats = [
+  new THREE.MeshStandardMaterial({ color: 0x6a7a8a, roughness: 0.7, metalness: 0.15 }),
+  new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.75 }),
+  new THREE.MeshStandardMaterial({ color: 0x5a6a7a, roughness: 0.65, metalness: 0.2 }),
+  new THREE.MeshStandardMaterial({ color: 0x9a8a7a, roughness: 0.8 }),
+  new THREE.MeshStandardMaterial({ color: 0x4a5a6a, roughness: 0.6, metalness: 0.25 })
+];
+const windowMat = new THREE.MeshStandardMaterial({
+  color: 0x88aacc, emissive: 0x334455, emissiveIntensity: 0.3, metalness: 0.5, roughness: 0.2
+});
 
 function chunkKey(cx, cz) { return cx + ',' + cz; }
 
 function createFoliageMesh(isSakura) {
   if (isSakura) {
-    // Soft pink canopy
-    const g = new THREE.SphereGeometry(2.2, 8, 6);
-    return new THREE.Mesh(g, new THREE.MeshStandardMaterial({
-      color: 0xf0a0b8, roughness: 0.85, metalness: 0.05
-    }));
+    return new THREE.Mesh(
+      new THREE.SphereGeometry(2.2, 8, 6),
+      new THREE.MeshStandardMaterial({ color: 0xf0a0b8, roughness: 0.85 })
+    );
   }
-  const g = new THREE.ConeGeometry(1.4, 4.2, 7);
-  return new THREE.Mesh(g, new THREE.MeshStandardMaterial({
-    color: activeMap.treeColor, roughness: 0.88
-  }));
+  return new THREE.Mesh(
+    new THREE.ConeGeometry(1.4, 4.2, 7),
+    new THREE.MeshStandardMaterial({ color: activeMap.treeColor, roughness: 0.88 })
+  );
+}
+
+function addCityToChunk(group, cx, cz) {
+  // Small city block – buildings on a grid, low chance overall
+  const baseY = 0.4;
+  const grid = 3 + Math.floor(hash(cx, cz) * 3); // 3–5 buildings per side
+  const spacing = CHUNK_SIZE / (grid + 1);
+  const roadW = 6;
+
+  // City ground patch (asphalt)
+  const pad = new THREE.Mesh(
+    new THREE.BoxGeometry(CHUNK_SIZE * 0.85, 0.2, CHUNK_SIZE * 0.85),
+    new THREE.MeshStandardMaterial({ color: 0x333338, roughness: 0.9 })
+  );
+  pad.position.y = baseY;
+  pad.receiveShadow = true;
+  group.add(pad);
+
+  for (let ix = 0; ix < grid; ix++) {
+    for (let iz = 0; iz < grid; iz++) {
+      // Skip some for streets
+      if ((ix + iz) % 3 === 0 && hash(cx + ix, cz + iz) > 0.4) continue;
+
+      const lx = (ix - (grid - 1) / 2) * spacing;
+      const lz = (iz - (grid - 1) / 2) * spacing;
+      const hSeed = hash(cx * 10 + ix, cz * 10 + iz);
+      const bw = 4 + hSeed * 6;
+      const bd = 4 + hash(ix + 2, iz + 5) * 6;
+      const bh = 6 + hSeed * 28; // 6–34 units tall
+
+      const mat = bldgMats[Math.floor(hSeed * bldgMats.length)];
+      const bldg = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), mat);
+      bldg.position.set(lx, baseY + bh / 2, lz);
+      bldg.castShadow = true;
+      bldg.receiveShadow = true;
+      group.add(bldg);
+
+      // Simple windows
+      if (bh > 10) {
+        const floors = Math.floor(bh / 3.5);
+        for (let f = 1; f < floors; f++) {
+          const wy = baseY + f * 3.5;
+          for (const side of [-1, 1]) {
+            const win = new THREE.Mesh(
+              new THREE.BoxGeometry(bw * 0.7, 1.2, 0.15),
+              windowMat
+            );
+            win.position.set(lx, wy, lz + side * (bd / 2 + 0.05));
+            group.add(win);
+          }
+        }
+      }
+    }
+  }
+
+  // Street lights
+  for (let i = 0; i < 4; i++) {
+    const ang = (i / 4) * Math.PI * 2;
+    const lx = Math.cos(ang) * (CHUNK_SIZE * 0.3);
+    const lz = Math.sin(ang) * (CHUNK_SIZE * 0.3);
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12, 0.15, 5, 6),
+      new THREE.MeshStandardMaterial({ color: 0x333333 })
+    );
+    pole.position.set(lx, baseY + 2.5, lz);
+    pole.castShadow = true;
+    group.add(pole);
+    const lamp = new THREE.Mesh(
+      new THREE.SphereGeometry(0.35, 8, 6),
+      new THREE.MeshStandardMaterial({ color: 0xffffaa, emissive: 0xffaa44, emissiveIntensity: 0.8 })
+    );
+    lamp.position.set(lx, baseY + 5.2, lz);
+    group.add(lamp);
+  }
 }
 
 function createChunk(cx, cz) {
@@ -303,6 +318,7 @@ function createChunk(cx, cz) {
   const colors = [];
   const color = new THREE.Color();
   const m = activeMap;
+  const city = isCityChunk(cx, cz);
 
   for (let i = 0; i < pos.count; i++) {
     const lx = pos.getX(i);
@@ -310,21 +326,23 @@ function createChunk(cx, cz) {
     const wx = cx * CHUNK_SIZE + lx;
     const wz = cz * CHUNK_SIZE + lz;
     let h = getTerrainHeight(wx, wz);
+    if (city) h = Math.max(h * 0.1, 0.25);
     pos.setY(i, h);
 
-    if (isOnRoad(wx, wz)) {
+    if (city) {
+      color.setHSL(0.0, 0.02, 0.2 + Math.random() * 0.05);
+    } else if (isOnRoad(wx, wz)) {
       color.setHSL(0.08, 0.04, 0.22 + Math.random() * 0.04);
     } else if (isRiver(wx, wz) || h < -1) {
-      color.set(m.waterColor);
+      color.set(m.waterColor || 0x2a5a6a);
     } else if (h > 22) {
       color.setHSL(0.08, 0.08, 0.55 + (h - 22) * 0.008);
     } else if (h > 10) {
       color.setHSL(0.1, 0.22, 0.32);
     } else {
-      // Grass – slightly different per map
       const gVar = fbm(wx * 0.05, wz * 0.05, 2);
-      color.setHSL(m.grassHue + gVar * 0.04, 0.4 + gVar * 0.15, 0.26 + gVar * 0.08);
-      if (m.sakura) color.offsetHSL(0.02, 0.05, 0.03); // softer ground
+      color.setHSL((m.grassHue || 0.28) + gVar * 0.04, 0.4 + gVar * 0.15, 0.26 + gVar * 0.08);
+      if (m.sakura) color.offsetHSL(0.02, 0.05, 0.03);
     }
     colors.push(color.r, color.g, color.b);
   }
@@ -338,63 +356,66 @@ function createChunk(cx, cz) {
   mesh.castShadow = true;
   group.add(mesh);
 
-  // Trees / sakura / rocks
-  const count = Math.floor(35 * m.treeDensity);
-  for (let i = 0; i < count; i++) {
-    const lx = (Math.random() - 0.5) * CHUNK_SIZE * 0.92;
-    const lz = (Math.random() - 0.5) * CHUNK_SIZE * 0.92;
-    const wx = cx * CHUNK_SIZE + lx;
-    const wz = cz * CHUNK_SIZE + lz;
-    if (isNearRoad(wx, wz, 8) || isRiver(wx, wz)) continue;
-    const h = getTerrainHeight(wx, wz);
-    if (h > 20 || h < 0) continue;
+  if (city) {
+    addCityToChunk(group, cx, cz);
+  } else {
+    // Trees / rocks
+    const count = Math.floor(35 * (m.treeDensity || 0.4));
+    for (let i = 0; i < count; i++) {
+      const lx = (Math.random() - 0.5) * CHUNK_SIZE * 0.92;
+      const lz = (Math.random() - 0.5) * CHUNK_SIZE * 0.92;
+      const wx = cx * CHUNK_SIZE + lx;
+      const wz = cz * CHUNK_SIZE + lz;
+      if (isNearRoad(wx, wz, 8) || isRiver(wx, wz)) continue;
+      const h = getTerrainHeight(wx, wz);
+      if (h > 20 || h < 0) continue;
 
-    if (Math.random() < 0.85) {
-      const tree = new THREE.Group();
-      const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-      trunk.position.y = 0.8;
-      trunk.castShadow = true;
-      tree.add(trunk);
-      const foliage = createFoliageMesh(m.sakura);
-      foliage.position.y = m.sakura ? 2.8 : 3.4;
-      foliage.castShadow = true;
-      tree.add(foliage);
-      // Extra blossom spheres for sakura density
-      if (m.sakura && Math.random() > 0.4) {
-        const extra = createFoliageMesh(true);
-        extra.position.set((Math.random() - 0.5) * 1.5, 2.2 + Math.random(), (Math.random() - 0.5) * 1.5);
-        extra.scale.setScalar(0.6 + Math.random() * 0.4);
-        tree.add(extra);
+      if (Math.random() < 0.85) {
+        const tree = new THREE.Group();
+        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+        trunk.position.y = 0.8;
+        trunk.castShadow = true;
+        tree.add(trunk);
+        const foliage = createFoliageMesh(m.sakura);
+        foliage.position.y = m.sakura ? 2.8 : 3.4;
+        foliage.castShadow = true;
+        tree.add(foliage);
+        if (m.sakura && Math.random() > 0.4) {
+          const extra = createFoliageMesh(true);
+          extra.position.set((Math.random() - 0.5) * 1.5, 2.2 + Math.random(), (Math.random() - 0.5) * 1.5);
+          extra.scale.setScalar(0.6 + Math.random() * 0.4);
+          tree.add(extra);
+        }
+        tree.position.set(lx, h, lz);
+        tree.scale.setScalar(0.65 + Math.random() * 0.9);
+        tree.rotation.y = Math.random() * Math.PI * 2;
+        group.add(tree);
+      } else {
+        const rock = new THREE.Mesh(rockGeo, rockMat);
+        rock.position.set(lx, h + 0.35, lz);
+        rock.scale.setScalar(0.4 + Math.random() * 1.1);
+        rock.rotation.set(Math.random(), Math.random(), Math.random());
+        rock.castShadow = true;
+        group.add(rock);
       }
-      tree.position.set(lx, h, lz);
-      tree.scale.setScalar(0.65 + Math.random() * 0.9);
-      tree.rotation.y = Math.random() * Math.PI * 2;
-      group.add(tree);
-    } else {
-      const rock = new THREE.Mesh(rockGeo, rockMat);
-      rock.position.set(lx, h + 0.35, lz);
-      rock.scale.setScalar(0.4 + Math.random() * 1.1);
-      rock.rotation.set(Math.random(), Math.random(), Math.random());
-      rock.castShadow = true;
-      group.add(rock);
     }
-  }
 
-  // Bridges over rivers near roads
-  for (let i = 0; i < 2; i++) {
-    const lx = (Math.random() - 0.5) * CHUNK_SIZE * 0.7;
-    const lz = (Math.random() - 0.5) * CHUNK_SIZE * 0.7;
-    const wx = cx * CHUNK_SIZE + lx;
-    const wz = cz * CHUNK_SIZE + lz;
-    if (isRiver(wx, wz) && isNearRoad(wx, wz, 14)) {
-      const bridge = new THREE.Mesh(
-        new THREE.BoxGeometry(10, 0.55, 5),
-        new THREE.MeshStandardMaterial({ color: 0x5a4030, roughness: 0.85 })
-      );
-      bridge.position.set(lx, getTerrainHeight(wx, wz) + 1.8, lz);
-      bridge.castShadow = true;
-      bridge.receiveShadow = true;
-      group.add(bridge);
+    // Bridges
+    for (let i = 0; i < 2; i++) {
+      const lx = (Math.random() - 0.5) * CHUNK_SIZE * 0.7;
+      const lz = (Math.random() - 0.5) * CHUNK_SIZE * 0.7;
+      const wx = cx * CHUNK_SIZE + lx;
+      const wz = cz * CHUNK_SIZE + lz;
+      if (isRiver(wx, wz) && isNearRoad(wx, wz, 14)) {
+        const bridge = new THREE.Mesh(
+          new THREE.BoxGeometry(10, 0.55, 5),
+          new THREE.MeshStandardMaterial({ color: 0x5a4030, roughness: 0.85 })
+        );
+        bridge.position.set(lx, getTerrainHeight(wx, wz) + 1.8, lz);
+        bridge.castShadow = true;
+        bridge.receiveShadow = true;
+        group.add(bridge);
+      }
     }
   }
 
@@ -445,12 +466,12 @@ function clearChunks() {
   chunks.clear();
 }
 
-// Visible road meshes for pre-made paths
 let roadMeshes = [];
 
 function buildRoadMeshes() {
   roadMeshes.forEach(m => scene.remove(m));
   roadMeshes = [];
+  if (!activeMap.roads) return;
   const roadMat = new THREE.MeshStandardMaterial({ color: 0x2c2c2c, roughness: 0.88 });
   const lineMat = new THREE.MeshStandardMaterial({ color: 0xdddddd });
 
@@ -458,10 +479,8 @@ function buildRoadMeshes() {
     for (let i = 0; i < path.length - 1; i++) {
       const a = path[i], b = path[i + 1];
       const ax = a[0], az = a[1], bx = b[0], bz = b[1];
-      const dx = bx - ax, dz = bz - az;
-      const len = Math.hypot(dx, dz);
-      const midX = (ax + bx) / 2;
-      const midZ = (az + bz) / 2;
+      const len = Math.hypot(bx - ax, bz - az);
+      const midX = (ax + bx) / 2, midZ = (az + bz) / 2;
       const hy = (getTerrainHeight(ax, az) + getTerrainHeight(bx, bz) + getTerrainHeight(midX, midZ)) / 3 + 0.35;
 
       const seg = new THREE.Mesh(new THREE.BoxGeometry(11, 0.28, len + 1.2), roadMat);
@@ -472,7 +491,6 @@ function buildRoadMeshes() {
       scene.add(seg);
       roadMeshes.push(seg);
 
-      // Center dashed line
       if (i % 2 === 0) {
         const line = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, Math.min(3, len * 0.4)), lineMat);
         line.position.set(midX, hy + 0.02, midZ);
@@ -485,55 +503,74 @@ function buildRoadMeshes() {
   }
 }
 
-// ─── Apply map theme ─────────────────────────────────────────
 function applyMapTheme(mapId) {
   activeMap = MAPS[mapId];
   activeMap.id = mapId;
   currentMapId = mapId;
-
   scene.background = new THREE.Color(activeMap.sky);
   scene.fog = new THREE.Fog(activeMap.fogColor, activeMap.fogNear, activeMap.fogFar);
   hemi.color.set(activeMap.hemiSky);
   hemi.groundColor.set(activeMap.hemiGround);
   sun.color.set(activeMap.sunColor);
   sun.intensity = activeMap.sunIntensity;
-
   clearChunks();
   buildRoadMeshes();
 }
 
-// ─── Vehicle ─────────────────────────────────────────────────
+/* ============================================================
+   REAL VEHICLE PHYSICS
+   - Gravity always active
+   - 4-corner ground probes → can fall off cliffs / go airborne
+   - Angular velocity for pitch & roll (tilt / tumble)
+   - Suspension spring forces
+   - Bounce on hard landings
+   - World interaction: terrain normals affect orientation
+   - NO water slowdown
+   ============================================================ */
 class Car {
   constructor(color = 0xff3333, isPlayer = false) {
     this.isPlayer = isPlayer;
+    this.wheels = [];
     this.mesh = this.createMesh(color);
     scene.add(this.mesh);
-    this.pos = new THREE.Vector3(0, 2, 0);
-    this.vel = new THREE.Vector3();
+
+    this.pos = new THREE.Vector3(0, 5, 0);
+    this.vel = new THREE.Vector3(0, 0, 0);       // world velocity
+    this.angVel = new THREE.Vector3(0, 0, 0);    // pitch, yaw, roll rates
     this.heading = 0;
     this.pitch = 0;
     this.roll = 0;
-    this.speed = 0;
+
+    this.speed = 0; // forward speed along heading (for convenience)
     this.steerAngle = 0;
     this.throttle = 0;
     this.brake = 0;
     this.handbrake = false;
     this.boost = 0;
-    this.onGround = true;
+    this.onGround = false;
+    this.groundNormal = new THREE.Vector3(0, 1, 0);
+
     this.lap = 1;
     this.checkpoint = 0;
     this.finished = false;
     this.finishTime = 0;
     this.name = isPlayer ? 'You' : 'Bot';
-    this.maxSteer = 0.55;
-    this.engineForce = 44;
-    this.brakeForce = 58;
-    this.drag = 0.4;
-    this.rollingResistance = 7.5;
-    this.lateralGrip = 19;
-    this.handbrakeGrip = 3.5;
-    this.mass = 1200;
-    this.wheels = [];
+
+    // Tuning
+    this.maxSteer = 0.58;
+    this.engineForce = 48;
+    this.brakeForce = 60;
+    this.drag = 0.38;
+    this.rollingResistance = 6;
+    this.lateralGrip = 22;
+    this.handbrakeGrip = 3.2;
+    this.mass = 1300;
+    this.gravity = 28;
+    this.suspensionStiffness = 45;
+    this.suspensionDamping = 12;
+    this.restLength = 0.55; // wheel rest height above ground sample
+    this.wheelBase = 1.35;  // half length
+    this.trackWidth = 0.9;  // half width
   }
 
   createMesh(color) {
@@ -552,7 +589,9 @@ class Car {
     cabin.castShadow = true;
     g.add(cabin);
 
-    const glassMat = new THREE.MeshStandardMaterial({ color: 0x88aacc, metalness: 0.9, roughness: 0.08, transparent: true, opacity: 0.55 });
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x88aacc, metalness: 0.9, roughness: 0.08, transparent: true, opacity: 0.55
+    });
     const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.38, 0.08), glassMat);
     windshield.position.set(0, 1.08, 0.75);
     windshield.rotation.x = -0.28;
@@ -584,70 +623,191 @@ class Car {
     return g;
   }
 
+  // Sample ground at a world XZ, return height
+  sampleGround(x, z) {
+    return getTerrainHeight(x, z);
+  }
+
+  // 4 corner probes relative to car orientation
+  getWheelWorldPositions() {
+    const c = Math.cos(this.heading), s = Math.sin(this.heading);
+    const offsets = [
+      { x: -this.trackWidth, z: this.wheelBase },  // FL
+      { x: this.trackWidth, z: this.wheelBase },   // FR
+      { x: -this.trackWidth, z: -this.wheelBase }, // RL
+      { x: this.trackWidth, z: -this.wheelBase }   // RR
+    ];
+    return offsets.map(o => ({
+      x: this.pos.x + o.x * c + o.z * s,
+      z: this.pos.z - o.x * s + o.z * c,
+      localX: o.x,
+      localZ: o.z
+    }));
+  }
+
   update(dt) {
+    // ── Input ──
     if (this.isPlayer) {
       this.throttle = (keys['KeyW'] || keys['ArrowUp']) ? 1 : 0;
       this.brake = (keys['KeyS'] || keys['ArrowDown']) ? 1 : 0;
       const steerInput = ((keys['KeyA'] || keys['ArrowLeft']) ? 1 : 0) - ((keys['KeyD'] || keys['ArrowRight']) ? 1 : 0);
-      this.steerAngle = THREE.MathUtils.lerp(this.steerAngle, steerInput * this.maxSteer, 9 * dt);
+      this.steerAngle = THREE.MathUtils.lerp(this.steerAngle, steerInput * this.maxSteer, 10 * dt);
       this.handbrake = !!keys['Space'];
       if (keys['ShiftLeft'] || keys['ShiftRight']) this.boost = Math.min(1, this.boost + dt * 2);
       else this.boost = Math.max(0, this.boost - dt * 1.5);
     }
 
-    const groundY = getTerrainHeight(this.pos.x, this.pos.z);
-    const targetY = groundY + 0.55;
+    // ── Gravity (always) ──
+    this.vel.y -= this.gravity * dt;
 
-    if (this.pos.y <= targetY + 0.35) {
-      this.onGround = true;
-      this.pos.y = THREE.MathUtils.lerp(this.pos.y, targetY, 14 * dt);
-      const hL = getTerrainHeight(this.pos.x - 1.2, this.pos.z);
-      const hR = getTerrainHeight(this.pos.x + 1.2, this.pos.z);
-      const hF = getTerrainHeight(this.pos.x, this.pos.z + 1.2);
-      const hB = getTerrainHeight(this.pos.x, this.pos.z - 1.2);
-      this.roll = THREE.MathUtils.lerp(this.roll, Math.atan2(hL - hR, 2.4) * 0.55, 5 * dt);
-      this.pitch = THREE.MathUtils.lerp(this.pitch, Math.atan2(hB - hF, 2.4) * 0.45, 5 * dt);
-    } else {
-      this.onGround = false;
-      this.vel.y -= 26 * dt;
+    // ── Ground probes (4 corners) ──
+    const wheels = this.getWheelWorldPositions();
+    let groundedCount = 0;
+    let totalForceY = 0;
+    let avgNormal = new THREE.Vector3(0, 0, 0);
+    let pitchTorque = 0;
+    let rollTorque = 0;
+
+    const suspensionTravel = 0.7;
+
+    for (const w of wheels) {
+      const groundY = this.sampleGround(w.x, w.z);
+      // Approximate normal from nearby samples
+      const hL = this.sampleGround(w.x - 0.8, w.z);
+      const hR = this.sampleGround(w.x + 0.8, w.z);
+      const hF = this.sampleGround(w.x, w.z + 0.8);
+      const hB = this.sampleGround(w.x, w.z - 0.8);
+      const n = new THREE.Vector3(hL - hR, 2, hB - hF).normalize();
+
+      // Wheel world height (car body + rest offset, accounting for pitch/roll roughly)
+      const wheelY = this.pos.y - this.restLength +
+        w.localZ * Math.sin(this.pitch) * 0.3 -
+        w.localX * Math.sin(this.roll) * 0.3;
+
+      const compression = groundY + this.restLength - (this.pos.y + w.localZ * Math.sin(this.pitch) * 0.15 - w.localX * Math.sin(this.roll) * 0.15);
+
+      if (compression > -0.15 && compression < suspensionTravel + 0.4) {
+        // In contact or close
+        const spring = compression * this.suspensionStiffness;
+        const damp = -this.vel.y * this.suspensionDamping;
+        const force = Math.max(0, spring + damp);
+        totalForceY += force;
+        groundedCount++;
+        avgNormal.add(n);
+
+        // Torque from uneven compression
+        pitchTorque += -w.localZ * force * 0.015;
+        rollTorque += w.localX * force * 0.02;
+
+        // Hard contact: push out of ground
+        if (compression > suspensionTravel * 0.85) {
+          const penetration = compression - suspensionTravel * 0.7;
+          this.pos.y += penetration * 0.5;
+          if (this.vel.y < 0) this.vel.y *= -0.25; // bounce
+        }
+      }
     }
 
-    let force = 0;
-    if (this.onGround) {
-      force += this.throttle * this.engineForce * (1 + this.boost * 0.75);
+    this.onGround = groundedCount >= 1;
+
+    if (this.onGround && groundedCount > 0) {
+      avgNormal.multiplyScalar(1 / groundedCount).normalize();
+      this.groundNormal.copy(avgNormal);
+
+      // Apply suspension force
+      this.vel.y += (totalForceY / this.mass) * dt * 55;
+
+      // Align pitch/roll toward terrain (soft)
+      const targetPitch = Math.atan2(-avgNormal.z, avgNormal.y) * 0.9;
+      const targetRoll = Math.atan2(avgNormal.x, avgNormal.y) * 0.9;
+
+      // Spring toward terrain orientation + suspension torque
+      this.angVel.x += (targetPitch - this.pitch) * 8 * dt + pitchTorque * dt;
+      this.angVel.z += (targetRoll - this.roll) * 8 * dt + rollTorque * dt;
+
+      // Dampen angular when grounded
+      this.angVel.x *= (1 - 6 * dt);
+      this.angVel.z *= (1 - 6 * dt);
+    } else {
+      // Airborne – free tumble, slight angular damping
+      this.angVel.x *= (1 - 0.3 * dt);
+      this.angVel.z *= (1 - 0.3 * dt);
+      // Extra gravity feel
+      this.vel.y -= this.gravity * 0.15 * dt;
+    }
+
+    // Integrate angular
+    this.pitch += this.angVel.x * dt;
+    this.roll += this.angVel.z * dt;
+    // Clamp extreme tumbles a bit for playability but allow flips
+    this.pitch = THREE.MathUtils.clamp(this.pitch, -Math.PI * 0.9, Math.PI * 0.9);
+    this.roll = THREE.MathUtils.clamp(this.roll, -Math.PI * 0.95, Math.PI * 0.95);
+
+    // ── Longitudinal / lateral (only effective when mostly upright & grounded) ──
+    const upright = Math.cos(this.pitch) * Math.cos(this.roll);
+    const canDrive = this.onGround && upright > 0.35;
+
+    if (canDrive) {
+      let force = 0;
+      force += this.throttle * this.engineForce * (1 + this.boost * 0.8);
       force -= this.brake * this.brakeForce * Math.sign(this.speed || 1);
       force -= this.rollingResistance * Math.sign(this.speed);
-      force -= this.drag * this.speed * Math.abs(this.speed) * 0.014;
-      // Extra grip / speed on road
-      if (isOnRoad(this.pos.x, this.pos.z)) force *= 1.08;
-      else force *= 0.82; // off-road slower
+      force -= this.drag * this.speed * Math.abs(this.speed) * 0.012;
+
+      // Road grip bonus
+      if (isOnRoad(this.pos.x, this.pos.z) || isCityChunk(Math.floor(this.pos.x / CHUNK_SIZE), Math.floor(this.pos.z / CHUNK_SIZE))) {
+        force *= 1.1;
+      } else {
+        force *= 0.78; // dirt
+      }
+
+      this.speed += (force / this.mass) * 58 * dt;
+      this.speed = THREE.MathUtils.clamp(this.speed, -25, 62 + this.boost * 18);
+
+      // Steering
+      const steerFactor = Math.min(Math.abs(this.speed) * 0.09, 2.4);
+      this.heading += this.steerAngle * steerFactor * dt * Math.sign(this.speed || 1);
+      this.angVel.y = this.steerAngle * steerFactor * Math.sign(this.speed || 1);
+
+      // Project velocity onto heading with lateral grip
+      const forward = new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading));
+      const desired = forward.clone().multiplyScalar(this.speed);
+      const horiz = new THREE.Vector3(this.vel.x, 0, this.vel.z);
+      const slip = horiz.clone().sub(desired);
+      const grip = this.handbrake ? this.handbrakeGrip : this.lateralGrip;
+      this.vel.x += -slip.x * grip * dt;
+      this.vel.z += -slip.z * grip * dt;
+      this.vel.x = THREE.MathUtils.lerp(this.vel.x, desired.x, 10 * dt);
+      this.vel.z = THREE.MathUtils.lerp(this.vel.z, desired.z, 10 * dt);
+    } else {
+      // Airborne or upside down – speed bleeds, limited control
+      this.speed *= (1 - 0.4 * dt);
+      if (this.isPlayer && Math.abs(this.steerAngle) > 0.1) {
+        // Slight air control
+        this.heading += this.steerAngle * 0.4 * dt;
+      }
+      // Keep some of previous horizontal velocity
+      this.vel.x *= (1 - 0.15 * dt);
+      this.vel.z *= (1 - 0.15 * dt);
     }
 
-    this.speed += (force / this.mass) * 62 * dt;
-    this.speed = THREE.MathUtils.clamp(this.speed, -22, 58 + this.boost * 16);
+    // ── Integrate position ──
+    this.pos.x += this.vel.x * dt;
+    this.pos.y += this.vel.y * dt;
+    this.pos.z += this.vel.z * dt;
 
-    const steerFactor = this.onGround ? 1 : 0.12;
-    this.heading += this.steerAngle * Math.min(Math.abs(this.speed) * 0.085, 2.3) * steerFactor * dt * Math.sign(this.speed || 1);
-
-    const forward = new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading));
-    const desiredVel = forward.clone().multiplyScalar(this.speed);
-    const horizVel = new THREE.Vector3(this.vel.x, 0, this.vel.z);
-    const slip = horizVel.clone().sub(desiredVel);
-    const grip = this.handbrake ? this.handbrakeGrip : this.lateralGrip;
-    const correction = slip.multiplyScalar(-grip * dt);
-    this.vel.x += correction.x;
-    this.vel.z += correction.z;
-    this.vel.x = THREE.MathUtils.lerp(this.vel.x, desiredVel.x, 9 * dt);
-    this.vel.z = THREE.MathUtils.lerp(this.vel.z, desiredVel.z, 9 * dt);
-
-    this.pos.addScaledVector(this.vel, dt);
-    if (this.onGround) this.vel.y = 0;
-
-    if ((isRiver(this.pos.x, this.pos.z) || getTerrainHeight(this.pos.x, this.pos.z) < -0.5) && this.pos.y < 2) {
-      this.speed *= 0.9;
-      this.vel.multiplyScalar(0.93);
+    // Safety: if fallen very far below terrain, soft reset upward
+    const gY = this.sampleGround(this.pos.x, this.pos.z);
+    if (this.pos.y < gY - 15) {
+      this.pos.y = gY + 3;
+      this.vel.set(0, 0, 0);
+      this.speed = 0;
+      this.pitch = 0;
+      this.roll = 0;
+      this.angVel.set(0, 0, 0);
     }
 
+    // ── Visuals ──
     this.mesh.position.copy(this.pos);
     this.mesh.rotation.order = 'YXZ';
     this.mesh.rotation.y = this.heading;
@@ -727,7 +887,6 @@ function buildRaceTrack() {
   roadMeshes.push(banner);
 }
 
-// ─── Game objects ────────────────────────────────────────────
 let player = null;
 let bots = [];
 let allCars = [];
@@ -744,21 +903,20 @@ function spawnCars(raceMode) {
     for (let i = 0; i < 5; i++) {
       const bot = new Car(colors[i], false);
       bot.name = 'Bot ' + (i + 1);
-      bot.pos.set(-(i + 1) * 3.5, 2, -(i + 1) * 3.5);
+      bot.pos.set(-(i + 1) * 3.5, 4, -(i + 1) * 3.5);
       bots.push(bot);
       allCars.push(bot);
     }
-    player.pos.set(0, 2, 0);
+    player.pos.set(0, 4, 0);
   } else {
     const s = activeMap.spawn;
-    player.pos.set(s[0], s[1], s[2]);
+    player.pos.set(s[0], s[1] + 2, s[2]);
     player.heading = 0;
   }
 }
 
-// ─── Camera ──────────────────────────────────────────────────
-const camOffset = new THREE.Vector3(0, 4.8, -10);
-const camLook = new THREE.Vector3(0, 1.3, 7);
+const camOffset = new THREE.Vector3(0, 5.2, -11);
+const camLook = new THREE.Vector3(0, 1.4, 8);
 let freeControls = null;
 
 function updateCamera(dt) {
@@ -778,12 +936,12 @@ function updateCamera(dt) {
   if (camMode === 0) {
     const offset = camOffset.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), player.heading);
     const targetPos = player.pos.clone().add(offset);
-    targetPos.y = Math.max(targetPos.y, getTerrainHeight(targetPos.x, targetPos.z) + 3.5);
-    camera.position.lerp(targetPos, 6.5 * dt);
+    targetPos.y = Math.max(targetPos.y, getTerrainHeight(targetPos.x, targetPos.z) + 4);
+    camera.position.lerp(targetPos, 5.5 * dt);
     const lookAt = player.pos.clone().add(camLook.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), player.heading));
     camera.lookAt(lookAt);
   } else if (camMode === 1) {
-    const hood = new THREE.Vector3(0, 1.35, 0.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.heading);
+    const hood = new THREE.Vector3(0, 1.4, 0.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.heading);
     camera.position.copy(player.pos).add(hood);
     const fwd = new THREE.Vector3(Math.sin(player.heading), 0, Math.cos(player.heading));
     camera.lookAt(player.pos.clone().add(fwd.multiplyScalar(22)).add(new THREE.Vector3(0, 1.2, 0)));
@@ -793,7 +951,6 @@ function updateCamera(dt) {
   }
 }
 
-// ─── Minimap ─────────────────────────────────────────────────
 function drawMinimap() {
   const w = minimapCanvas.width, h = minimapCanvas.height;
   minimapCtx.clearRect(0, 0, w, h);
@@ -806,7 +963,6 @@ function drawMinimap() {
   const scale = mode === 'explore' ? 0.22 : 0.32;
   const cx = w / 2, cy = h / 2;
 
-  // Draw pre-made roads
   if (mode === 'explore' && activeMap.roads) {
     minimapCtx.strokeStyle = '#555';
     minimapCtx.lineWidth = 2.5;
@@ -815,10 +971,25 @@ function drawMinimap() {
       path.forEach((p, i) => {
         const x = cx + (p[0] - player.pos.x) * scale;
         const y = cy + (p[1] - player.pos.z) * scale;
-        if (i === 0) minimapCtx.moveTo(x, y);
-        else minimapCtx.lineTo(x, y);
+        if (i === 0) minimapCtx.moveTo(x, y); else minimapCtx.lineTo(x, y);
       });
       minimapCtx.stroke();
+    }
+  }
+
+  // City markers on minimap
+  if (mode === 'explore') {
+    const pcx = Math.floor(player.pos.x / CHUNK_SIZE);
+    const pcz = Math.floor(player.pos.z / CHUNK_SIZE);
+    minimapCtx.fillStyle = '#aabbcc';
+    for (let dx = -6; dx <= 6; dx++) {
+      for (let dz = -6; dz <= 6; dz++) {
+        if (isCityChunk(pcx + dx, pcz + dz)) {
+          const x = cx + (dx * CHUNK_SIZE) * scale;
+          const y = cy + (dz * CHUNK_SIZE) * scale;
+          minimapCtx.fillRect(x - 3, y - 3, 6, 6);
+        }
+      }
     }
   }
 
@@ -829,8 +1000,7 @@ function drawMinimap() {
     trackPoints.forEach((p, i) => {
       const x = cx + (p.x - player.pos.x) * scale;
       const y = cy + (p.z - player.pos.z) * scale;
-      if (i === 0) minimapCtx.moveTo(x, y);
-      else minimapCtx.lineTo(x, y);
+      if (i === 0) minimapCtx.moveTo(x, y); else minimapCtx.lineTo(x, y);
     });
     minimapCtx.closePath();
     minimapCtx.stroke();
@@ -857,7 +1027,6 @@ function drawMinimap() {
   minimapCtx.stroke();
 }
 
-// ─── Race logic ──────────────────────────────────────────────
 function checkRaceProgress() {
   if (!raceStarted || raceFinished) return;
   allCars.forEach(car => {
@@ -908,7 +1077,6 @@ function formatTime(t) {
   return m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0') + '.' + ms.toString().padStart(3, '0');
 }
 
-// ─── Start / Menu / Map select ───────────────────────────────
 function clearSceneExtras() {
   roadMeshes.forEach(m => scene.remove(m));
   roadMeshes = [];
@@ -970,7 +1138,6 @@ function startGame(selectedMode) {
   raceTime = 0;
 
   clearSceneExtras();
-  // Use neutral theme for race
   activeMap = {
     ...MAPS.forest,
     id: 'race',
@@ -1036,26 +1203,22 @@ document.getElementById('btn-map-back').addEventListener('click', () => {
 document.getElementById('btn-restart').addEventListener('click', () => startGame(mode));
 document.getElementById('btn-menu').addEventListener('click', returnToMenu);
 
-// Map cards
 document.querySelectorAll('.map-card').forEach(card => {
-  card.addEventListener('click', () => {
-    const mapId = card.dataset.map;
-    startExplore(mapId);
-  });
+  card.addEventListener('click', () => startExplore(card.dataset.map));
 });
 
 window.addEventListener('keydown', e => {
   if (e.code === 'KeyR' && player && running) {
     const h = getTerrainHeight(player.pos.x, player.pos.z);
-    player.pos.y = h + 2.5;
+    player.pos.y = h + 3;
     player.vel.set(0, 0, 0);
     player.speed = 0;
     player.pitch = 0;
     player.roll = 0;
+    player.angVel.set(0, 0, 0);
   }
 });
 
-// ─── Main loop ───────────────────────────────────────────────
 let lastTime = performance.now();
 
 function animate(now) {
