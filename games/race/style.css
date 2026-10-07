@@ -1,0 +1,237 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0a0a0f;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+#ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#menu {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a0f 70%);
+  pointer-events: auto;
+}
+
+#menu h1 {
+  font-size: clamp(3rem, 10vw, 6rem);
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  background: linear-gradient(135deg, #00f5a0, #00d9f5, #7b2ff7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 40px rgba(0, 245, 160, 0.3);
+  margin-bottom: 0.2em;
+}
+
+.subtitle {
+  opacity: 0.6;
+  margin-bottom: 2.5rem;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+}
+
+.menu-btn {
+  pointer-events: auto;
+  background: linear-gradient(135deg, #00c9a7, #00b4d8);
+  border: none;
+  color: #0a0a0f;
+  font-size: 1.15rem;
+  font-weight: 700;
+  padding: 1rem 2.5rem;
+  margin: 0.5rem;
+  border-radius: 12px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 20px rgba(0, 201, 167, 0.35);
+  min-width: 240px;
+}
+
+.menu-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 30px rgba(0, 201, 167, 0.5);
+}
+
+.menu-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.controls-info {
+  margin-top: 2.5rem;
+  opacity: 0.55;
+  font-size: 0.9rem;
+  text-align: center;
+  line-height: 1.8;
+}
+
+kbd {
+  background: rgba(255,255,255,0.12);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.85em;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* HUD */
+#hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#speedo {
+  position: absolute;
+  bottom: 2rem;
+  left: 2rem;
+  font-size: 3.2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+}
+
+#speedo .unit {
+  font-size: 1rem;
+  opacity: 0.6;
+  margin-left: 4px;
+}
+
+#lap-info {
+  position: absolute;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  background: rgba(0,0,0,0.45);
+  padding: 0.6rem 1.5rem;
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+}
+
+#timer {
+  position: absolute;
+  top: 1.5rem;
+  right: 2rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: rgba(0,0,0,0.45);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+}
+
+#mode-label {
+  position: absolute;
+  top: 1.5rem;
+  left: 2rem;
+  font-size: 0.95rem;
+  opacity: 0.7;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+#minimap-container {
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid rgba(255,255,255,0.25);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  background: rgba(10, 30, 20, 0.85);
+}
+
+#minimap {
+  width: 100%;
+  height: 100%;
+}
+
+/* Countdown */
+#countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8rem;
+  font-weight: 900;
+  text-shadow: 0 0 40px rgba(0, 245, 160, 0.8);
+  animation: pulse 0.8s ease;
+}
+
+@keyframes pulse {
+  0% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+/* Finish screen */
+#finish {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+#finish h2 {
+  font-size: 3.5rem;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #00f5a0, #00d9f5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+#finish-time {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  opacity: 0.85;
+}
+
+@media (max-width: 600px) {
+  #speedo { font-size: 2.2rem; bottom: 1rem; left: 1rem; }
+  #minimap-container { width: 120px; height: 120px; bottom: 1rem; right: 1rem; }
+  #timer { font-size: 1.1rem; top: 1rem; right: 1rem; }
+}
