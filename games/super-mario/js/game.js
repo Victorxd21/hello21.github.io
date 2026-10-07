@@ -83,8 +83,16 @@ var gameTime = 0;
 function main() {
   var now = Date.now();
   var dt = (now - lastTime) / 1000.0;
-  update(dt);
-  render();
+  try {
+    update(dt);
+  } catch (e) {
+    console.error('update error:', e);
+  }
+  try {
+    render();
+  } catch (e) {
+    console.error('render error:', e);
+  }
   lastTime = now;
   requestAnimFrame(main);
 }
@@ -124,20 +132,30 @@ function handleInput(dt) {
 function updateEntities(dt) {
   if (!player) return;
   player.update(dt, vX);
-  updateables.forEach(function(ent) { ent.update(dt, vX); });
+  for (var i = 0; i < updateables.length; i++) {
+    if (updateables[i] && typeof updateables[i].update === 'function') {
+      updateables[i].update(dt, vX);
+    }
+  }
   for (var i = fireballs.length - 1; i >= 0; i--) {
-    fireballs[i].update(dt, vX);
+    if (fireballs[i] && typeof fireballs[i].update === 'function') {
+      fireballs[i].update(dt, vX);
+    }
   }
 }
 
 function checkCollisions() {
   if (!player || player.piping || player.dying) return;
-  player.checkCollisions();
+  if (typeof player.checkCollisions === 'function') player.checkCollisions();
   for (var i = fireballs.length - 1; i >= 0; i--) {
-    fireballs[i].checkCollisions();
+    if (fireballs[i] && typeof fireballs[i].checkCollisions === 'function') {
+      fireballs[i].checkCollisions();
+    }
   }
   for (var i = updateables.length - 1; i >= 0; i--) {
-    updateables[i].checkCollisions();
+    if (updateables[i] && typeof updateables[i].checkCollisions === 'function') {
+      updateables[i].checkCollisions();
+    }
   }
 }
 
