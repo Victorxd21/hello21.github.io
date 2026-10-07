@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mesh View — 2D Creature</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a12; font-family: system-ui, -apple-system, sans-serif; }
+    #ui {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 16px; pointer-events: none;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.55), transparent);
+    }
+    #ui h1 { font-size: 15px; color: #c8bfff; font-weight: 600; letter-spacing: 0.03em; }
+    #ui .hint { font-size: 12px; color: #888; }
+    #labels {
+      position: fixed; top: 44px; left: 0; right: 0; display: flex; z-index: 5; pointer-events: none;
+    }
+    #labels span {
+      flex: 1; text-align: center; font-size: 11px; color: #9b8cff;
+      text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.85;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h1>Mesh View</h1>
+    <div class="hint">← → turn &nbsp;↑ ↓ move &nbsp;|&nbsp; Left: 2D creature eyes &nbsp;·&nbsp; Right: 3D world</div>
+  </div>
+  <div id="labels">
+    <span>2D Creature Perspective</span>
+    <span>3D Mesh (camera follows you)</span>
+  </div>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+
+    // ─── renderer & size ───────────────────────────────────────
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setScissorTest(true);
+    document.body.appendChild(renderer.domElement);
+
+    // ─── shared scene ──────────────────────────────────────────
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0e0e18);
+    scene.fog = new THREE.Fog(0x0e0e18, 12, 45);
+
+    // lights
+    const ambient = new THREE.AmbientLight(0xffffff, 0.45);
+    scene.add(ambient);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+    dir.position.set(8, 14, 6);
+    scene.add(dir);
+    const fill = new THREE.DirectionalLight(0x8899ff, 0.25);
+    fill.position.set(-6, 4, -4);
+    scene.add(fill);
+
+    // ─── materials (max 2 colors per object) ───────────────────
+    const matA = new THREE.MeshStandardMaterial({ color: 0x4a6cf7, roughness: 0.35, metalness: 0.1 });
+    const matB = new THREE.MeshStandardMaterial({ color: 0xe85d4c, roughness: 0.35, metalness: 0.1 });
+    const matPlane1 = new THREE.MeshStandardMaterial({ color: 0x2a9d8f, roughness: 0.7, metalness: 0.05 });
+    const matPlane2 = new THREE.MeshStandardMaterial({ color: 0x264653, roughness: 0.7, metalness: 0.05 });
+
+    // ─── plane (ground) — two colors ───────────────────────────
+    const planeGeo = new THREE.PlaneGeometry(24, 24, 1, 1);
+    // paint left half one color, right half another via groups
+    const planeLeft = new THREE.Mesh(
+      new THREE.PlaneGeometry(12, 24),
+      matPlane1
+    );
+    planeLeft.rotation.x = -Math.PI / 2;
+    planeLeft.position.set(-6, 0, 0);
+    scene.add(planeLeft);
+
+    const planeRight = new THREE.Mesh(
+      new THREE.PlaneGeometry(12, 24),
+      matPlane2
+    );
+    planeRight.rotation.x = -Math.PI / 2;
+    planeRight.position.set(6, 0, 0);
+    scene.add(planeRight);
+
+    // grid helper for orientation
+    const grid = new THREE.GridHelper(24, 24, 0x444466, 0x222233);
+    grid.position.y = 0.01;
+    scene.add(grid);
+
+    // ─── cube — alternating two colors on faces ────────────────
+    const cubeGeo = new THREE.BoxGeometry(2.4, 2.4, 2.4);
+    const cubeMats = [
+      matA, matB, matA, matB, matA, matB  // +x -x +y -y +z -z
+    ];
+    const cube = new THREE.Mesh(cubeGeo, cubeMats);
+    cube.position.set(5, 1.2, -4);
+    scene.add(cube);
+
+    // ─── torus (donut) — two colors via material array ─────────
+    const torusGeo = new THREE.TorusGeometry(1.6, 0.55, 24, 48);
+    // simple solid + ring accent
+    const torus = new THREE.Mesh(torusGeo, matA);
+    torus.position.set(-5, 1.2, -3);
+    torus.rotation.x = Math.PI / 2.4;
+    scene.add(torus);
+
+    const torusInner = new THREE.Mesh(
+      new THREE.TorusGeometry(1.6, 0.18, 16, 48),
+      matB
+    );
+    torusInner.position.copy(torus.position);
+    torusInner.rotation.copy(torus.rotation);
+    scene.add(torusInner);
+
+    // ─── player (flat 2D-ish creature) ─────────────────────────
+    const playerGroup = new THREE.Group();
+    // body — thin disk (the “2D” look)
+    const body = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.35, 0.35, 0.08, 24),
+      new THREE.MeshStandardMaterial({ color: 0xffdd55, roughness: 0.4, metalness: 0.2 })
+    );
+    body.rotation.x = Math.PI / 2; // flat on ground
+    playerGroup.add(body);
+
+    // tiny “eye” so facing direction is clear in 3D view
+    const eye = new THREE.Mesh(
+      new THREE.SphereGeometry(0.09, 12, 12),
+      new THREE.MeshStandardMaterial({ color: 0x222222 })
+    );
+    eye.position.set(0, 0.12, 0.28);
+    playerGroup.add(eye);
+
+    playerGroup.position.set(0, 0.06, 4);
+    scene.add(playerGroup);
+
+    // ─── cameras ───────────────────────────────────────────────
+    // left: first-person from the 2D creature
+    const camFP = new THREE.PerspectiveCamera(70, 1, 0.05, 80);
+    // right: third-person overview that follows the player
+    const cam3D = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+
+    // ─── input ─────────────────────────────────────────────────
+    const keys = {};
+    window.addEventListener('keydown', e => { keys[e.code] = true; e.preventDefault(); });
+    window.addEventListener('keyup',   e => { keys[e.code] = false; });
+
+    let facing = 0; // radians, 0 = +Z
+    const moveSpeed = 4.5;
+    const turnSpeed = 2.4;
+
+    // ─── resize ────────────────────────────────────────────────
+    function onResize() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      renderer.setSize(w, h);
+      const aspect = (w / 2) / h;
+      camFP.aspect = aspect;
+      camFP.updateProjectionMatrix();
+      cam3D.aspect = aspect;
+      cam3D.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', onResize);
+    onResize();
+
+    // ─── loop ──────────────────────────────────────────────────
+    const clock = new THREE.Clock();
+
+    function update(dt) {
+      // turn
+      if (keys['ArrowLeft'] || keys['KeyA'])  facing += turnSpeed * dt;
+      if (keys['ArrowRight'] || keys['KeyD']) facing -= turnSpeed * dt;
+
+      // move forward / back in facing direction
+      let forward = 0;
+      if (keys['ArrowUp'] || keys['KeyW'])   forward += 1;
+      if (keys['ArrowDown'] || keys['KeyS']) forward -= 1;
+
+      if (forward !== 0) {
+        playerGroup.position.x += Math.sin(facing) * moveSpeed * dt * forward;
+        playerGroup.position.z += Math.cos(facing) * moveSpeed * dt * forward;
+      }
+
+      // keep player roughly on the plane
+      playerGroup.position.x = THREE.MathUtils.clamp(playerGroup.position.x, -11.5, 11.5);
+      playerGroup.position.z = THREE.MathUtils.clamp(playerGroup.position.z, -11.5, 11.5);
+      playerGroup.position.y = 0.06;
+
+      // orient the flat creature
+      playerGroup.rotation.y = facing;
+
+      // first-person camera (creature eyes) — slightly above the disk, looking forward
+      const eyeHeight = 0.22;
+      camFP.position.set(
+        playerGroup.position.x,
+        playerGroup.position.y + eyeHeight,
+        playerGroup.position.z
+      );
+      const lookDist = 4;
+      camFP.lookAt(
+        playerGroup.position.x + Math.sin(facing) * lookDist,
+        playerGroup.position.y + eyeHeight,
+        playerGroup.position.z + Math.cos(facing) * lookDist
+      );
+
+      // third-person camera — follows behind & above
+      const camDist = 9;
+      const camHeight = 6;
+      const targetX = playerGroup.position.x - Math.sin(facing) * camDist * 0.35;
+      const targetZ = playerGroup.position.z - Math.cos(facing) * camDist * 0.35;
+      cam3D.position.x += (targetX - cam3D.position.x) * Math.min(1, 4 * dt);
+      cam3D.position.z += (targetZ - cam3D.position.z) * Math.min(1, 4 * dt);
+      cam3D.position.y += (camHeight - cam3D.position.y) * Math.min(1, 3 * dt);
+      cam3D.lookAt(playerGroup.position.x, 0.5, playerGroup.position.z);
+
+      // gentle spin on the donut for life
+      torus.rotation.z += dt * 0.35;
+      torusInner.rotation.z = torus.rotation.z;
+    }
+
+    function render() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const half = Math.floor(w / 2);
+
+      // left half — 2D creature perspective
+      renderer.setViewport(0, 0, half, h);
+      renderer.setScissor(0, 0, half, h);
+      renderer.render(scene, camFP);
+
+      // right half — 3D overview
+      renderer.setViewport(half, 0, w - half, h);
+      renderer.setScissor(half, 0, w - half, h);
+      renderer.render(scene, cam3D);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.05);
+      update(dt);
+      render();
+    }
+    animate();
+  </script>
+</body>
+</html>
