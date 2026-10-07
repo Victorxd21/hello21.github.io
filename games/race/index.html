@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Race – Realistic 3D Racing</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="ui">
+    <div id="menu">
+      <h1>RACE</h1>
+      <p class="subtitle">Realistic physics • Infinite worlds</p>
+      <button id="btn-race" class="menu-btn">🏁 RACE MODE</button>
+      <button id="btn-explore" class="menu-btn">🌲 EXPLORE MODE</button>
+      <div class="controls-info">
+        <p><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> Drive</p>
+        <p><kbd>Space</kbd> Handbrake · <kbd>Shift</kbd> Boost</p>
+        <p><kbd>C</kbd> Camera · <kbd>R</kbd> Reset · <kbd>Esc</kbd> Menu</p>
+      </div>
+    </div>
+
+    <div id="hud" class="hidden">
+      <div id="speedo">
+        <span id="speed">0</span>
+        <span class="unit">km/h</span>
+      </div>
+      <div id="lap-info" class="hidden">
+        <span>LAP <span id="lap">1</span>/<span id="total-laps">3</span></span>
+        <span id="position">P1</span>
+      </div>
+      <div id="timer">00:00.000</div>
+      <div id="mode-label"></div>
+      <div id="minimap-container">
+        <canvas id="minimap" width="180" height="180"></canvas>
+      </div>
+    </div>
+
+    <div id="countdown" class="hidden">3</div>
+    <div id="finish" class="hidden">
+      <h2 id="finish-title">FINISH!</h2>
+      <p id="finish-time"></p>
+      <button id="btn-restart" class="menu-btn">Race Again</button>
+      <button id="btn-menu" class="menu-btn">Main Menu</button>
+    </div>
+  </div>
+
+  <canvas id="game"></canvas>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
