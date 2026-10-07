@@ -2,11 +2,10 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 async function loadGame() {
-  const [a, b] = await Promise.all([
-    fetch(new URL('./gz0.b64', import.meta.url)).then(r => r.text()),
-    fetch(new URL('./gz1.b64', import.meta.url)).then(r => r.text()),
-  ]);
-  const b64 = (a + b).replace(/\s/g, '');
+  const n = 13;
+  const urls = Array.from({length: n}, (_, i) => new URL('./c' + i + '.txt', import.meta.url));
+  const parts = await Promise.all(urls.map(u => fetch(u).then(r => r.text())));
+  const b64 = parts.join('').replace(/\s/g, '');
   const bin = atob(b64);
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
