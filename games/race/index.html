@@ -18,14 +18,43 @@
   <div id="ui">
     <div id="menu">
       <h1>RACE</h1>
-      <p class="subtitle">Realistic physics • Infinite worlds</p>
+      <p class="subtitle">Realistic physics • Open world maps</p>
       <button id="btn-race" class="menu-btn">🏁 RACE MODE</button>
       <button id="btn-explore" class="menu-btn">🌲 EXPLORE MODE</button>
       <div class="controls-info">
         <p><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> Drive</p>
         <p><kbd>Space</kbd> Handbrake · <kbd>Shift</kbd> Boost</p>
-        <p><kbd>C</kbd> Camera · <kbd>R</kbd> Reset · <kbd>Esc</kbd> Menu</p>
+        <p><kbd>C</kbd> Camera · <kbd>R</kbd> Reset · <kbd>M</kbd> Change Map · <kbd>Esc</kbd> Menu</p>
       </div>
+    </div>
+
+    <!-- Map select overlay (Explore) -->
+    <div id="map-select" class="hidden">
+      <h2>SELECT MAP</h2>
+      <p class="map-hint">Inspired by open-world racing – pick a region to explore</p>
+      <div class="map-grid">
+        <button class="map-card" data-map="forest">
+          <div class="map-preview forest-preview"></div>
+          <span class="map-name">Forest Highway</span>
+          <span class="map-desc">Dense woods · winding mountain roads · city skyline</span>
+        </button>
+        <button class="map-card" data-map="sakura">
+          <div class="map-preview sakura-preview"></div>
+          <span class="map-name">Sakura Road</span>
+          <span class="map-desc">Cherry blossom avenue · pink petals · scenic drive</span>
+        </button>
+        <button class="map-card" data-map="coast">
+          <div class="map-preview coast-preview"></div>
+          <span class="map-name">Coastal Vista</span>
+          <span class="map-desc">Hills · ocean · bridges · distant city at sunset</span>
+        </button>
+        <button class="map-card" data-map="island">
+          <div class="map-preview island-preview"></div>
+          <span class="map-name">Horizon Island</span>
+          <span class="map-desc">Large open world · road network · mountains · coast</span>
+        </button>
+      </div>
+      <button id="btn-map-back" class="menu-btn secondary">← Back</button>
     </div>
 
     <div id="hud" class="hidden">
@@ -39,9 +68,11 @@
       </div>
       <div id="timer">00:00.000</div>
       <div id="mode-label"></div>
+      <div id="map-name-hud" class="hidden"></div>
       <div id="minimap-container">
         <canvas id="minimap" width="180" height="180"></canvas>
       </div>
+      <div id="map-hint-hud" class="hidden">Press <kbd>M</kbd> to change map</div>
     </div>
 
     <div id="countdown" class="hidden">3</div>
