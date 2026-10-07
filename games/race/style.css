@@ -87,6 +87,18 @@ html, body {
   transform: translateY(0) scale(0.98);
 }
 
+.menu-btn.secondary {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  box-shadow: none;
+  margin-top: 1.5rem;
+}
+
+.menu-btn.secondary:hover {
+  background: rgba(255,255,255,0.2);
+  box-shadow: none;
+}
+
 .controls-info {
   margin-top: 2.5rem;
   opacity: 0.55;
@@ -105,6 +117,161 @@ kbd {
 
 .hidden {
   display: none !important;
+}
+
+/* Map Select */
+#map-select {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, #12182a 0%, #0a0a0f 75%);
+  pointer-events: auto;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+#map-select h2 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.3rem;
+  background: linear-gradient(135deg, #00f5a0, #00d9f5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.map-hint {
+  opacity: 0.55;
+  margin-bottom: 1.8rem;
+  font-size: 0.95rem;
+}
+
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.2rem;
+  max-width: 960px;
+  width: 100%;
+}
+
+.map-card {
+  pointer-events: auto;
+  background: rgba(255,255,255,0.06);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  text-align: left;
+  color: #fff;
+  padding: 0;
+  font-family: inherit;
+}
+
+.map-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: #00c9a7;
+  box-shadow: 0 12px 40px rgba(0, 201, 167, 0.25);
+}
+
+.map-preview {
+  height: 110px;
+  width: 100%;
+  position: relative;
+}
+
+.forest-preview {
+  background: linear-gradient(180deg, #4a7c59 0%, #2d4a32 40%, #1a2e1c 100%);
+}
+.forest-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 18px,
+    rgba(20,40,25,0.5) 18px,
+    rgba(20,40,25,0.5) 22px
+  );
+}
+
+.sakura-preview {
+  background: linear-gradient(180deg, #f8c8d8 0%, #e8a0b8 35%, #6b8f71 70%, #3d5c42 100%);
+}
+.sakura-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 40%, rgba(255,182,193,0.7) 0%, transparent 25%),
+              radial-gradient(circle at 70% 30%, rgba(255,192,203,0.6) 0%, transparent 20%),
+              radial-gradient(circle at 50% 60%, rgba(255,220,230,0.5) 0%, transparent 30%);
+}
+
+.coast-preview {
+  background: linear-gradient(180deg, #87b8e0 0%, #c4a574 25%, #5a8f4a 55%, #3d6b35 100%);
+}
+.coast-preview::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 35%;
+  background: linear-gradient(180deg, transparent, rgba(30,80,140,0.7));
+}
+
+.island-preview {
+  background: linear-gradient(135deg, #2a5a3a 0%, #1a3a28 30%, #4a7a9a 55%, #1a4060 100%);
+}
+.island-preview::before {
+  content: '';
+  position: absolute;
+  inset: 15% 20%;
+  border: 1.5px solid rgba(255,255,255,0.25);
+  border-radius: 40% 60% 50% 45%;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+}
+
+.map-name {
+  display: block;
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding: 0.75rem 1rem 0.2rem;
+  letter-spacing: 0.03em;
+}
+
+.map-desc {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.55;
+  padding: 0 1rem 0.9rem;
+  line-height: 1.35;
+}
+
+/* HUD extras */
+#map-name-hud {
+  position: absolute;
+  top: 3.2rem;
+  left: 2rem;
+  font-size: 0.85rem;
+  opacity: 0.6;
+  letter-spacing: 0.06em;
+}
+
+#map-hint-hud {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.85rem;
+  opacity: 0.5;
+  background: rgba(0,0,0,0.4);
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
 }
 
 /* HUD */
@@ -234,4 +401,7 @@ kbd {
   #speedo { font-size: 2.2rem; bottom: 1rem; left: 1rem; }
   #minimap-container { width: 120px; height: 120px; bottom: 1rem; right: 1rem; }
   #timer { font-size: 1.1rem; top: 1rem; right: 1rem; }
+  .map-grid { grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+  .map-preview { height: 80px; }
+  #map-select h2 { font-size: 1.6rem; }
 }
