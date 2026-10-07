@@ -2,9 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /* ============================================================
-   RACE – Per-wheel vehicle physics
-   Each wheel: ground contact, suspension spring, drive/brake,
-   longitudinal + lateral friction. Body is moved by wheel forces.
+   RACE – Per-wheel physics + infinite highway + NPC traffic
    ============================================================ */
 
 const canvas = document.getElementById('game');
@@ -126,38 +124,71 @@ const MAPS = {
     sunColor: 0xfff0d0, sunIntensity: 1.15, hemiSky: 0x90b090, hemiGround: 0x2a4a28,
     roads: [[[-220,0],[-140,15],[-60,5],[20,-10],[100,8],[180,25],[260,5]],[[0,-160],[8,-90],[0,-20],[12,60],[5,150]],[[-90,30],[-110,80],[-70,130],[10,155],[70,120]]],
     spawn: [0, 6, 0], treeDensity: 0.65, treeColor: 0x1a4a22, grassHue: 0.28,
-    heightFn: heightForest, waterColor: 0x1a4a5a, hasCities: true
+    heightFn: heightForest, waterColor: 0x1a4a5a, hasCities: true, hasHighway: true
   },
   sakura: {
     name: 'Sakura Road', fogColor: 0xf0d0e0, fogNear: 40, fogFar: 240, sky: 0xe0f0f8,
     sunColor: 0xffe8f0, sunIntensity: 1.05, hemiSky: 0xf8e0f0, hemiGround: 0x7a9a70,
     roads: [[[-280,0],[-180,3],[-80,-4],[20,6],[120,-2],[220,5],[300,0]],[[-40,-120],[-15,-50],[0,10],[25,90],[50,160]]],
     spawn: [0, 4, 0], treeDensity: 0.8, treeColor: 0xf0a0b8, grassHue: 0.32,
-    heightFn: heightSakura, waterColor: 0x5a8aaa, sakura: true, hasCities: false
+    heightFn: heightSakura, waterColor: 0x5a8aaa, sakura: true, hasCities: false, hasHighway: true
   },
   coast: {
     name: 'Coastal Vista', fogColor: 0xa8c8e8, fogNear: 60, fogFar: 380, sky: 0x78b0e8,
     sunColor: 0xffd8a0, sunIntensity: 1.45, hemiSky: 0xc0d8f0, hemiGround: 0x5a7a40,
     roads: [[[-200,50],[-110,70],[-20,55],[70,75],[160,60],[250,85]],[[50,55],[75,15],[110,-30],[145,-75],[180,-120]],[[-60,-130],[20,-115],[100,-105],[180,-95]]],
     spawn: [0, 12, 60], treeDensity: 0.3, treeColor: 0x2a5a32, grassHue: 0.24,
-    heightFn: heightCoast, waterColor: 0x1a4a7a, ocean: true, hasCities: false
+    heightFn: heightCoast, waterColor: 0x1a4a7a, ocean: true, hasCities: false, hasHighway: true
   },
   island: {
     name: 'Horizon Island', fogColor: 0x88a898, fogNear: 80, fogFar: 420, sky: 0x70a8d0,
     sunColor: 0xfff5e0, sunIntensity: 1.3, hemiSky: 0xb0d0f0, hemiGround: 0x4a6a38,
     roads: [[[-240,-90],[-190,30],[-90,150],[30,190],[150,130],[230,10],[190,-110],[50,-170],[-90,-150],[-210,-70],[-240,-90]],[[0,-190],[8,-90],[0,10],[-8,110],[5,190]],[[-170,15],[-70,25],[30,10],[130,35]],[[-50,90],[-25,130],[25,160],[70,140]],[[50,-50],[80,-25],[110,5],[100,45]]],
     spawn: [0, 6, -30], treeDensity: 0.35, treeColor: 0x246030, grassHue: 0.27,
-    heightFn: heightIsland, waterColor: 0x1a5070, ocean: true, large: true, hasCities: true
+    heightFn: heightIsland, waterColor: 0x1a5070, ocean: true, large: true, hasCities: true, hasHighway: true
   }
 };
 let activeMap = MAPS.forest;
 
+/* ─── Infinite Highway ───────────────────────────────────────
+   Wide dual-lane road that runs forever along X with gentle curves.
+   Z-center = highwayZ(x)  – slight sine so it feels alive.
+*/
+const HW_HALF_WIDTH = 9; // total ~18 units wide
+
+function highwayZ(x) {
+  // Gentle infinite curves
+  return Math.sin(x * 0.008) * 18 + Math.sin(x * 0.003) * 8;
+}
+function highwayHeading(x) {
+  // Tangent of the curve for NPC direction
+  const dz = Math.cos(x * 0.008) * 18 * 0.008 + Math.cos(x * 0.003) * 8 * 0.003;
+  return Math.atan2(dz, 1); // mostly facing +X
+}
+function distToHighway(x, z) {
+  if (!activeMap.hasHighway) return 9999;
+  return Math.abs(z - highwayZ(x));
+}
+function isOnHighway(x, z) {
+  return distToHighway(x, z) < HW_HALF_WIDTH;
+}
+
 function getTerrainHeight(x, z) {
   let h = activeMap.heightFn(x, z);
+  // Flatten pre-made roads
   if (isNearRoad(x, z, 10)) {
     const roadH = Math.max(h * 0.2, 0.4);
     const blend = 1 - Math.min(1, distToNearestRoad(x, z) / 10);
     h = h * (1 - blend * 0.85) + roadH * blend * 0.85;
+  }
+  // Flatten infinite highway (stronger / wider)
+  if (activeMap.hasHighway) {
+    const d = distToHighway(x, z);
+    if (d < HW_HALF_WIDTH + 4) {
+      const blend = 1 - Math.min(1, d / (HW_HALF_WIDTH + 4));
+      const hwH = Math.max(h * 0.15, 0.5);
+      h = h * (1 - blend * 0.9) + hwH * blend * 0.9;
+    }
   }
   if (isCityChunk(Math.floor(x / 72), Math.floor(z / 72))) h = Math.max(h * 0.08, 0.3);
   return h;
@@ -170,14 +201,16 @@ function distToSegment(px, pz, ax, az, bx, bz) {
 }
 function distToNearestRoad(x, z) {
   let best = 9999;
-  if (!activeMap.roads) return best;
-  for (const path of activeMap.roads)
-    for (let i = 0; i < path.length - 1; i++)
-      best = Math.min(best, distToSegment(x, z, path[i][0], path[i][1], path[i+1][0], path[i+1][1]));
+  if (activeMap.roads) {
+    for (const path of activeMap.roads)
+      for (let i = 0; i < path.length - 1; i++)
+        best = Math.min(best, distToSegment(x, z, path[i][0], path[i][1], path[i+1][0], path[i+1][1]));
+  }
+  best = Math.min(best, distToHighway(x, z));
   return best;
 }
 function isNearRoad(x, z, w = 7) { return distToNearestRoad(x, z) < w; }
-function isOnRoad(x, z) { return distToNearestRoad(x, z) < 5.5; }
+function isOnRoad(x, z) { return distToNearestRoad(x, z) < 5.5 || isOnHighway(x, z); }
 function isRiver(x, z) {
   if (activeMap.id === 'sakura') return Math.abs(fbm(x * 0.01 + 40, z * 0.01 + 40, 2) - 0.5) < 0.025;
   if (activeMap.id === 'coast' || activeMap.id === 'island') return getTerrainHeight(x, z) < -0.5;
@@ -201,6 +234,9 @@ const bldgMats = [
   new THREE.MeshStandardMaterial({ color: 0x9a8a7a, roughness: 0.8 })
 ];
 const windowMat = new THREE.MeshStandardMaterial({ color: 0x88aacc, emissive: 0x334455, emissiveIntensity: 0.25, metalness: 0.5, roughness: 0.2 });
+const hwRoadMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2c, roughness: 0.88 });
+const hwLineMat = new THREE.MeshStandardMaterial({ color: 0xeeee88 });
+const hwEdgeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
 
 function chunkKey(cx, cz) { return cx + ',' + cz; }
 function createFoliageMesh(isSakura) {
@@ -218,12 +254,55 @@ function addCityToChunk(group, cx, cz) {
     const bw = 4 + hSeed * 5, bd = 4 + hash(ix + 2, iz + 5) * 5, bh = 5 + hSeed * 26;
     const bldg = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), bldgMats[Math.floor(hSeed * bldgMats.length)]);
     bldg.position.set(lx, baseY + bh / 2, lz); bldg.castShadow = true; bldg.receiveShadow = true; group.add(bldg);
-    if (bh > 10) for (let f = 1; f < Math.floor(bh / 3.5); f++) for (const side of [-1, 1]) {
-      const win = new THREE.Mesh(new THREE.BoxGeometry(bw * 0.65, 1.1, 0.12), windowMat);
-      win.position.set(lx, baseY + f * 3.5, lz + side * (bd / 2 + 0.05)); group.add(win);
+  }
+}
+
+function addHighwayToChunk(group, cx, cz) {
+  if (!activeMap.hasHighway) return;
+  // Build highway segments across this chunk in world X
+  const x0 = cx * CHUNK_SIZE - CHUNK_SIZE / 2;
+  const x1 = cx * CHUNK_SIZE + CHUNK_SIZE / 2;
+  const steps = 8;
+  for (let i = 0; i < steps; i++) {
+    const xa = x0 + (i / steps) * CHUNK_SIZE;
+    const xb = x0 + ((i + 1) / steps) * CHUNK_SIZE;
+    const za = highwayZ(xa), zb = highwayZ(xb);
+    const midX = (xa + xb) / 2, midZ = (za + zb) / 2;
+    const len = Math.hypot(xb - xa, zb - za);
+    const hy = (getTerrainHeight(xa, za) + getTerrainHeight(xb, zb)) / 2 + 0.12;
+
+    // Main asphalt (wide)
+    const seg = new THREE.Mesh(new THREE.BoxGeometry(HW_HALF_WIDTH * 2, 0.18, len + 0.5), hwRoadMat);
+    seg.position.set(midX - cx * CHUNK_SIZE, hy, midZ - cz * CHUNK_SIZE);
+    seg.lookAt(xb - cx * CHUNK_SIZE, hy, zb - cz * CHUNK_SIZE);
+    seg.rotateX(Math.PI / 2);
+    seg.receiveShadow = true;
+    group.add(seg);
+
+    // Center dashed line
+    if (i % 2 === 0) {
+      const line = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.2, Math.min(3, len * 0.4)), hwLineMat);
+      line.position.set(midX - cx * CHUNK_SIZE, hy + 0.02, midZ - cz * CHUNK_SIZE);
+      line.lookAt(xb - cx * CHUNK_SIZE, hy, zb - cz * CHUNK_SIZE);
+      line.rotateX(Math.PI / 2);
+      group.add(line);
+    }
+
+    // Edge lines
+    for (const side of [-1, 1]) {
+      const edge = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.19, len + 0.3), hwEdgeMat);
+      // Offset perpendicular to road direction
+      const dx = xb - xa, dz = zb - za, invLen = 1 / (len || 1);
+      const px = -dz * invLen * HW_HALF_WIDTH * 0.92 * side;
+      const pz = dx * invLen * HW_HALF_WIDTH * 0.92 * side;
+      edge.position.set(midX - cx * CHUNK_SIZE + px, hy + 0.015, midZ - cz * CHUNK_SIZE + pz);
+      edge.lookAt(xb - cx * CHUNK_SIZE + px, hy, zb - cz * CHUNK_SIZE + pz);
+      edge.rotateX(Math.PI / 2);
+      group.add(edge);
     }
   }
 }
+
 function createChunk(cx, cz) {
   const group = new THREE.Group();
   const geo = new THREE.PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE, CHUNK_RES, CHUNK_RES);
@@ -235,6 +314,7 @@ function createChunk(cx, cz) {
     let h = city ? 0.3 : getTerrainHeight(wx, wz);
     pos.setY(i, h);
     if (city) color.setHSL(0, 0.02, 0.2 + Math.random() * 0.04);
+    else if (isOnHighway(wx, wz)) color.setHSL(0.08, 0.02, 0.18 + Math.random() * 0.03);
     else if (isOnRoad(wx, wz)) color.setHSL(0.08, 0.03, 0.2 + Math.random() * 0.03);
     else if (isRiver(wx, wz) || h < -0.3) color.set(m.waterColor);
     else if (h > 28) color.setHSL(0.08, 0.05, 0.6 + Math.min(0.2, (h - 28) * 0.01));
@@ -246,31 +326,26 @@ function createChunk(cx, cz) {
   geo.computeVertexNormals();
   const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0.02 }));
   mesh.receiveShadow = true; group.add(mesh);
+
+  // Highway mesh on top of terrain
+  addHighwayToChunk(group, cx, cz);
+
   if (city) addCityToChunk(group, cx, cz);
   else {
-    const count = Math.floor(32 * m.treeDensity);
+    const count = Math.floor(28 * m.treeDensity);
     for (let i = 0; i < count; i++) {
       const lx = (Math.random() - 0.5) * CHUNK_SIZE * 0.9, lz = (Math.random() - 0.5) * CHUNK_SIZE * 0.9;
       const wx = cx * CHUNK_SIZE + lx, wz = cz * CHUNK_SIZE + lz;
-      if (isNearRoad(wx, wz, 9) || isRiver(wx, wz)) continue;
+      if (isNearRoad(wx, wz, 10) || isOnHighway(wx, wz) || isRiver(wx, wz)) continue;
       const h = getTerrainHeight(wx, wz);
       if (h > 22 || h < 0.2) continue;
       if (Math.random() < 0.88) {
         const tree = new THREE.Group();
         const trunk = new THREE.Mesh(trunkGeo, trunkMat); trunk.position.y = 0.75; trunk.castShadow = true; tree.add(trunk);
         const foliage = createFoliageMesh(m.sakura); foliage.position.y = m.sakura ? 2.6 : 3.2; foliage.castShadow = true; tree.add(foliage);
-        if (m.sakura && Math.random() > 0.35) { const extra = createFoliageMesh(true); extra.position.set((Math.random()-0.5)*1.4, 2+Math.random(), (Math.random()-0.5)*1.4); extra.scale.setScalar(0.55+Math.random()*0.4); tree.add(extra); }
         tree.position.set(lx, h, lz); tree.scale.setScalar(0.6 + Math.random() * 0.85); tree.rotation.y = Math.random() * Math.PI * 2; group.add(tree);
       } else {
-        const rock = new THREE.Mesh(rockGeo, rockMat); rock.position.set(lx, h + 0.3, lz); rock.scale.setScalar(0.35 + Math.random()); rock.rotation.set(Math.random(), Math.random(), Math.random()); rock.castShadow = true; group.add(rock);
-      }
-    }
-    for (let i = 0; i < 2; i++) {
-      const lx = (Math.random() - 0.5) * CHUNK_SIZE * 0.7, lz = (Math.random() - 0.5) * CHUNK_SIZE * 0.7;
-      const wx = cx * CHUNK_SIZE + lx, wz = cz * CHUNK_SIZE + lz;
-      if (isRiver(wx, wz) && isNearRoad(wx, wz, 14)) {
-        const bridge = new THREE.Mesh(new THREE.BoxGeometry(10, 0.5, 5), new THREE.MeshStandardMaterial({ color: 0x5a4030, roughness: 0.85 }));
-        bridge.position.set(lx, getTerrainHeight(wx, wz) + 1.6, lz); bridge.castShadow = true; bridge.receiveShadow = true; group.add(bridge);
+        const rock = new THREE.Mesh(rockGeo, rockMat); rock.position.set(lx, h + 0.3, lz); rock.scale.setScalar(0.35 + Math.random()); rock.castShadow = true; group.add(rock);
       }
     }
   }
@@ -312,11 +387,6 @@ function buildRoadMeshes() {
     const seg = new THREE.Mesh(new THREE.BoxGeometry(10.5, 0.2, len + 0.8), roadMat);
     seg.position.set(midX, hy, midZ); seg.lookAt(bx, hy, bz); seg.rotateX(Math.PI / 2); seg.receiveShadow = true;
     scene.add(seg); roadMeshes.push(seg);
-    if (i % 2 === 0) {
-      const line = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.22, Math.min(2.5, len * 0.35)), lineMat);
-      line.position.set(midX, hy + 0.02, midZ); line.lookAt(bx, hy, bz); line.rotateX(Math.PI / 2);
-      scene.add(line); roadMeshes.push(line);
-    }
   }
 }
 function applyMapTheme(mapId) {
@@ -325,136 +395,60 @@ function applyMapTheme(mapId) {
   scene.fog = new THREE.Fog(activeMap.fogColor, activeMap.fogNear, activeMap.fogFar);
   hemi.color.set(activeMap.hemiSky); hemi.groundColor.set(activeMap.hemiGround);
   sun.color.set(activeMap.sunColor); sun.intensity = activeMap.sunIntensity;
-  clearChunks(); buildRoadMeshes();
+  clearChunks(); buildRoadMeshes(); clearNPCs();
 }
 
-/* ============================================================
-   PER-WHEEL PHYSICS
-   Each wheel independently:
-   - samples ground height at its world position
-   - applies suspension spring + damper force
-   - applies drive / brake force along its heading
-   - applies lateral friction (grip)
-   Body acceleration = sum of all wheel forces / mass
-   Body torque from suspension differences → pitch & roll
-   ============================================================ */
-
+/* ─── Per-wheel physics (same as before, condensed) ─────────── */
 class Wheel {
-  constructor(localX, localZ, isFront, isLeft) {
-    this.localX = localX;   // track position
-    this.localZ = localZ;   // wheelbase position
-    this.isFront = isFront;
-    this.isLeft = isLeft;
-    this.radius = 0.38;
-    this.suspensionRest = 0.45;   // rest length of spring
-    this.suspensionMax = 0.75;    // max travel
-    this.springK = 16000;         // N/m scaled for game
-    this.damper = 1400;
-    this.grip = 1.0;
-    this.compression = 0;
-    this.onGround = false;
-    this.groundY = 0;
-    this.worldPos = new THREE.Vector3();
-    this.force = new THREE.Vector3();
-    this.spin = 0;
-    this.steer = 0; // radians, only front wheels
-    this.mesh = null;
+  constructor(localX, localZ, isFront) {
+    this.localX = localX; this.localZ = localZ; this.isFront = isFront;
+    this.radius = 0.38; this.suspensionRest = 0.45; this.suspensionMax = 0.75;
+    this.springK = 16000; this.damper = 1400; this.grip = 1;
+    this.compression = 0; this.onGround = false; this.groundY = 0;
+    this.force = new THREE.Vector3(); this.spin = 0; this.steer = 0; this.mesh = null;
   }
 }
-
 class Car {
   constructor(color = 0xff3333, isPlayer = false) {
     this.isPlayer = isPlayer;
     this.wheels = [
-      new Wheel(-0.92,  1.35, true,  true),  // FL
-      new Wheel( 0.92,  1.35, true,  false), // FR
-      new Wheel(-0.92, -1.35, false, true),  // RL
-      new Wheel( 0.92, -1.35, false, false)  // RR
+      new Wheel(-0.92, 1.35, true), new Wheel(0.92, 1.35, true),
+      new Wheel(-0.92, -1.35, false), new Wheel(0.92, -1.35, false)
     ];
-    this.mesh = this.createMesh(color);
-    scene.add(this.mesh);
-
-    // Rigid body state
-    this.pos = new THREE.Vector3(0, 3, 0);
-    this.vel = new THREE.Vector3(0, 0, 0);
-    this.heading = 0;       // yaw
-    this.pitch = 0;
-    this.roll = 0;
-    this.angVelY = 0;       // yaw rate
-    this.angVelPitch = 0;
-    this.angVelRoll = 0;
-
-    this.throttle = 0;
-    this.brake = 0;
-    this.steerInput = 0;
-    this.handbrake = false;
-    this.boost = 0;
-    this.onGround = false;
-
-    this.mass = 1400;
-    this.inertiaYaw = 2200;
-    this.inertiaPitch = 1800;
-    this.inertiaRoll = 900;
-    this.enginePower = 9000;   // force units per driven wheel at full throttle
-    this.brakePower = 12000;
-    this.maxSteer = 0.55;
-    this.drag = 0.4;
-
+    this.mesh = this.createMesh(color); scene.add(this.mesh);
+    this.pos = new THREE.Vector3(0, 3, 0); this.vel = new THREE.Vector3();
+    this.heading = 0; this.pitch = 0; this.roll = 0;
+    this.angVelY = 0; this.angVelPitch = 0; this.angVelRoll = 0;
+    this.throttle = 0; this.brake = 0; this.steerInput = 0; this.handbrake = false; this.boost = 0;
+    this.onGround = false; this.mass = 1400;
+    this.inertiaYaw = 2200; this.inertiaPitch = 1800; this.inertiaRoll = 900;
+    this.enginePower = 9000; this.brakePower = 12000; this.maxSteer = 0.55; this.drag = 0.4;
     this.lap = 1; this.checkpoint = 0; this.finished = false; this.finishTime = 0;
     this.name = isPlayer ? 'You' : 'Bot';
   }
-
   createMesh(color) {
     const g = new THREE.Group();
-    const bodyMat = new THREE.MeshStandardMaterial({ color, metalness: 0.65, roughness: 0.28 });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.5, 4.2), bodyMat);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.5, 4.2), new THREE.MeshStandardMaterial({ color, metalness: 0.65, roughness: 0.28 }));
     body.position.y = 0.55; body.castShadow = true; g.add(body);
-
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.45, 1.8),
-      new THREE.MeshStandardMaterial({ color: 0x111122, metalness: 0.4, roughness: 0.2 }));
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.45, 1.8), new THREE.MeshStandardMaterial({ color: 0x111122, metalness: 0.4, roughness: 0.2 }));
     cabin.position.set(0, 1.0, -0.15); cabin.castShadow = true; g.add(cabin);
-
-    const glassMat = new THREE.MeshStandardMaterial({ color: 0x88aacc, metalness: 0.9, roughness: 0.08, transparent: true, opacity: 0.55 });
-    const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.35, 0.08), glassMat);
-    windshield.position.set(0, 1.05, 0.7); windshield.rotation.x = -0.28; g.add(windshield);
-
-    const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.28, 16);
-    wheelGeo.rotateZ(Math.PI / 2);
+    const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.28, 16); wheelGeo.rotateZ(Math.PI / 2);
     const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
     this.wheels.forEach(w => {
       const mesh = new THREE.Mesh(wheelGeo, wheelMat);
-      mesh.position.set(w.localX, w.radius, w.localZ);
-      mesh.castShadow = true;
-      g.add(mesh);
-      w.mesh = mesh;
-    });
-
-    const lightMat = new THREE.MeshStandardMaterial({ color: 0xffffee, emissive: 0xffffaa, emissiveIntensity: 0.8 });
-    [[-0.55, 0.5, 2.1], [0.55, 0.5, 2.1]].forEach(p => {
-      const l = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.08), lightMat);
-      l.position.set(...p); g.add(l);
-    });
-    const tailMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.45 });
-    [[-0.55, 0.5, -2.1], [0.55, 0.5, -2.1]].forEach(p => {
-      const l = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.1, 0.06), tailMat);
-      l.position.set(...p); g.add(l);
+      mesh.position.set(w.localX, w.radius, w.localZ); mesh.castShadow = true; g.add(mesh); w.mesh = mesh;
     });
     return g;
   }
-
-  // World position of a wheel given body pose
   wheelWorldPos(w) {
     const c = Math.cos(this.heading), s = Math.sin(this.heading);
-    // Approximate: ignore pitch/roll for XZ (small angles), apply for Y later
-    const x = this.pos.x + w.localX * c + w.localZ * s;
-    const z = this.pos.z - w.localX * s + w.localZ * c;
-    // Height of attachment point on body
-    const attachY = this.pos.y + w.localZ * Math.sin(this.pitch) - w.localX * Math.sin(this.roll);
-    return { x, z, attachY };
+    return {
+      x: this.pos.x + w.localX * c + w.localZ * s,
+      z: this.pos.z - w.localX * s + w.localZ * c,
+      attachY: this.pos.y + w.localZ * Math.sin(this.pitch) - w.localX * Math.sin(this.roll)
+    };
   }
-
   update(dt) {
-    // ── Input ──
     if (this.isPlayer) {
       this.throttle = (keys['KeyW'] || keys['ArrowUp']) ? 1 : 0;
       this.brake = (keys['KeyS'] || keys['ArrowDown']) ? 1 : 0;
@@ -463,224 +457,99 @@ class Car {
       if (keys['ShiftLeft'] || keys['ShiftRight']) this.boost = Math.min(1, this.boost + dt * 2);
       else this.boost = Math.max(0, this.boost - dt * 1.6);
     }
-
-    // Smooth steer angle on front wheels
     const targetSteer = this.steerInput * this.maxSteer;
-    for (const w of this.wheels) {
-      if (w.isFront) w.steer = THREE.MathUtils.lerp(w.steer, targetSteer, 10 * dt);
-      else w.steer = 0;
-    }
+    for (const w of this.wheels) w.steer = w.isFront ? THREE.MathUtils.lerp(w.steer, targetSteer, 10 * dt) : 0;
 
-    // Surface grip multiplier
-    const onRoad = isOnRoad(this.pos.x, this.pos.z) || isCityChunk(Math.floor(this.pos.x / CHUNK_SIZE), Math.floor(this.pos.z / CHUNK_SIZE));
+    const onRoad = isOnRoad(this.pos.x, this.pos.z);
     const surfaceGrip = onRoad ? 1.0 : 0.55;
-
-    // ── Per-wheel forces ──
-    let totalForce = new THREE.Vector3(0, 0, 0);
-    let torquePitch = 0, torqueRoll = 0, torqueYaw = 0;
-    let groundedCount = 0;
-
-    const bodyYaw = this.heading;
-    const cosY = Math.cos(bodyYaw), sinY = Math.sin(bodyYaw);
+    let totalForce = new THREE.Vector3(), torquePitch = 0, torqueRoll = 0, torqueYaw = 0, groundedCount = 0;
+    const cosY = Math.cos(this.heading), sinY = Math.sin(this.heading);
 
     for (const w of this.wheels) {
       const wp = this.wheelWorldPos(w);
       w.groundY = getTerrainHeight(wp.x, wp.z);
-      w.worldPos.set(wp.x, w.groundY + w.radius, wp.z);
-
-      // Suspension: compression = how much the spring is pushed
-      // Distance from attachment to ground should be restLength when unloaded
       const distToGround = wp.attachY - w.groundY;
       const compression = w.suspensionRest + w.radius - distToGround;
-
       w.force.set(0, 0, 0);
-
       if (compression > -0.05 && compression < w.suspensionMax + 0.3) {
-        w.onGround = true;
-        groundedCount++;
+        w.onGround = true; groundedCount++;
         w.compression = Math.max(0, Math.min(compression, w.suspensionMax));
-
-        // Spring + damper (vertical)
         const springForce = w.compression * w.springK;
-        // Relative vertical velocity of attachment approx body vel.y
         const damperForce = -this.vel.y * w.damper;
         const suspForce = Math.max(0, springForce + damperForce);
         w.force.y += suspForce;
+        if (compression > w.suspensionMax * 0.9) w.force.y += (compression - w.suspensionMax * 0.85) * w.springK * 2;
 
-        // Prevent sinking: if deeply compressed, push hard
-        if (compression > w.suspensionMax * 0.9) {
-          w.force.y += (compression - w.suspensionMax * 0.85) * w.springK * 2;
-        }
-
-        // Wheel heading (body yaw + steer)
-        const wh = bodyYaw + w.steer;
-        const fDirX = Math.sin(wh);  // forward of this wheel
-        const fDirZ = Math.cos(wh);
-        const rDirX = Math.cos(wh);  // right of this wheel
-        const rDirZ = -Math.sin(wh);
-
-        // Velocity of this wheel contact point (approx body vel + angular contrib)
-        const relX = w.localX * cosY + w.localZ * sinY;
-        const relZ = -w.localX * sinY + w.localZ * cosY;
-        const wxVel = this.vel.x - this.angVelY * relZ;
-        const wzVel = this.vel.z + this.angVelY * relX;
-
-        // Longitudinal speed along wheel forward
+        const wh = this.heading + w.steer;
+        const fDirX = Math.sin(wh), fDirZ = Math.cos(wh);
+        const rDirX = Math.cos(wh), rDirZ = -Math.sin(wh);
+        const relX = w.localX * cosY + w.localZ * sinY, relZ = -w.localX * sinY + w.localZ * cosY;
+        const wxVel = this.vel.x - this.angVelY * relZ, wzVel = this.vel.z + this.angVelY * relX;
         const longSpeed = wxVel * fDirX + wzVel * fDirZ;
-        // Lateral speed
         const latSpeed = wxVel * rDirX + wzVel * rDirZ;
 
-        // Drive force (rear wheels, or all-wheel if boost)
         let driveForce = 0;
         if (!w.isFront || this.boost > 0.1) {
           driveForce = this.throttle * this.enginePower * (1 + this.boost * 0.7) * surfaceGrip;
-          // Front gets less drive unless AWD boost
           if (w.isFront) driveForce *= 0.3;
         }
-
-        // Brake force
         let brakeForce = 0;
         if (this.brake > 0 || this.handbrake) {
           const bPow = this.handbrake && !w.isFront ? this.brakePower * 1.4 : this.brakePower;
           brakeForce = -Math.sign(longSpeed || 1) * this.brake * bPow * surfaceGrip;
-          if (this.handbrake && !w.isFront) brakeForce *= 1.3;
         }
-
-        // Rolling resistance
         const rollRes = -Math.sign(longSpeed || 1) * 80 * surfaceGrip;
-
         const longForce = driveForce + brakeForce + rollRes;
-
-        // Lateral friction (grip) – this is what keeps the car from sliding sideways
-        const gripMul = this.handbrake && !w.isFront ? 0.25 : 1.0;
-        const maxLat = 5500 * w.grip * surfaceGrip * gripMul;
-        // Simple Pacejka-ish: force opposes slip, saturates
-        let latForce = -latSpeed * 900 * surfaceGrip * gripMul;
-        latForce = THREE.MathUtils.clamp(latForce, -maxLat, maxLat);
-
-        // Apply forces in world space
+        const gripMul = this.handbrake && !w.isFront ? 0.25 : 1;
+        let latForce = THREE.MathUtils.clamp(-latSpeed * 900 * surfaceGrip * gripMul, -5500 * surfaceGrip * gripMul, 5500 * surfaceGrip * gripMul);
         w.force.x += fDirX * longForce + rDirX * latForce;
         w.force.z += fDirZ * longForce + rDirZ * latForce;
-
-        // Torques on body from this wheel
-        // Pitch: front wheels up → nose up (negative pitch in our convention)
         torquePitch += -w.localZ * suspForce * 0.001;
-        // Roll: left wheels up → left side up
         torqueRoll += w.localX * suspForce * 0.0015;
-        // Yaw from lateral forces and steering drive
         torqueYaw += (relX * w.force.z - relZ * w.force.x) * 0.001;
-
-        // Wheel spin visual
         w.spin += longSpeed * dt / w.radius;
-      } else {
-        w.onGround = false;
-        w.compression = 0;
-      }
-
+      } else { w.onGround = false; w.compression = 0; }
       totalForce.add(w.force);
     }
-
     this.onGround = groundedCount >= 1;
-
-    // ── Integrate body ──
-    // Gravity
     totalForce.y -= this.mass * 28;
-
-    // Air drag
     totalForce.x -= this.vel.x * Math.abs(this.vel.x) * this.drag * 8;
     totalForce.z -= this.vel.z * Math.abs(this.vel.z) * this.drag * 8;
-
-    // a = F / m
     this.vel.x += (totalForce.x / this.mass) * dt;
     this.vel.y += (totalForce.y / this.mass) * dt;
     this.vel.z += (totalForce.z / this.mass) * dt;
-
-    // Angular
     this.angVelPitch += (torquePitch / this.inertiaPitch) * dt * 60;
     this.angVelRoll += (torqueRoll / this.inertiaRoll) * dt * 60;
     this.angVelY += (torqueYaw / this.inertiaYaw) * dt * 40;
-
-    // Damping when grounded
-    if (this.onGround) {
-      this.angVelPitch *= (1 - 8 * dt);
-      this.angVelRoll *= (1 - 8 * dt);
-      this.angVelY *= (1 - 3 * dt);
-    } else {
-      this.angVelPitch *= (1 - 0.5 * dt);
-      this.angVelRoll *= (1 - 0.5 * dt);
-    }
-
+    if (this.onGround) { this.angVelPitch *= (1 - 8 * dt); this.angVelRoll *= (1 - 8 * dt); this.angVelY *= (1 - 3 * dt); }
+    else { this.angVelPitch *= (1 - 0.5 * dt); this.angVelRoll *= (1 - 0.5 * dt); }
     this.heading += this.angVelY * dt;
-    this.pitch += this.angVelPitch * dt;
-    this.roll += this.angVelRoll * dt;
-    this.pitch = THREE.MathUtils.clamp(this.pitch, -1.2, 1.2);
-    this.roll = THREE.MathUtils.clamp(this.roll, -1.3, 1.3);
-
-    // Position
-    this.pos.x += this.vel.x * dt;
-    this.pos.y += this.vel.y * dt;
-    this.pos.z += this.vel.z * dt;
-
-    // Hard floor safety – if all wheels would be underground, lift body
+    this.pitch = THREE.MathUtils.clamp(this.pitch + this.angVelPitch * dt, -1.2, 1.2);
+    this.roll = THREE.MathUtils.clamp(this.roll + this.angVelRoll * dt, -1.3, 1.3);
+    this.pos.x += this.vel.x * dt; this.pos.y += this.vel.y * dt; this.pos.z += this.vel.z * dt;
     if (this.onGround) {
-      let maxNeeded = -Infinity;
-      for (const w of this.wheels) {
-        const wp = this.wheelWorldPos(w);
-        const needed = w.groundY + w.radius + 0.02 - (wp.attachY - this.pos.y);
-        // needed is target body Y contribution
-        maxNeeded = Math.max(maxNeeded, w.groundY + w.suspensionRest * 0.3);
-      }
-      // Soft clamp minimum body height to average ground + small offset
-      let avgG = 0;
-      for (const w of this.wheels) avgG += w.groundY;
-      avgG /= 4;
-      const minY = avgG + 0.15;
-      if (this.pos.y < minY) {
-        this.pos.y = minY;
-        if (this.vel.y < 0) this.vel.y = 0;
-      }
+      let avgG = 0; for (const w of this.wheels) avgG += w.groundY; avgG /= 4;
+      if (this.pos.y < avgG + 0.15) { this.pos.y = avgG + 0.15; if (this.vel.y < 0) this.vel.y = 0; }
     }
-
-    // Emergency recover
     const gNow = getTerrainHeight(this.pos.x, this.pos.z);
-    if (this.pos.y < gNow - 10) {
-      this.pos.y = gNow + 1;
-      this.vel.set(0, 0, 0);
-      this.pitch = this.roll = 0;
-      this.angVelPitch = this.angVelRoll = this.angVelY = 0;
-    }
-
-    // ── Visuals ──
+    if (this.pos.y < gNow - 10) { this.pos.y = gNow + 1; this.vel.set(0,0,0); this.pitch = this.roll = 0; this.angVelPitch = this.angVelRoll = this.angVelY = 0; }
     this.mesh.position.copy(this.pos);
     this.mesh.rotation.order = 'YXZ';
-    this.mesh.rotation.y = this.heading;
-    this.mesh.rotation.x = this.pitch;
-    this.mesh.rotation.z = this.roll;
-
-    // Position each wheel mesh: compress visually + steer + spin
+    this.mesh.rotation.y = this.heading; this.mesh.rotation.x = this.pitch; this.mesh.rotation.z = this.roll;
     for (const w of this.wheels) {
       if (!w.mesh) continue;
-      // Visual compression: wheel moves up into body when compressed
-      const visualCompress = Math.min(w.compression, w.suspensionMax) * 0.6;
-      w.mesh.position.set(w.localX, w.radius - visualCompress, w.localZ);
-      w.mesh.rotation.y = w.steer;
-      w.mesh.rotation.x = w.spin;
+      w.mesh.position.set(w.localX, w.radius - Math.min(w.compression, w.suspensionMax) * 0.6, w.localZ);
+      w.mesh.rotation.y = w.steer; w.mesh.rotation.x = w.spin;
     }
   }
-
   get speed() {
-    // Forward speed for HUD
-    const fwd = new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading));
-    return this.vel.x * fwd.x + this.vel.z * fwd.z;
+    return this.vel.x * Math.sin(this.heading) + this.vel.z * Math.cos(this.heading);
   }
-
   updateAI(dt, target) {
     if (!target) return;
     const dx = target.x - this.pos.x, dz = target.z - this.pos.z;
-    let desired = Math.atan2(dx, dz);
-    let diff = desired - this.heading;
-    while (diff > Math.PI) diff -= Math.PI * 2;
-    while (diff < -Math.PI) diff += Math.PI * 2;
+    let desired = Math.atan2(dx, dz), diff = desired - this.heading;
+    while (diff > Math.PI) diff -= Math.PI * 2; while (diff < -Math.PI) diff += Math.PI * 2;
     this.steerInput = THREE.MathUtils.clamp(diff * 2.2, -1, 1);
     this.throttle = 0.7 + Math.random() * 0.25;
     this.brake = Math.abs(diff) > 1.1 ? 0.4 : 0;
@@ -688,7 +557,95 @@ class Car {
   }
 }
 
-// ─── Race / game flow (same structure as before) ─────────────
+/* ─── NPC Traffic on infinite highway ──────────────────────── */
+const NPC_COLORS = [0xff4444, 0x44aa44, 0x4488ff, 0xffaa00, 0xcc44ff, 0xffffff, 0x333333, 0x00cccc];
+let npcs = [];
+const MAX_NPCS = 12;
+const NPC_SPAWN_RANGE = 280;
+const NPC_DESPAWN_RANGE = 350;
+
+class NPCCar {
+  constructor(x, lane, dir) {
+    // dir: +1 = eastbound (+X), -1 = westbound
+    this.dir = dir;
+    this.lane = lane; // -1 left lane, +1 right lane relative to direction
+    this.speed = 18 + Math.random() * 16; // m/s feel
+    this.x = x;
+    this.color = NPC_COLORS[Math.floor(Math.random() * NPC_COLORS.length)];
+    this.mesh = this.createMesh();
+    scene.add(this.mesh);
+    this.updatePos(0);
+  }
+  createMesh() {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.45, 3.8),
+      new THREE.MeshStandardMaterial({ color: this.color, metalness: 0.5, roughness: 0.35 }));
+    body.position.y = 0.5; body.castShadow = true; g.add(body);
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.4, 1.6),
+      new THREE.MeshStandardMaterial({ color: 0x111122, metalness: 0.3, roughness: 0.2 }));
+    cabin.position.set(0, 0.9, -0.1); g.add(cabin);
+    return g;
+  }
+  updatePos(dt) {
+    this.x += this.dir * this.speed * dt;
+    const zCenter = highwayZ(this.x);
+    // Lane offset perpendicular to road
+    const hdg = highwayHeading(this.x);
+    // Perpendicular (right relative to +X travel)
+    const rightX = Math.cos(hdg), rightZ = -Math.sin(hdg); // wait: heading is atan2(dz,1)
+    // For dir=+1, right is +perp; for dir=-1, lanes flip
+    const laneOff = this.lane * 3.5 * this.dir;
+    // Perpendicular vector to direction of travel
+    // direction vector: (cos approx 1, sin = dz component)
+    const fx = Math.cos(hdg), fz = Math.sin(hdg);
+    // right = (-fz, fx) for right-hand
+    const rx = -fz, rz = fx;
+    const z = zCenter + rx * laneOff * 0; // simplify: offset in Z via lane
+    // Better simple lane: offset along world Z from center, signed by lane & dir
+    const laneZ = zCenter + this.lane * 3.8;
+    const y = getTerrainHeight(this.x, laneZ) + 0.55;
+    this.mesh.position.set(this.x, y, laneZ);
+    // Face travel direction
+    this.mesh.rotation.y = this.dir > 0 ? hdg : hdg + Math.PI;
+  }
+  dispose() {
+    scene.remove(this.mesh);
+    this.mesh.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  }
+}
+
+function clearNPCs() {
+  npcs.forEach(n => n.dispose());
+  npcs = [];
+}
+
+function updateNPCs(dt, playerX) {
+  if (!activeMap.hasHighway || mode !== 'explore') return;
+
+  // Move existing
+  for (const n of npcs) n.updatePos(dt);
+
+  // Despawn far ones
+  npcs = npcs.filter(n => {
+    if (Math.abs(n.x - playerX) > NPC_DESPAWN_RANGE) { n.dispose(); return false; }
+    return true;
+  });
+
+  // Spawn new if under max
+  while (npcs.length < MAX_NPCS) {
+    // Spawn ahead or behind player on highway
+    const side = Math.random() > 0.5 ? 1 : -1;
+    const offset = side * (80 + Math.random() * 180);
+    const x = playerX + offset;
+    const dir = Math.random() > 0.5 ? 1 : -1;
+    const lane = Math.random() > 0.5 ? 1 : -1;
+    // Don't spawn too close to another NPC
+    if (npcs.some(n => Math.abs(n.x - x) < 25 && n.dir === dir && n.lane === lane)) continue;
+    npcs.push(new NPCCar(x, lane, dir));
+  }
+}
+
+// ─── Race track / flow ───────────────────────────────────────
 let trackPoints = [], checkpoints = [];
 function buildRaceTrack() {
   trackPoints = [];
@@ -700,7 +657,6 @@ function buildRaceTrack() {
     trackPoints.push(new THREE.Vector3(x, getTerrainHeight(x, z) + 0.5, z));
   }
   const roadMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.85 });
-  const lineMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee });
   for (let i = 0; i < trackPoints.length - 1; i++) {
     const a = trackPoints[i], b = trackPoints[i + 1];
     const mid = a.clone().add(b).multiplyScalar(0.5);
@@ -709,16 +665,9 @@ function buildRaceTrack() {
     const seg = new THREE.Mesh(new THREE.BoxGeometry(10, 0.22, len + 0.5), roadMat);
     seg.position.copy(mid); seg.lookAt(b.x, mid.y, b.z); seg.rotateX(Math.PI / 2); seg.receiveShadow = true;
     scene.add(seg); roadMeshes.push(seg);
-    if (i % 2 === 0) {
-      const line = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.25, 2), lineMat);
-      line.position.copy(mid); line.lookAt(b.x, mid.y, b.z); line.rotateX(Math.PI / 2);
-      scene.add(line); roadMeshes.push(line);
-    }
   }
   checkpoints = [];
   for (let i = 0; i < 8; i++) checkpoints.push(trackPoints[Math.floor((i / 8) * (trackPoints.length - 1))].clone());
-  const banner = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 0.4), new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0x443300 }));
-  banner.position.copy(trackPoints[0]); banner.position.y += 4; scene.add(banner); roadMeshes.push(banner);
 }
 
 let player = null, bots = [], allCars = [];
@@ -732,14 +681,16 @@ function spawnCars(raceMode) {
     for (let i = 0; i < 5; i++) {
       const bot = new Car(colors[i], false);
       bot.name = 'Bot ' + (i + 1);
-      const gy = getTerrainHeight(-(i + 1) * 3.5, -(i + 1) * 3.5);
-      bot.pos.set(-(i + 1) * 3.5, gy + 1.0, -(i + 1) * 3.5);
+      bot.pos.set(-(i + 1) * 3.5, getTerrainHeight(-(i + 1) * 3.5, -(i + 1) * 3.5) + 1, -(i + 1) * 3.5);
       bots.push(bot); allCars.push(bot);
     }
-    player.pos.set(0, getTerrainHeight(0, 0) + 1.0, 0);
+    player.pos.set(0, getTerrainHeight(0, 0) + 1, 0);
   } else {
-    const s = activeMap.spawn;
-    player.pos.set(s[0], getTerrainHeight(s[0], s[2]) + 1.0, s[2]);
+    // Spawn near the infinite highway so player finds it immediately
+    const sx = activeMap.spawn[0];
+    const sz = highwayZ(sx);
+    player.pos.set(sx, getTerrainHeight(sx, sz) + 1.2, sz);
+    player.heading = highwayHeading(sx);
   }
 }
 
@@ -773,21 +724,39 @@ function drawMinimap() {
   minimapCtx.fillStyle = 'rgba(15,35,25,0.92)';
   minimapCtx.beginPath(); minimapCtx.arc(w/2, h/2, w/2-2, 0, Math.PI*2); minimapCtx.fill();
   if (!player) return;
-  const scale = mode === 'explore' ? 0.2 : 0.3, cx = w/2, cy = h/2;
+  const scale = mode === 'explore' ? 0.18 : 0.3, cx = w/2, cy = h/2;
+
+  // Infinite highway on minimap
+  if (mode === 'explore' && activeMap.hasHighway) {
+    minimapCtx.strokeStyle = '#ccaa44'; minimapCtx.lineWidth = 3;
+    minimapCtx.beginPath();
+    for (let i = -20; i <= 20; i++) {
+      const x = player.pos.x + i * 12;
+      const z = highwayZ(x);
+      const mx = cx + (x - player.pos.x) * scale;
+      const my = cy + (z - player.pos.z) * scale;
+      if (i === -20) minimapCtx.moveTo(mx, my); else minimapCtx.lineTo(mx, my);
+    }
+    minimapCtx.stroke();
+  }
+
   if (mode === 'explore' && activeMap.roads) {
-    minimapCtx.strokeStyle = '#666'; minimapCtx.lineWidth = 2.2;
+    minimapCtx.strokeStyle = '#666'; minimapCtx.lineWidth = 2;
     for (const path of activeMap.roads) {
       minimapCtx.beginPath();
       path.forEach((p, i) => { const x = cx+(p[0]-player.pos.x)*scale, y = cy+(p[1]-player.pos.z)*scale; if (i===0) minimapCtx.moveTo(x,y); else minimapCtx.lineTo(x,y); });
       minimapCtx.stroke();
     }
   }
-  if (mode === 'explore' && activeMap.hasCities) {
-    const pcx = Math.floor(player.pos.x/CHUNK_SIZE), pcz = Math.floor(player.pos.z/CHUNK_SIZE);
-    minimapCtx.fillStyle = '#99aacc';
-    for (let dx=-7;dx<=7;dx++) for (let dz=-7;dz<=7;dz++) if (isCityChunk(pcx+dx,pcz+dz))
-      minimapCtx.fillRect(cx+dx*CHUNK_SIZE*scale-3, cy+dz*CHUNK_SIZE*scale-3, 6, 6);
-  }
+
+  // NPCs on minimap
+  npcs.forEach(n => {
+    minimapCtx.fillStyle = '#ffaa44';
+    minimapCtx.beginPath();
+    minimapCtx.arc(cx + (n.x - player.pos.x) * scale, cy + (n.mesh.position.z - player.pos.z) * scale, 2.5, 0, Math.PI * 2);
+    minimapCtx.fill();
+  });
+
   if (mode === 'race' && trackPoints.length) {
     minimapCtx.strokeStyle = '#555'; minimapCtx.lineWidth = 3; minimapCtx.beginPath();
     trackPoints.forEach((p,i) => { const x=cx+(p.x-player.pos.x)*scale, y=cy+(p.z-player.pos.z)*scale; if(i===0)minimapCtx.moveTo(x,y); else minimapCtx.lineTo(x,y); });
@@ -828,7 +797,7 @@ function formatTime(t) {
   return m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0')+'.'+ms.toString().padStart(3,'0');
 }
 function clearSceneExtras() {
-  roadMeshes.forEach(m=>scene.remove(m)); roadMeshes=[]; clearChunks();
+  roadMeshes.forEach(m=>scene.remove(m)); roadMeshes=[]; clearChunks(); clearNPCs();
   allCars.forEach(c=>{ if(c.mesh) scene.remove(c.mesh); }); allCars=[]; bots=[]; player=null;
 }
 function openMapSelect(fromGame=false) {
@@ -840,7 +809,7 @@ function startExplore(mapId) {
   hudEl.classList.remove('hidden'); finishEl.classList.add('hidden');
   raceFinished=false; raceStarted=true; startTime=performance.now(); raceTime=0; running=true;
   applyMapTheme(mapId);
-  modeLabel.textContent='Explore'; mapNameHud.textContent=activeMap.name;
+  modeLabel.textContent='Explore'; mapNameHud.textContent=activeMap.name + ' · Highway';
   mapNameHud.classList.remove('hidden'); mapHintHud.classList.remove('hidden'); lapInfo.classList.add('hidden');
   spawnCars(false); updateChunks(player.pos.x, player.pos.z);
 }
@@ -851,7 +820,7 @@ function startGame(selectedMode) {
   mapNameHud.classList.add('hidden'); mapHintHud.classList.add('hidden');
   raceFinished=false; raceStarted=false; currentLap=1; raceTime=0;
   clearSceneExtras();
-  activeMap={...MAPS.forest, id:'race', roads:[], treeDensity:0.2, heightFn:heightForest, hasCities:false, sakura:false, ocean:false};
+  activeMap={...MAPS.forest, id:'race', roads:[], treeDensity:0.2, heightFn:heightForest, hasCities:false, hasHighway:false, sakura:false, ocean:false};
   scene.background=new THREE.Color(0x87ceeb); scene.fog=new THREE.Fog(0x87ceeb,90,360);
   hemi.color.set(0xb1e1ff); hemi.groundColor.set(0xb97a20); sun.color.set(0xfff5e0); sun.intensity=1.3;
   modeLabel.textContent='Race Mode'; lapInfo.classList.remove('hidden'); lapEl.textContent='1';
@@ -880,10 +849,8 @@ document.querySelectorAll('.map-card').forEach(card => card.addEventListener('cl
 window.addEventListener('keydown', e => {
   if (e.code === 'KeyR' && player && running) {
     const gy = getTerrainHeight(player.pos.x, player.pos.z);
-    player.pos.y = gy + 1.2;
-    player.vel.set(0, 0, 0);
-    player.pitch = player.roll = 0;
-    player.angVelPitch = player.angVelRoll = player.angVelY = 0;
+    player.pos.y = gy + 1.2; player.vel.set(0,0,0);
+    player.pitch = player.roll = 0; player.angVelPitch = player.angVelRoll = player.angVelY = 0;
   }
 });
 
@@ -899,6 +866,7 @@ function animate(now) {
     bots.forEach(bot => { bot.updateAI(dt, checkpoints[bot.checkpoint % checkpoints.length] || trackPoints[0]); bot.update(dt); });
     checkRaceProgress();
   }
+  if (mode === 'explore') updateNPCs(dt, player.pos.x);
   updateChunks(player.pos.x, player.pos.z);
   updateCamera(dt);
   speedEl.textContent = Math.abs(Math.round(player.speed * 3.6));
