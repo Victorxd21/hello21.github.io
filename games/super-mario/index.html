@@ -102,10 +102,28 @@
 })();
 </script>
 
-<script src="https://cdn.jsdelivr.net/gh/reruns/mario@gh-pages/js/game.js"></script>
+<!-- Local game loop with AngryPhysics render hooks -->
+<script src="js/game.js"></script>
 
-<!-- Pushable wooden structures -->
-<script src="js/angry-structures.js"></script>
+<!-- Matter.js wooden structures (drawn inside game render) -->
+<script src="js/angry-physics.js"></script>
+
+<script>
+// Start wooden structures once the level + player exist
+(function startWood() {
+  if (typeof Mario === 'undefined' || !Mario.AngryPhysics) {
+    setTimeout(startWood, 200);
+    return;
+  }
+  if (!window.player || !window.level) {
+    setTimeout(startWood, 200);
+    return;
+  }
+  // Place structures a bit to the right of the start so you walk into them
+  Mario.AngryPhysics.start(420);
+  console.log('[Super Mario] Wooden platforms ready – walk right to find them');
+})();
+</script>
 
 <div class="info">
   <b>Keyboard:</b> Arrows · X = Jump · Z = Run<br>

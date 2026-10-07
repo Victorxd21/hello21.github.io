@@ -1,7 +1,7 @@
 /**
  * Angry Birds physics layer for the Mario hybrid.
- * Uses Matter.js (Box2D-style rigid body physics) translated from the original
- * Processing + Box2D code (Wood, Box, Pig, NormalPig, Scene).
+ * Uses Matter.js – wooden towers Mario can push and stand on.
+ * Drawn from the main game render loop (Mario.AngryPhysics.render).
  */
 (function() {
   if (typeof Mario === 'undefined') window.Mario = {};
@@ -15,9 +15,12 @@
   var marioBody = null;
   var ground = null;
 
+  // Mario ground top is at y ≈ 208 (tile row 13)
+  var FLOOR_Y = 208;
+
   function initMatter() {
     if (typeof Matter === 'undefined') {
-      console.error('Matter.js not loaded');
+      console.error('[AngryPhysics] Matter.js not loaded');
       return false;
     }
     Engine = Matter.Engine;
@@ -27,25 +30,26 @@
     Events = Matter.Events;
     Composite = Matter.Composite;
 
-    engine = Engine.create({ gravity: { x: 0, y: 1.2 } });
+    engine = Engine.create({ gravity: { x: 0, y: 1.15 } });
     world = engine.world;
     return true;
   }
 
   function createWood(x, y, w, h) {
-    var body = Bodies.rectangle(x + w/2, y + h/2, w, h, {
-      density: 0.004,
-      friction: 0.9,
-      restitution: 0.05,
-      label: 'wood',
-      render: { fillStyle: '#8B5A2B' }
+    // Matter uses center position
+    var body = Bodies.rectangle(x + w / 2, y + h / 2, w, h, {
+      density: 0.0035,
+      friction: 0.95,
+      frictionStatic: 1.0,
+      restitution: 0.04,
+      label: 'wood'
     });
     woodBodies.push(body);
     return body;
   }
 
   function createPig(x, y) {
-    var r = 14;
+    var r = 12;
     var body = Bodies.circle(x + r, y + r, r, {
       density: 0.003,
       friction: 0.4,
@@ -58,43 +62,50 @@
   }
 
   function buildStructures(baseX) {
-    var floorY = 200;
+    // Structure 1 – small tower (posts + beam + upper level)
+    createWood(baseX,       FLOOR_Y - 48, 14, 48);
+    createWood(baseX + 48,  FLOOR_Y - 48, 14, 48);
+    createWood(baseX - 4,   FLOOR_Y - 62, 70, 14);
 
-    // First tower (translated from original Scene.addBox calls)
-    createWood(baseX,      floorY - 64, 14, 64);
-    createWood(baseX + 50, floorY - 64, 14, 64);
-    createWood(baseX - 4,  floorY - 78, 72, 14);
+    createWood(baseX + 8,   FLOOR_Y - 94, 14, 32);
+    createWood(baseX + 36,  FLOOR_Y - 94, 14, 32);
+    createWood(baseX + 4,   FLOOR_Y - 108, 54, 14);
 
-    createWood(baseX + 10, floorY - 110, 14, 32);
-    createWood(baseX + 40, floorY - 110, 14, 32);
-    createWood(baseX + 6,  floorY - 124, 52, 14);
+    createPig(baseX + 16, FLOOR_Y - 24);
+    createPig(baseX + 34, FLOOR_Y - 24);
 
-    createPig(baseX + 18, floorY - 28);
-    createPig(baseX + 38, floorY - 28);
-    createPig(baseX + 25, floorY - 140);
+    // Structure 2 – wider tower
+    createWood(baseX + 160, FLOOR_Y - 48, 14, 48);
+    createWood(baseX + 210, FLOOR_Y - 48, 14, 48);
+    createWood(baseX + 156, FLOOR_Y - 62, 72, 14);
+    createPig(baseX + 180, FLOOR_Y - 24);
 
-    // Second structure
-    createWood(baseX + 180, floorY - 64, 14, 64);
-    createWood(baseX + 230, floorY - 64, 14, 64);
-    createWood(baseX + 176, floorY - 78, 72, 14);
-    createPig(baseX + 200, floorY - 28);
-    createPig(baseX + 210, floorY - 100);
+    // Tall tip-able post
+    createWood(baseX + 280, FLOOR_Y - 72, 16, 72);
 
-    ground = Bodies.rectangle(baseX + 200, floorY + 8, 600, 16, {
+    // Loose crates on the ground
+    createWood(baseX + 90,  FLOOR_Y - 16, 22, 16);
+    createWood(baseX + 120, FLOOR_Y - 16, 22, 16);
+    createWood(baseX + 250, FLOOR_Y - 16, 26, 16);
+    createWood(baseX + 320, FLOOR_Y - 16, 20, 16);
+
+    // Static ground under the structures (Matter only)
+    ground = Bodies.rectangle(baseX + 180, FLOOR_Y + 8, 700, 16, {
       isStatic: true,
       label: 'ground',
       friction: 1
     });
 
     World.add(world, woodBodies.concat(pigBodies).concat([ground]));
+    console.log('[AngryPhysics] built', woodBodies.length, 'wood pieces at x≈' + baseX);
   }
 
   function syncMarioBody() {
-    if (!player) return;
+    if (!window.player) return;
     if (!marioBody) {
-      marioBody = Bodies.rectangle(player.pos[0] + 8, player.pos[1] + 12, 12, 20, {
-        density: 0.01,
-        friction: 0.8,
+      marioBody = Bodies.rectangle(player.pos[0] + 8, player.pos[1] + 12, 12, 22, {
+        density: 0.012,
+        friction: 0.6,
         restitution: 0,
         label: 'mario',
         inertia: Infinity
@@ -106,9 +117,32 @@
       y: player.pos[1] + 12
     });
     Body.setVelocity(marioBody, {
-      x: (player.vel ? player.vel[0] : 0) * 1.5,
-      y: (player.vel ? player.vel[1] : 0) * 0.5
+      x: (player.vel ? player.vel[0] : 0) * 1.8,
+      y: (player.vel ? player.vel[1] : 0) * 0.4
     });
+  }
+
+  // Let Mario stand on top of wood pieces
+  function supportMario() {
+    if (!window.player || !player.pos) return;
+    var feetX = player.pos[0] + 8;
+    var feetY = player.pos[1] + 16;
+
+    for (var i = 0; i < woodBodies.length; i++) {
+      var b = woodBodies[i];
+      var top = b.bounds.min.y;
+      var left = b.bounds.min.x;
+      var right = b.bounds.max.x;
+
+      if (feetX > left - 3 && feetX < right + 3) {
+        if (feetY >= top - 6 && feetY <= top + 10 && player.vel[1] >= -0.3) {
+          player.pos[1] = top - 16;
+          player.vel[1] = 0;
+          if (typeof player.standing !== 'undefined') player.standing = true;
+          break;
+        }
+      }
+    }
   }
 
   function setupCollisions() {
@@ -123,18 +157,20 @@
         if (bodyA.label === 'pig') { pig = bodyA; other = bodyB; }
         else if (bodyB.label === 'pig') { pig = bodyB; other = bodyA; }
 
-        if (!pig || pig.plugin.dying) continue;
+        if (!pig || !pig.plugin || pig.plugin.dying) continue;
 
         var vx = (bodyA.velocity.x - bodyB.velocity.x);
         var vy = (bodyA.velocity.y - bodyB.velocity.y);
-        var speed = Math.sqrt(vx*vx + vy*vy);
+        var speed = Math.sqrt(vx * vx + vy * vy);
 
-        if (speed > 3) {
-          pig.plugin.hp -= (speed - 3) * 15;
+        if (speed > 2.5) {
+          pig.plugin.hp -= (speed - 2.5) * 18;
           if (pig.plugin.hp <= 0) {
             pig.plugin.dying = true;
             pig.plugin.dieTimer = 0;
-            if (typeof sounds !== 'undefined' && sounds.kick) sounds.kick.play();
+            if (typeof sounds !== 'undefined' && sounds.kick) {
+              try { sounds.kick.play(); } catch (e) {}
+            }
           }
         }
 
@@ -142,7 +178,9 @@
           pig.plugin.dying = true;
           pig.plugin.dieTimer = 0;
           player.bounce = true;
-          if (typeof sounds !== 'undefined' && sounds.stomp) sounds.stomp.play();
+          if (typeof sounds !== 'undefined' && sounds.stomp) {
+            try { sounds.stomp.play(); } catch (e) {}
+          }
         }
       }
     });
@@ -150,20 +188,22 @@
 
   Mario.AngryPhysics = {
     start: function(baseX) {
+      if (physicsEnabled) return;
       if (!initMatter()) return;
       physicsEnabled = true;
       woodBodies = [];
       pigBodies = [];
       marioBody = null;
-      buildStructures(baseX || 1180);
+      buildStructures(baseX || 420);
       setupCollisions();
-      console.log('Angry Birds physics layer started');
+      console.log('[AngryPhysics] active – walk right to find the wooden towers');
     },
 
     update: function(dt) {
       if (!physicsEnabled || !engine) return;
       Engine.update(engine, 1000 / 60);
       syncMarioBody();
+      supportMario();
 
       for (var i = pigBodies.length - 1; i >= 0; i--) {
         var p = pigBodies[i];
@@ -179,6 +219,8 @@
 
     render: function(ctx, vX, vY) {
       if (!physicsEnabled) return;
+      vX = vX || 0;
+      vY = vY || 0;
 
       for (var i = 0; i < woodBodies.length; i++) {
         var b = woodBodies[i];
@@ -191,23 +233,23 @@
         ctx.translate(pos.x - vX, pos.y - vY);
         ctx.rotate(angle);
         ctx.fillStyle = '#8B5A2B';
-        ctx.fillRect(-w/2, -h/2, w, h);
+        ctx.fillRect(-w / 2, -h / 2, w, h);
         ctx.strokeStyle = '#5C3317';
         ctx.lineWidth = 1;
-        ctx.strokeRect(-w/2 + 0.5, -h/2 + 0.5, w - 1, h - 1);
-        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-        if (w > h) {
-          for (var g = -h/2 + 4; g < h/2; g += 4) {
+        ctx.strokeRect(-w / 2 + 0.5, -h / 2 + 0.5, w - 1, h - 1);
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        if (w >= h) {
+          for (var g = -h / 2 + 4; g < h / 2; g += 4) {
             ctx.beginPath();
-            ctx.moveTo(-w/2 + 2, g);
-            ctx.lineTo(w/2 - 2, g);
+            ctx.moveTo(-w / 2 + 2, g);
+            ctx.lineTo(w / 2 - 2, g);
             ctx.stroke();
           }
         } else {
-          for (var g = -w/2 + 4; g < w/2; g += 4) {
+          for (var g = -w / 2 + 4; g < w / 2; g += 4) {
             ctx.beginPath();
-            ctx.moveTo(g, -h/2 + 2);
-            ctx.lineTo(g, h/2 - 2);
+            ctx.moveTo(g, -h / 2 + 2);
+            ctx.lineTo(g, h / 2 - 2);
             ctx.stroke();
           }
         }
@@ -217,7 +259,7 @@
       for (var i = 0; i < pigBodies.length; i++) {
         var p = pigBodies[i];
         var pos = p.position;
-        var r = 14;
+        var r = 12;
         var x = pos.x - vX;
         var y = pos.y - vY;
 
