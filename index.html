@@ -1,1 +1,552 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Game Hub</title><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#080810;color:#fff;font:15px system-ui,-apple-system,Segoe UI,sans-serif}body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(#fff1 1px,transparent 1px),linear-gradient(90deg,#fff1 1px,transparent 1px);background-size:50px 50px}.content{position:relative;max-width:1100px;margin:auto;padding:70px 20px 40px}.settings{position:fixed;top:16px;left:16px;padding:12px;border:1px solid #fff2;border-radius:12px;background:#ffffff12;font-size:20px}.hero{text-align:center}.hero h1{margin:0;font-size:clamp(36px,7vw,54px);background:linear-gradient(135deg,#fff,#a99bff);color:transparent;background-clip:text}.hero p{color:#999;margin:10px 0 25px}.toolbar{text-align:center;color:#999;margin-bottom:28px}.refresh{margin-left:10px;padding:9px 15px;border:1px solid #fff2;border-radius:10px;background:#ffffff0d;color:#d0c7ff;cursor:pointer}.status{text-align:center;color:#999;padding:40px}.category{margin:0 0 32px}.category-title{display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:19px;font-weight:700}.category-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#6d5dfc,#9b8cff)}.count{color:#777;font-size:13px;font-weight:400}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}.game{padding:20px;min-height:135px;border:1px solid #fff2;border-radius:18px;background:#ffffff0b;cursor:pointer;transition:.2s}.game:hover{transform:translateY(-3px);border-color:#9b8cff}.icon{display:grid;place-items:center;width:44px;height:44px;margin-bottom:12px;border-radius:12px;background:linear-gradient(135deg,#6d5dfc,#9b8cff);font-size:22px}.name{font-weight:700;font-size:17px}.path{margin-top:5px;color:#777;font-size:11px}footer{text-align:center;color:#555;margin-top:30px;font-size:12px}</style></head><body><button class="settings">⚙️</button><main class="content"><header class="hero"><h1>Game Hub</h1><p>Pick a game and play</p></header><div class="toolbar"><span id="count">Loading games...</span><button class="refresh" onclick="loadGames()">↻ Refresh</button></div><div id="games"><div class="status">Loading games...</div></div><footer>Games load from the /games folder.</footer></main><script>const OWNER='Victorxd21',REPO='hello21.github.io';const fallback=[['Games','🎮',null,[['Royale','royale.html'],['Snake','snake.html'],['Werewolf','werewolf.html']]],['Cat Game','🐱','cat-game',[['CatUP','catUP.html']]],['Garticphone','✏️','garticphone',[['Garticphone','index.html']]],['Jetpack Joyride','🚀','jetpack-joyride',[['Jetpack Joyride','index.html']]],['Live Earth','🌍','live-earth',[['Live Earth','index.html']]],['Party Race','🏁','party-race',[['Party Race','index.html']]],['Rocket League','⚽','rocket-league',[['Rocket League','index.html']]],['SlitherIO','🐍','slitherIO',[['SlitherIO','index.html']]],['Storm Chaser','⛈️','storm-chaser',[['Storm Chaser','index.html']]],['Voxel World','🧱','voxel-world',[['Voxel World','index.html']]]];const hidden=new Set(['game-art','images','sounds','assets','pics','music','heads']);function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function url(folder,file){return'games/'+(folder?encodeURIComponent(folder)+'/':'')+encodeURIComponent(file)}function draw(groups,offline=false){const root=document.getElementById('games');root.innerHTML='';let total=0;groups.forEach(([title,icon,folder,games])=>{total+=games.length;const section=document.createElement('section');section.className='category';section.innerHTML='<div class="category-title"><span class="category-icon">'+icon+'</span><span>'+esc(title)+' <span class="count">('+games.length+')</span></span></div><div class="grid"></div>';const grid=section.querySelector('.grid');games.forEach(([name,file])=>{const card=document.createElement('article');card.className='game';card.innerHTML='<div class="icon">'+icon+'</div><div class="name">'+esc(name)+'</div><div class="path">'+esc(folder?folder+'/'+file:file)+'</div>';card.onclick=()=>location.href=url(folder,file);grid.appendChild(card)});root.appendChild(section)});document.getElementById('count').textContent=total+' games'+(offline?' (offline list)':'')}async function apiGroups(){const response=await fetch('https://api.github.com/repos/'+OWNER+'/'+REPO+'/contents/games',{headers:{Accept:'application/vnd.github+json'}});if(!response.ok)throw Error('GitHub API '+response.status);const items=await response.json(),groups=[],root=[];for(const item of items){if(item.type==='file'&&/\.html$/i.test(item.name))root.push([item.name.replace(/\.html$/i,'').replace(/[-_]/g,' '),item.name]);if(item.type==='dir'&&!hidden.has(item.name.toLowerCase())){const r=await fetch(item.url);if(!r.ok)continue;const files=await r.json(),html=files.filter(f=>f.type==='file'&&/\.html$/i.test(f.name));if(html.length)groups.push([item.name.replace(/[-_]/g,' '),'📁',item.name,html.map(f=>[f.name.replace(/\.html$/i,'').replace(/[-_]/g,' '),f.name])])}}if(root.length)groups.unshift(['Games','🎮',null,root]);return groups}async function loadGames(){document.getElementById('games').innerHTML='<div class="status">Loading games...</div>';try{draw(await apiGroups())}catch(error){console.warn(error);draw(fallback,true)}}loadGames();</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Game Hub</title>
+  <style>
+    :root {
+      --bg: #080810;
+      --card: rgba(255,255,255,0.06);
+      --card-hover: rgba(255,255,255,0.11);
+      --border: rgba(255,255,255,0.1);
+      --text: #f4f4f8;
+      --muted: #8b8ba3;
+      --accent: #9b8cff;
+      --accent2: #6d5dfc;
+      --glow: rgba(155,140,255,0.35);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Animated grid background */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: gridDrift 40s linear infinite;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+    }
+
+    /* Soft floating orbs */
+    body::after {
+      content: "";
+      position: fixed;
+      width: 500px;
+      height: 500px;
+      top: -120px;
+      right: -80px;
+      background: radial-gradient(circle, rgba(109,93,252,0.25), transparent 70%);
+      pointer-events: none;
+      animation: orbFloat 12s ease-in-out infinite alternate;
+    }
+
+    @keyframes gridDrift {
+      from { background-position: 0 0; }
+      to { background-position: 48px 48px; }
+    }
+    @keyframes orbFloat {
+      from { transform: translate(0, 0) scale(1); }
+      to { transform: translate(-40px, 60px) scale(1.15); }
+    }
+
+    .content {
+      position: relative;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 56px 20px 48px;
+      z-index: 1;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      margin-bottom: 36px;
+      animation: fadeUp 0.7s ease-out both;
+    }
+    .hero h1 {
+      font-size: clamp(38px, 8vw, 58px);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      background: linear-gradient(135deg, #fff 20%, #c4b5fd 50%, #818cf8 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: titleShine 6s ease-in-out infinite;
+      background-size: 200% auto;
+    }
+    @keyframes titleShine {
+      0%, 100% { background-position: 0% center; }
+      50% { background-position: 100% center; }
+    }
+    .hero p {
+      color: var(--muted);
+      margin-top: 10px;
+      font-size: 16px;
+      animation: fadeUp 0.7s ease-out 0.15s both;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+      color: var(--muted);
+      animation: fadeUp 0.7s ease-out 0.25s both;
+    }
+    .refresh {
+      padding: 9px 16px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      color: #d0c7ff;
+      cursor: pointer;
+      font-size: 14px;
+      transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    .refresh:hover {
+      transform: translateY(-2px) rotate(-12deg);
+      background: rgba(155,140,255,0.15);
+      box-shadow: 0 0 20px var(--glow);
+    }
+    .refresh:active { transform: scale(0.95); }
+
+    .status {
+      text-align: center;
+      color: var(--muted);
+      padding: 48px 16px;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    /* Game card */
+    .game {
+      position: relative;
+      padding: 22px 18px 18px;
+      min-height: 150px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--card);
+      cursor: pointer;
+      overflow: hidden;
+      transition:
+        transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1),
+        border-color 0.25s,
+        background 0.25s,
+        box-shadow 0.3s;
+      animation: cardIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+      animation-delay: calc(var(--i, 0) * 0.045s);
+    }
+    .game::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 40%, rgba(155,140,255,0.08));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .game::after {
+      content: "";
+      position: absolute;
+      bottom: -40%;
+      left: 50%;
+      width: 80%;
+      height: 60%;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse, var(--glow), transparent 70%);
+      opacity: 0;
+      transition: opacity 0.35s;
+      pointer-events: none;
+    }
+    .game:hover {
+      transform: translateY(-8px) scale(1.03);
+      border-color: rgba(155,140,255,0.55);
+      background: var(--card-hover);
+      box-shadow:
+        0 12px 32px rgba(0,0,0,0.35),
+        0 0 0 1px rgba(155,140,255,0.2),
+        0 0 40px var(--glow);
+    }
+    .game:hover::before { opacity: 1; }
+    .game:hover::after { opacity: 1; }
+    .game:active { transform: translateY(-3px) scale(0.99); }
+
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: translateY(24px) scale(0.92);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .icon {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 14px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      font-size: 24px;
+      box-shadow: 0 4px 16px rgba(109,93,252,0.35);
+      transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+    }
+    .game:hover .icon {
+      transform: scale(1.12) rotate(-6deg);
+    }
+
+    .name {
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: -0.2px;
+    }
+    .path {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      opacity: 0.85;
+    }
+
+    .badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(155,140,255,0.2);
+      color: #c4b5fd;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 0.25s, transform 0.25s;
+    }
+    .game:hover .badge {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    footer {
+      text-align: center;
+      color: #555;
+      margin-top: 40px;
+      font-size: 12px;
+      animation: fadeUp 0.7s ease-out 0.4s both;
+    }
+
+    /* Search */
+    .search-wrap {
+      width: min(360px, 100%);
+      margin: 0 auto 8px;
+      position: relative;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 11px 16px 11px 40px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-wrap input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(155,140,255,0.2);
+    }
+    .search-wrap::before {
+      content: "⌕";
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 16px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <main class="content">
+    <header class="hero">
+      <h1>Game Hub</h1>
+      <p>Pick a game and play</p>
+    </header>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <input id="search" type="search" placeholder="Search games…" autocomplete="off" />
+      </div>
+      <span id="count">Loading…</span>
+      <button class="refresh" id="refreshBtn" title="Refresh list">↻</button>
+    </div>
+
+    <div id="games">
+      <div class="status">Loading games…</div>
+    </div>
+
+    <footer>All games from the /games folder · click any card to play</footer>
+  </main>
+
+  <script>
+    const OWNER = "Victorxd21";
+    const REPO = "hello21.github.io";
+
+    /* Complete offline list — always works even if GitHub API is rate-limited */
+    const FALLBACK = [
+      { name: "Royale", folder: null, file: "royale.html", icon: "👑" },
+      { name: "Snake", folder: null, file: "snake.html", icon: "🐍" },
+      { name: "Werewolf", folder: null, file: "werewolf.html", icon: "🐺" },
+      { name: "UNO", folder: "uno", file: "index.html", icon: "🃏" },
+      { name: "Blackjack", folder: "blackjack", file: "index.html", icon: "🂡" },
+      { name: "Gartic Phone", folder: "gartic", file: "index.html", icon: "✏️" },
+      { name: "Cat Game", folder: "cat-game", file: "catUP.html", icon: "🐱" },
+      { name: "TikTok", folder: "TikTok", file: "index.html", icon: "📱" },
+      { name: "Live Earth", folder: "live-earth", file: "index.html", icon: "🌍" },
+      { name: "Rocket League", folder: "rocket-league", file: "index.html", icon: "⚽" },
+      { name: "SlitherIO", folder: "slitherIO", file: "index.html", icon: "🪱" },
+      { name: "Storm Chaser", folder: "storm-chaser", file: "index.html", icon: "⛈️" },
+      { name: "Voxel World", folder: "voxel-world", file: "index.html", icon: "🧱" },
+      { name: "Race", folder: "race", file: "index.html", icon: "🏁" },
+      { name: "Super Mario", folder: "super-mario", file: "index.html", icon: "🍄" },
+      { name: "Mesh View", folder: "mesh-view", file: "index.html", icon: "🔷" },
+      { name: "Gradess", folder: "gradess", file: "login.html", icon: "📚" }
+    ];
+
+    /* Folders / files to skip when scanning */
+    const HIDDEN = new Set([
+      "game-art", "images", "sounds", "assets", "pics", "music",
+      "heads", "data", "css", "js", "pngs", "node_modules"
+    ]);
+
+    /* Nice icons by folder/name keyword */
+    const ICON_MAP = {
+      uno: "🃏", blackjack: "🂡", gartic: "✏️", "cat-game": "🐱",
+      tiktok: "📱", "live-earth": "🌍", "rocket-league": "⚽",
+      slitherio: "🪱", "storm-chaser": "⛈️", "voxel-world": "🧱",
+      race: "🏁", "super-mario": "🍄", "mesh-view": "🔷",
+      gradess: "📚", royale: "👑", snake: "🐍", werewolf: "🐺",
+      heads: "👤"
+    };
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, c =>
+        ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "&#39;" }[c])
+      );
+    }
+
+    function prettyName(raw) {
+      return String(raw)
+        .replace(/\.html$/i, "")
+        .replace(/[-_]/g, " ")
+        .replace(/\b\w/g, c => c.toUpperCase())
+        .trim();
+    }
+
+    function iconFor(folder, file) {
+      const key = (folder || file || "").toLowerCase().replace(/\.html$/i, "");
+      for (const [k, v] of Object.entries(ICON_MAP)) {
+        if (key.includes(k)) return v;
+      }
+      return "🎮";
+    }
+
+    function gameUrl(folder, file) {
+      return "games/" + (folder ? encodeURIComponent(folder) + "/" : "") + encodeURIComponent(file);
+    }
+
+    function pickEntryHtml(files) {
+      /* Prefer index.html, then login.html, then any .html */
+      const htmls = files.filter(f => f.type === "file" && /\.html$/i.test(f.name));
+      if (!htmls.length) return null;
+      const index = htmls.find(f => /^index\.html$/i.test(f.name));
+      if (index) return index.name;
+      const login = htmls.find(f => /login/i.test(f.name));
+      if (login) return login.name;
+      return htmls[0].name;
+    }
+
+    let allGames = [];
+
+    function draw(games, offline) {
+      allGames = games;
+      const root = document.getElementById("games");
+      root.innerHTML = "";
+
+      if (!games.length) {
+        root.innerHTML = '<div class="status">No games found.</div>';
+        document.getElementById("count").textContent = "0 games";
+        return;
+      }
+
+      const grid = document.createElement("div");
+      grid.className = "grid";
+
+      games.forEach((g, i) => {
+        const card = document.createElement("article");
+        card.className = "game";
+        card.style.setProperty("--i", i);
+        card.dataset.name = (g.name + " " + (g.folder || "") + " " + g.file).toLowerCase();
+        card.innerHTML =
+          '<div class="icon">' + g.icon + "</div>" +
+          '<div class="name">' + esc(g.name) + "</div>" +
+          '<div class="path">' + esc(g.folder ? g.folder + "/" + g.file : g.file) + "</div>" +
+          '<span class="badge">Play</span>';
+        card.onclick = () => { location.href = gameUrl(g.folder, g.file); };
+        grid.appendChild(card);
+      });
+
+      root.appendChild(grid);
+      document.getElementById("count").textContent =
+        games.length + " game" + (games.length !== 1 ? "s" : "") +
+        (offline ? " · offline list" : "");
+    }
+
+    function filterGames(q) {
+      const term = (q || "").trim().toLowerCase();
+      const cards = document.querySelectorAll(".game");
+      let visible = 0;
+      cards.forEach(card => {
+        const match = !term || card.dataset.name.includes(term);
+        card.style.display = match ? "" : "none";
+        if (match) visible++;
+      });
+      document.getElementById("count").textContent =
+        visible + " game" + (visible !== 1 ? "s" : "");
+    }
+
+    async function apiGames() {
+      const headers = { Accept: "application/vnd.github+json" };
+      const res = await fetch(
+        "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/games",
+        { headers }
+      );
+      if (!res.ok) throw new Error("GitHub API " + res.status);
+
+      const items = await res.json();
+      const games = [];
+
+      /* Root-level HTML files */
+      for (const item of items) {
+        if (item.type === "file" && /\.html$/i.test(item.name)) {
+          games.push({
+            name: prettyName(item.name),
+            folder: null,
+            file: item.name,
+            icon: iconFor(null, item.name)
+          });
+        }
+      }
+
+      /* Folders — look for entry HTML (including nested one level if needed) */
+      const dirs = items.filter(
+        i => i.type === "dir" && !HIDDEN.has(i.name.toLowerCase())
+      );
+
+      await Promise.all(
+        dirs.map(async dir => {
+          try {
+            const r = await fetch(dir.url, { headers });
+            if (!r.ok) return;
+            const files = await r.json();
+            let entry = pickEntryHtml(files);
+
+            /* If no HTML at top level, scan one subfolder deep */
+            if (!entry) {
+              const subdirs = files.filter(
+                f => f.type === "dir" && !HIDDEN.has(f.name.toLowerCase())
+              );
+              for (const sub of subdirs) {
+                try {
+                  const sr = await fetch(sub.url, { headers });
+                  if (!sr.ok) continue;
+                  const subFiles = await sr.json();
+                  const subEntry = pickEntryHtml(subFiles);
+                  if (subEntry) {
+                    games.push({
+                      name: prettyName(dir.name + " " + sub.name),
+                      folder: dir.name + "/" + sub.name,
+                      file: subEntry,
+                      icon: iconFor(dir.name, subEntry)
+                    });
+                  }
+                } catch (_) {}
+              }
+              return;
+            }
+
+            games.push({
+              name: prettyName(dir.name),
+              folder: dir.name,
+              file: entry,
+              icon: iconFor(dir.name, entry)
+            });
+          } catch (_) {}
+        })
+      );
+
+      /* Sort alphabetically */
+      games.sort((a, b) => a.name.localeCompare(b.name));
+      return games;
+    }
+
+    async function loadGames() {
+      document.getElementById("games").innerHTML =
+        '<div class="status">Loading games…</div>';
+      try {
+        const games = await apiGames();
+        if (games.length) {
+          draw(games, false);
+          return;
+        }
+        throw new Error("empty");
+      } catch (err) {
+        console.warn("API failed, using fallback:", err);
+        draw(FALLBACK.slice().sort((a, b) => a.name.localeCompare(b.name)), true);
+      }
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", loadGames);
+    document.getElementById("search").addEventListener("input", e => {
+      filterGames(e.target.value);
+    });
+
+    loadGames();
+  </script>
+</body>
+</html>
