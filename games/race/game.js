@@ -13,15 +13,17 @@ async function boot() {
   const i1 = src.indexOf(PHYS_END);
   if (i0 < 0 || i1 < 0) throw new Error('Physics markers missing');
 
-  const NEW_PHYSICS = `/* Real tire-force physics: wheels drive & steer via slip */
+  const NEW_PHYSICS = `/* Tire-force physics — high grip, holds road, still can drift if pushed */
 class Wheel {
   constructor(lx, lz, front) {
     this.localX = lx; this.localZ = lz; this.isFront = front;
     this.radius = 0.36; this.suspensionRest = 0.32; this.suspensionMax = 0.55;
-    this.springK = 45000; this.damper = 3800; this.grip = 1.25;
+    this.springK = 48000; this.damper = 4000;
+    this.grip = 1.85;
     this.compression = 0; this.onGround = false; this.groundY = 0;
     this.force = new THREE.Vector3(); this.spin = 0; this.omega = 0;
-    this.steer = 0; this.mesh = null; this.load = 0; this.inertia = 1.2;
+    this.steer = 0; this.mesh = null; this.load = 0; this.inertia = 1.1;
+    this.slipAngle = 0; this.slipRatio = 0;
   }
 }
 class Car {
@@ -37,10 +39,11 @@ class Car {
     this.angVelY = 0; this.angVelPitch = 0; this.angVelRoll = 0;
     this.throttle = 0; this.brake = 0; this.steerInput = 0;
     this.handbrake = false; this.boost = 0; this.onGround = false;
-    this.mass = 1450; this.inertiaYaw = 2600; this.inertiaPitch = 1600; this.inertiaRoll = 900;
-    this.engineTorque = 3200; this.brakeTorque = 4500; this.maxSteer = 0.55; this.drag = 0.35;
+    this.mass = 1450; this.inertiaYaw = 2400; this.inertiaPitch = 1600; this.inertiaRoll = 900;
+    this.engineTorque = 2800; this.brakeTorque = 5000; this.maxSteer = 0.52; this.drag = 0.38;
     this.lap = 1; this.checkpoint = 0; this.finished = false; this.finishTime = 0;
     this.name = isPlayer ? 'You' : 'Bot';
+    this.gripUsage = 0;
   }
   createMesh(color) {
     const g = new THREE.Group();
@@ -64,7 +67,7 @@ class Car {
     return { x: this.pos.x + w.localX * c + w.localZ * s, z: this.pos.z - w.localX * s + w.localZ * c };
   }
   get isUpright() { return Math.abs(this.roll) < 1.2 && Math.abs(this.pitch) < 1.2; }
-  tireCurve(rho) { return Math.sin(1.5 * Math.atan(1.8 * rho)); }
+  tireCurve(rho) { return Math.sin(1.55 * Math.atan(2.4 * rho)); }
   update(dt) {
     if (this.isPlayer) {
       this.throttle = (keys['KeyW'] || keys['ArrowUp']) ? 1 : 0;
@@ -74,10 +77,10 @@ class Car {
       this.boost = (keys['ShiftLeft'] || keys['ShiftRight']) ? 1 : 0;
     }
     const spd = Math.abs(this.speed);
-    const steerScale = THREE.MathUtils.clamp(1.0 - spd / 55, 0.28, 1.0);
+    const steerScale = THREE.MathUtils.clamp(1.0 - spd / 60, 0.30, 1.0);
     const targetSteer = this.steerInput * this.maxSteer * steerScale;
     for (const w of this.wheels)
-      w.steer = w.isFront ? THREE.MathUtils.lerp(w.steer, targetSteer, Math.min(1, 14 * dt)) : 0;
+      w.steer = w.isFront ? THREE.MathUtils.lerp(w.steer, targetSteer, Math.min(1, 16 * dt)) : 0;
 
     for (const w of this.wheels) {
       const xz = this.wheelXZ(w);
@@ -96,7 +99,8 @@ class Car {
 
     const totalForce = new THREE.Vector3(0, -this.mass * 9.81, 0);
     let torqueYaw = 0, torquePitch = 0, torqueRoll = 0, groundedCount = 0;
-    const driveTotal = this.throttle * this.engineTorque * (1 + this.boost * 0.6);
+    let maxRho = 0;
+    const driveTotal = this.throttle * this.engineTorque * (1 + this.boost * 0.55);
 
     for (const w of this.wheels) {
       if (!this.isUpright) {
@@ -112,7 +116,7 @@ class Car {
       if (compression > -0.12 && compression < w.suspensionMax + 0.35) {
         w.onGround = true; groundedCount++;
         w.compression = Math.max(0, Math.min(compression, w.suspensionMax));
-        let normalF = Math.max(200, w.compression * w.springK - this.vel.y * w.damper);
+        let normalF = Math.max(250, w.compression * w.springK - this.vel.y * w.damper);
         if (compression > w.suspensionMax * 0.88)
           normalF += (compression - w.suspensionMax * 0.85) * w.springK * 5;
         w.load = normalF; w.force.y = normalF;
@@ -128,31 +132,39 @@ class Car {
 
         let engineT = w.isFront ? 0 : driveTotal / 2;
         if (this.handbrake && !w.isFront) engineT = 0;
-        let brakeT = this.brake * this.brakeTorque * 0.22;
-        if (this.handbrake && !w.isFront) brakeT += this.brakeTorque * 0.5;
-        if (this.handbrake && w.isFront) brakeT += this.brakeTorque * 0.12;
+        let brakeT = this.brake * this.brakeTorque * 0.25;
+        if (this.handbrake && !w.isFront) brakeT += this.brakeTorque * 0.55;
+        if (this.handbrake && w.isFront) brakeT += this.brakeTorque * 0.1;
         if (Math.abs(w.omega) > 0.05) brakeT *= Math.sign(w.omega); else brakeT = 0;
-        const rollRes = Math.sign(w.omega || vLong) * 18;
-        w.omega += ((engineT - brakeT - rollRes) / w.inertia) * dt;
+        w.omega += ((engineT - brakeT - Math.sign(w.omega || vLong) * 22) / w.inertia) * dt;
 
-        const vRef = Math.max(Math.abs(vLong), 1.2);
+        const vRef = Math.max(Math.abs(vLong), 0.8);
         const slipRatio = (w.omega * w.radius - vLong) / vRef;
-        const slipAngle = Math.atan2(vLat, Math.max(Math.abs(vLong), 0.6));
+        const slipAngle = Math.atan2(vLat, Math.max(Math.abs(vLong), 0.5));
+        w.slipRatio = slipRatio; w.slipAngle = slipAngle;
 
         const xz = this.wheelXZ(w);
         const onPaved = isOnRoad(xz.x, xz.z) || isOnHighway(xz.x, xz.z);
-        const mu = w.grip * (onPaved ? 1.1 : 0.5);
-        const sx = slipRatio / 0.12, sy = slipAngle / 0.14;
+        const mu = w.grip * (onPaved ? 1.15 : 0.45);
+        const peakSlip = 0.10;
+        const peakAngle = 0.10;
+        const sx = slipRatio / peakSlip;
+        const sy = slipAngle / peakAngle;
         const rho = Math.max(1e-4, Math.hypot(sx, sy));
-        const f = this.tireCurve(Math.min(rho, 3));
-        const load = Math.max(normalF, 300);
+        if (rho > maxRho) maxRho = rho;
+        const f = this.tireCurve(Math.min(rho, 2.5));
+        const load = Math.max(normalF, 400);
         let Fx = mu * load * f * (sx / rho);
         let Fy = -mu * load * f * (sy / rho);
-        const maxF = mu * load, fMag = Math.hypot(Fx, Fy);
+        if (Math.abs(slipAngle) < 0.12 && Math.abs(slipRatio) < 0.15) {
+          Fy *= 1.25;
+        }
+        const maxF = mu * load;
+        const fMag = Math.hypot(Fx, Fy);
         if (fMag > maxF) { const s = maxF / fMag; Fx *= s; Fy *= s; }
 
         w.omega -= (Fx * w.radius / w.inertia) * dt;
-        w.omega = THREE.MathUtils.clamp(w.omega, -180, 180);
+        w.omega = THREE.MathUtils.clamp(w.omega, -160, 160);
         w.spin += w.omega * dt;
 
         const fWorldX = Fx * sinW + Fy * latX;
@@ -169,6 +181,7 @@ class Car {
     }
 
     this.onGround = groundedCount >= 2;
+    this.gripUsage = THREE.MathUtils.clamp(maxRho, 0, 1.5) / 1.5;
 
     if (!this.isUpright) {
       if (this.pos.y < avgG + 0.35) {
@@ -180,10 +193,17 @@ class Car {
     } else if (this.onGround) {
       const targetY = avgG + 0.02;
       const err = targetY - this.pos.y;
-      totalForce.y += err * this.mass * 22;
+      totalForce.y += err * this.mass * 24;
       if (this.pos.y < targetY - 0.1) {
         this.pos.y = targetY - 0.1;
         if (this.vel.y < 0) this.vel.y = 0;
+      }
+      const cH = Math.cos(this.heading), sH = Math.sin(this.heading);
+      const vLatBody = this.vel.x * cH - this.vel.z * sH;
+      if (Math.abs(vLatBody) > 0.3 && maxRho < 1.1) {
+        const kill = Math.min(1, 8 * dt);
+        this.vel.x -= vLatBody * cH * kill * 0.55;
+        this.vel.z += vLatBody * sH * kill * 0.55;
       }
     }
 
@@ -202,7 +222,7 @@ class Car {
     this.angVelRoll  += (torqueRoll / this.inertiaRoll) * dt;
 
     if (this.isUpright && this.onGround) {
-      this.angVelY *= (1 - 0.8 * dt);
+      this.angVelY *= (1 - 1.0 * dt);
       this.angVelPitch *= (1 - 5 * dt);
       this.angVelRoll  *= (1 - 6 * dt);
     } else {
@@ -248,6 +268,15 @@ class Car {
       w.mesh.rotation.y = w.steer;
       w.mesh.rotation.x = w.spin;
     }
+
+    if (this.isPlayer) {
+      const bar = document.getElementById('grip-fill');
+      if (bar) {
+        const pct = Math.min(100, this.gripUsage * 100);
+        bar.style.width = pct + '%';
+        bar.style.background = pct > 85 ? '#f44' : pct > 60 ? '#fa0' : '#4c4';
+      }
+    }
   }
   get speed() {
     return this.vel.x * Math.sin(this.heading) + this.vel.z * Math.cos(this.heading);
@@ -281,7 +310,15 @@ class Car {
   src = src.replace(/this\.pos\.y = gNow \+ 1(?!\d)/g, 'this.pos.y = gNow + 0.15');
   src = src.replace(/this\.pos\.y = gNow \+ 0\.5/g, 'this.pos.y = gNow + 0.15');
 
-  const fn = new Function('THREE', 'OrbitControls', src + '\n//# sourceURL=game-tireforce.js');
+  if (!document.getElementById('grip-meter')) {
+    const el = document.createElement('div');
+    el.id = 'grip-meter';
+    el.innerHTML = '<div style="font:11px monospace;color:#ccc;margin-bottom:2px">GRIP</div><div style="width:100px;height:8px;background:#333;border-radius:3px;overflow:hidden"><div id="grip-fill" style="width:0%;height:100%;background:#4c4;transition:width .05s"></div></div>';
+    el.style.cssText = 'position:fixed;bottom:24px;left:16px;z-index:50;pointer-events:none';
+    document.body.appendChild(el);
+  }
+
+  const fn = new Function('THREE', 'OrbitControls', src + '\n//# sourceURL=game-grip.js');
   fn(THREE, OrbitControls);
 }
 
