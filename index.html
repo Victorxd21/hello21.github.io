@@ -16,48 +16,63 @@ body{margin:0;background:#080810;color:#a0a0b8;font:14px system-ui;display:grid;
 (async function () {
   const urls = [
     "https://cdn.jsdelivr.net/gh/Victorxd21/hello21.github.io@515b90c2a1e97a73cece93063b1411728f82c32a/index.html",
-    "https://raw.githack.com/Victorxd21/hello21.github.io/515b90c2a1e97a73cece93063b1411728f82c32a/index.html",
-    "https://raw.githubusercontent.com/Victorxd21/hello21.github.io/515b90c2a1e97a73cece93063b1411728f82c32a/index.html"
+    "https://raw.githack.com/Victorxd21/hello21.github.io/515b90c2a1e97a73cece93063b1411728f82c32a/index.html"
   ];
   let html = null, lastErr = null;
   for (const u of urls) {
     try {
       const r = await fetch(u, { cache: "no-store" });
-      if (!r.ok) throw new Error(r.status + " " + u);
-      html = await r.text();
-      if (html && html.length > 1000 && html.indexOf("<!doctype") !== -1 || html.indexOf("<!DOCTYPE") !== -1 || html.indexOf("Game Hub") !== -1) break;
-      html = null;
+      if (!r.ok) throw new Error(r.status + "");
+      const t = await r.text();
+      if (t && t.length > 5000 && /Game Hub/i.test(t)) { html = t; break; }
     } catch (e) { lastErr = e; }
   }
   if (!html) {
-    document.getElementById("st").textContent = "Failed to restore hub: " + (lastErr && lastErr.message || "unknown");
+    document.getElementById("st").textContent = "Failed to load hub: " + (lastErr && lastErr.message || "network");
     return;
   }
-  // Patch in stronger cube collisions after load (rigid-body style impulses)
-  html = html.replace(
-    /for \(let i = 0; i < cubes\.length; i\+\+\) \{[\s\S]*?b\.vy \+= ny \* push;[\s\S]*?\}\s*\}/,
-    `for (let i = 0; i < cubes.length; i++) {
-          for (let j = i + 1; j < cubes.length; j++) {
-            const a = cubes[i], b = cubes[j];
-            const dx = b.x - a.x, dy = b.y - a.y;
-            const dist = Math.hypot(dx, dy) || 0.01;
-            const minD = (a.size + b.size) * 0.52;
-            if (dist >= minD) continue;
-            const nx = dx / dist, ny = dy / dist;
-            const pen = minD - dist;
-            const ma = a.size * a.size, mb = b.size * b.size;
-            const inv = 1 / (ma + mb);
-            a.x -= nx * pen * mb * inv; a.y -= ny * pen * mb * inv;
-            b.x += nx * pen * ma * inv; b.y += ny * pen * ma * inv;
-            const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
-            if (rv > 0) continue;
-            const jn = -(1 + 0.55) * rv / (1/ma + 1/mb);
-            a.vx -= (jn * nx) / ma; a.vy -= (jn * ny) / ma;
-            b.vx += (jn * nx) / mb; b.vy += (jn * ny) / mb;
-            a.vr -= jn * 0.04; b.vr += jn * 0.04;
-          }
-        }`
-  );
+
+  // Inject rigid-body-style cube collisions before the soft push loop marker
+  const RB = `
+      /* rigid-body impulse collisions (mass ∝ size², restitution, spin) */
+      function rbCollide(a, b) {
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy) || 0.001;
+        const minD = (a.size + b.size) * 0.52;
+        if (dist >= minD) return;
+        const nx = dx / dist, ny = dy / dist;
+        const pen = minD - dist;
+        const ma = Math.max(1, a.size * a.size), mb = Math.max(1, b.size * b.size);
+        const inv = 1 / (ma + mb);
+        a.x -= nx * pen * mb * inv; a.y -= ny * pen * mb * inv;
+        b.x += nx * pen * ma * inv; b.y += ny * pen * ma * inv;
+        const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+        if (rv > 0) return;
+        const jn = -(1 + 0.55) * rv / (1 / ma + 1 / mb);
+        a.vx -= (jn * nx) / ma; a.vy -= (jn * ny) / ma;
+        b.vx += (jn * nx) / mb; b.vy += (jn * ny) / mb;
+        if (typeof a.vr === "number") a.vr -= jn * 0.045;
+        if (typeof b.vr === "number") b.vr += jn * 0.045;
+      }
+`;
+
+  // Prefer replacing the old soft-separation double loop with rbCollide
+  const loopRe = /for \(let i = 0; i < cubes\.length; i\+\+\) \{\s*for \(let j = i \+ 1; j < cubes\.length; j\+\+\) \{[\s\S]*?b\.vy \+= ny \* push;[\s\S]*?\}\s*\}/;
+  if (loopRe.test(html)) {
+    html = html.replace(loopRe,
+      `for (let i = 0; i < cubes.length; i++) {\n          for (let j = i + 1; j < cubes.length; j++) rbCollide(cubes[i], cubes[j]);\n        }`);
+    // inject helper near GRAVITY const
+    html = html.replace(
+      /const GRAVITY = [^;]+;/,
+      (m) => m + RB
+    );
+  }
+
+  // Slightly heavier gravity + bounce for a weightier feel
+  html = html.replace(/const GRAVITY = 0\.18/, "const GRAVITY = 0.22");
+  html = html.replace(/BOUNCE = 0\.62/, "BOUNCE = 0.55");
+  html = html.replace(/this\.vr \*= 0\.98/, "this.vr *= 0.992");
+
   document.open();
   document.write(html);
   document.close();
