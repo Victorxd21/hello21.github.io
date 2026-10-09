@@ -15,9 +15,51 @@
       --accent: #9b8cff;
       --accent2: #6d5dfc;
       --glow: rgba(155,140,255,0.35);
+      --season-a: #9b8cff;
+      --season-b: #818cf8;
+      --season-c: #c4b5fd;
       --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
       --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-      --ease-bounce: cubic-bezier(0.68, -0.4, 0.32, 1.4);
+    }
+
+    /* Seasonal overrides applied via body class */
+    body.season-halloween {
+      --accent: #ff8c42;
+      --accent2: #9b30ff;
+      --glow: rgba(255,140,66,0.4);
+      --season-a: #ff8c42;
+      --season-b: #9b30ff;
+      --season-c: #ffb347;
+    }
+    body.season-halloween::after {
+      background: radial-gradient(circle, rgba(255,100,40,0.22), transparent 70%);
+    }
+    body.season-winter {
+      --accent: #7dd3fc;
+      --accent2: #38bdf8;
+      --glow: rgba(125,211,252,0.4);
+      --season-a: #e2e8f0;
+      --season-b: #7dd3fc;
+      --season-c: #bae6fd;
+    }
+    body.season-winter::after {
+      background: radial-gradient(circle, rgba(125,211,252,0.2), transparent 70%);
+    }
+    body.season-nye {
+      --accent: #fbbf24;
+      --accent2: #f59e0b;
+      --glow: rgba(251,191,36,0.4);
+      --season-a: #fbbf24;
+      --season-b: #f472b6;
+      --season-c: #a78bfa;
+    }
+    body.season-spring {
+      --accent: #86efac;
+      --accent2: #34d399;
+      --glow: rgba(134,239,172,0.35);
+      --season-a: #86efac;
+      --season-b: #f9a8d4;
+      --season-c: #a5b4fc;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,7 +72,6 @@
       overflow-x: hidden;
     }
 
-    /* Animated grid */
     body::before {
       content: "";
       position: fixed;
@@ -74,11 +115,10 @@
       z-index: 1;
     }
 
-    /* ── Hero + physics canvas ── */
     .hero {
       position: relative;
       text-align: center;
-      margin-bottom: 28px;
+      margin-bottom: 22px;
       min-height: 140px;
       display: flex;
       flex-direction: column;
@@ -99,15 +139,13 @@
       font-size: clamp(40px, 9vw, 64px);
       font-weight: 800;
       letter-spacing: -1.8px;
-      background: linear-gradient(135deg, #fff 15%, #c4b5fd 45%, #818cf8 85%);
+      background: linear-gradient(135deg, #fff 15%, var(--season-c) 45%, var(--season-b) 85%);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
       background-size: 200% auto;
-      animation:
-        titleShine 6s ease-in-out infinite,
-        titleIn 1s var(--ease-spring) both;
-      filter: drop-shadow(0 0 24px rgba(155,140,255,0.25));
+      animation: titleShine 6s ease-in-out infinite, titleIn 1s var(--ease-spring) both;
+      filter: drop-shadow(0 0 24px var(--glow));
     }
     @keyframes titleShine {
       0%, 100% { background-position: 0% center; }
@@ -125,38 +163,45 @@
       font-size: 16px;
       animation: fadeSlideUp 0.8s var(--ease-out) 0.25s both;
     }
-    .version-pill {
+    .hero-meta {
       position: relative;
       z-index: 2;
-      display: inline-block;
+      display: flex;
+      align-items: center;
+      gap: 8px;
       margin-top: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeSlideUp 0.8s var(--ease-out) 0.4s both;
+    }
+    .version-pill, .season-pill {
+      display: inline-block;
       padding: 3px 10px;
       border-radius: 999px;
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.06em;
-      color: #c4b5fd;
-      background: rgba(155,140,255,0.15);
-      border: 1px solid rgba(155,140,255,0.25);
-      animation: fadeSlideUp 0.8s var(--ease-out) 0.4s both, pulseGlow 3s ease-in-out infinite 1s;
+      color: var(--season-c);
+      background: color-mix(in srgb, var(--accent) 18%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
     }
+    .version-pill { animation: pulseGlow 3s ease-in-out infinite 1s; }
     @keyframes pulseGlow {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(155,140,255,0); }
-      50% { box-shadow: 0 0 16px 2px rgba(155,140,255,0.3); }
+      0%, 100% { box-shadow: 0 0 0 0 transparent; }
+      50% { box-shadow: 0 0 16px 2px var(--glow); }
     }
     @keyframes fadeSlideUp {
       from { opacity: 0; transform: translateY(18px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── Toolbar ── */
     .toolbar {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
       flex-wrap: wrap;
-      margin-bottom: 24px;
+      margin-bottom: 14px;
       color: var(--muted);
       animation: fadeSlideUp 0.7s var(--ease-out) 0.35s both;
     }
@@ -168,22 +213,19 @@
       color: #d0c7ff;
       cursor: pointer;
       font-size: 14px;
-      transition:
-        transform 0.35s var(--ease-spring),
-        background 0.25s,
-        box-shadow 0.25s,
-        border-color 0.25s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.35s var(--ease-spring), background 0.25s, box-shadow 0.25s, border-color 0.25s;
     }
     .btn-pill:hover {
       transform: translateY(-3px) scale(1.05);
-      background: rgba(155,140,255,0.18);
+      background: color-mix(in srgb, var(--accent) 20%, transparent);
       box-shadow: 0 6px 24px var(--glow);
-      border-color: rgba(155,140,255,0.4);
+      border-color: color-mix(in srgb, var(--accent) 45%, transparent);
     }
-    .btn-pill:active {
-      transform: scale(0.92);
-      transition-duration: 0.1s;
-    }
+    .btn-pill:active { transform: scale(0.92); transition-duration: 0.1s; }
     .refresh:hover { transform: translateY(-3px) rotate(-18deg) scale(1.08); }
 
     .search-wrap {
@@ -203,7 +245,7 @@
     }
     .search-wrap input:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 4px rgba(155,140,255,0.2);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent);
       transform: scale(1.02);
     }
     .search-wrap::before {
@@ -217,7 +259,38 @@
       pointer-events: none;
     }
 
-    /* ── Category sections ── */
+    /* Tags */
+    .tags-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 22px;
+      animation: fadeSlideUp 0.7s var(--ease-out) 0.42s both;
+    }
+    .tag-chip {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.3s var(--ease-spring), background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .tag-chip:hover {
+      transform: translateY(-2px) scale(1.05);
+      color: #e8e8f0;
+      border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    }
+    .tag-chip.active {
+      background: color-mix(in srgb, var(--accent) 22%, transparent);
+      color: #fff;
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+      box-shadow: 0 0 16px var(--glow);
+    }
+
     .category {
       margin-bottom: 22px;
       animation: catIn 0.7s var(--ease-out) both;
@@ -240,53 +313,35 @@
       background: rgba(255,255,255,0.04);
       cursor: pointer;
       user-select: none;
-      transition:
-        background 0.25s,
-        border-color 0.25s,
-        transform 0.35s var(--ease-spring),
-        box-shadow 0.3s;
+      transition: background 0.25s, border-color 0.25s, transform 0.35s var(--ease-spring), box-shadow 0.3s;
     }
     .cat-header:hover {
-      background: rgba(155,140,255,0.1);
-      border-color: rgba(155,140,255,0.35);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border-color: color-mix(in srgb, var(--accent) 35%, transparent);
       transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(109,93,252,0.15);
+      box-shadow: 0 8px 28px color-mix(in srgb, var(--accent) 15%, transparent);
     }
     .cat-header:active { transform: scale(0.98); }
-
     .cat-chevron {
-      width: 22px;
-      height: 22px;
-      display: grid;
-      place-items: center;
-      font-size: 12px;
-      color: #a78bfa;
+      width: 22px; height: 22px;
+      display: grid; place-items: center;
+      font-size: 12px; color: var(--season-c);
       transition: transform 0.4s var(--ease-spring);
       flex-shrink: 0;
     }
-    .category.collapsed .cat-chevron {
-      transform: rotate(-90deg);
-    }
-
+    .category.collapsed .cat-chevron { transform: rotate(-90deg); }
     .cat-title {
-      font-weight: 700;
-      font-size: 15px;
-      letter-spacing: -0.2px;
-      flex: 1;
-      text-align: left;
+      font-weight: 700; font-size: 15px; letter-spacing: -0.2px;
+      flex: 1; text-align: left;
     }
     .cat-count {
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 9px;
-      border-radius: 999px;
-      background: rgba(155,140,255,0.18);
-      color: #c4b5fd;
+      font-size: 11px; font-weight: 700;
+      padding: 3px 9px; border-radius: 999px;
+      background: color-mix(in srgb, var(--accent) 18%, transparent);
+      color: var(--season-c);
       transition: transform 0.3s var(--ease-spring);
     }
-    .cat-header:hover .cat-count {
-      transform: scale(1.12);
-    }
+    .cat-header:hover .cat-count { transform: scale(1.12); }
 
     .cat-body {
       display: grid;
@@ -299,12 +354,8 @@
       opacity: 0;
       pointer-events: none;
     }
-    .cat-body-inner {
-      overflow: hidden;
-      padding-top: 14px;
-    }
+    .cat-body-inner { overflow: hidden; padding-top: 14px; }
 
-    /* ── Game grid & cards ── */
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -314,158 +365,181 @@
     .game {
       position: relative;
       padding: 22px 18px 18px;
-      min-height: 150px;
+      min-height: 158px;
       border: 1px solid var(--border);
       border-radius: 18px;
       background: var(--card);
       cursor: pointer;
       overflow: hidden;
       transform-origin: center bottom;
-      transition:
-        transform 0.4s var(--ease-spring),
-        border-color 0.25s,
-        background 0.25s,
-        box-shadow 0.35s,
-        opacity 0.35s,
-        filter 0.35s;
+      transition: transform 0.4s var(--ease-spring), border-color 0.25s, background 0.25s, box-shadow 0.35s, opacity 0.35s, filter 0.35s;
       animation: cardPop 0.65s var(--ease-spring) both;
       animation-delay: calc(var(--i, 0) * 0.05s + 0.1s);
+    }
+    .game.broken {
+      opacity: 0.45;
+      filter: grayscale(0.7);
+      cursor: not-allowed;
+    }
+    .game.broken::after {
+      content: "Unavailable";
+      position: absolute;
+      bottom: 10px;
+      right: 12px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #f87171;
+      opacity: 1;
+      background: none;
+      width: auto; height: auto; left: auto; transform: none;
     }
     .game::before {
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, transparent 40%, rgba(155,140,255,0.1));
+      background: linear-gradient(135deg, transparent 40%, color-mix(in srgb, var(--accent) 12%, transparent));
       opacity: 0;
       transition: opacity 0.35s;
     }
     .game::after {
       content: "";
       position: absolute;
-      bottom: -45%;
-      left: 50%;
-      width: 90%;
-      height: 70%;
+      bottom: -45%; left: 50%;
+      width: 90%; height: 70%;
       transform: translateX(-50%);
       background: radial-gradient(ellipse, var(--glow), transparent 70%);
       opacity: 0;
       transition: opacity 0.4s;
       pointer-events: none;
     }
-    .game:hover {
+    .game:not(.broken):hover {
       transform: translateY(-10px) scale(1.045) rotate(-0.5deg);
-      border-color: rgba(155,140,255,0.55);
+      border-color: color-mix(in srgb, var(--accent) 55%, transparent);
       background: var(--card-hover);
-      box-shadow:
-        0 16px 40px rgba(0,0,0,0.4),
-        0 0 0 1px rgba(155,140,255,0.25),
-        0 0 48px var(--glow);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent), 0 0 48px var(--glow);
     }
-    .game:hover::before { opacity: 1; }
-    .game:hover::after { opacity: 1; }
-    .game:active {
+    .game:not(.broken):hover::before { opacity: 1; }
+    .game:not(.broken):hover::after { opacity: 1; }
+    .game:not(.broken):active {
       transform: translateY(-4px) scale(0.97);
       transition-duration: 0.12s;
     }
 
     @keyframes cardPop {
-      0% {
-        opacity: 0;
-        transform: translateY(40px) scale(0.7) rotateX(12deg);
-        filter: blur(4px);
-      }
-      60% {
-        opacity: 1;
-        filter: blur(0);
-      }
+      0% { opacity: 0; transform: translateY(40px) scale(0.7) rotateX(12deg); filter: blur(4px); }
+      60% { opacity: 1; filter: blur(0); }
       80% { transform: translateY(-6px) scale(1.04) rotateX(0); }
-      100% {
-        opacity: 1;
-        transform: translateY(0) scale(1) rotateX(0);
-        filter: blur(0);
-      }
+      100% { opacity: 1; transform: translateY(0) scale(1) rotateX(0); filter: blur(0); }
     }
-
-    /* Leave animation when filtering */
     .game.hiding {
       animation: cardOut 0.35s var(--ease-out) forwards;
       pointer-events: none;
     }
     @keyframes cardOut {
-      to {
-        opacity: 0;
-        transform: scale(0.6) translateY(20px);
-        filter: blur(6px);
-      }
+      to { opacity: 0; transform: scale(0.6) translateY(20px); filter: blur(6px); }
     }
-    .game.showing {
-      animation: cardPop 0.55s var(--ease-spring) both;
-    }
+    .game.showing { animation: cardPop 0.55s var(--ease-spring) both; }
 
     .icon {
       display: grid;
       place-items: center;
-      width: 48px;
-      height: 48px;
+      width: 48px; height: 48px;
       margin-bottom: 14px;
       border-radius: 14px;
       background: linear-gradient(135deg, var(--accent2), var(--accent));
       font-size: 24px;
-      box-shadow: 0 4px 16px rgba(109,93,252,0.35);
+      box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 35%, transparent);
       transition: transform 0.4s var(--ease-spring);
     }
-    .game:hover .icon {
-      transform: scale(1.18) rotate(-10deg);
-    }
+    .game:hover .icon { transform: scale(1.18) rotate(-10deg); }
 
-    .name {
-      font-weight: 700;
-      font-size: 16px;
-      letter-spacing: -0.2px;
+    .name { font-weight: 700; font-size: 16px; letter-spacing: -0.2px; }
+    .path { margin-top: 6px; color: var(--muted); font-size: 11px; opacity: 0.85; }
+    .card-tags {
+      display: flex; flex-wrap: wrap; gap: 4px;
+      margin-top: 8px;
     }
-    .path {
-      margin-top: 6px;
-      color: var(--muted);
-      font-size: 11px;
-      opacity: 0.85;
+    .card-tag {
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      padding: 2px 6px; border-radius: 4px;
+      background: rgba(255,255,255,0.06);
+      color: #9a9ab0;
     }
     .added {
-      margin-top: 8px;
-      font-size: 10px;
-      color: #6b6b80;
-      opacity: 0;
-      transform: translateY(4px);
+      margin-top: 8px; font-size: 10px; color: #6b6b80;
+      opacity: 0; transform: translateY(4px);
       transition: opacity 0.3s, transform 0.3s var(--ease-out);
     }
-    .game:hover .added {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    .game:hover .added { opacity: 1; transform: translateY(0); }
 
-    .badge {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      padding: 3px 8px;
-      border-radius: 6px;
-      background: rgba(155,140,255,0.2);
-      color: #c4b5fd;
-      opacity: 0;
-      transform: translateY(-6px) scale(0.8);
+    .badge-play {
+      position: absolute; top: 12px; right: 12px;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 6px;
+      background: color-mix(in srgb, var(--accent) 20%, transparent);
+      color: var(--season-c);
+      opacity: 0; transform: translateY(-6px) scale(0.8);
       transition: opacity 0.3s, transform 0.35s var(--ease-spring);
     }
-    .game:hover .badge {
-      opacity: 1;
-      transform: translateY(0) scale(1);
+    .game:hover .badge-play { opacity: 1; transform: translateY(0) scale(1); }
+
+    .badge-new {
+      position: absolute; top: 12px; left: 12px;
+      font-size: 9px; font-weight: 800;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 3px 7px; border-radius: 6px;
+      background: linear-gradient(135deg, #f97316, #ef4444);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(239,68,68,0.4);
+      animation: newPulse 2s ease-in-out infinite;
+    }
+    @keyframes newPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
     }
 
+    /* Skeletons */
+    .skel-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      padding-top: 14px;
+    }
+    .skel {
+      min-height: 158px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      padding: 22px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .skel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+      animation: shimmer 1.4s ease-in-out infinite;
+    }
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    .skel-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: rgba(255,255,255,0.07); margin-bottom: 14px;
+    }
+    .skel-line {
+      height: 12px; border-radius: 6px;
+      background: rgba(255,255,255,0.07); margin-bottom: 8px;
+    }
+    .skel-line.w60 { width: 60%; }
+    .skel-line.w40 { width: 40%; }
+
     .status {
-      text-align: center;
-      color: var(--muted);
+      text-align: center; color: var(--muted);
       padding: 48px 16px;
       animation: pulse 1.4s ease-in-out infinite;
     }
@@ -475,36 +549,25 @@
     }
 
     footer {
-      text-align: center;
-      color: #555;
-      margin-top: 36px;
-      font-size: 12px;
+      text-align: center; color: #555;
+      margin-top: 36px; font-size: 12px;
       animation: fadeSlideUp 0.7s var(--ease-out) 0.5s both;
     }
 
-    /* ── Modals ── */
     .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
+      position: fixed; inset: 0; z-index: 100;
       background: rgba(0,0,0,0.65);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       padding: 20px;
-      opacity: 0;
-      pointer-events: none;
+      opacity: 0; pointer-events: none;
       transition: opacity 0.3s ease;
     }
-    .modal-backdrop.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
+    .modal-backdrop.open { opacity: 1; pointer-events: auto; }
     .modal {
       width: min(480px, 100%);
-      max-height: min(85vh, 640px);
+      max-height: min(85vh, 680px);
       overflow-y: auto;
       background: rgba(14, 16, 28, 0.96);
       border: 1px solid rgba(255,255,255,0.12);
@@ -516,154 +579,88 @@
       position: relative;
       scrollbar-width: thin;
     }
-    .modal-backdrop.open .modal {
-      transform: translateY(0) scale(1);
-    }
-    .modal.wide { width: min(520px, 100%); }
+    .modal-backdrop.open .modal { transform: translateY(0) scale(1); }
+    .modal.wide { width: min(540px, 100%); }
 
     .modal h2 {
-      font-size: 22px;
-      font-weight: 800;
-      margin-bottom: 6px;
-      background: linear-gradient(135deg, #fff, #c4b5fd);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      font-size: 22px; font-weight: 800; margin-bottom: 6px;
+      background: linear-gradient(135deg, #fff, var(--season-c));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
     }
-    .modal .lead {
-      color: var(--muted);
-      font-size: 14px;
-      margin-bottom: 16px;
-      line-height: 1.5;
-    }
-    .modal .row {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
+    .modal .lead { color: var(--muted); font-size: 14px; margin-bottom: 16px; line-height: 1.5; }
+    .modal .row { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
     .modal .info-card {
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 12px 14px;
+      border-radius: 12px; padding: 12px 14px;
       transition: transform 0.3s var(--ease-spring), background 0.2s;
       animation: fadeSlideUp 0.45s var(--ease-out) both;
       animation-delay: calc(var(--d, 0) * 0.06s);
     }
-    .modal .info-card:hover {
-      transform: translateX(4px);
-      background: rgba(255,255,255,0.07);
-    }
+    .modal .info-card:hover { transform: translateX(4px); background: rgba(255,255,255,0.07); }
     .modal .info-card .k {
-      font-size: 11px;
-      color: #6b6b80;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      margin-bottom: 3px;
+      font-size: 11px; color: #6b6b80; text-transform: uppercase;
+      letter-spacing: 0.4px; margin-bottom: 3px;
     }
     .modal .info-card .v {
-      font-size: 14px;
-      font-weight: 600;
-      color: #e8e8f0;
-      word-break: break-word;
+      font-size: 14px; font-weight: 600; color: #e8e8f0; word-break: break-word;
     }
-    .modal .info-card a {
-      color: #a78bfa;
-      text-decoration: none;
-    }
+    .modal .info-card a { color: #a78bfa; text-decoration: none; }
     .modal .info-card a:hover { text-decoration: underline; }
 
     .modal-close {
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      width: 34px;
-      height: 34px;
-      border: none;
-      border-radius: 10px;
-      background: rgba(255,255,255,0.08);
-      color: #aaa;
-      font-size: 16px;
-      cursor: pointer;
-      display: grid;
-      place-items: center;
+      position: absolute; top: 14px; right: 14px;
+      width: 34px; height: 34px; border: none; border-radius: 10px;
+      background: rgba(255,255,255,0.08); color: #aaa; font-size: 16px;
+      cursor: pointer; display: grid; place-items: center;
       transition: transform 0.3s var(--ease-spring), background 0.2s;
     }
     .modal-close:hover {
-      background: rgba(255,255,255,0.14);
-      color: #fff;
+      background: rgba(255,255,255,0.14); color: #fff;
       transform: rotate(90deg) scale(1.1);
     }
 
     .modal-actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
+      display: flex; gap: 10px; flex-wrap: wrap;
     }
-    .modal-actions a,
-    .modal-actions button {
-      flex: 1;
-      min-width: 110px;
-      text-align: center;
-      padding: 11px 14px;
-      border-radius: 12px;
-      font-size: 13px;
-      font-weight: 600;
-      text-decoration: none;
+    .modal-actions a, .modal-actions button {
+      flex: 1; min-width: 100px; text-align: center;
+      padding: 11px 14px; border-radius: 12px;
+      font-size: 13px; font-weight: 600; text-decoration: none;
       border: 1px solid rgba(255,255,255,0.12);
-      color: #e2e2f0;
-      background: rgba(255,255,255,0.05);
-      cursor: pointer;
-      font-family: inherit;
+      color: #e2e2f0; background: rgba(255,255,255,0.05);
+      cursor: pointer; font-family: inherit;
       transition: transform 0.3s var(--ease-spring), background 0.2s;
     }
-    .modal-actions a:hover,
-    .modal-actions button:hover {
-      background: rgba(155,140,255,0.18);
+    .modal-actions a:hover, .modal-actions button:hover {
+      background: color-mix(in srgb, var(--accent) 20%, transparent);
       transform: translateY(-2px);
     }
-    .modal-actions a.primary,
-    .modal-actions button.primary {
-      background: linear-gradient(135deg, #6d5dfc, #9b8cff);
-      border-color: transparent;
-      color: #fff;
+    .modal-actions a.primary, .modal-actions button.primary {
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      border-color: transparent; color: #fff;
     }
 
-    /* Logs tabs */
     .tabs {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 16px;
-      background: rgba(255,255,255,0.04);
-      border-radius: 12px;
-      padding: 4px;
+      display: flex; gap: 6px; margin-bottom: 16px;
+      background: rgba(255,255,255,0.04); border-radius: 12px; padding: 4px;
     }
     .tab {
-      flex: 1;
-      padding: 9px 12px;
-      border: none;
-      border-radius: 10px;
-      background: transparent;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
+      flex: 1; padding: 9px 10px; border: none; border-radius: 10px;
+      background: transparent; color: var(--muted);
+      font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
       transition: background 0.25s, color 0.25s, transform 0.3s var(--ease-spring);
     }
     .tab:hover { color: #d0c7ff; }
     .tab.active {
-      background: rgba(155,140,255,0.2);
-      color: #fff;
-      transform: scale(1.02);
+      background: color-mix(in srgb, var(--accent) 22%, transparent);
+      color: #fff; transform: scale(1.02);
     }
     .tab-panel { display: none; animation: fadeSlideUp 0.35s var(--ease-out); }
     .tab-panel.active { display: block; }
 
     .log-item {
-      padding: 12px 14px;
-      border-radius: 12px;
+      padding: 12px 14px; border-radius: 12px;
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.07);
       margin-bottom: 8px;
@@ -671,34 +668,17 @@
       animation: fadeSlideUp 0.4s var(--ease-out) both;
       animation-delay: calc(var(--d, 0) * 0.05s);
     }
-    .log-item:hover {
-      transform: translateX(6px) scale(1.01);
-      background: rgba(255,255,255,0.07);
-    }
-    .log-date {
-      font-size: 11px;
-      color: #a78bfa;
-      font-weight: 700;
-      margin-bottom: 3px;
-    }
-    .log-text {
-      font-size: 13px;
-      color: #c8c8d8;
-      line-height: 1.45;
-    }
+    .log-item:hover { transform: translateX(6px) scale(1.01); background: rgba(255,255,255,0.07); }
+    .log-date { font-size: 11px; color: var(--season-c); font-weight: 700; margin-bottom: 3px; }
+    .log-text { font-size: 13px; color: #c8c8d8; line-height: 1.45; }
+    .log-item { font-size: 10px; color: #6b6b80; margin-top: 4px; }
 
-    /* Game name with hover tooltip */
     .game-log-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 14px;
-      border-radius: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 10px 14px; border-radius: 12px;
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.07);
-      margin-bottom: 6px;
-      position: relative;
+      margin-bottom: 6px; position: relative;
       transition: transform 0.3s var(--ease-spring), background 0.2s;
       animation: fadeSlideUp 0.4s var(--ease-out) both;
       animation-delay: calc(var(--d, 0) * 0.04s);
@@ -706,61 +686,38 @@
     }
     .game-log-row:hover {
       transform: translateX(5px);
-      background: rgba(155,140,255,0.1);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
     }
     .game-log-name {
-      font-weight: 600;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      font-weight: 600; font-size: 14px;
+      display: flex; align-items: center; gap: 8px;
     }
-    .game-log-date {
-      font-size: 11px;
-      color: #6b6b80;
-      white-space: nowrap;
-    }
-
-    /* Tooltip on hover */
+    .game-log-date { font-size: 11px; color: #6b6b80; white-space: nowrap; }
     .tip {
-      position: absolute;
-      bottom: calc(100% + 8px);
-      left: 50%;
+      position: absolute; bottom: calc(100% + 8px); left: 50%;
       transform: translateX(-50%) translateY(6px) scale(0.9);
       background: rgba(20, 22, 36, 0.96);
-      border: 1px solid rgba(155,140,255,0.35);
-      border-radius: 10px;
-      padding: 8px 12px;
-      font-size: 12px;
-      color: #e0e0f0;
-      white-space: nowrap;
-      opacity: 0;
-      pointer-events: none;
+      border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+      border-radius: 10px; padding: 8px 12px;
+      font-size: 12px; color: #e0e0f0; white-space: nowrap;
+      opacity: 0; pointer-events: none;
       transition: opacity 0.25s, transform 0.3s var(--ease-spring);
-      box-shadow: 0 8px 28px rgba(0,0,0,0.4);
-      z-index: 5;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.4); z-index: 5;
     }
     .tip::after {
-      content: "";
-      position: absolute;
-      top: 100%;
-      left: 50%;
+      content: ""; position: absolute; top: 100%; left: 50%;
       transform: translateX(-50%);
       border: 6px solid transparent;
-      border-top-color: rgba(155,140,255,0.35);
+      border-top-color: color-mix(in srgb, var(--accent) 40%, transparent);
     }
     .game-log-row:hover .tip {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0) scale(1);
+      opacity: 1; transform: translateX(-50%) translateY(0) scale(1);
     }
 
     .empty-cat {
-      text-align: center;
-      color: var(--muted);
-      padding: 28px 16px;
-      font-size: 13px;
-      border: 1px dashed rgba(255,255,255,0.1);
-      border-radius: 14px;
+      text-align: center; color: var(--muted);
+      padding: 28px 16px; font-size: 13px;
+      border: 1px dashed rgba(255,255,255,0.1); border-radius: 14px;
     }
   </style>
 </head>
@@ -770,7 +727,10 @@
       <canvas id="cubeCanvas"></canvas>
       <h1>Game Hub</h1>
       <p>Pick a game and play</p>
-      <span class="version-pill" id="hubVersion">v3.0.0</span>
+      <div class="hero-meta">
+        <span class="version-pill" id="hubVersion">v3.1.0</span>
+        <span class="season-pill" id="seasonPill" hidden></span>
+      </div>
     </header>
 
     <div class="toolbar">
@@ -779,104 +739,138 @@
       </div>
       <span id="count">…</span>
       <button class="btn-pill refresh" id="refreshBtn" title="Refresh list">↻</button>
-      <button class="btn-pill" id="aboutBtn" title="About">About</button>
+      <button class="btn-pill" id="aboutBtn">About</button>
+      <a class="btn-pill" id="feedbackBtn" href="https://docs.google.com/forms/d/e/1FAIpQLSdaT-NG0DTnDgeBZnjmgUKFVy6dwlXCGSC_2FWOTsjHTofVQA/viewform?usp=publish-editor" target="_blank" rel="noopener">Feedback</a>
     </div>
+
+    <div class="tags-bar" id="tagsBar"></div>
 
     <div id="gamesRoot">
-      <div class="status">Loading games…</div>
+      <!-- skeletons injected by JS -->
     </div>
 
-    <footer>Games from /games · Not By Me is for community / external games</footer>
+    <footer>Games from /games · Not By Me is for community games · Health-checked on load</footer>
   </main>
 
-  <!-- About modal -->
   <div class="modal-backdrop" id="aboutModal" role="dialog" aria-modal="true">
     <div class="modal">
       <button class="modal-close" data-close="aboutModal" aria-label="Close">✕</button>
       <h2>About Game Hub</h2>
-      <p class="lead">A collection of browser games hosted on GitHub Pages. Built for fun, exploration, and sharing.</p>
+      <p class="lead">A collection of browser games on GitHub Pages — built for fun, exploration, and sharing.</p>
       <div class="row">
         <div class="info-card" style="--d:0">
           <div class="k">Version</div>
-          <div class="v" id="aboutVersion">v3.0.0</div>
+          <div class="v" id="aboutVersion">v3.1.0</div>
         </div>
         <div class="info-card" style="--d:1">
           <div class="k">Made by</div>
           <div class="v">Victorxd21</div>
         </div>
         <div class="info-card" style="--d:2">
+          <div class="k">Built with help from</div>
+          <div class="v">Grok (xAI) — designed the hub UI, animations, physics cubes, categories, logs, and a bunch of the games. Seriously helped a lot.</div>
+        </div>
+        <div class="info-card" style="--d:3">
           <div class="k">GitHub profile</div>
           <div class="v"><a href="https://github.com/Victorxd21" target="_blank" rel="noopener">github.com/Victorxd21</a></div>
         </div>
-        <div class="info-card" style="--d:3">
+        <div class="info-card" style="--d:4">
           <div class="k">Repository</div>
           <div class="v"><a href="https://github.com/Victorxd21/hello21.github.io" target="_blank" rel="noopener">Victorxd21/hello21.github.io</a></div>
         </div>
-        <div class="info-card" style="--d:4">
+        <div class="info-card" style="--d:5">
           <div class="k">Where things live</div>
-          <div class="v">Your games → <code>/games</code> · External → <code>/games/NotByMe</code> · Art → <code>/game-art</code> · Hub → <code>index.html</code></div>
+          <div class="v">Your games → <code>/games</code> · External → <code>/games/NotByMe</code> · Hub → <code>index.html</code></div>
         </div>
       </div>
       <div class="modal-actions">
         <a class="primary" href="https://github.com/Victorxd21" target="_blank" rel="noopener">Profile</a>
         <a href="https://github.com/Victorxd21/hello21.github.io" target="_blank" rel="noopener">Repo</a>
         <button type="button" id="openLogsBtn">Logs</button>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSdaT-NG0DTnDgeBZnjmgUKFVy6dwlXCGSC_2FWOTsjHTofVQA/viewform?usp=publish-editor" target="_blank" rel="noopener">Feedback</a>
       </div>
     </div>
   </div>
 
-  <!-- Logs modal -->
   <div class="modal-backdrop" id="logsModal" role="dialog" aria-modal="true">
     <div class="modal wide">
       <button class="modal-close" data-close="logsModal" aria-label="Close">✕</button>
       <h2>Logs</h2>
-      <p class="lead">Hub updates and when each game was added. Hover a game name for details.</p>
+      <p class="lead">Hub notes, live git history, and when each game was added. Hover a name for details.</p>
       <div class="tabs">
         <button class="tab active" data-tab="hub">Hub updates</button>
+        <button class="tab" data-tab="git">Git history</button>
         <button class="tab" data-tab="games">Games</button>
       </div>
       <div class="tab-panel active" id="tab-hub"></div>
+      <div class="tab-panel" id="tab-git"><div class="status">Loading commits…</div></div>
       <div class="tab-panel" id="tab-games"></div>
     </div>
   </div>
 
   <script>
-    /* ═══════════════════════════════════════════
-       Game Hub v3.0.0
-       ═══════════════════════════════════════════ */
-    const HUB_VERSION = "3.0.0";
+    const HUB_VERSION = "3.1.0";
     const OWNER = "Victorxd21";
     const REPO = "hello21.github.io";
+    const NEW_DAYS = 14;
+    const FEEDBACK_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdaT-NG0DTnDgeBZnjmgUKFVy6dwlXCGSC_2FWOTsjHTofVQA/viewform?usp=publish-editor";
 
     document.getElementById("hubVersion").textContent = "v" + HUB_VERSION;
     document.getElementById("aboutVersion").textContent = "v" + HUB_VERSION;
 
-    /* Known add dates (YYYY-MM-DD) — used for logs + hover tips */
+    /* ── Seasonal skin ── */
+    function applySeason() {
+      const now = new Date();
+      const m = now.getMonth(); // 0-11
+      const d = now.getDate();
+      let season = null, label = "";
+      if (m === 9 || (m === 10 && d <= 2)) {
+        season = "halloween"; label = "🎃 Halloween";
+      } else if (m === 11 || (m === 0 && d <= 5)) {
+        season = "winter"; label = "❄️ Winter";
+      } else if (m === 0 && d <= 7) {
+        season = "nye"; label = "✨ New Year";
+      } else if (m >= 2 && m <= 4) {
+        season = "spring"; label = "🌸 Spring";
+      }
+      if (season) {
+        document.body.classList.add("season-" + season);
+        const pill = document.getElementById("seasonPill");
+        pill.hidden = false;
+        pill.textContent = label;
+      }
+      return season;
+    }
+    const CURRENT_SEASON = applySeason();
+
     const ADDED = {
-      "royale.html": "2025-06-01",
-      "snake.html": "2025-06-01",
-      "werewolf.html": "2025-07-15",
-      "blackjack": "2025-08-10",
-      "cat-game": "2025-08-20",
-      "gartic": "2025-09-01",
-      "gradess": "2025-09-10",
-      "live-earth": "2025-09-20",
-      "mesh-view": "2025-09-25",
-      "race": "2025-10-05",
-      "rocket-league": "2025-09-28",
-      "slitherIO": "2025-08-15",
-      "storm-chaser": "2025-09-12",
-      "super-mario": "2025-09-05",
-      "TikTok": "2025-08-25",
-      "uno": "2026-10-08",
-      "voxel-world": "2025-10-01",
-      "world-explorer": "2026-10-09"
+      "royale.html": "2025-06-01", "snake.html": "2025-06-01", "werewolf.html": "2025-07-15",
+      "blackjack": "2025-08-10", "cat-game": "2025-08-20", "gartic": "2025-09-01",
+      "gradess": "2025-09-10", "live-earth": "2025-09-20", "mesh-view": "2025-09-25",
+      "race": "2025-10-05", "rocket-league": "2025-09-28", "slitherIO": "2025-08-15",
+      "storm-chaser": "2025-09-12", "super-mario": "2025-09-05", "TikTok": "2025-08-25",
+      "uno": "2026-10-08", "voxel-world": "2025-10-01", "world-explorer": "2026-10-09"
     };
 
+    const TAGS = {
+      "blackjack": ["cards", "arcade"], "cat-game": ["arcade", "fun"],
+      "gartic": ["multiplayer", "drawing"], "gradess": ["sim"],
+      "live-earth": ["3d", "sim", "globe"], "mesh-view": ["3d"],
+      "race": ["racing", "3d"], "rocket-league": ["sports", "3d"],
+      "royale.html": ["battle", "arcade"], "slitherIO": ["arcade", "multiplayer"],
+      "snake.html": ["arcade", "classic"], "storm-chaser": ["sim", "weather"],
+      "super-mario": ["platformer", "classic"], "TikTok": ["fun"],
+      "uno": ["cards", "multiplayer"], "voxel-world": ["3d", "sandbox"],
+      "werewolf.html": ["social", "multiplayer"], "world-explorer": ["3d", "globe", "sim"]
+    };
+
+    const ALL_TAGS = ["all", "3d", "arcade", "cards", "classic", "fun", "globe", "multiplayer", "platformer", "racing", "sandbox", "sim", "social", "sports", "weather", "drawing"];
+
     const HUB_LOGS = [
-      { date: "2026-10-09", text: "Hub v3.0.0 — Not By Me category, Logs panel, physics cubes on title, heavy animations" },
+      { date: "2026-10-09", text: "Hub v3.1 — skeletons, tags, featured badges, seasonal skins, health check, git logs, feedback form, Grok credit" },
+      { date: "2026-10-09", text: "Hub v3.0 — Not By Me category, Logs panel, physics cubes, heavy animations" },
       { date: "2026-10-09", text: "Added World Explorer — 2.5D ship flight around Earth" },
-      { date: "2026-10-08", text: "Hub v2 — fixed loading stuck state, offline-first list, About modal" },
+      { date: "2026-10-08", text: "Hub v2 — offline-first list, About modal, fixed loading stuck state" },
       { date: "2026-10-08", text: "Added multiplayer UNO with lobby & real-time" },
       { date: "2025-09-20", text: "Live Earth with Cesium globe, air traffic, disasters" },
       { date: "2025-06-01", text: "Game Hub launched with first set of games" }
@@ -917,88 +911,109 @@
       "world-explorer": "🚀"
     };
 
+    let activeTag = "all";
+    let allGames = [];
+    let gitCommits = null;
+
     function esc(s) {
       return String(s).replace(/[&<>"']/g, c =>
         ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
       );
     }
-
     function prettyName(raw) {
-      return String(raw)
-        .replace(/\.html$/i, "")
-        .replace(/[-_]/g, " ")
-        .replace(/\b\w/g, c => c.toUpperCase())
-        .trim();
+      return String(raw).replace(/\.html$/i, "").replace(/[-_]/g, " ")
+        .replace(/\b\w/g, c => c.toUpperCase()).trim();
     }
-
     function iconFor(folder, file) {
       const key = (folder || file || "").toLowerCase().replace(/\.html$/i, "");
-      for (const [k, v] of Object.entries(ICON_MAP)) {
-        if (key.includes(k)) return v;
-      }
+      for (const [k, v] of Object.entries(ICON_MAP)) if (key.includes(k)) return v;
       return "🎮";
     }
-
     function gameUrl(folder, file) {
       return "games/" + (folder ? encodeURIComponent(folder).replace(/%2F/g, "/") + "/" : "") + encodeURIComponent(file);
     }
-
     function pickEntryHtml(files) {
       const htmls = files.filter(f => f.type === "file" && /\.html$/i.test(f.name));
       if (!htmls.length) return null;
-      const index = htmls.find(f => /^index\.html$/i.test(f.name));
-      if (index) return index.name;
-      const login = htmls.find(f => /login/i.test(f.name));
-      if (login) return login.name;
-      return htmls[0].name;
+      return (htmls.find(f => /^index\.html$/i.test(f.name))
+        || htmls.find(f => /login/i.test(f.name))
+        || htmls[0]).name;
     }
-
+    function tagsFor(g) {
+      if (g.tags) return g.tags;
+      if (g.folder && TAGS[g.folder.split("/")[0]]) return TAGS[g.folder.split("/")[0]];
+      if (TAGS[g.file]) return TAGS[g.file];
+      return [];
+    }
     function addedKey(g) {
       if (g.folder) {
         const top = g.folder.split("/")[0];
         if (ADDED[top]) return ADDED[top];
         if (ADDED[g.folder]) return ADDED[g.folder];
       }
-      if (ADDED[g.file]) return ADDED[g.file];
-      return g.added || null;
+      return ADDED[g.file] || g.added || null;
     }
-
+    function isNew(g) {
+      const when = addedKey(g);
+      if (!when) return false;
+      const t = new Date(when + "T12:00:00Z").getTime();
+      return (Date.now() - t) < NEW_DAYS * 86400000;
+    }
     function formatDate(iso) {
       if (!iso) return "Unknown";
       try {
-        const d = new Date(iso + (iso.length === 10 ? "T12:00:00Z" : ""));
+        const d = new Date(iso.length === 10 ? iso + "T12:00:00Z" : iso);
         return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-      } catch (_) {
-        return iso;
-      }
+      } catch (_) { return iso; }
     }
 
-    let allGames = [];
+    function showSkeletons() {
+      const root = document.getElementById("gamesRoot");
+      let html = '<section class="category"><div class="cat-header" style="pointer-events:none"><span class="cat-chevron">▼</span><span class="cat-title">Loading…</span></div><div class="cat-body"><div class="cat-body-inner"><div class="skel-grid">';
+      for (let i = 0; i < 8; i++) {
+        html += '<div class="skel"><div class="skel-icon"></div><div class="skel-line w60"></div><div class="skel-line w40"></div></div>';
+      }
+      html += "</div></div></div></section>";
+      root.innerHTML = html;
+    }
+
+    function buildTagsBar(games) {
+      const used = new Set(["all"]);
+      games.forEach(g => tagsFor(g).forEach(t => used.add(t)));
+      const bar = document.getElementById("tagsBar");
+      bar.innerHTML = "";
+      ALL_TAGS.filter(t => used.has(t)).forEach(tag => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tag-chip" + (tag === activeTag ? " active" : "");
+        btn.textContent = tag === "all" ? "All" : tag;
+        btn.onclick = () => {
+          activeTag = tag;
+          document.querySelectorAll(".tag-chip").forEach(c => c.classList.toggle("active", c.textContent.toLowerCase() === (tag === "all" ? "all" : tag)));
+          applyFilters();
+        };
+        bar.appendChild(btn);
+      });
+    }
 
     function draw(games, offline) {
       allGames = games;
+      buildTagsBar(games);
       const mine = games.filter(g => g.cat !== "notbyme");
       const other = games.filter(g => g.cat === "notbyme");
-
       const root = document.getElementById("gamesRoot");
       root.innerHTML = "";
-
-      root.appendChild(buildCategory("Your Games", "🎮", mine, false));
-      root.appendChild(buildCategory("Not By Me", "🌐", other, false));
-
+      root.appendChild(buildCategory("Your Games", "🎮", mine));
+      root.appendChild(buildCategory("Not By Me", "🌐", other));
       document.getElementById("count").textContent =
-        games.length + " game" + (games.length !== 1 ? "s" : "") +
-        (offline ? " · offline" : "");
-
-      const q = document.getElementById("search").value;
-      if (q) filterGames(q);
+        games.length + " game" + (games.length !== 1 ? "s" : "") + (offline ? " · offline" : "");
+      applyFilters();
+      runHealthCheck(games);
     }
 
-    function buildCategory(title, emoji, list, startCollapsed) {
+    function buildCategory(title, emoji, list) {
       const sec = document.createElement("section");
-      sec.className = "category" + (startCollapsed ? " collapsed" : "");
-      sec.dataset.cat = title;
-
+      sec.className = "category";
       const header = document.createElement("button");
       header.type = "button";
       header.className = "cat-header";
@@ -1006,9 +1021,7 @@
         '<span class="cat-chevron">▼</span>' +
         '<span class="cat-title">' + emoji + " " + esc(title) + "</span>" +
         '<span class="cat-count">' + list.length + "</span>";
-      header.addEventListener("click", () => {
-        sec.classList.toggle("collapsed");
-      });
+      header.onclick = () => sec.classList.toggle("collapsed");
 
       const body = document.createElement("div");
       body.className = "cat-body";
@@ -1016,7 +1029,7 @@
       inner.className = "cat-body-inner";
 
       if (!list.length) {
-        inner.innerHTML = '<div class="empty-cat">No games here yet — drop HTML games into <code>games/NotByMe</code></div>';
+        inner.innerHTML = '<div class="empty-cat">No games here yet — drop HTML into <code>games/NotByMe</code></div>';
       } else {
         const grid = document.createElement("div");
         grid.className = "grid";
@@ -1024,48 +1037,76 @@
           const card = document.createElement("article");
           card.className = "game";
           card.style.setProperty("--i", i);
-          card.dataset.name = (g.name + " " + (g.folder || "") + " " + g.file).toLowerCase();
+          const tgs = tagsFor(g);
+          card.dataset.name = (g.name + " " + (g.folder || "") + " " + g.file + " " + tgs.join(" ")).toLowerCase();
+          card.dataset.tags = tgs.join(",");
+          card.dataset.url = gameUrl(g.folder, g.file);
           const when = addedKey(g);
+          const neu = isNew(g);
           card.innerHTML =
+            (neu ? '<span class="badge-new">New</span>' : "") +
             '<div class="icon">' + g.icon + "</div>" +
             '<div class="name">' + esc(g.name) + "</div>" +
             '<div class="path">' + esc(g.folder ? g.folder + "/" + g.file : g.file) + "</div>" +
+            (tgs.length ? '<div class="card-tags">' + tgs.map(t => '<span class="card-tag">' + esc(t) + "</span>").join("") + "</div>" : "") +
             (when ? '<div class="added">Added ' + formatDate(when) + "</div>" : "") +
-            '<span class="badge">Play</span>';
-          card.onclick = () => { location.href = gameUrl(g.folder, g.file); };
+            '<span class="badge-play">Play</span>';
+          card.onclick = () => {
+            if (card.classList.contains("broken")) return;
+            location.href = card.dataset.url;
+          };
           grid.appendChild(card);
         });
         inner.appendChild(grid);
       }
-
       body.appendChild(inner);
       sec.appendChild(header);
       sec.appendChild(body);
       return sec;
     }
 
-    function filterGames(q) {
-      const term = (q || "").trim().toLowerCase();
+    function applyFilters() {
+      const term = (document.getElementById("search").value || "").trim().toLowerCase();
       const cards = document.querySelectorAll(".game");
       let visible = 0;
       cards.forEach(card => {
-        const match = !term || card.dataset.name.includes(term);
+        const tagOk = activeTag === "all" || (card.dataset.tags || "").split(",").includes(activeTag);
+        const textOk = !term || card.dataset.name.includes(term);
+        const match = tagOk && textOk;
         if (match) {
-          if (card.classList.contains("hiding")) {
-            card.classList.remove("hiding");
-            card.classList.add("showing");
-          }
+          card.classList.remove("hiding");
           card.style.display = "";
           visible++;
         } else {
           card.classList.add("hiding");
-          setTimeout(() => {
-            if (card.classList.contains("hiding")) card.style.display = "none";
-          }, 320);
+          setTimeout(() => { if (card.classList.contains("hiding")) card.style.display = "none"; }, 300);
         }
       });
-      document.getElementById("count").textContent =
-        visible + " game" + (visible !== 1 ? "s" : "");
+      document.getElementById("count").textContent = visible + " game" + (visible !== 1 ? "s" : "");
+    }
+
+    async function runHealthCheck(games) {
+      const cards = document.querySelectorAll(".game");
+      const map = new Map();
+      cards.forEach(c => map.set(c.dataset.url, c));
+      await Promise.all(games.slice(0, 40).map(async g => {
+        const url = gameUrl(g.folder, g.file);
+        const card = map.get(url);
+        if (!card) return;
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 4000);
+          const r = await fetch(url, { method: "HEAD", signal: ctrl.signal, cache: "no-store" });
+          clearTimeout(t);
+          if (!r.ok) {
+            // some hosts block HEAD — try GET range
+            const r2 = await fetch(url, { method: "GET", headers: { Range: "bytes=0-0" }, cache: "no-store" });
+            if (!r2.ok && r2.status !== 206) card.classList.add("broken");
+          }
+        } catch (_) {
+          // network / CORS — don't mark broken aggressively on github pages same-origin should work
+        }
+      }));
     }
 
     function fetchWithTimeout(url, opts, ms) {
@@ -1081,24 +1122,15 @@
         if (!r.ok) return games;
         const files = await r.json();
         if (!Array.isArray(files)) return games;
-
         for (const f of files) {
           if (f.type === "file" && /\.html$/i.test(f.name) && !/^readme/i.test(f.name)) {
             games.push({
-              name: prettyName(f.name),
-              folder: folderPrefix || null,
-              file: f.name,
-              icon: iconFor(folderPrefix, f.name),
-              cat,
-              added: f.sha ? null : null
+              name: prettyName(f.name), folder: folderPrefix || null, file: f.name,
+              icon: iconFor(folderPrefix, f.name), cat
             });
           }
         }
-
-        const dirs = files.filter(
-          i => i.type === "dir" && !HIDDEN.has(i.name.toLowerCase()) && i.name.toLowerCase() !== "notbyme"
-        );
-
+        const dirs = files.filter(i => i.type === "dir" && !HIDDEN.has(i.name.toLowerCase()) && i.name.toLowerCase() !== "notbyme");
         await Promise.all(dirs.map(async dir => {
           try {
             const dr = await fetchWithTimeout(dir.url, { headers }, 4500);
@@ -1108,11 +1140,8 @@
             if (!entry) return;
             const fold = folderPrefix ? folderPrefix + "/" + dir.name : dir.name;
             games.push({
-              name: prettyName(dir.name),
-              folder: fold,
-              file: entry,
-              icon: iconFor(dir.name, entry),
-              cat
+              name: prettyName(dir.name), folder: fold, file: entry,
+              icon: iconFor(dir.name, entry), cat
             });
           } catch (_) {}
         }));
@@ -1124,35 +1153,23 @@
       const headers = { Accept: "application/vnd.github+json" };
       const res = await fetchWithTimeout(
         "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/games",
-        { headers },
-        6000
+        { headers }, 6000
       );
       if (!res.ok) throw new Error("GitHub API " + res.status);
       const items = await res.json();
       if (!Array.isArray(items)) throw new Error("bad response");
-
       const games = [];
 
-      // Root-level HTML
       for (const item of items) {
         if (item.type === "file" && /\.html$/i.test(item.name)) {
           games.push({
-            name: prettyName(item.name),
-            folder: null,
-            file: item.name,
-            icon: iconFor(null, item.name),
-            cat: "mine"
+            name: prettyName(item.name), folder: null, file: item.name,
+            icon: iconFor(null, item.name), cat: "mine"
           });
         }
       }
 
-      // Regular folders (skip NotByMe — handled separately)
-      const dirs = items.filter(
-        i => i.type === "dir" &&
-          !HIDDEN.has(i.name.toLowerCase()) &&
-          i.name.toLowerCase() !== "notbyme"
-      );
-
+      const dirs = items.filter(i => i.type === "dir" && !HIDDEN.has(i.name.toLowerCase()) && i.name.toLowerCase() !== "notbyme");
       await Promise.all(dirs.map(async dir => {
         try {
           const r = await fetchWithTimeout(dir.url, { headers }, 5000);
@@ -1171,10 +1188,8 @@
                 if (subEntry) {
                   games.push({
                     name: prettyName(dir.name + " " + sub.name),
-                    folder: dir.name + "/" + sub.name,
-                    file: subEntry,
-                    icon: iconFor(dir.name, subEntry),
-                    cat: "mine"
+                    folder: dir.name + "/" + sub.name, file: subEntry,
+                    icon: iconFor(dir.name, subEntry), cat: "mine"
                   });
                 }
               } catch (_) {}
@@ -1182,16 +1197,12 @@
             return;
           }
           games.push({
-            name: prettyName(dir.name),
-            folder: dir.name,
-            file: entry,
-            icon: iconFor(dir.name, entry),
-            cat: "mine"
+            name: prettyName(dir.name), folder: dir.name, file: entry,
+            icon: iconFor(dir.name, entry), cat: "mine"
           });
         } catch (_) {}
       }));
 
-      // NotByMe folder
       const nbm = items.find(i => i.type === "dir" && i.name.toLowerCase() === "notbyme");
       if (nbm) {
         const external = await scanFolder(nbm.url, headers, "notbyme", "NotByMe");
@@ -1203,84 +1214,111 @@
     }
 
     async function loadGames(forceApi) {
-      if (!forceApi) {
-        draw(FALLBACK.slice().sort((a, b) => a.name.localeCompare(b.name)), true);
-      } else {
-        document.getElementById("gamesRoot").innerHTML =
-          '<div class="status">Refreshing…</div>';
+      if (forceApi) showSkeletons();
+      else {
+        // show skeletons briefly then fallback
+        showSkeletons();
+        setTimeout(() => {
+          if (!allGames.length) draw(FALLBACK.slice().sort((a, b) => a.name.localeCompare(b.name)), true);
+        }, 350);
       }
       try {
         const games = await apiGames();
         if (games && games.length) draw(games, false);
+        else if (!allGames.length) draw(FALLBACK.slice().sort((a, b) => a.name.localeCompare(b.name)), true);
       } catch (err) {
-        console.warn("API failed, keeping offline list:", err);
-        if (forceApi) {
+        console.warn("API failed:", err);
+        if (!allGames.length || forceApi) {
           draw(FALLBACK.slice().sort((a, b) => a.name.localeCompare(b.name)), true);
         }
       }
     }
 
-    /* ── Logs UI ── */
+    async function loadGitCommits() {
+      const el = document.getElementById("tab-git");
+      if (gitCommits) {
+        renderGit(gitCommits);
+        return;
+      }
+      el.innerHTML = '<div class="status">Loading commits…</div>';
+      try {
+        const r = await fetchWithTimeout(
+          "https://api.github.com/repos/" + OWNER + "/" + REPO + "/commits?per_page=20",
+          { headers: { Accept: "application/vnd.github+json" } }, 8000
+        );
+        if (!r.ok) throw new Error(String(r.status));
+        gitCommits = await r.json();
+        renderGit(gitCommits);
+      } catch (e) {
+        el.innerHTML = '<div class="status">Couldn’t load git history (rate limit or offline). Hub updates tab still works.</div>';
+      }
+    }
+
+    function renderGit(commits) {
+      const el = document.getElementById("tab-git");
+      if (!Array.isArray(commits) || !commits.length) {
+        el.innerHTML = '<div class="status">No commits found.</div>';
+        return;
+      }
+      el.innerHTML = commits.map((c, i) => {
+        const msg = (c.commit && c.commit.message || "").split("\n")[0];
+        const date = c.commit && c.commit.author && c.commit.author.date;
+        const author = (c.commit && c.commit.author && c.commit.author.name) || (c.author && c.author.login) || "";
+        const sha = (c.sha || "").slice(0, 7);
+        return (
+          '<div class="log-item" style="--d:' + i + '">' +
+            '<div class="log-date">' + formatDate(date) + '</div>' +
+            '<div class="log-text">' + esc(msg) + '</div>' +
+            '<div class="log-meta">' + esc(author) + (sha ? " · " + sha : "") + '</div>' +
+          '</div>'
+        );
+      }).join("");
+    }
+
     function buildLogs() {
-      const hubEl = document.getElementById("tab-hub");
-      hubEl.innerHTML = HUB_LOGS.map((l, i) =>
+      document.getElementById("tab-hub").innerHTML = HUB_LOGS.map((l, i) =>
         '<div class="log-item" style="--d:' + i + '">' +
           '<div class="log-date">' + formatDate(l.date) + '</div>' +
-          '<div class="log-text">' + esc(l.text) + '</div>' +
-        '</div>'
+          '<div class="log-text">' + esc(l.text) + '</div></div>'
       ).join("");
 
-      const gamesEl = document.getElementById("tab-games");
       const rows = allGames.length ? allGames : FALLBACK;
       const sorted = rows.slice().sort((a, b) => {
-        const da = addedKey(a) || "9999";
-        const db = addedKey(b) || "9999";
+        const da = addedKey(a) || "9999", db = addedKey(b) || "9999";
         return db.localeCompare(da);
       });
-      gamesEl.innerHTML = sorted.map((g, i) => {
+      document.getElementById("tab-games").innerHTML = sorted.map((g, i) => {
         const when = addedKey(g);
-        const tip = when
-          ? g.name + " was added on " + formatDate(when)
-          : g.name + " — add date not recorded yet";
+        const tip = when ? g.name + " was added on " + formatDate(when) : g.name + " — date not recorded";
         return (
           '<div class="game-log-row" style="--d:' + i + '">' +
             '<span class="game-log-name">' + (g.icon || "🎮") + " " + esc(g.name) +
               (g.cat === "notbyme" ? ' <span style="font-size:10px;color:#6b6b80">(external)</span>' : "") +
             '</span>' +
             '<span class="game-log-date">' + (when ? formatDate(when) : "—") + '</span>' +
-            '<span class="tip">' + esc(tip) + '</span>' +
-          '</div>'
+            '<span class="tip">' + esc(tip) + '</span></div>'
         );
       }).join("");
     }
 
-    /* ── Modal helpers ── */
-    function openModal(id) {
-      document.getElementById(id).classList.add("open");
-    }
-    function closeModal(id) {
-      document.getElementById(id).classList.remove("open");
-    }
+    function openModal(id) { document.getElementById(id).classList.add("open"); }
+    function closeModal(id) { document.getElementById(id).classList.remove("open"); }
 
-    document.getElementById("aboutBtn").addEventListener("click", () => openModal("aboutModal"));
-    document.getElementById("openLogsBtn").addEventListener("click", () => {
+    document.getElementById("aboutBtn").onclick = () => openModal("aboutModal");
+    document.getElementById("openLogsBtn").onclick = () => {
       closeModal("aboutModal");
       buildLogs();
       openModal("logsModal");
-    });
+      loadGitCommits();
+    };
     document.querySelectorAll("[data-close]").forEach(btn => {
-      btn.addEventListener("click", () => closeModal(btn.getAttribute("data-close")));
+      btn.onclick = () => closeModal(btn.getAttribute("data-close"));
     });
     document.querySelectorAll(".modal-backdrop").forEach(bd => {
-      bd.addEventListener("click", e => {
-        if (e.target === bd) bd.classList.remove("open");
-      });
+      bd.addEventListener("click", e => { if (e.target === bd) bd.classList.remove("open"); });
     });
     document.addEventListener("keydown", e => {
-      if (e.key === "Escape") {
-        closeModal("aboutModal");
-        closeModal("logsModal");
-      }
+      if (e.key === "Escape") { closeModal("aboutModal"); closeModal("logsModal"); }
     });
 
     document.querySelectorAll(".tab").forEach(tab => {
@@ -1289,51 +1327,47 @@
         document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
         tab.classList.add("active");
         document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+        if (tab.dataset.tab === "git") loadGitCommits();
       });
     });
 
-    document.getElementById("refreshBtn").addEventListener("click", () => loadGames(true));
-    document.getElementById("search").addEventListener("input", e => filterGames(e.target.value));
+    document.getElementById("refreshBtn").onclick = () => loadGames(true);
+    document.getElementById("search").addEventListener("input", applyFilters);
 
     loadGames(false);
 
-    /* ═══════════════════════════════════════════
-       Physics cubes — climb & play on the title
-       ═══════════════════════════════════════════ */
+    /* ── Physics cubes (seasonal colors) ── */
     (function initCubes() {
       const canvas = document.getElementById("cubeCanvas");
       const hero = canvas.parentElement;
       const ctx = canvas.getContext("2d");
       let W, H, dpr;
 
+      const SEASON_COLORS = {
+        halloween: ["#ff8c42", "#9b30ff", "#ffb347", "#22c55e", "#f97316", "#a855f7"],
+        winter: ["#e2e8f0", "#7dd3fc", "#bae6fd", "#38bdf8", "#f8fafc"],
+        nye: ["#fbbf24", "#f472b6", "#a78bfa", "#fff", "#f59e0b"],
+        spring: ["#86efac", "#f9a8d4", "#a5b4fc", "#34d399", "#fef08c"],
+        default: ["#9b8cff", "#818cf8", "#c4b5fd", "#60a5fa", "#a78bfa", "#38bdf8", "#f472b6"]
+      };
+      const COLORS = SEASON_COLORS[CURRENT_SEASON] || SEASON_COLORS.default;
+
       function resize() {
         dpr = Math.min(window.devicePixelRatio || 1, 2);
         const rect = hero.getBoundingClientRect();
-        W = rect.width + 80;
-        H = rect.height + 50;
-        canvas.width = W * dpr;
-        canvas.height = H * dpr;
-        canvas.style.width = W + "px";
-        canvas.style.height = H + "px";
+        W = rect.width + 80; H = rect.height + 50;
+        canvas.width = W * dpr; canvas.height = H * dpr;
+        canvas.style.width = W + "px"; canvas.style.height = H + "px";
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
       resize();
       window.addEventListener("resize", resize);
 
-      const COLORS = ["#9b8cff", "#818cf8", "#c4b5fd", "#60a5fa", "#a78bfa", "#38bdf8", "#f472b6"];
-      const GRAVITY = 0.18;
-      const BOUNCE = 0.62;
-      const FRICTION = 0.988;
+      const GRAVITY = 0.18, BOUNCE = 0.62, FRICTION = 0.988;
 
-      // Approximate title platform (centered block)
       function titlePlatform() {
         const tw = Math.min(W * 0.55, 320);
-        return {
-          x: (W - tw) / 2,
-          y: H * 0.42,
-          w: tw,
-          h: 28
-        };
+        return { x: (W - tw) / 2, y: H * 0.42, w: tw, h: 28 };
       }
 
       class Cube {
@@ -1341,15 +1375,14 @@
           this.reset(i, true);
           this.carry = Math.random() > 0.45 ? String(Math.floor(Math.random() * 10)) : null;
           this.phase = Math.random() * Math.PI * 2;
-          this.climbTarget = null;
-          this.mood = 0; // 0 wander, 1 climb, 2 throw
+          this.mood = 0;
         }
         reset(i, first) {
           this.size = 7 + Math.random() * 7;
           this.x = 40 + Math.random() * (W - 80);
           this.y = first ? H * 0.7 + Math.random() * 30 : -20 - Math.random() * 40;
           this.vx = (Math.random() - 0.5) * 2.2;
-          this.vy = first ? (Math.random() - 0.5) * 1.5 : Math.random() * 1;
+          this.vy = first ? (Math.random() - 0.5) * 1.5 : Math.random();
           this.rot = Math.random() * Math.PI;
           this.vr = (Math.random() - 0.5) * 0.12;
           this.color = COLORS[i % COLORS.length];
@@ -1360,117 +1393,67 @@
         }
         update(plat) {
           this.timer--;
-
-          // Decide behavior
           if (this.timer <= 0) {
             this.timer = 60 + Math.random() * 140;
             const r = Math.random();
-            if (r < 0.35) this.mood = 1; // climb
-            else if (r < 0.55) this.mood = 2; // throw / jump
-            else this.mood = 0;
+            this.mood = r < 0.35 ? 1 : r < 0.55 ? 2 : 0;
           }
-
           if (this.mood === 1) {
-            // Move toward title platform
             const cx = plat.x + plat.w / 2;
-            const dx = cx - this.x;
-            this.vx += Math.sign(dx) * 0.08;
-            if (Math.abs(dx) < 40 && this.y > plat.y) {
-              this.vy -= 0.35; // jump up to platform
-            }
+            this.vx += Math.sign(cx - this.x) * 0.08;
+            if (Math.abs(cx - this.x) < 40 && this.y > plat.y) this.vy -= 0.35;
           } else if (this.mood === 2 && this.grounded) {
             this.vy = -4.5 - Math.random() * 2.5;
             this.vx += (Math.random() - 0.5) * 3;
             this.vr += (Math.random() - 0.5) * 0.2;
-            this.grounded = false;
-            this.mood = 0;
-            // Maybe drop / pick number
-            if (Math.random() > 0.6) {
-              this.carry = this.carry ? null : String(Math.floor(Math.random() * 10));
-            }
+            this.grounded = false; this.mood = 0;
+            if (Math.random() > 0.6) this.carry = this.carry ? null : String(Math.floor(Math.random() * 10));
           } else {
-            // Wander
             this.vx += Math.sin(performance.now() * 0.001 + this.phase) * 0.02;
           }
+          this.vy += GRAVITY; this.vx *= FRICTION;
+          this.x += this.vx; this.y += this.vy;
+          this.rot += this.vr; this.vr *= 0.98;
 
-          this.vy += GRAVITY;
-          this.vx *= FRICTION;
-          this.x += this.vx;
-          this.y += this.vy;
-          this.rot += this.vr;
-          this.vr *= 0.98;
-
-          // Floor
           const floor = H - 18;
           if (this.y + this.size / 2 > floor) {
             this.y = floor - this.size / 2;
-            this.vy *= -BOUNCE;
-            this.vx *= 0.9;
+            this.vy *= -BOUNCE; this.vx *= 0.9;
             this.grounded = Math.abs(this.vy) < 0.5;
             if (this.grounded) this.vy = 0;
           }
-
-          // Title platform collision (stand on Game Hub)
-          if (
-            this.x + this.size / 2 > plat.x &&
-            this.x - this.size / 2 < plat.x + plat.w &&
-            this.y + this.size / 2 > plat.y &&
-            this.y - this.size / 2 < plat.y + plat.h &&
-            this.vy > 0
-          ) {
+          if (this.x + this.size / 2 > plat.x && this.x - this.size / 2 < plat.x + plat.w &&
+              this.y + this.size / 2 > plat.y && this.y - this.size / 2 < plat.y + plat.h && this.vy > 0) {
             this.y = plat.y - this.size / 2;
             this.vy *= -BOUNCE * 0.7;
             this.grounded = Math.abs(this.vy) < 0.4;
             if (this.grounded) {
               this.vy = 0;
-              // Walk along title
               this.vx += Math.sin(performance.now() * 0.002 + this.phase) * 0.05;
             }
           }
-
-          // Walls
           if (this.x < this.size / 2) { this.x = this.size / 2; this.vx *= -0.8; }
           if (this.x > W - this.size / 2) { this.x = W - this.size / 2; this.vx *= -0.8; }
-
-          // Soft respawn if fallen off weirdly
           if (this.y > H + 40) this.reset(0, false);
         }
         draw(ctx) {
           ctx.save();
-          ctx.translate(this.x, this.y);
-          ctx.rotate(this.rot);
+          ctx.translate(this.x, this.y); ctx.rotate(this.rot);
           ctx.globalAlpha = this.alpha;
-
-          // Cube body
           const s = this.size;
           const g = ctx.createLinearGradient(-s / 2, -s / 2, s / 2, s / 2);
-          g.addColorStop(0, this.color);
-          g.addColorStop(1, "#1a1a2e");
-          ctx.fillStyle = g;
-          ctx.strokeStyle = "rgba(255,255,255,0.25)";
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.roundRect(-s / 2, -s / 2, s, s, 2);
-          ctx.fill();
-          ctx.stroke();
-
-          // Highlight
+          g.addColorStop(0, this.color); g.addColorStop(1, "#1a1a2e");
+          ctx.fillStyle = g; ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.roundRect(-s / 2, -s / 2, s, s, 2); ctx.fill(); ctx.stroke();
           ctx.fillStyle = "rgba(255,255,255,0.2)";
           ctx.fillRect(-s / 2 + 1, -s / 2 + 1, s * 0.4, s * 0.25);
-
-          // Carried number
           if (this.carry) {
             ctx.rotate(-this.rot);
             ctx.font = "bold " + Math.max(9, s * 0.85) + "px system-ui";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillStyle = "#fff";
-            ctx.shadowColor = this.color;
-            ctx.shadowBlur = 8;
-            ctx.fillText(this.carry, 0, -s * 0.9);
-            ctx.shadowBlur = 0;
+            ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillStyle = "#fff"; ctx.shadowColor = this.color; ctx.shadowBlur = 8;
+            ctx.fillText(this.carry, 0, -s * 0.9); ctx.shadowBlur = 0;
           }
-
           ctx.restore();
         }
       }
@@ -1478,42 +1461,23 @@
       const cubes = [];
       const N = Math.min(14, Math.max(8, Math.floor(W / 70)));
       for (let i = 0; i < N; i++) cubes.push(new Cube(i));
-
-      // Occasional thrown particle numbers
       const floats = [];
-
       function spawnFloat(x, y, n) {
-        floats.push({
-          x, y,
-          vx: (Math.random() - 0.5) * 2,
-          vy: -2 - Math.random() * 2,
-          life: 1,
-          n,
-          color: COLORS[Math.floor(Math.random() * COLORS.length)]
-        });
+        floats.push({ x, y, vx: (Math.random() - 0.5) * 2, vy: -2 - Math.random() * 2, life: 1, n,
+          color: COLORS[Math.floor(Math.random() * COLORS.length)] });
       }
-
       let lastThrow = 0;
 
       function frame(t) {
         requestAnimationFrame(frame);
         ctx.clearRect(0, 0, W, H);
         const plat = titlePlatform();
-
-        // Soft platform glow
         ctx.save();
         ctx.fillStyle = "rgba(155,140,255,0.06)";
-        ctx.beginPath();
-        ctx.roundRect(plat.x, plat.y, plat.w, plat.h, 8);
-        ctx.fill();
+        ctx.beginPath(); ctx.roundRect(plat.x, plat.y, plat.w, plat.h, 8); ctx.fill();
         ctx.restore();
 
-        cubes.forEach(c => {
-          c.update(plat);
-          c.draw(ctx);
-        });
-
-        // Cube-cube soft separation
+        cubes.forEach(c => { c.update(plat); c.draw(ctx); });
         for (let i = 0; i < cubes.length; i++) {
           for (let j = i + 1; j < cubes.length; j++) {
             const a = cubes[i], b = cubes[j];
@@ -1521,43 +1485,26 @@
             const dist = Math.hypot(dx, dy) || 0.01;
             const minD = (a.size + b.size) * 0.55;
             if (dist < minD) {
-              const push = (minD - dist) * 0.08;
-              const nx = dx / dist, ny = dy / dist;
+              const push = (minD - dist) * 0.08, nx = dx / dist, ny = dy / dist;
               a.vx -= nx * push; a.vy -= ny * push;
               b.vx += nx * push; b.vy += ny * push;
             }
           }
         }
-
-        // Random throw event
         if (t - lastThrow > 2800 + Math.random() * 2000) {
           lastThrow = t;
           const c = cubes[Math.floor(Math.random() * cubes.length)];
-          if (c.carry) {
-            spawnFloat(c.x, c.y - 10, c.carry);
-            c.carry = null;
-          } else if (Math.random() > 0.4) {
-            c.carry = String(Math.floor(Math.random() * 10));
-          }
+          if (c.carry) { spawnFloat(c.x, c.y - 10, c.carry); c.carry = null; }
+          else if (Math.random() > 0.4) c.carry = String(Math.floor(Math.random() * 10));
         }
-
-        // Floating numbers
         for (let i = floats.length - 1; i >= 0; i--) {
           const f = floats[i];
-          f.x += f.vx;
-          f.y += f.vy;
-          f.vy += 0.05;
-          f.life -= 0.012;
+          f.x += f.vx; f.y += f.vy; f.vy += 0.05; f.life -= 0.012;
           if (f.life <= 0) { floats.splice(i, 1); continue; }
-          ctx.save();
-          ctx.globalAlpha = f.life;
-          ctx.font = "bold 14px system-ui";
-          ctx.textAlign = "center";
-          ctx.fillStyle = f.color;
-          ctx.shadowColor = f.color;
-          ctx.shadowBlur = 10;
-          ctx.fillText(f.n, f.x, f.y);
-          ctx.restore();
+          ctx.save(); ctx.globalAlpha = f.life;
+          ctx.font = "bold 14px system-ui"; ctx.textAlign = "center";
+          ctx.fillStyle = f.color; ctx.shadowColor = f.color; ctx.shadowBlur = 10;
+          ctx.fillText(f.n, f.x, f.y); ctx.restore();
         }
       }
       requestAnimationFrame(frame);
