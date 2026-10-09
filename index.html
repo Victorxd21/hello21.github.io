@@ -66,16 +66,50 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;background-im
 .tab.on{background:color-mix(in srgb,var(--accent) 22%,transparent);color:#fff}
 .log{padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
 .log:last-child{border:none}
+/* ── HuXn-inspired polish ── */
+.game{isolation:isolate}
+.game::after{
+  content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;
+  background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.08) 45%,transparent 55%);
+  transform:translateX(-120%);transition:transform .6s ease;
+}
+.game:hover::after{transform:translateX(120%)}
+.game .icon{transition:transform .4s cubic-bezier(.34,1.56,.64,1),box-shadow .3s}
+.game:hover .icon{transform:translateY(-4px) scale(1.12) rotate(-6deg);box-shadow:0 8px 24px color-mix(in srgb,var(--accent) 40%,transparent)}
+.tag{transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .2s,color .2s,box-shadow .25s}
+.tag:hover{transform:translateY(-2px) scale(1.06)}
+.tag:active{transform:scale(.94)}
+.btn{transition:transform .3s cubic-bezier(.34,1.56,.64,1),background .2s,box-shadow .25s,border-color .2s}
+.btn:active{transform:scale(.94)}
+.mbg.on{animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{transform:scale(.92) translateY(16px);opacity:0;transition:transform .4s cubic-bezier(.34,1.56,.64,1),opacity .3s}
+.mbg.on .modal{transform:scale(1) translateY(0);opacity:1}
+.cat-h{transition:background .25s,border-color .25s,transform .3s cubic-bezier(.34,1.56,.64,1)}
+.cat-h:active{transform:scale(.98)}
+.search input{transition:border-color .25s,box-shadow .25s,transform .3s cubic-bezier(.34,1.56,.64,1)}
+.search input:focus{transform:scale(1.02)}
+#topProgress{
+  position:fixed;top:0;left:0;height:3px;width:0;z-index:200;
+  background:linear-gradient(90deg,var(--accent),var(--sc),var(--accent2));
+  box-shadow:0 0 12px var(--glow);
+  transition:width .35s ease;pointer-events:none;
+}
+.hero h1{background-size:200% auto;animation:titleIn .9s var(--spring) both, shine 5s ease-in-out infinite 1s}
+@keyframes shine{0%,100%{background-position:0% center}50%{background-position:100% center}}
+.pill{transition:box-shadow .3s}
+.pill:hover{box-shadow:0 0 16px var(--glow)}
 </style>
 </head>
 <body>
+<div id="topProgress"></div>
 <div class="content">
   <div class="hero">
     <canvas id="cubeCanvas"></canvas>
     <h1>Game Hub</h1>
     <p>Pick a game and play</p>
     <div class="hero-meta">
-      <span class="pill" id="ver">v3.1.3</span>
+      <span class="pill" id="ver">v3.1.4</span>
       <span class="pill" id="season" style="display:none"></span>
     </div>
   </div>
@@ -95,7 +129,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;background-im
   <div class="modal">
     <button class="x" id="aboutX">×</button>
     <h2>About</h2>
-    <p><strong>Game Hub v3.1.3</strong></p>
+    <p><strong>Game Hub v3.1.4</strong></p>
     <p>Made by <a href="https://github.com/Victorxd21" target="_blank" rel="noopener">Victorxd21</a></p>
     <p>Repo: <a href="https://github.com/Victorxd21/hello21.github.io" target="_blank" rel="noopener">hello21.github.io</a></p>
     <p style="margin-top:12px">Built with a lot of help from <strong>Grok (xAI)</strong> — design, animations, physics cubes, discovery, health checks, logs, and more. Credit where it is due.</p>
@@ -117,7 +151,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;background-im
 
 <script>
 (function(){
-  const VER = "3.1.3";
+  const VER = "3.1.4";
   const GAMES = [
     {name:"Blackjack",folder:"blackjack",file:"index.html",icon:"🂡",tags:["card"]},
     {name:"Cat Game",folder:"cat-game",file:"catUP.html",icon:"🐱",tags:["fun"]},
@@ -140,6 +174,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;background-im
   ];
 
   const HUB_LOGS = [
+    {v:"3.1.4", d:"2026-10-09", t:"UI polish inspired by HuXn creative cards — shine sweep, spring hovers, top progress"},
     {v:"3.1.3", d:"2026-10-09", t:"Self-contained restore — all features inline, no external script load"},
     {v:"3.1.2", d:"2026-10-09", t:"Rigid-body cube collisions (mass, impulse, spin)"},
     {v:"3.1.0", d:"2026-10-08", t:"Tags, skeletons, health checks, seasonal skins, Logs, Feedback, Grok credit"},
@@ -258,8 +293,10 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;background-im
     });
   });
 
+  const bar = document.getElementById("topProgress");
+  if (bar) { bar.style.width = "30%"; setTimeout(()=>bar.style.width="70%", 120); }
   document.getElementById("root").innerHTML = '<div class="grid">'+Array(6).fill(0).map(()=>'<div class="skel"></div>').join("")+'</div>';
-  setTimeout(draw, 280);
+  setTimeout(()=>{ if(bar) bar.style.width="100%"; draw(); setTimeout(()=>{ if(bar){ bar.style.opacity="0"; setTimeout(()=>{bar.style.width="0";bar.style.opacity="1"},300); }}, 200); }, 280);
 
   (function(){
     const canvas = document.getElementById("cubeCanvas");
