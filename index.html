@@ -15,6 +15,9 @@
       --accent: #9b8cff;
       --accent2: #6d5dfc;
       --glow: rgba(155,140,255,0.35);
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-bounce: cubic-bezier(0.68, -0.4, 0.32, 1.4);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,6 +30,7 @@
       overflow-x: hidden;
     }
 
+    /* Animated grid */
     body::before {
       content: "";
       position: fixed;
@@ -38,18 +42,19 @@
       background-size: 48px 48px;
       animation: gridDrift 40s linear infinite;
       mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      z-index: 0;
     }
-
     body::after {
       content: "";
       position: fixed;
-      width: 500px;
-      height: 500px;
-      top: -120px;
-      right: -80px;
-      background: radial-gradient(circle, rgba(109,93,252,0.25), transparent 70%);
+      width: 520px;
+      height: 520px;
+      top: -140px;
+      right: -100px;
+      background: radial-gradient(circle, rgba(109,93,252,0.28), transparent 70%);
       pointer-events: none;
-      animation: orbFloat 12s ease-in-out infinite alternate;
+      animation: orbFloat 14s ease-in-out infinite alternate;
+      z-index: 0;
     }
 
     @keyframes gridDrift {
@@ -58,55 +63,103 @@
     }
     @keyframes orbFloat {
       from { transform: translate(0, 0) scale(1); }
-      to { transform: translate(-40px, 60px) scale(1.15); }
+      to { transform: translate(-50px, 70px) scale(1.18); }
     }
 
     .content {
       position: relative;
       max-width: 1120px;
       margin: 0 auto;
-      padding: 56px 20px 48px;
+      padding: 48px 20px 56px;
       z-index: 1;
     }
 
+    /* ── Hero + physics canvas ── */
     .hero {
+      position: relative;
       text-align: center;
-      margin-bottom: 36px;
-      animation: fadeUp 0.7s ease-out both;
+      margin-bottom: 28px;
+      min-height: 140px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #cubeCanvas {
+      position: absolute;
+      inset: -30px -40px 0;
+      width: calc(100% + 80px);
+      height: calc(100% + 40px);
+      pointer-events: none;
+      z-index: 0;
     }
     .hero h1 {
-      font-size: clamp(38px, 8vw, 58px);
+      position: relative;
+      z-index: 2;
+      font-size: clamp(40px, 9vw, 64px);
       font-weight: 800;
-      letter-spacing: -1.5px;
-      background: linear-gradient(135deg, #fff 20%, #c4b5fd 50%, #818cf8 100%);
+      letter-spacing: -1.8px;
+      background: linear-gradient(135deg, #fff 15%, #c4b5fd 45%, #818cf8 85%);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      animation: titleShine 6s ease-in-out infinite;
       background-size: 200% auto;
+      animation:
+        titleShine 6s ease-in-out infinite,
+        titleIn 1s var(--ease-spring) both;
+      filter: drop-shadow(0 0 24px rgba(155,140,255,0.25));
     }
     @keyframes titleShine {
       0%, 100% { background-position: 0% center; }
       50% { background-position: 100% center; }
     }
+    @keyframes titleIn {
+      from { opacity: 0; transform: scale(0.6) translateY(30px); filter: blur(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+    }
     .hero p {
+      position: relative;
+      z-index: 2;
       color: var(--muted);
-      margin-top: 10px;
+      margin-top: 8px;
       font-size: 16px;
-      animation: fadeUp 0.7s ease-out 0.15s both;
+      animation: fadeSlideUp 0.8s var(--ease-out) 0.25s both;
+    }
+    .version-pill {
+      position: relative;
+      z-index: 2;
+      display: inline-block;
+      margin-top: 10px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #c4b5fd;
+      background: rgba(155,140,255,0.15);
+      border: 1px solid rgba(155,140,255,0.25);
+      animation: fadeSlideUp 0.8s var(--ease-out) 0.4s both, pulseGlow 3s ease-in-out infinite 1s;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(155,140,255,0); }
+      50% { box-shadow: 0 0 16px 2px rgba(155,140,255,0.3); }
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
+    /* ── Toolbar ── */
     .toolbar {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
       color: var(--muted);
-      animation: fadeUp 0.7s ease-out 0.25s both;
+      animation: fadeSlideUp 0.7s var(--ease-out) 0.35s both;
     }
-
     .btn-pill {
       padding: 9px 16px;
       border: 1px solid var(--border);
@@ -115,27 +168,143 @@
       color: #d0c7ff;
       cursor: pointer;
       font-size: 14px;
-      transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+      transition:
+        transform 0.35s var(--ease-spring),
+        background 0.25s,
+        box-shadow 0.25s,
+        border-color 0.25s;
     }
     .btn-pill:hover {
-      transform: translateY(-2px);
-      background: rgba(155,140,255,0.15);
-      box-shadow: 0 0 20px var(--glow);
+      transform: translateY(-3px) scale(1.05);
+      background: rgba(155,140,255,0.18);
+      box-shadow: 0 6px 24px var(--glow);
+      border-color: rgba(155,140,255,0.4);
     }
-    .btn-pill:active { transform: scale(0.95); }
-    .refresh:hover { transform: translateY(-2px) rotate(-12deg); }
+    .btn-pill:active {
+      transform: scale(0.92);
+      transition-duration: 0.1s;
+    }
+    .refresh:hover { transform: translateY(-3px) rotate(-18deg) scale(1.08); }
 
-    .status {
-      text-align: center;
+    .search-wrap {
+      width: min(340px, 100%);
+      position: relative;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 11px 16px 11px 40px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.3s var(--ease-spring);
+    }
+    .search-wrap input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(155,140,255,0.2);
+      transform: scale(1.02);
+    }
+    .search-wrap::before {
+      content: "⌕";
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
       color: var(--muted);
-      padding: 48px 16px;
-      animation: pulse 1.4s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 0.5; }
-      50% { opacity: 1; }
+      font-size: 16px;
+      pointer-events: none;
     }
 
+    /* ── Category sections ── */
+    .category {
+      margin-bottom: 22px;
+      animation: catIn 0.7s var(--ease-out) both;
+    }
+    .category:nth-child(1) { animation-delay: 0.15s; }
+    .category:nth-child(2) { animation-delay: 0.28s; }
+    @keyframes catIn {
+      from { opacity: 0; transform: translateY(28px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .cat-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      cursor: pointer;
+      user-select: none;
+      transition:
+        background 0.25s,
+        border-color 0.25s,
+        transform 0.35s var(--ease-spring),
+        box-shadow 0.3s;
+    }
+    .cat-header:hover {
+      background: rgba(155,140,255,0.1);
+      border-color: rgba(155,140,255,0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(109,93,252,0.15);
+    }
+    .cat-header:active { transform: scale(0.98); }
+
+    .cat-chevron {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      color: #a78bfa;
+      transition: transform 0.4s var(--ease-spring);
+      flex-shrink: 0;
+    }
+    .category.collapsed .cat-chevron {
+      transform: rotate(-90deg);
+    }
+
+    .cat-title {
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.2px;
+      flex: 1;
+      text-align: left;
+    }
+    .cat-count {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(155,140,255,0.18);
+      color: #c4b5fd;
+      transition: transform 0.3s var(--ease-spring);
+    }
+    .cat-header:hover .cat-count {
+      transform: scale(1.12);
+    }
+
+    .cat-body {
+      display: grid;
+      grid-template-rows: 1fr;
+      transition: grid-template-rows 0.45s var(--ease-out), opacity 0.35s ease;
+      opacity: 1;
+    }
+    .category.collapsed .cat-body {
+      grid-template-rows: 0fr;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .cat-body-inner {
+      overflow: hidden;
+      padding-top: 14px;
+    }
+
+    /* ── Game grid & cards ── */
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -151,55 +320,86 @@
       background: var(--card);
       cursor: pointer;
       overflow: hidden;
+      transform-origin: center bottom;
       transition:
-        transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1),
+        transform 0.4s var(--ease-spring),
         border-color 0.25s,
         background 0.25s,
-        box-shadow 0.3s;
-      animation: cardIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-      animation-delay: calc(var(--i, 0) * 0.045s);
+        box-shadow 0.35s,
+        opacity 0.35s,
+        filter 0.35s;
+      animation: cardPop 0.65s var(--ease-spring) both;
+      animation-delay: calc(var(--i, 0) * 0.05s + 0.1s);
     }
     .game::before {
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, transparent 40%, rgba(155,140,255,0.08));
+      background: linear-gradient(135deg, transparent 40%, rgba(155,140,255,0.1));
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: opacity 0.35s;
     }
     .game::after {
       content: "";
       position: absolute;
-      bottom: -40%;
+      bottom: -45%;
       left: 50%;
-      width: 80%;
-      height: 60%;
+      width: 90%;
+      height: 70%;
       transform: translateX(-50%);
       background: radial-gradient(ellipse, var(--glow), transparent 70%);
       opacity: 0;
-      transition: opacity 0.35s;
+      transition: opacity 0.4s;
       pointer-events: none;
     }
     .game:hover {
-      transform: translateY(-8px) scale(1.03);
+      transform: translateY(-10px) scale(1.045) rotate(-0.5deg);
       border-color: rgba(155,140,255,0.55);
       background: var(--card-hover);
       box-shadow:
-        0 12px 32px rgba(0,0,0,0.35),
-        0 0 0 1px rgba(155,140,255,0.2),
-        0 0 40px var(--glow);
+        0 16px 40px rgba(0,0,0,0.4),
+        0 0 0 1px rgba(155,140,255,0.25),
+        0 0 48px var(--glow);
     }
     .game:hover::before { opacity: 1; }
     .game:hover::after { opacity: 1; }
-    .game:active { transform: translateY(-3px) scale(0.99); }
-
-    @keyframes cardIn {
-      from { opacity: 0; transform: translateY(24px) scale(0.92); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
+    .game:active {
+      transform: translateY(-4px) scale(0.97);
+      transition-duration: 0.12s;
     }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
+
+    @keyframes cardPop {
+      0% {
+        opacity: 0;
+        transform: translateY(40px) scale(0.7) rotateX(12deg);
+        filter: blur(4px);
+      }
+      60% {
+        opacity: 1;
+        filter: blur(0);
+      }
+      80% { transform: translateY(-6px) scale(1.04) rotateX(0); }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotateX(0);
+        filter: blur(0);
+      }
+    }
+
+    /* Leave animation when filtering */
+    .game.hiding {
+      animation: cardOut 0.35s var(--ease-out) forwards;
+      pointer-events: none;
+    }
+    @keyframes cardOut {
+      to {
+        opacity: 0;
+        transform: scale(0.6) translateY(20px);
+        filter: blur(6px);
+      }
+    }
+    .game.showing {
+      animation: cardPop 0.55s var(--ease-spring) both;
     }
 
     .icon {
@@ -212,10 +412,10 @@
       background: linear-gradient(135deg, var(--accent2), var(--accent));
       font-size: 24px;
       box-shadow: 0 4px 16px rgba(109,93,252,0.35);
-      transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+      transition: transform 0.4s var(--ease-spring);
     }
     .game:hover .icon {
-      transform: scale(1.12) rotate(-6deg);
+      transform: scale(1.18) rotate(-10deg);
     }
 
     .name {
@@ -228,6 +428,18 @@
       color: var(--muted);
       font-size: 11px;
       opacity: 0.85;
+    }
+    .added {
+      margin-top: 8px;
+      font-size: 10px;
+      color: #6b6b80;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.3s, transform 0.3s var(--ease-out);
+    }
+    .game:hover .added {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     .badge {
@@ -243,87 +455,72 @@
       background: rgba(155,140,255,0.2);
       color: #c4b5fd;
       opacity: 0;
-      transform: translateY(-4px);
-      transition: opacity 0.25s, transform 0.25s;
+      transform: translateY(-6px) scale(0.8);
+      transition: opacity 0.3s, transform 0.35s var(--ease-spring);
     }
     .game:hover .badge {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
+    }
+
+    .status {
+      text-align: center;
+      color: var(--muted);
+      padding: 48px 16px;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
     }
 
     footer {
       text-align: center;
       color: #555;
-      margin-top: 40px;
+      margin-top: 36px;
       font-size: 12px;
-      animation: fadeUp 0.7s ease-out 0.4s both;
+      animation: fadeSlideUp 0.7s var(--ease-out) 0.5s both;
     }
 
-    .search-wrap {
-      width: min(360px, 100%);
-      margin: 0 auto 8px;
-      position: relative;
-    }
-    .search-wrap input {
-      width: 100%;
-      padding: 11px 16px 11px 40px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.05);
-      color: var(--text);
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .search-wrap input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(155,140,255,0.2);
-    }
-    .search-wrap::before {
-      content: "⌕";
-      position: absolute;
-      left: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--muted);
-      font-size: 16px;
-      pointer-events: none;
-    }
-
-    /* About modal */
+    /* ── Modals ── */
     .modal-backdrop {
       position: fixed;
       inset: 0;
       z-index: 100;
       background: rgba(0,0,0,0.65);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.25s ease;
+      transition: opacity 0.3s ease;
     }
     .modal-backdrop.open {
       opacity: 1;
       pointer-events: auto;
     }
     .modal {
-      width: min(440px, 100%);
-      background: rgba(14, 16, 28, 0.95);
+      width: min(480px, 100%);
+      max-height: min(85vh, 640px);
+      overflow-y: auto;
+      background: rgba(14, 16, 28, 0.96);
       border: 1px solid rgba(255,255,255,0.12);
       border-radius: 20px;
       padding: 28px 24px 22px;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.55);
-      transform: translateY(12px) scale(0.97);
-      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 28px 72px rgba(0,0,0,0.55);
+      transform: translateY(24px) scale(0.92);
+      transition: transform 0.4s var(--ease-spring);
       position: relative;
+      scrollbar-width: thin;
     }
     .modal-backdrop.open .modal {
       transform: translateY(0) scale(1);
     }
+    .modal.wide { width: min(520px, 100%); }
+
     .modal h2 {
       font-size: 22px;
       font-weight: 800;
@@ -336,20 +533,27 @@
     .modal .lead {
       color: var(--muted);
       font-size: 14px;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
       line-height: 1.5;
     }
     .modal .row {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
     .modal .info-card {
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 12px;
       padding: 12px 14px;
+      transition: transform 0.3s var(--ease-spring), background 0.2s;
+      animation: fadeSlideUp 0.45s var(--ease-out) both;
+      animation-delay: calc(var(--d, 0) * 0.06s);
+    }
+    .modal .info-card:hover {
+      transform: translateX(4px);
+      background: rgba(255,255,255,0.07);
     }
     .modal .info-card .k {
       font-size: 11px;
@@ -362,15 +566,14 @@
       font-size: 14px;
       font-weight: 600;
       color: #e8e8f0;
-      word-break: break-all;
+      word-break: break-word;
     }
     .modal .info-card a {
       color: #a78bfa;
       text-decoration: none;
     }
-    .modal .info-card a:hover {
-      text-decoration: underline;
-    }
+    .modal .info-card a:hover { text-decoration: underline; }
+
     .modal-close {
       position: absolute;
       top: 14px;
@@ -385,19 +588,23 @@
       cursor: pointer;
       display: grid;
       place-items: center;
+      transition: transform 0.3s var(--ease-spring), background 0.2s;
     }
     .modal-close:hover {
       background: rgba(255,255,255,0.14);
       color: #fff;
+      transform: rotate(90deg) scale(1.1);
     }
+
     .modal-actions {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
     }
-    .modal-actions a {
+    .modal-actions a,
+    .modal-actions button {
       flex: 1;
-      min-width: 120px;
+      min-width: 110px;
       text-align: center;
       padding: 11px 14px;
       border-radius: 12px;
@@ -407,23 +614,163 @@
       border: 1px solid rgba(255,255,255,0.12);
       color: #e2e2f0;
       background: rgba(255,255,255,0.05);
-      transition: background 0.2s;
+      cursor: pointer;
+      font-family: inherit;
+      transition: transform 0.3s var(--ease-spring), background 0.2s;
     }
-    .modal-actions a:hover {
+    .modal-actions a:hover,
+    .modal-actions button:hover {
       background: rgba(155,140,255,0.18);
+      transform: translateY(-2px);
     }
-    .modal-actions a.primary {
+    .modal-actions a.primary,
+    .modal-actions button.primary {
       background: linear-gradient(135deg, #6d5dfc, #9b8cff);
       border-color: transparent;
       color: #fff;
+    }
+
+    /* Logs tabs */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      padding: 4px;
+    }
+    .tab {
+      flex: 1;
+      padding: 9px 12px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.25s, color 0.25s, transform 0.3s var(--ease-spring);
+    }
+    .tab:hover { color: #d0c7ff; }
+    .tab.active {
+      background: rgba(155,140,255,0.2);
+      color: #fff;
+      transform: scale(1.02);
+    }
+    .tab-panel { display: none; animation: fadeSlideUp 0.35s var(--ease-out); }
+    .tab-panel.active { display: block; }
+
+    .log-item {
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      margin-bottom: 8px;
+      transition: transform 0.3s var(--ease-spring), background 0.2s;
+      animation: fadeSlideUp 0.4s var(--ease-out) both;
+      animation-delay: calc(var(--d, 0) * 0.05s);
+    }
+    .log-item:hover {
+      transform: translateX(6px) scale(1.01);
+      background: rgba(255,255,255,0.07);
+    }
+    .log-date {
+      font-size: 11px;
+      color: #a78bfa;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+    .log-text {
+      font-size: 13px;
+      color: #c8c8d8;
+      line-height: 1.45;
+    }
+
+    /* Game name with hover tooltip */
+    .game-log-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      margin-bottom: 6px;
+      position: relative;
+      transition: transform 0.3s var(--ease-spring), background 0.2s;
+      animation: fadeSlideUp 0.4s var(--ease-out) both;
+      animation-delay: calc(var(--d, 0) * 0.04s);
+      cursor: default;
+    }
+    .game-log-row:hover {
+      transform: translateX(5px);
+      background: rgba(155,140,255,0.1);
+    }
+    .game-log-name {
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .game-log-date {
+      font-size: 11px;
+      color: #6b6b80;
+      white-space: nowrap;
+    }
+
+    /* Tooltip on hover */
+    .tip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(6px) scale(0.9);
+      background: rgba(20, 22, 36, 0.96);
+      border: 1px solid rgba(155,140,255,0.35);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #e0e0f0;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.3s var(--ease-spring);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+      z-index: 5;
+    }
+    .tip::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: rgba(155,140,255,0.35);
+    }
+    .game-log-row:hover .tip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    .empty-cat {
+      text-align: center;
+      color: var(--muted);
+      padding: 28px 16px;
+      font-size: 13px;
+      border: 1px dashed rgba(255,255,255,0.1);
+      border-radius: 14px;
     }
   </style>
 </head>
 <body>
   <main class="content">
     <header class="hero">
+      <canvas id="cubeCanvas"></canvas>
       <h1>Game Hub</h1>
       <p>Pick a game and play</p>
+      <span class="version-pill" id="hubVersion">v3.0.0</span>
     </header>
 
     <div class="toolbar">
@@ -435,73 +782,130 @@
       <button class="btn-pill" id="aboutBtn" title="About">About</button>
     </div>
 
-    <div id="games">
+    <div id="gamesRoot">
       <div class="status">Loading games…</div>
     </div>
 
-    <footer>All games from the /games folder · click any card to play</footer>
+    <footer>Games from /games · Not By Me is for community / external games</footer>
   </main>
 
   <!-- About modal -->
-  <div class="modal-backdrop" id="aboutModal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+  <div class="modal-backdrop" id="aboutModal" role="dialog" aria-modal="true">
     <div class="modal">
-      <button class="modal-close" id="aboutClose" aria-label="Close">✕</button>
-      <h2 id="aboutTitle">About Game Hub</h2>
-      <p class="lead">A collection of browser games hosted on GitHub Pages. Everything lives in the <code>/games</code> folder of this repo.</p>
+      <button class="modal-close" data-close="aboutModal" aria-label="Close">✕</button>
+      <h2>About Game Hub</h2>
+      <p class="lead">A collection of browser games hosted on GitHub Pages. Built for fun, exploration, and sharing.</p>
       <div class="row">
-        <div class="info-card">
+        <div class="info-card" style="--d:0">
+          <div class="k">Version</div>
+          <div class="v" id="aboutVersion">v3.0.0</div>
+        </div>
+        <div class="info-card" style="--d:1">
           <div class="k">Made by</div>
           <div class="v">Victorxd21</div>
         </div>
-        <div class="info-card">
+        <div class="info-card" style="--d:2">
           <div class="k">GitHub profile</div>
           <div class="v"><a href="https://github.com/Victorxd21" target="_blank" rel="noopener">github.com/Victorxd21</a></div>
         </div>
-        <div class="info-card">
+        <div class="info-card" style="--d:3">
           <div class="k">Repository</div>
           <div class="v"><a href="https://github.com/Victorxd21/hello21.github.io" target="_blank" rel="noopener">Victorxd21/hello21.github.io</a></div>
         </div>
-        <div class="info-card">
+        <div class="info-card" style="--d:4">
           <div class="k">Where things live</div>
-          <div class="v">Games → <code>/games</code> · Art → <code>/game-art</code> · Sounds → <code>/sounds</code> · This hub → <code>index.html</code></div>
+          <div class="v">Your games → <code>/games</code> · External → <code>/games/NotByMe</code> · Art → <code>/game-art</code> · Hub → <code>index.html</code></div>
         </div>
       </div>
       <div class="modal-actions">
         <a class="primary" href="https://github.com/Victorxd21" target="_blank" rel="noopener">Profile</a>
         <a href="https://github.com/Victorxd21/hello21.github.io" target="_blank" rel="noopener">Repo</a>
+        <button type="button" id="openLogsBtn">Logs</button>
       </div>
     </div>
   </div>
 
+  <!-- Logs modal -->
+  <div class="modal-backdrop" id="logsModal" role="dialog" aria-modal="true">
+    <div class="modal wide">
+      <button class="modal-close" data-close="logsModal" aria-label="Close">✕</button>
+      <h2>Logs</h2>
+      <p class="lead">Hub updates and when each game was added. Hover a game name for details.</p>
+      <div class="tabs">
+        <button class="tab active" data-tab="hub">Hub updates</button>
+        <button class="tab" data-tab="games">Games</button>
+      </div>
+      <div class="tab-panel active" id="tab-hub"></div>
+      <div class="tab-panel" id="tab-games"></div>
+    </div>
+  </div>
+
   <script>
+    /* ═══════════════════════════════════════════
+       Game Hub v3.0.0
+       ═══════════════════════════════════════════ */
+    const HUB_VERSION = "3.0.0";
     const OWNER = "Victorxd21";
     const REPO = "hello21.github.io";
 
-    /* Offline list — always shown first so the page never stays stuck loading */
+    document.getElementById("hubVersion").textContent = "v" + HUB_VERSION;
+    document.getElementById("aboutVersion").textContent = "v" + HUB_VERSION;
+
+    /* Known add dates (YYYY-MM-DD) — used for logs + hover tips */
+    const ADDED = {
+      "royale.html": "2025-06-01",
+      "snake.html": "2025-06-01",
+      "werewolf.html": "2025-07-15",
+      "blackjack": "2025-08-10",
+      "cat-game": "2025-08-20",
+      "gartic": "2025-09-01",
+      "gradess": "2025-09-10",
+      "live-earth": "2025-09-20",
+      "mesh-view": "2025-09-25",
+      "race": "2025-10-05",
+      "rocket-league": "2025-09-28",
+      "slitherIO": "2025-08-15",
+      "storm-chaser": "2025-09-12",
+      "super-mario": "2025-09-05",
+      "TikTok": "2025-08-25",
+      "uno": "2026-10-08",
+      "voxel-world": "2025-10-01",
+      "world-explorer": "2026-10-09"
+    };
+
+    const HUB_LOGS = [
+      { date: "2026-10-09", text: "Hub v3.0.0 — Not By Me category, Logs panel, physics cubes on title, heavy animations" },
+      { date: "2026-10-09", text: "Added World Explorer — 2.5D ship flight around Earth" },
+      { date: "2026-10-08", text: "Hub v2 — fixed loading stuck state, offline-first list, About modal" },
+      { date: "2026-10-08", text: "Added multiplayer UNO with lobby & real-time" },
+      { date: "2025-09-20", text: "Live Earth with Cesium globe, air traffic, disasters" },
+      { date: "2025-06-01", text: "Game Hub launched with first set of games" }
+    ];
+
     const FALLBACK = [
-      { name: "Blackjack", folder: "blackjack", file: "index.html", icon: "🂡" },
-      { name: "Cat Game", folder: "cat-game", file: "catUP.html", icon: "🐱" },
-      { name: "Gartic Phone", folder: "gartic", file: "index.html", icon: "✏️" },
-      { name: "Gradess", folder: "gradess", file: "login.html", icon: "📚" },
-      { name: "Live Earth", folder: "live-earth", file: "index.html", icon: "🌍" },
-      { name: "Mesh View", folder: "mesh-view", file: "index.html", icon: "🔷" },
-      { name: "Race", folder: "race", file: "index.html", icon: "🏁" },
-      { name: "Rocket League", folder: "rocket-league", file: "index.html", icon: "⚽" },
-      { name: "Royale", folder: null, file: "royale.html", icon: "👑" },
-      { name: "SlitherIO", folder: "slitherIO", file: "index.html", icon: "🪱" },
-      { name: "Snake", folder: null, file: "snake.html", icon: "🐍" },
-      { name: "Storm Chaser", folder: "storm-chaser", file: "index.html", icon: "⛈️" },
-      { name: "Super Mario", folder: "super-mario", file: "index.html", icon: "🍄" },
-      { name: "TikTok", folder: "TikTok", file: "index.html", icon: "📱" },
-      { name: "UNO", folder: "uno", file: "index.html", icon: "🃏" },
-      { name: "Voxel World", folder: "voxel-world", file: "index.html", icon: "🧱" },
-      { name: "Werewolf", folder: null, file: "werewolf.html", icon: "🐺" },
-      { name: "World Explorer", folder: "world-explorer", file: "index.html", icon: "🚀" }
+      { name: "Blackjack", folder: "blackjack", file: "index.html", icon: "🂡", cat: "mine" },
+      { name: "Cat Game", folder: "cat-game", file: "catUP.html", icon: "🐱", cat: "mine" },
+      { name: "Gartic Phone", folder: "gartic", file: "index.html", icon: "✏️", cat: "mine" },
+      { name: "Gradess", folder: "gradess", file: "login.html", icon: "📚", cat: "mine" },
+      { name: "Live Earth", folder: "live-earth", file: "index.html", icon: "🌍", cat: "mine" },
+      { name: "Mesh View", folder: "mesh-view", file: "index.html", icon: "🔷", cat: "mine" },
+      { name: "Race", folder: "race", file: "index.html", icon: "🏁", cat: "mine" },
+      { name: "Rocket League", folder: "rocket-league", file: "index.html", icon: "⚽", cat: "mine" },
+      { name: "Royale", folder: null, file: "royale.html", icon: "👑", cat: "mine" },
+      { name: "SlitherIO", folder: "slitherIO", file: "index.html", icon: "🪱", cat: "mine" },
+      { name: "Snake", folder: null, file: "snake.html", icon: "🐍", cat: "mine" },
+      { name: "Storm Chaser", folder: "storm-chaser", file: "index.html", icon: "⛈️", cat: "mine" },
+      { name: "Super Mario", folder: "super-mario", file: "index.html", icon: "🍄", cat: "mine" },
+      { name: "TikTok", folder: "TikTok", file: "index.html", icon: "📱", cat: "mine" },
+      { name: "UNO", folder: "uno", file: "index.html", icon: "🃏", cat: "mine" },
+      { name: "Voxel World", folder: "voxel-world", file: "index.html", icon: "🧱", cat: "mine" },
+      { name: "Werewolf", folder: null, file: "werewolf.html", icon: "🐺", cat: "mine" },
+      { name: "World Explorer", folder: "world-explorer", file: "index.html", icon: "🚀", cat: "mine" }
     ];
 
     const HIDDEN = new Set([
       "game-art", "images", "sounds", "assets", "pics", "music",
-      "heads", "data", "css", "js", "pngs", "node_modules"
+      "heads", "data", "css", "js", "pngs", "node_modules", "notbyme"
     ]);
 
     const ICON_MAP = {
@@ -510,7 +914,7 @@
       slitherio: "🪱", "storm-chaser": "⛈️", "voxel-world": "🧱",
       race: "🏁", "super-mario": "🍄", "mesh-view": "🔷",
       gradess: "📚", royale: "👑", snake: "🐍", werewolf: "🐺",
-      "world-explorer": "🚀", heads: "👤"
+      "world-explorer": "🚀"
     };
 
     function esc(s) {
@@ -536,7 +940,7 @@
     }
 
     function gameUrl(folder, file) {
-      return "games/" + (folder ? encodeURIComponent(folder) + "/" : "") + encodeURIComponent(file);
+      return "games/" + (folder ? encodeURIComponent(folder).replace(/%2F/g, "/") + "/" : "") + encodeURIComponent(file);
     }
 
     function pickEntryHtml(files) {
@@ -549,41 +953,95 @@
       return htmls[0].name;
     }
 
+    function addedKey(g) {
+      if (g.folder) {
+        const top = g.folder.split("/")[0];
+        if (ADDED[top]) return ADDED[top];
+        if (ADDED[g.folder]) return ADDED[g.folder];
+      }
+      if (ADDED[g.file]) return ADDED[g.file];
+      return g.added || null;
+    }
+
+    function formatDate(iso) {
+      if (!iso) return "Unknown";
+      try {
+        const d = new Date(iso + (iso.length === 10 ? "T12:00:00Z" : ""));
+        return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+      } catch (_) {
+        return iso;
+      }
+    }
+
+    let allGames = [];
+
     function draw(games, offline) {
-      const root = document.getElementById("games");
+      allGames = games;
+      const mine = games.filter(g => g.cat !== "notbyme");
+      const other = games.filter(g => g.cat === "notbyme");
+
+      const root = document.getElementById("gamesRoot");
       root.innerHTML = "";
 
-      if (!games.length) {
-        root.innerHTML = '<div class="status">No games found.</div>';
-        document.getElementById("count").textContent = "0 games";
-        return;
-      }
+      root.appendChild(buildCategory("Your Games", "🎮", mine, false));
+      root.appendChild(buildCategory("Not By Me", "🌐", other, false));
 
-      const grid = document.createElement("div");
-      grid.className = "grid";
-
-      games.forEach((g, i) => {
-        const card = document.createElement("article");
-        card.className = "game";
-        card.style.setProperty("--i", i);
-        card.dataset.name = (g.name + " " + (g.folder || "") + " " + g.file).toLowerCase();
-        card.innerHTML =
-          '<div class="icon">' + g.icon + "</div>" +
-          '<div class="name">' + esc(g.name) + "</div>" +
-          '<div class="path">' + esc(g.folder ? g.folder + "/" + g.file : g.file) + "</div>" +
-          '<span class="badge">Play</span>';
-        card.onclick = () => { location.href = gameUrl(g.folder, g.file); };
-        grid.appendChild(card);
-      });
-
-      root.appendChild(grid);
       document.getElementById("count").textContent =
         games.length + " game" + (games.length !== 1 ? "s" : "") +
-        (offline ? " · offline list" : "");
+        (offline ? " · offline" : "");
 
-      // re-apply search filter if any
       const q = document.getElementById("search").value;
       if (q) filterGames(q);
+    }
+
+    function buildCategory(title, emoji, list, startCollapsed) {
+      const sec = document.createElement("section");
+      sec.className = "category" + (startCollapsed ? " collapsed" : "");
+      sec.dataset.cat = title;
+
+      const header = document.createElement("button");
+      header.type = "button";
+      header.className = "cat-header";
+      header.innerHTML =
+        '<span class="cat-chevron">▼</span>' +
+        '<span class="cat-title">' + emoji + " " + esc(title) + "</span>" +
+        '<span class="cat-count">' + list.length + "</span>";
+      header.addEventListener("click", () => {
+        sec.classList.toggle("collapsed");
+      });
+
+      const body = document.createElement("div");
+      body.className = "cat-body";
+      const inner = document.createElement("div");
+      inner.className = "cat-body-inner";
+
+      if (!list.length) {
+        inner.innerHTML = '<div class="empty-cat">No games here yet — drop HTML games into <code>games/NotByMe</code></div>';
+      } else {
+        const grid = document.createElement("div");
+        grid.className = "grid";
+        list.forEach((g, i) => {
+          const card = document.createElement("article");
+          card.className = "game";
+          card.style.setProperty("--i", i);
+          card.dataset.name = (g.name + " " + (g.folder || "") + " " + g.file).toLowerCase();
+          const when = addedKey(g);
+          card.innerHTML =
+            '<div class="icon">' + g.icon + "</div>" +
+            '<div class="name">' + esc(g.name) + "</div>" +
+            '<div class="path">' + esc(g.folder ? g.folder + "/" + g.file : g.file) + "</div>" +
+            (when ? '<div class="added">Added ' + formatDate(when) + "</div>" : "") +
+            '<span class="badge">Play</span>';
+          card.onclick = () => { location.href = gameUrl(g.folder, g.file); };
+          grid.appendChild(card);
+        });
+        inner.appendChild(grid);
+      }
+
+      body.appendChild(inner);
+      sec.appendChild(header);
+      sec.appendChild(body);
+      return sec;
     }
 
     function filterGames(q) {
@@ -592,8 +1050,19 @@
       let visible = 0;
       cards.forEach(card => {
         const match = !term || card.dataset.name.includes(term);
-        card.style.display = match ? "" : "none";
-        if (match) visible++;
+        if (match) {
+          if (card.classList.contains("hiding")) {
+            card.classList.remove("hiding");
+            card.classList.add("showing");
+          }
+          card.style.display = "";
+          visible++;
+        } else {
+          card.classList.add("hiding");
+          setTimeout(() => {
+            if (card.classList.contains("hiding")) card.style.display = "none";
+          }, 320);
+        }
       });
       document.getElementById("count").textContent =
         visible + " game" + (visible !== 1 ? "s" : "");
@@ -605,6 +1074,52 @@
       return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(id));
     }
 
+    async function scanFolder(url, headers, cat, folderPrefix) {
+      const games = [];
+      try {
+        const r = await fetchWithTimeout(url, { headers }, 5000);
+        if (!r.ok) return games;
+        const files = await r.json();
+        if (!Array.isArray(files)) return games;
+
+        for (const f of files) {
+          if (f.type === "file" && /\.html$/i.test(f.name) && !/^readme/i.test(f.name)) {
+            games.push({
+              name: prettyName(f.name),
+              folder: folderPrefix || null,
+              file: f.name,
+              icon: iconFor(folderPrefix, f.name),
+              cat,
+              added: f.sha ? null : null
+            });
+          }
+        }
+
+        const dirs = files.filter(
+          i => i.type === "dir" && !HIDDEN.has(i.name.toLowerCase()) && i.name.toLowerCase() !== "notbyme"
+        );
+
+        await Promise.all(dirs.map(async dir => {
+          try {
+            const dr = await fetchWithTimeout(dir.url, { headers }, 4500);
+            if (!dr.ok) return;
+            const dfiles = await dr.json();
+            const entry = pickEntryHtml(dfiles);
+            if (!entry) return;
+            const fold = folderPrefix ? folderPrefix + "/" + dir.name : dir.name;
+            games.push({
+              name: prettyName(dir.name),
+              folder: fold,
+              file: entry,
+              icon: iconFor(dir.name, entry),
+              cat
+            });
+          } catch (_) {}
+        }));
+      } catch (_) {}
+      return games;
+    }
+
     async function apiGames() {
       const headers = { Accept: "application/vnd.github+json" };
       const res = await fetchWithTimeout(
@@ -613,88 +1128,90 @@
         6000
       );
       if (!res.ok) throw new Error("GitHub API " + res.status);
-
       const items = await res.json();
       if (!Array.isArray(items)) throw new Error("bad response");
 
       const games = [];
 
+      // Root-level HTML
       for (const item of items) {
         if (item.type === "file" && /\.html$/i.test(item.name)) {
           games.push({
             name: prettyName(item.name),
             folder: null,
             file: item.name,
-            icon: iconFor(null, item.name)
+            icon: iconFor(null, item.name),
+            cat: "mine"
           });
         }
       }
 
+      // Regular folders (skip NotByMe — handled separately)
       const dirs = items.filter(
-        i => i.type === "dir" && !HIDDEN.has(i.name.toLowerCase())
+        i => i.type === "dir" &&
+          !HIDDEN.has(i.name.toLowerCase()) &&
+          i.name.toLowerCase() !== "notbyme"
       );
 
-      await Promise.all(
-        dirs.map(async dir => {
-          try {
-            const r = await fetchWithTimeout(dir.url, { headers }, 5000);
-            if (!r.ok) return;
-            const files = await r.json();
-            if (!Array.isArray(files)) return;
-            let entry = pickEntryHtml(files);
-
-            if (!entry) {
-              const subdirs = files.filter(
-                f => f.type === "dir" && !HIDDEN.has(f.name.toLowerCase())
-              );
-              for (const sub of subdirs) {
-                try {
-                  const sr = await fetchWithTimeout(sub.url, { headers }, 4000);
-                  if (!sr.ok) continue;
-                  const subFiles = await sr.json();
-                  const subEntry = pickEntryHtml(subFiles);
-                  if (subEntry) {
-                    games.push({
-                      name: prettyName(dir.name + " " + sub.name),
-                      folder: dir.name + "/" + sub.name,
-                      file: subEntry,
-                      icon: iconFor(dir.name, subEntry)
-                    });
-                  }
-                } catch (_) {}
-              }
-              return;
+      await Promise.all(dirs.map(async dir => {
+        try {
+          const r = await fetchWithTimeout(dir.url, { headers }, 5000);
+          if (!r.ok) return;
+          const files = await r.json();
+          if (!Array.isArray(files)) return;
+          let entry = pickEntryHtml(files);
+          if (!entry) {
+            const subdirs = files.filter(f => f.type === "dir" && !HIDDEN.has(f.name.toLowerCase()));
+            for (const sub of subdirs) {
+              try {
+                const sr = await fetchWithTimeout(sub.url, { headers }, 4000);
+                if (!sr.ok) continue;
+                const subFiles = await sr.json();
+                const subEntry = pickEntryHtml(subFiles);
+                if (subEntry) {
+                  games.push({
+                    name: prettyName(dir.name + " " + sub.name),
+                    folder: dir.name + "/" + sub.name,
+                    file: subEntry,
+                    icon: iconFor(dir.name, subEntry),
+                    cat: "mine"
+                  });
+                }
+              } catch (_) {}
             }
+            return;
+          }
+          games.push({
+            name: prettyName(dir.name),
+            folder: dir.name,
+            file: entry,
+            icon: iconFor(dir.name, entry),
+            cat: "mine"
+          });
+        } catch (_) {}
+      }));
 
-            games.push({
-              name: prettyName(dir.name),
-              folder: dir.name,
-              file: entry,
-              icon: iconFor(dir.name, entry)
-            });
-          } catch (_) {}
-        })
-      );
+      // NotByMe folder
+      const nbm = items.find(i => i.type === "dir" && i.name.toLowerCase() === "notbyme");
+      if (nbm) {
+        const external = await scanFolder(nbm.url, headers, "notbyme", "NotByMe");
+        games.push(...external);
+      }
 
       games.sort((a, b) => a.name.localeCompare(b.name));
       return games;
     }
 
     async function loadGames(forceApi) {
-      // 1) Always paint fallback immediately so UI never sticks on "Loading…"
       if (!forceApi) {
         draw(FALLBACK.slice().sort((a, b) => a.name.localeCompare(b.name)), true);
       } else {
-        document.getElementById("games").innerHTML =
+        document.getElementById("gamesRoot").innerHTML =
           '<div class="status">Refreshing…</div>';
       }
-
-      // 2) Try live API in background (with timeouts)
       try {
         const games = await apiGames();
-        if (games && games.length) {
-          draw(games, false);
-        }
+        if (games && games.length) draw(games, false);
       } catch (err) {
         console.warn("API failed, keeping offline list:", err);
         if (forceApi) {
@@ -703,27 +1220,348 @@
       }
     }
 
-    document.getElementById("refreshBtn").addEventListener("click", () => loadGames(true));
-    document.getElementById("search").addEventListener("input", e => {
-      filterGames(e.target.value);
-    });
+    /* ── Logs UI ── */
+    function buildLogs() {
+      const hubEl = document.getElementById("tab-hub");
+      hubEl.innerHTML = HUB_LOGS.map((l, i) =>
+        '<div class="log-item" style="--d:' + i + '">' +
+          '<div class="log-date">' + formatDate(l.date) + '</div>' +
+          '<div class="log-text">' + esc(l.text) + '</div>' +
+        '</div>'
+      ).join("");
 
-    // About modal
-    const aboutModal = document.getElementById("aboutModal");
-    document.getElementById("aboutBtn").addEventListener("click", () => {
-      aboutModal.classList.add("open");
+      const gamesEl = document.getElementById("tab-games");
+      const rows = allGames.length ? allGames : FALLBACK;
+      const sorted = rows.slice().sort((a, b) => {
+        const da = addedKey(a) || "9999";
+        const db = addedKey(b) || "9999";
+        return db.localeCompare(da);
+      });
+      gamesEl.innerHTML = sorted.map((g, i) => {
+        const when = addedKey(g);
+        const tip = when
+          ? g.name + " was added on " + formatDate(when)
+          : g.name + " — add date not recorded yet";
+        return (
+          '<div class="game-log-row" style="--d:' + i + '">' +
+            '<span class="game-log-name">' + (g.icon || "🎮") + " " + esc(g.name) +
+              (g.cat === "notbyme" ? ' <span style="font-size:10px;color:#6b6b80">(external)</span>' : "") +
+            '</span>' +
+            '<span class="game-log-date">' + (when ? formatDate(when) : "—") + '</span>' +
+            '<span class="tip">' + esc(tip) + '</span>' +
+          '</div>'
+        );
+      }).join("");
+    }
+
+    /* ── Modal helpers ── */
+    function openModal(id) {
+      document.getElementById(id).classList.add("open");
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("open");
+    }
+
+    document.getElementById("aboutBtn").addEventListener("click", () => openModal("aboutModal"));
+    document.getElementById("openLogsBtn").addEventListener("click", () => {
+      closeModal("aboutModal");
+      buildLogs();
+      openModal("logsModal");
     });
-    document.getElementById("aboutClose").addEventListener("click", () => {
-      aboutModal.classList.remove("open");
+    document.querySelectorAll("[data-close]").forEach(btn => {
+      btn.addEventListener("click", () => closeModal(btn.getAttribute("data-close")));
     });
-    aboutModal.addEventListener("click", e => {
-      if (e.target === aboutModal) aboutModal.classList.remove("open");
+    document.querySelectorAll(".modal-backdrop").forEach(bd => {
+      bd.addEventListener("click", e => {
+        if (e.target === bd) bd.classList.remove("open");
+      });
     });
     document.addEventListener("keydown", e => {
-      if (e.key === "Escape") aboutModal.classList.remove("open");
+      if (e.key === "Escape") {
+        closeModal("aboutModal");
+        closeModal("logsModal");
+      }
     });
 
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+      });
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", () => loadGames(true));
+    document.getElementById("search").addEventListener("input", e => filterGames(e.target.value));
+
     loadGames(false);
+
+    /* ═══════════════════════════════════════════
+       Physics cubes — climb & play on the title
+       ═══════════════════════════════════════════ */
+    (function initCubes() {
+      const canvas = document.getElementById("cubeCanvas");
+      const hero = canvas.parentElement;
+      const ctx = canvas.getContext("2d");
+      let W, H, dpr;
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const rect = hero.getBoundingClientRect();
+        W = rect.width + 80;
+        H = rect.height + 50;
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        canvas.style.width = W + "px";
+        canvas.style.height = H + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      resize();
+      window.addEventListener("resize", resize);
+
+      const COLORS = ["#9b8cff", "#818cf8", "#c4b5fd", "#60a5fa", "#a78bfa", "#38bdf8", "#f472b6"];
+      const GRAVITY = 0.18;
+      const BOUNCE = 0.62;
+      const FRICTION = 0.988;
+
+      // Approximate title platform (centered block)
+      function titlePlatform() {
+        const tw = Math.min(W * 0.55, 320);
+        return {
+          x: (W - tw) / 2,
+          y: H * 0.42,
+          w: tw,
+          h: 28
+        };
+      }
+
+      class Cube {
+        constructor(i) {
+          this.reset(i, true);
+          this.carry = Math.random() > 0.45 ? String(Math.floor(Math.random() * 10)) : null;
+          this.phase = Math.random() * Math.PI * 2;
+          this.climbTarget = null;
+          this.mood = 0; // 0 wander, 1 climb, 2 throw
+        }
+        reset(i, first) {
+          this.size = 7 + Math.random() * 7;
+          this.x = 40 + Math.random() * (W - 80);
+          this.y = first ? H * 0.7 + Math.random() * 30 : -20 - Math.random() * 40;
+          this.vx = (Math.random() - 0.5) * 2.2;
+          this.vy = first ? (Math.random() - 0.5) * 1.5 : Math.random() * 1;
+          this.rot = Math.random() * Math.PI;
+          this.vr = (Math.random() - 0.5) * 0.12;
+          this.color = COLORS[i % COLORS.length];
+          this.alpha = 0.75 + Math.random() * 0.25;
+          this.grounded = false;
+          this.mood = 0;
+          this.timer = 40 + Math.random() * 120;
+        }
+        update(plat) {
+          this.timer--;
+
+          // Decide behavior
+          if (this.timer <= 0) {
+            this.timer = 60 + Math.random() * 140;
+            const r = Math.random();
+            if (r < 0.35) this.mood = 1; // climb
+            else if (r < 0.55) this.mood = 2; // throw / jump
+            else this.mood = 0;
+          }
+
+          if (this.mood === 1) {
+            // Move toward title platform
+            const cx = plat.x + plat.w / 2;
+            const dx = cx - this.x;
+            this.vx += Math.sign(dx) * 0.08;
+            if (Math.abs(dx) < 40 && this.y > plat.y) {
+              this.vy -= 0.35; // jump up to platform
+            }
+          } else if (this.mood === 2 && this.grounded) {
+            this.vy = -4.5 - Math.random() * 2.5;
+            this.vx += (Math.random() - 0.5) * 3;
+            this.vr += (Math.random() - 0.5) * 0.2;
+            this.grounded = false;
+            this.mood = 0;
+            // Maybe drop / pick number
+            if (Math.random() > 0.6) {
+              this.carry = this.carry ? null : String(Math.floor(Math.random() * 10));
+            }
+          } else {
+            // Wander
+            this.vx += Math.sin(performance.now() * 0.001 + this.phase) * 0.02;
+          }
+
+          this.vy += GRAVITY;
+          this.vx *= FRICTION;
+          this.x += this.vx;
+          this.y += this.vy;
+          this.rot += this.vr;
+          this.vr *= 0.98;
+
+          // Floor
+          const floor = H - 18;
+          if (this.y + this.size / 2 > floor) {
+            this.y = floor - this.size / 2;
+            this.vy *= -BOUNCE;
+            this.vx *= 0.9;
+            this.grounded = Math.abs(this.vy) < 0.5;
+            if (this.grounded) this.vy = 0;
+          }
+
+          // Title platform collision (stand on Game Hub)
+          if (
+            this.x + this.size / 2 > plat.x &&
+            this.x - this.size / 2 < plat.x + plat.w &&
+            this.y + this.size / 2 > plat.y &&
+            this.y - this.size / 2 < plat.y + plat.h &&
+            this.vy > 0
+          ) {
+            this.y = plat.y - this.size / 2;
+            this.vy *= -BOUNCE * 0.7;
+            this.grounded = Math.abs(this.vy) < 0.4;
+            if (this.grounded) {
+              this.vy = 0;
+              // Walk along title
+              this.vx += Math.sin(performance.now() * 0.002 + this.phase) * 0.05;
+            }
+          }
+
+          // Walls
+          if (this.x < this.size / 2) { this.x = this.size / 2; this.vx *= -0.8; }
+          if (this.x > W - this.size / 2) { this.x = W - this.size / 2; this.vx *= -0.8; }
+
+          // Soft respawn if fallen off weirdly
+          if (this.y > H + 40) this.reset(0, false);
+        }
+        draw(ctx) {
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.rot);
+          ctx.globalAlpha = this.alpha;
+
+          // Cube body
+          const s = this.size;
+          const g = ctx.createLinearGradient(-s / 2, -s / 2, s / 2, s / 2);
+          g.addColorStop(0, this.color);
+          g.addColorStop(1, "#1a1a2e");
+          ctx.fillStyle = g;
+          ctx.strokeStyle = "rgba(255,255,255,0.25)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(-s / 2, -s / 2, s, s, 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Highlight
+          ctx.fillStyle = "rgba(255,255,255,0.2)";
+          ctx.fillRect(-s / 2 + 1, -s / 2 + 1, s * 0.4, s * 0.25);
+
+          // Carried number
+          if (this.carry) {
+            ctx.rotate(-this.rot);
+            ctx.font = "bold " + Math.max(9, s * 0.85) + "px system-ui";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#fff";
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 8;
+            ctx.fillText(this.carry, 0, -s * 0.9);
+            ctx.shadowBlur = 0;
+          }
+
+          ctx.restore();
+        }
+      }
+
+      const cubes = [];
+      const N = Math.min(14, Math.max(8, Math.floor(W / 70)));
+      for (let i = 0; i < N; i++) cubes.push(new Cube(i));
+
+      // Occasional thrown particle numbers
+      const floats = [];
+
+      function spawnFloat(x, y, n) {
+        floats.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 2,
+          vy: -2 - Math.random() * 2,
+          life: 1,
+          n,
+          color: COLORS[Math.floor(Math.random() * COLORS.length)]
+        });
+      }
+
+      let lastThrow = 0;
+
+      function frame(t) {
+        requestAnimationFrame(frame);
+        ctx.clearRect(0, 0, W, H);
+        const plat = titlePlatform();
+
+        // Soft platform glow
+        ctx.save();
+        ctx.fillStyle = "rgba(155,140,255,0.06)";
+        ctx.beginPath();
+        ctx.roundRect(plat.x, plat.y, plat.w, plat.h, 8);
+        ctx.fill();
+        ctx.restore();
+
+        cubes.forEach(c => {
+          c.update(plat);
+          c.draw(ctx);
+        });
+
+        // Cube-cube soft separation
+        for (let i = 0; i < cubes.length; i++) {
+          for (let j = i + 1; j < cubes.length; j++) {
+            const a = cubes[i], b = cubes[j];
+            const dx = b.x - a.x, dy = b.y - a.y;
+            const dist = Math.hypot(dx, dy) || 0.01;
+            const minD = (a.size + b.size) * 0.55;
+            if (dist < minD) {
+              const push = (minD - dist) * 0.08;
+              const nx = dx / dist, ny = dy / dist;
+              a.vx -= nx * push; a.vy -= ny * push;
+              b.vx += nx * push; b.vy += ny * push;
+            }
+          }
+        }
+
+        // Random throw event
+        if (t - lastThrow > 2800 + Math.random() * 2000) {
+          lastThrow = t;
+          const c = cubes[Math.floor(Math.random() * cubes.length)];
+          if (c.carry) {
+            spawnFloat(c.x, c.y - 10, c.carry);
+            c.carry = null;
+          } else if (Math.random() > 0.4) {
+            c.carry = String(Math.floor(Math.random() * 10));
+          }
+        }
+
+        // Floating numbers
+        for (let i = floats.length - 1; i >= 0; i--) {
+          const f = floats[i];
+          f.x += f.vx;
+          f.y += f.vy;
+          f.vy += 0.05;
+          f.life -= 0.012;
+          if (f.life <= 0) { floats.splice(i, 1); continue; }
+          ctx.save();
+          ctx.globalAlpha = f.life;
+          ctx.font = "bold 14px system-ui";
+          ctx.textAlign = "center";
+          ctx.fillStyle = f.color;
+          ctx.shadowColor = f.color;
+          ctx.shadowBlur = 10;
+          ctx.fillText(f.n, f.x, f.y);
+          ctx.restore();
+        }
+      }
+      requestAnimationFrame(frame);
+    })();
   </script>
 </body>
 </html>
