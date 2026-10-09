@@ -115,6 +115,23 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
 .tab.on{background:rgba(167,139,250,.25);color:#fff;border-color:rgba(167,139,250,.5)}
 .log{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
 .log strong{color:var(--text)}
+/* scroll-driven UI animations */
+html{scroll-behavior:smooth}
+.reveal{opacity:0;transform:translateY(28px) scale(.96);filter:blur(4px);transition:opacity .7s var(--out),transform .75s var(--spring),filter .7s var(--out);will-change:opacity,transform,filter}
+.reveal.in{opacity:1;transform:none;filter:blur(0)}
+.reveal-left{opacity:0;transform:translateX(-32px);filter:blur(3px);transition:opacity .65s var(--out),transform .7s var(--spring),filter .65s var(--out)}
+.reveal-left.in{opacity:1;transform:none;filter:blur(0)}
+.reveal-right{opacity:0;transform:translateX(32px);filter:blur(3px);transition:opacity .65s var(--out),transform .7s var(--spring),filter .65s var(--out)}
+.reveal-right.in{opacity:1;transform:none;filter:blur(0)}
+.reveal-scale{opacity:0;transform:scale(.88);transition:opacity .6s var(--out),transform .7s var(--spring)}
+.reveal-scale.in{opacity:1;transform:none}
+.game.reveal{animation:none}
+.game.reveal.in:hover{transform:translateY(-12px) scale(1.05) rotate(-.6deg)}
+.cat.reveal{transition-delay:0s}
+.toolbar.reveal,.tags.reveal,.foot.reveal{transition-delay:calc(var(--d,0)*.06s)}
+/* subtle parallax on orbs while scrolling */
+.bg .orb{transition:transform .15s linear}
+#scrollProgress{position:fixed;top:0;left:0;height:2.5px;width:0;z-index:301;background:linear-gradient(90deg,var(--c),var(--a),var(--d));box-shadow:0 0 12px var(--glow);pointer-events:none;opacity:.85}
 </style>
 </head>
 <body>
@@ -131,32 +148,33 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
 </div>
 <div id="clock"><div class="time" id="clockTime">--:--:--</div><div class="date" id="clockDate">---</div></div>
 <div id="topProgress"></div>
+<div id="scrollProgress"></div>
 <div class="content">
   <div class="hero">
     <canvas id="cubeCanvas"></canvas>
     <h1>Game Hub</h1>
     <p>Pick a game and play</p>
     <div class="hero-meta">
-      <span class="pill"><span class="dot"></span><span>v3.3.1</span></span>
+      <span class="pill"><span class="dot"></span><span>v3.3.2</span></span>
       <span class="pill" id="season" style="display:none"></span>
     </div>
   </div>
-  <div class="toolbar">
+  <div class="toolbar reveal" style="--d:0">
     <div class="search"><input id="search" type="search" placeholder="Search games..." autocomplete="off"/></div>
     <button class="btn" id="refresh" title="Refresh">↻</button>
     <button class="btn" id="aboutBtn">About</button>
     <button class="btn" id="logsBtn">Logs</button>
     <a class="btn" href="https://docs.google.com/forms/d/e/1FAIpQLSdaT-NG0DTnDgeBZnjmgUKFVy6dwlXCGSC_2FWOTsjHTofVQA/viewform?usp=publish-editor" target="_blank" rel="noopener">Feedback</a>
   </div>
-  <div class="tags" id="tags"></div>
+  <div class="tags reveal" id="tags" style="--d:1"></div>
   <div id="root"></div>
-  <p class="foot">Games from /games · Not By Me is for community games · Health-checked on load</p>
+  <p class="foot reveal" style="--d:2">Games from /games · Not By Me is for community games · Health-checked on load</p>
 </div>
 <div class="mbg" id="aboutModal">
   <div class="modal">
     <button class="x" id="aboutX">×</button>
     <h2>About</h2>
-    <p><strong style="color:var(--text)">Game Hub v3.3.1</strong></p>
+    <p><strong style="color:var(--text)">Game Hub v3.3.2</strong></p>
     <p>Made by <a href="https://github.com/Victorxd21" target="_blank" rel="noopener">Victorxd21</a></p>
     <p>Repo: <a href="https://github.com/Victorxd21/hello21.github.io" target="_blank" rel="noopener">hello21.github.io</a></p>
     <p style="margin-top:14px">Built with a lot of help from <strong style="color:var(--a)">Grok (xAI)</strong> — design, animations, physics cubes, discovery, health checks, logs, and more.</p>
@@ -197,7 +215,7 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
     {name:"World Explorer",folder:"world-explorer",file:"index.html",icon:"🚀",tags:["3d","explore"]}
   ];
   const HUB_LOGS=[
-    {v:"3.3.1",d:"2026-10-09",t:"Calmer cube rotation; seasonal FX, live clock, AABB colliders"},
+    {v:"3.3.2",d:"2026-10-09",t:"Scroll reveal animations, progress bar, orb parallax"},
     {v:"3.2.1",d:"2026-10-09",t:"Extra effects — name shine, tag rings, button spotlight, sparkles"},
     {v:"3.2.0",d:"2026-10-09",t:"Creative UI — mesh orbs, glass cards, gradient borders"},
     {v:"3.1.3",d:"2026-10-09",t:"Self-contained restore"},
@@ -234,6 +252,26 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
     if(season==="christmas"){for(let i=0;i<12;i++){const left=(Math.random()*100).toFixed(1);html+='<div class="star" style="left:'+left+'%;top:'+(Math.random()*70).toFixed(0)+'%;animation-delay:'+(-Math.random()*3).toFixed(1)+'s"></div>';}}
     fx.innerHTML=html;
   })();
+  /* scroll animations: reveal, progress bar, orb parallax */
+  (function(){
+    const sp=document.getElementById("scrollProgress");
+    const orbs=document.querySelectorAll(".bg .orb");
+    function onScroll(){
+      const st=window.scrollY||document.documentElement.scrollTop;
+      const max=Math.max(1,document.documentElement.scrollHeight-window.innerHeight);
+      if(sp)sp.style.width=((st/max)*100)+"%";
+      const p=st*0.04;
+      orbs.forEach((o,i)=>{const m=(i%2?1:-1)*(1+i*0.15);o.style.transform="translate("+ (p*m*0.3)+"px,"+(-p*(0.6+i*0.1))+"px) scale("+(1+Math.min(0.08,st/4000))+")";});
+    }
+    let ticking=false;
+    addEventListener("scroll",()=>{if(!ticking){requestAnimationFrame(()=>{onScroll();ticking=false;});ticking=true;}},{passive:true});
+    onScroll();
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});
+    },{root:null,rootMargin:"0px 0px -8% 0px",threshold:0.12});
+    window.__observeReveal=function(nodes){nodes.forEach(n=>io.observe(n));};
+    document.querySelectorAll(".toolbar.reveal,.tags.reveal,.foot.reveal").forEach(n=>io.observe(n));
+  })();
   function pathOf(g){return g.folder?"games/"+g.folder+"/"+(g.file||"index.html"):"games/"+(g.file||"index.html");}
   const allTags=["all"];GAMES.forEach(g=>(g.tags||[]).forEach(t=>{if(!allTags.includes(t))allTags.push(t);}));
   let activeTag="all";const tagsEl=document.getElementById("tags");
@@ -251,6 +289,12 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
     root.innerHTML=h;
     root.querySelectorAll(".cat-h").forEach(b=>b.addEventListener("click",()=>{document.getElementById(b.getAttribute("data-c")).classList.toggle("closed");}));
     root.querySelectorAll(".game:not(.dead)").forEach(el=>el.addEventListener("click",()=>{location.href=el.getAttribute("data-path");}));
+    /* scroll reveal for newly rendered cards/sections */
+    root.querySelectorAll(".cat,.game").forEach((el,i)=>{
+      el.classList.add("reveal");
+      el.style.transitionDelay=(Math.min(i,12)*0.045)+"s";
+    });
+    if(window.__observeReveal)window.__observeReveal(root.querySelectorAll(".reveal"));
   }
   document.getElementById("search").addEventListener("input",draw);
   document.getElementById("refresh").addEventListener("click",()=>{Object.keys(health).forEach(k=>delete health[k]);draw();});
