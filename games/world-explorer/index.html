@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>World Explorer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="canvas-wrap"></div>
+
+  <div id="hud">
+    <div class="panel top-left">
+      <div class="title">🚀 World Explorer</div>
+      <div class="sub">Fly a ship around the real Earth</div>
+      <div class="stats">
+        <div class="stat"><span class="label">Altitude</span><strong id="alt">—</strong></div>
+        <div class="stat"><span class="label">Speed</span><strong id="spd">—</strong></div>
+        <div class="stat"><span class="label">Lat</span><strong id="lat">—</strong></div>
+        <div class="stat"><span class="label">Lon</span><strong id="lon">—</strong></div>
+      </div>
+    </div>
+
+    <div class="panel top-right" id="infoPanel" style="display:none">
+      <div class="title" id="infoTitle">—</div>
+      <div class="sub" id="infoSub"></div>
+      <button class="close-btn" id="infoClose">✕</button>
+    </div>
+
+    <div class="panel bottom-center" id="hint">
+      <kbd>W</kbd><kbd>S</kbd> thrust · <kbd>A</kbd><kbd>D</kbd> yaw · <kbd>↑</kbd><kbd>↓</kbd> pitch · <kbd>Q</kbd><kbd>E</kbd> roll · <kbd>Space</kbd> boost · <kbd>R</kbd> reset · mouse look
+    </div>
+
+    <button class="back" id="backBtn" title="Back to hub">←</button>
+  </div>
+
+  <div id="loading">
+    <div class="spin"></div>
+    <div>Loading Earth…</div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
