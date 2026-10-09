@@ -1,1 +1,35 @@
-@/home/workdir/artifacts/index_patch.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Game Hub</title>
+<style>
+  body{margin:0;background:#080810;color:#8b8ba3;font:14px system-ui;display:grid;place-items:center;min-height:100vh}
+  .s{opacity:.7;animation:p 1.2s ease-in-out infinite}
+  @keyframes p{50%{opacity:1}}
+</style>
+</head>
+<body>
+<div class="s">Loading Game Hub…</div>
+<script>
+(async function () {
+  try {
+    const n = 7;
+    const parts = [];
+    for (let i = 1; i <= n; i++) {
+      const r = await fetch("chunks/p" + i + ".txt?v=3");
+      if (!r.ok) throw new Error("chunk " + i + " " + r.status);
+      parts.push(await r.text());
+    }
+    const html = parts.join("");
+    document.open();
+    document.write(html);
+    document.close();
+  } catch (e) {
+    document.body.innerHTML = "<p style=\"color:#f87171;padding:24px\">Failed to load hub: " + e.message + "</p>";
+  }
+})();
+</script>
+</body>
+</html>
