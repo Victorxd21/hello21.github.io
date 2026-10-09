@@ -5,30 +5,62 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Game Hub</title>
 <style>
-  body{margin:0;background:#080810;color:#8b8ba3;font:14px system-ui;display:grid;place-items:center;min-height:100vh}
-  .s{opacity:.7;animation:p 1.2s ease-in-out infinite}
-  @keyframes p{50%{opacity:1}}
+body{margin:0;background:#080810;color:#a0a0b8;font:14px system-ui;display:grid;place-items:center;min-height:100vh}
+.s{opacity:.7;animation:p 1.2s ease-in-out infinite}
+@keyframes p{50%{opacity:1}}
 </style>
 </head>
 <body>
-<div class="s">Loading Game Hub…</div>
+<div class="s" id="st">Loading Game Hub…</div>
 <script>
 (async function () {
-  try {
-    const n = 7;
-    const parts = [];
-    for (let i = 1; i <= n; i++) {
-      const r = await fetch("chunks/p" + i + ".txt?v=3");
-      if (!r.ok) throw new Error("chunk " + i + " " + r.status);
-      parts.push(await r.text());
-    }
-    const html = parts.join("");
-    document.open();
-    document.write(html);
-    document.close();
-  } catch (e) {
-    document.body.innerHTML = "<p style=\"color:#f87171;padding:24px\">Failed to load hub: " + e.message + "</p>";
+  const urls = [
+    "https://cdn.jsdelivr.net/gh/Victorxd21/hello21.github.io@515b90c2a1e97a73cece93063b1411728f82c32a/index.html",
+    "https://raw.githack.com/Victorxd21/hello21.github.io/515b90c2a1e97a73cece93063b1411728f82c32a/index.html",
+    "https://raw.githubusercontent.com/Victorxd21/hello21.github.io/515b90c2a1e97a73cece93063b1411728f82c32a/index.html"
+  ];
+  let html = null, lastErr = null;
+  for (const u of urls) {
+    try {
+      const r = await fetch(u, { cache: "no-store" });
+      if (!r.ok) throw new Error(r.status + " " + u);
+      html = await r.text();
+      if (html && html.length > 1000 && html.indexOf("<!doctype") !== -1 || html.indexOf("<!DOCTYPE") !== -1 || html.indexOf("Game Hub") !== -1) break;
+      html = null;
+    } catch (e) { lastErr = e; }
   }
+  if (!html) {
+    document.getElementById("st").textContent = "Failed to restore hub: " + (lastErr && lastErr.message || "unknown");
+    return;
+  }
+  // Patch in stronger cube collisions after load (rigid-body style impulses)
+  html = html.replace(
+    /for \(let i = 0; i < cubes\.length; i\+\+\) \{[\s\S]*?b\.vy \+= ny \* push;[\s\S]*?\}\s*\}/,
+    `for (let i = 0; i < cubes.length; i++) {
+          for (let j = i + 1; j < cubes.length; j++) {
+            const a = cubes[i], b = cubes[j];
+            const dx = b.x - a.x, dy = b.y - a.y;
+            const dist = Math.hypot(dx, dy) || 0.01;
+            const minD = (a.size + b.size) * 0.52;
+            if (dist >= minD) continue;
+            const nx = dx / dist, ny = dy / dist;
+            const pen = minD - dist;
+            const ma = a.size * a.size, mb = b.size * b.size;
+            const inv = 1 / (ma + mb);
+            a.x -= nx * pen * mb * inv; a.y -= ny * pen * mb * inv;
+            b.x += nx * pen * ma * inv; b.y += ny * pen * ma * inv;
+            const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+            if (rv > 0) continue;
+            const jn = -(1 + 0.55) * rv / (1/ma + 1/mb);
+            a.vx -= (jn * nx) / ma; a.vy -= (jn * ny) / ma;
+            b.vx += (jn * nx) / mb; b.vy += (jn * ny) / mb;
+            a.vr -= jn * 0.04; b.vr += jn * 0.04;
+          }
+        }`
+  );
+  document.open();
+  document.write(html);
+  document.close();
 })();
 </script>
 </body>
