@@ -1,25 +1,69 @@
 (function(){
-  const GAMES=[
-    {name:"Blackjack",folder:"blackjack",file:"index.html",icon:"🂡",tags:["card"]},
-    {name:"Cat Game",folder:"cat-game",file:"catUP.html",icon:"🐱",tags:["fun"]},
-    {name:"Gartic Phone",folder:"gartic",file:"index.html",icon:"✏️",tags:["multiplayer","draw"]},
-    {name:"Gradess",folder:"gradess",file:"login.html",icon:"📚",tags:["utility"]},
-    {name:"Live Earth",folder:"live-earth",file:"index.html",icon:"🌍",tags:["3d","explore"]},
-    {name:"Mesh View",folder:"mesh-view",file:"index.html",icon:"🔷",tags:["3d"]},
-    {name:"Race",folder:"race",file:"index.html",icon:"🏁",tags:["racing"]},
-    {name:"Rocket League",folder:"rocket-league",file:"index.html",icon:"⚽",tags:["sports"]},
+  // Optional metadata overrides (icons, tags, special entry files). Folders not listed still appear.
+  const GAME_META={
+    "blackjack":{name:"Blackjack",file:"index.html",icon:"🂡",tags:["card"]},
+    "cat-game":{name:"Cat Game",file:"catUP.html",icon:"🐱",tags:["fun"]},
+    "gartic":{name:"Gartic Phone",file:"index.html",icon:"✏️",tags:["multiplayer","draw"]},
+    "gradess":{name:"Gradess",file:"login.html",icon:"📚",tags:["utility"]},
+    "live-earth":{name:"Live Earth",file:"index.html",icon:"🌍",tags:["3d","explore"]},
+    "mesh-view":{name:"Mesh View",file:"index.html",icon:"🔷",tags:["3d"]},
+    "race":{name:"Race",file:"index.html",icon:"🏁",tags:["racing"]},
+    "rocket-league":{name:"Rocket League",file:"index.html",icon:"⚽",tags:["sports"]},
+    "slitherIO":{name:"SlitherIO",file:"index.html",icon:"🪱",tags:["arcade"]},
+    "storm-chaser":{name:"Storm Chaser",file:"index.html",icon:"⛈️",tags:["action"]},
+    "super-mario":{name:"Super Mario",file:"index.html",icon:"🍄",tags:["platform"]},
+    "TikTok":{name:"TikTok",file:"index.html",icon:"📱",tags:["fun"]},
+    "uno":{name:"UNO",file:"index.html",icon:"🃏",tags:["card","multiplayer"]},
+    "voxel-world":{name:"Voxel World",file:"index.html",icon:"🧱",tags:["3d"]},
+    "world-explorer":{name:"World Explorer",file:"index.html",icon:"🚀",tags:["3d","explore"]},
+    "Monochrome":{name:"Monochrome",file:"index.html",icon:"⬛",tags:["fun"]},
+    "heads":{name:"Heads",file:"index.html",icon:"🧠",tags:["fun"]},
+    "NotByMe":{name:"Not By Me",file:"index.html",icon:"👥",tags:["community"],notByMe:true}
+  };
+  // Root-level HTML games that live directly under /games (not in a folder)
+  const ROOT_GAMES=[
     {name:"Royale",folder:null,file:"royale.html",icon:"👑",tags:["battle"]},
-    {name:"SlitherIO",folder:"slitherIO",file:"index.html",icon:"🪱",tags:["arcade"]},
     {name:"Snake",folder:null,file:"snake.html",icon:"🐍",tags:["arcade","classic"]},
-    {name:"Storm Chaser",folder:"storm-chaser",file:"index.html",icon:"⛈️",tags:["action"]},
-    {name:"Super Mario",folder:"super-mario",file:"index.html",icon:"🍄",tags:["platform"]},
-    {name:"TikTok",folder:"TikTok",file:"index.html",icon:"📱",tags:["fun"]},
-    {name:"UNO",folder:"uno",file:"index.html",icon:"🃏",tags:["card","multiplayer"]},
-    {name:"Voxel World",folder:"voxel-world",file:"index.html",icon:"🧱",tags:["3d"]},
-    {name:"Werewolf",folder:null,file:"werewolf.html",icon:"🐺",tags:["multiplayer"]},
-    {name:"World Explorer",folder:"world-explorer",file:"index.html",icon:"🚀",tags:["3d","explore"]}
+    {name:"Werewolf",folder:null,file:"werewolf.html",icon:"🐺",tags:["multiplayer"]}
   ];
+  const ICONS=["🎮","🕹️","👾","🎯","🎲","🧩","⚡","🔥","💎","🌟","🚀","🏆"];
+  let GAMES=[];
+  function prettyName(folder){
+    return folder.replace(/[-_]+/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+  }
+  function entryFromFolder(folder){
+    const m=GAME_META[folder]||{};
+    return {
+      name:m.name||prettyName(folder),
+      folder:folder,
+      file:m.file||"index.html",
+      icon:m.icon||ICONS[Math.abs([...folder].reduce((a,c)=>a+c.charCodeAt(0),0))%ICONS.length],
+      tags:m.tags||["all"],
+      notByMe:!!m.notByMe
+    };
+  }
+  async function discoverGames(){
+    const api="https://api.github.com/repos/Victorxd21/hello21.github.io/contents/games";
+    try{
+      const r=await fetch(api,{headers:{"Accept":"application/vnd.github+json"},cache:"no-store"});
+      if(!r.ok)throw new Error("GitHub API "+r.status);
+      const items=await r.json();
+      const folders=items.filter(x=>x.type==="dir").map(x=>x.name);
+      const fromFolders=folders.map(entryFromFolder);
+      // Merge root HTML games not already covered
+      const seen=new Set(fromFolders.map(g=>(g.folder||"")+":"+(g.file||"")));
+      const extras=ROOT_GAMES.filter(g=>!seen.has((g.folder||"")+":"+(g.file||"")));
+      GAMES=[...fromFolders,...extras].sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:"base"}));
+    }catch(e){
+      console.warn("discoverGames failed, using meta fallback",e);
+      // Fallback: known folders from META + root games
+      GAMES=[...Object.keys(GAME_META).map(entryFromFolder),...ROOT_GAMES]
+        .sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:"base"}));
+    }
+    return GAMES;
+  }
   const HUB_LOGS=[
+    {v:"3.5.0",d:"2026-10-10",t:"Auto-discover every folder in /games via GitHub API"},
     {v:"3.4.0",d:"2026-10-09",t:"Options panel (gear top-right) — fun + dev toggles"},
     {v:"3.3.2",d:"2026-10-09",t:"Scroll reveal animations, progress bar, orb parallax"},
     {v:"3.2.1",d:"2026-10-09",t:"Extra effects — name shine, tag rings, button spotlight, sparkles"},
@@ -94,19 +138,28 @@
     document.querySelectorAll(".toolbar.reveal,.tags.reveal,.foot.reveal").forEach(n=>io.observe(n));
   })();
   function pathOf(g){return g.folder?"games/"+g.folder+"/"+(g.file||"index.html"):"games/"+(g.file||"index.html");}
-  const allTags=["all"];GAMES.forEach(g=>(g.tags||[]).forEach(t=>{if(!allTags.includes(t))allTags.push(t);}));
   let activeTag="all";const tagsEl=document.getElementById("tags");
-  tagsEl.innerHTML=allTags.map(t=>'<button class="tag'+(t==="all"?" on":"")+'" data-t="'+t+'">'+t+'</button>').join("");
+  function rebuildTags(){
+    const allTags=["all"];
+    GAMES.forEach(g=>(g.tags||[]).forEach(t=>{if(t!=="all"&&!allTags.includes(t))allTags.push(t);}));
+    tagsEl.innerHTML=allTags.map(t=>'<button class="tag'+(t===activeTag?" on":"")+'" data-t="'+t+'">'+t+'</button>').join("");
+  }
   tagsEl.addEventListener("click",e=>{const b=e.target.closest(".tag");if(!b)return;activeTag=b.getAttribute("data-t");tagsEl.querySelectorAll(".tag").forEach(x=>x.classList.toggle("on",x.getAttribute("data-t")===activeTag));draw();});
   const health={};
   function checkHealth(g){const p=pathOf(g);if(health[p]!==undefined)return;health[p]=null;fetch(p,{method:"HEAD",cache:"no-store"}).then(r=>{health[p]=r.ok;const el=document.querySelector('.game[data-path="'+p+'"]');if(el&&!r.ok)el.classList.add("dead");}).catch(()=>{fetch(p,{method:"GET",cache:"no-store"}).then(r=>{health[p]=r.ok;const el=document.querySelector('.game[data-path="'+p+'"]');if(el&&!r.ok)el.classList.add("dead");}).catch(()=>{health[p]=false;});});}
   function draw(){
     const q=(document.getElementById("search").value||"").trim().toLowerCase();const root=document.getElementById("root");
-    const list=GAMES.filter(g=>{if(q&&!g.name.toLowerCase().includes(q)&&!(g.folder||"").toLowerCase().includes(q))return false;if(activeTag!=="all"&&!(g.tags||[]).includes(activeTag))return false;return true;});
+    const mine=GAMES.filter(g=>!g.notByMe);
+    const other=GAMES.filter(g=>g.notByMe);
+    const filterFn=g=>{if(q&&!g.name.toLowerCase().includes(q)&&!(g.folder||"").toLowerCase().includes(q))return false;if(activeTag!=="all"&&!(g.tags||[]).includes(activeTag))return false;return true;};
+    const list=mine.filter(filterFn);
+    const listOther=other.filter(filterFn);
     let h='<div class="cat" id="catMine"><button class="cat-h" type="button" data-c="catMine"><span class="chev">▼</span><span class="cat-t">Your Games</span><span class="cat-n">'+list.length+'</span></button><div class="cat-b"><div class="cat-bi"><div class="grid">';
     list.forEach((g,i)=>{const p=pathOf(g);const dead=health[p]===false;h+='<div class="game'+(dead?" dead":"")+'" style="--i:'+i+'" data-path="'+p+'">';if(g.name==="World Explorer")h+='<span class="new">NEW</span>';h+='<div class="icon">'+g.icon+'</div><div class="name">'+g.name+'</div><div class="path">'+p+'</div><span class="play">Play</span></div>';checkHealth(g);});
     h+='</div></div></div></div>';
-    h+='<div class="cat closed" id="catOther"><button class="cat-h" type="button" data-c="catOther"><span class="chev">▼</span><span class="cat-t">Not By Me</span><span class="cat-n">0</span></button><div class="cat-b"><div class="cat-bi"><div class="grid"></div></div></div></div>';
+    h+='<div class="cat'+(listOther.length?"":" closed")+'" id="catOther"><button class="cat-h" type="button" data-c="catOther"><span class="chev">▼</span><span class="cat-t">Not By Me</span><span class="cat-n">'+listOther.length+'</span></button><div class="cat-b"><div class="cat-bi"><div class="grid">';
+    listOther.forEach((g,i)=>{const p=pathOf(g);const dead=health[p]===false;h+='<div class="game'+(dead?" dead":"")+'" style="--i:'+i+'" data-path="'+p+'"><div class="icon">'+g.icon+'</div><div class="name">'+g.name+'</div><div class="path">'+p+'</div><span class="play">Play</span></div>';checkHealth(g);});
+    h+='</div></div></div></div>';
     root.innerHTML=h;
     root.querySelectorAll(".cat-h").forEach(b=>b.addEventListener("click",()=>{document.getElementById(b.getAttribute("data-c")).classList.toggle("closed");}));
     root.querySelectorAll(".game:not(.dead)").forEach(el=>el.addEventListener("click",()=>{location.href=el.getAttribute("data-path");}));
@@ -114,7 +167,7 @@
     if(window.__observeReveal)window.__observeReveal(root.querySelectorAll(".reveal"));
   }
   document.getElementById("search").addEventListener("input",draw);
-  document.getElementById("refresh").addEventListener("click",()=>{Object.keys(health).forEach(k=>delete health[k]);draw();});
+  document.getElementById("refresh").addEventListener("click",()=>{Object.keys(health).forEach(k=>delete health[k]);discoverGames().then(()=>{rebuildTags();draw();});});
   document.getElementById("aboutBtn").addEventListener("click",()=>document.getElementById("aboutModal").classList.add("on"));
   document.getElementById("aboutX").addEventListener("click",()=>document.getElementById("aboutModal").classList.remove("on"));
   document.getElementById("logsBtn").addEventListener("click",()=>{document.getElementById("logHub").innerHTML=HUB_LOGS.map(l=>'<div class="log"><strong>v'+l.v+'</strong> · '+l.d+' — '+l.t+'</div>').join("");document.getElementById("logsModal").classList.add("on");});
@@ -125,7 +178,12 @@
   const bar=document.getElementById("topProgress");
   if(bar){bar.style.width="25%";setTimeout(()=>bar.style.width="70%",100);}
   document.getElementById("root").innerHTML='<div class="grid">'+Array(6).fill(0).map(()=>'<div class="skel"></div>').join("")+'</div>';
-  setTimeout(()=>{if(bar)bar.style.width="100%";draw();setTimeout(()=>{if(bar){bar.style.opacity="0";setTimeout(()=>{bar.style.width="0";bar.style.opacity="1"},300);}},250);},300);
+  discoverGames().then(()=>{
+    rebuildTags();
+    if(bar)bar.style.width="100%";
+    draw();
+    setTimeout(()=>{if(bar){bar.style.opacity="0";setTimeout(()=>{bar.style.width="0";bar.style.opacity="1"},300);}},250);
+  });
   (function(){
     const canvas=document.getElementById("cubeCanvas");const hero=canvas.parentElement;const ctx=canvas.getContext("2d");let W,H,dpr;
     const COLORS=season==="halloween"?["#ff8c42","#9b30ff","#ffb347","#22c55e","#f97316"]:season==="winter"?["#93c5fd","#60a5fa","#e0f2fe","#a5b4fc","#bfdbfe"]:season==="spring"?["#86efac","#4ade80","#f9a8d4","#a7f3d0","#bbf7d0"]:season==="summer"?["#fbbf24","#f59e0b","#38bdf8","#fb923c","#fde68a"]:season==="autumn"?["#fb923c","#ea580c","#fbbf24","#c2410c","#fdba74"]:season==="christmas"?["#ef4444","#22c55e","#fbbf24","#f87171","#4ade80"]:["#a78bfa","#6366f1","#22d3ee","#f472b6","#818cf8","#c4b5fd"];
