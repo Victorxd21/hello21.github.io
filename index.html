@@ -122,6 +122,51 @@ html{scroll-behavior:smooth}
 .toolbar.reveal,.tags.reveal,.foot.reveal{transition-delay:calc(var(--d,0)*.06s)}
 .bg .orb{transition:transform .15s linear}
 #scrollProgress{position:fixed;top:0;left:0;height:2.5px;width:0;z-index:301;background:linear-gradient(90deg,var(--c),var(--a),var(--d));box-shadow:0 0 12px var(--glow);pointer-events:none;opacity:.85}
+/* Featured banners */
+#featuredRoot{margin-bottom:28px}
+.featured-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.featured-head h2{font-size:15px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.featured-head .line{flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+.feat-card{position:relative;border-radius:22px;overflow:hidden;border:1px solid var(--border);margin-bottom:16px;min-height:200px;cursor:pointer;isolation:isolate;transition:transform .4s var(--spring),box-shadow .4s}
+.feat-card:hover{transform:translateY(-6px) scale(1.01);box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 40px var(--glow)}
+.feat-slides{position:absolute;inset:0;z-index:0}
+.feat-slides img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1s ease}
+.feat-slides img.on{opacity:1}
+.feat-grad{position:absolute;inset:0;z-index:1;background:linear-gradient(105deg,rgba(6,6,14,.92) 0%,rgba(6,6,14,.55) 45%,rgba(6,6,14,.25) 100%);pointer-events:none}
+.feat-body{position:relative;z-index:2;padding:28px 24px;display:flex;flex-direction:column;justify-content:flex-end;min-height:200px;gap:8px}
+.feat-badge{align-self:flex-start;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:8px;background:linear-gradient(135deg,var(--a),var(--b));color:#fff;box-shadow:0 4px 16px var(--glow)}
+.feat-title{font-size:clamp(22px,4vw,32px);font-weight:900;letter-spacing:-.5px}
+.feat-sub{color:var(--muted);font-size:13px}
+.feat-play{align-self:flex-start;margin-top:8px;padding:10px 18px;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:rgba(167,139,250,.25);color:#fff;font-weight:700;font-size:13px;transition:transform .3s var(--spring),background .2s}
+.feat-card:hover .feat-play{transform:scale(1.06);background:rgba(167,139,250,.45)}
+.feat-dots{position:absolute;bottom:14px;right:16px;z-index:3;display:flex;gap:6px}
+.feat-dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35);transition:background .3s,transform .3s}
+.feat-dots span.on{background:#fff;transform:scale(1.25)}
+.admin-btn{margin-top:16px;width:100%}
+.admin-gate,.admin-panel{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.admin-gate label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600}
+.admin-gate input[type=password],.admin-panel select,.admin-panel input[type=text]{width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-size:14px;outline:none;margin-bottom:10px}
+.admin-gate input:focus,.admin-panel select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(167,139,250,.2)}
+.admin-err{color:#f87171;font-size:12px;margin-bottom:8px;display:none}
+.admin-err.on{display:block}
+.admin-ok{color:#4ade80;font-size:12px;margin-bottom:8px;display:none}
+.admin-ok.on{display:block}
+.admin-list{max-height:180px;overflow:auto;margin:10px 0 14px;border:1px solid var(--border);border-radius:12px;background:rgba(0,0,0,.2)}
+.admin-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
+.admin-item:last-child{border-bottom:none}
+.admin-item .nm{flex:1;font-weight:700}
+.admin-item .rm{background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.35);color:#fca5a5;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer}
+.admin-item .rm:hover{background:rgba(248,113,113,.3)}
+.admin-add-box{display:none;margin-top:12px;padding:14px;border-radius:14px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.08)}
+.admin-add-box.on{display:block}
+.admin-add-box h3{font-size:14px;margin-bottom:10px}
+.admin-previews{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.admin-previews img{width:64px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+.admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.admin-actions .btn{flex:1;justify-content:center;text-align:center;border:none;font:inherit}
+.admin-hint{font-size:11px;color:var(--muted);line-height:1.5;margin-top:8px}
+.admin-setup{display:none;margin-top:12px;padding:12px;border-radius:12px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);font-size:12px;color:#fde68a;line-height:1.55}
+.admin-setup.on{display:block}
 </style>
 </head>
 <body>
@@ -145,7 +190,7 @@ html{scroll-behavior:smooth}
     <h1>Game Hub</h1>
     <p>Pick a game and play</p>
     <div class="hero-meta">
-      <span class="pill"><span class="dot"></span><span>v3.5.0</span></span>
+      <span class="pill"><span class="dot"></span><span>v3.6.0</span></span>
       <span class="pill" id="season" style="display:none"></span>
     </div>
   </div>
@@ -156,6 +201,7 @@ html{scroll-behavior:smooth}
     <button class="btn" id="logsBtn">Logs</button>
     <a class="btn" href="https://docs.google.com/forms/d/e/1FAIpQLSdaT-NG0DTnDgeBZnjmgUKFVy6dwlXCGSC_2FWOTsjHTofVQA/viewform?usp=publish-editor" target="_blank" rel="noopener">Feedback</a>
   </div>
+  <div id="featuredRoot"></div>
   <div class="tags reveal" id="tags" style="--d:1"></div>
   <div id="root"></div>
   <p class="foot reveal" style="--d:2">Games from /games · Not By Me is for community games · Health-checked on load</p>
@@ -164,10 +210,42 @@ html{scroll-behavior:smooth}
   <div class="modal">
     <button class="x" id="aboutX">×</button>
     <h2>About</h2>
-    <p><strong style="color:var(--text)">Game Hub v3.5.0</strong></p>
+    <p><strong style="color:var(--text)">Game Hub v3.6.0</strong></p>
     <p>Made by <a href="https://github.com/Victorxd21" target="_blank" rel="noopener">Victorxd21</a></p>
     <p>Repo: <a href="https://github.com/Victorxd21/hello21.github.io" target="_blank" rel="noopener">hello21.github.io</a></p>
     <p style="margin-top:14px">Built with a lot of help from <strong style="color:var(--a)">Grok (xAI)</strong> — design, animations, physics cubes, discovery, health checks, logs, and more.</p>
+    <button class="btn admin-btn" type="button" id="adminOpenBtn">Admin</button>
+    <div class="admin-gate" id="adminGate" style="display:none">
+      <label for="adminPass">Admin password</label>
+      <input type="password" id="adminPass" placeholder="Enter password" autocomplete="off"/>
+      <div class="admin-err" id="adminErr">Wrong password</div>
+      <div class="admin-actions">
+        <button class="btn" type="button" id="adminUnlockBtn">Unlock</button>
+        <button class="btn" type="button" id="adminCancelGate">Cancel</button>
+      </div>
+    </div>
+    <div class="admin-panel" id="adminPanel" style="display:none">
+      <p style="color:var(--text);font-weight:700;margin-bottom:6px">Featured games</p>
+      <div class="admin-ok" id="adminOk"></div>
+      <div class="admin-err" id="adminPanelErr"></div>
+      <div class="admin-setup" id="adminSetup"></div>
+      <div class="admin-list" id="adminList"><div style="padding:12px;color:var(--muted);font-size:12px">Loading…</div></div>
+      <button class="btn" type="button" id="adminAddBtn" style="width:100%;justify-content:center">+ Add featured game</button>
+      <div class="admin-add-box" id="adminAddBox">
+        <h3>Add featured</h3>
+        <label style="font-size:12px;color:var(--muted);font-weight:600">Game</label>
+        <select id="adminGameSelect"><option value="">Select a game…</option></select>
+        <label style="font-size:12px;color:var(--muted);font-weight:600">Banner photos (1–5)</label>
+        <input type="file" id="adminFiles" accept="image/*" multiple style="width:100%;margin:8px 0;font-size:12px;color:var(--muted)"/>
+        <div class="admin-previews" id="adminPreviews"></div>
+        <div class="admin-hint">Pick 1 to 5 images. They rotate on the featured banner.</div>
+        <div class="admin-actions">
+          <button class="btn" type="button" id="adminSubmitFeat">Submit</button>
+          <button class="btn" type="button" id="adminCancelAdd">Cancel</button>
+        </div>
+      </div>
+      <button class="btn" type="button" id="adminLockBtn" style="width:100%;justify-content:center;margin-top:12px">Lock admin</button>
+    </div>
   </div>
 </div>
 <div class="mbg" id="logsModal">
@@ -183,6 +261,7 @@ html{scroll-behavior:smooth}
   </div>
 </div>
 <script src="hub-core.js"></script>
+<script src="featured-admin.js"></script>
 <script src="options.js" defer></script>
 </body>
 </html>
