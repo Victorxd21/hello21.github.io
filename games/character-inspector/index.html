@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Haru Urara - Character Inspector</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      overflow: hidden;
+      background: #1a1a2e;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: white;
+    }
+    canvas { display: block; }
+
+    #ui {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(12px);
+      padding: 18px 22px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+      max-width: 280px;
+    }
+
+    #ui h1 {
+      font-size: 22px;
+      margin-bottom: 4px;
+      color: #ff9ecd;
+    }
+
+    #ui p {
+      font-size: 13px;
+      opacity: 0.8;
+      margin-bottom: 14px;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      background: rgba(255, 158, 205, 0.15);
+      border: 1px solid rgba(255, 158, 205, 0.4);
+      color: #ff9ecd;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: rgba(255, 158, 205, 0.3);
+    }
+
+    .btn.active {
+      background: #ff9ecd;
+      color: #1a1a2e;
+      font-weight: 600;
+    }
+
+    #loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a2e;
+      font-size: 18px;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loading">Loading Haru Urara...</div>
+
+  <div id="ui">
+    <h1>Haru Urara</h1>
+    <p>Uma Musume</p>
+    <div id="anim-buttons"></div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1a1a2e);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 1.4, 3.2);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    dirLight.position.set(3, 6, 4);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.set(2048, 2048);
+    scene.add(dirLight);
+
+    const fill = new THREE.DirectionalLight(0xffb6d9, 0.6);
+    fill.position.set(-3, 2, -2);
+    scene.add(fill);
+
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x444466, 0.6);
+    scene.add(hemi);
+
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(4, 64),
+      new THREE.MeshStandardMaterial({ color: 0x2a2a3e, roughness: 0.9 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 1.0, 0);
+    controls.enableDamping = true;
+    controls.minDistance = 1.2;
+    controls.maxDistance = 8;
+    controls.maxPolarAngle = Math.PI / 1.9;
+
+    let mixer = null;
+    let actions = {};
+    let currentAction = null;
+
+    const loader = new GLTFLoader();
+    loader.load(
+      './models/haru.glb',
+      (gltf) => {
+        const model = gltf.scene;
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        model.position.sub(center);
+        model.position.y += size.y / 2;
+
+        scene.add(model);
+
+        if (gltf.animations && gltf.animations.length > 0) {
+          mixer = new THREE.AnimationMixer(model);
+
+          gltf.animations.forEach((clip, i) => {
+            const action = mixer.clipAction(clip);
+            actions[clip.name || `Anim ${i+1}`] = action;
+          });
+
+          const container = document.getElementById('anim-buttons');
+          Object.keys(actions).forEach((name) => {
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.textContent = name;
+            btn.onclick = () => playAnimation(name);
+            container.appendChild(btn);
+          });
+
+          playAnimation(Object.keys(actions)[0]);
+        } else {
+          document.getElementById('anim-buttons').innerHTML =
+            '<p style="opacity:0.6;font-size:13px;">No animations found in this GLB</p>';
+        }
+
+        document.getElementById('loading').style.display = 'none';
+      },
+      undefined,
+      (err) => {
+        console.error(err);
+        document.getElementById('loading').textContent = 'Failed to load model. Put haru.glb inside the models folder.';
+      }
+    );
+
+    function playAnimation(name) {
+      if (!actions[name]) return;
+
+      if (currentAction) {
+        currentAction.fadeOut(0.3);
+      }
+
+      const action = actions[name];
+      action.reset().fadeIn(0.3).play();
+      currentAction = action;
+
+      document.querySelectorAll('.btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent === name);
+      });
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      if (mixer) mixer.update(delta);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
