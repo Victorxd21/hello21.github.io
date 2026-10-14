@@ -39,6 +39,30 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
   let pendingFiles=[];
   let carouselTimers=[];
 
+  function encodePathSeg(s){
+    return String(s||"").split("/").map(function(p){
+      try{return encodeURIComponent(decodeURIComponent(p));}catch(e){return encodeURIComponent(p);}
+    }).join("/");
+  }
+  /** Fix storage URLs that contain unencoded spaces / special chars in the path */
+  function fixImgUrl(src){
+    if(!src)return src;
+    try{
+      var u=new URL(src);
+      u.pathname=u.pathname.split("/").map(function(seg){
+        if(!seg)return seg;
+        try{return encodeURIComponent(decodeURIComponent(seg));}catch(e){return encodeURIComponent(seg);}
+      }).join("/");
+      return u.toString();
+    }catch(e){
+      return String(src).replace(/ /g,"%20");
+    }
+  }
+  /** Safe folder key for Supabase storage (no spaces) */
+  function storageFolderKey(folder){
+    return String(folder||"game").replace(/[^a-zA-Z0-9._-]+/g,"-").replace(/^-+|-+$/g,"")||"game";
+  }
+
   const sbHeaders=()=>({"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Accept":"application/json","Prefer":"return=representation"});
 
   async function sbFetch(path, opts){
@@ -60,7 +84,11 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
   }
 
   function pathOfFeat(f){
-    return f.folder?"games/"+f.folder+"/"+(f.file||"index.html"):"games/"+(f.file||"index.html");
+    var file=f.file||"index.html";
+    if(f.folder){
+      return "games/"+encodePathSeg(f.folder)+"/"+encodePathSeg(file);
+    }
+    return "games/"+encodePathSeg(file);
   }
 
   function renderFeatured(){
@@ -74,7 +102,7 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
       h+='<div class="feat-card" data-path="'+p+'" data-feat="'+fi+'">';
       h+='<div class="feat-slides">';
       if(imgs.length){
-        imgs.forEach((src,i)=>{h+='<img src="'+src+'" alt="" class="'+(i===0?'on':'')+'" loading="'+(i===0?'eager':'lazy')+'"/>';});
+        imgs.forEach((src,i)=>{h+='<img src="'+fixImgUrl(src)+'" alt="" class="'+(i===0?'on':'')+'" loading="'+(i===0?'eager':'lazy')+'"/>';});
       }else{
         h+='<div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(167,139,250,.35),rgba(99,102,241,.2))"></div>';
       }
@@ -179,8 +207,9 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
 
   async function uploadImage(file, folder, idx){
     const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,5)||"jpg";
-    const path=folder+"/"+Date.now()+"_"+idx+"."+ext;
-    const r=await fetch(SB_URL+"/storage/v1/object/featured-banners/"+path,{
+    const key=storageFolderKey(folder);
+    const objectPath=key+"/"+Date.now()+"_"+idx+"."+ext;
+    const r=await fetch(SB_URL+"/storage/v1/object/featured-banners/"+objectPath,{
       method:"POST",
       headers:{
         "apikey":SB_KEY,
@@ -194,7 +223,8 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
       const t=await r.text();
       throw new Error("Upload failed ("+r.status+"): "+t.slice(0,200));
     }
-    return SB_URL+"/storage/v1/object/public/featured-banners/"+path;
+    // Public URL with each path segment encoded (safe for spaces / special chars)
+    return SB_URL+"/storage/v1/object/public/featured-banners/"+objectPath.split("/").map(encodeURIComponent).join("/");
   }
 
   function wireAdmin(){
