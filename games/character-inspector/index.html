@@ -222,123 +222,114 @@
     const loader = new GLTFLoader();
     const characters = [];
 
-    // ========== PROCEDURAL WALK ========== 
-    // Finds common humanoid bones and applies a simple walk cycle
-    function findBone(root, names) {
+    // ========== PROCEDURAL WALK (improved for Mixamo names) ==========
+    function cleanName(n) {
+      return (n || '').toLowerCase()
+        .replace('mixamorig:', '')
+        .replace(/[_\-\d]+$/g, '')  // remove trailing _01, _00 etc
+        .replace(/[^a-z]/g, '');
+    }
+
+    function findBone(root, candidates) {
       let found = null;
       root.traverse((obj) => {
         if (found) return;
-        if (!obj.isBone && !obj.isSkinnedMesh) return;
-        const n = (obj.name || '').toLowerCase();
-        for (const name of names) {
-          if (n.includes(name)) {
+        const cleaned = cleanName(obj.name);
+        for (const c of candidates) {
+          if (cleaned === c || cleaned.includes(c)) {
             found = obj;
             return;
           }
         }
       });
-      // also search all objects (some models put bones as Object3D)
-      if (!found) {
-        root.traverse((obj) => {
-          if (found) return;
-          const n = (obj.name || '').toLowerCase();
-          for (const name of names) {
-            if (n.includes(name)) {
-              found = obj;
-              return;
-            }
-          }
-        });
-      }
       return found;
     }
 
     function setupProceduralWalk(model) {
       const bones = {
         hips: findBone(model, ['hips', 'pelvis', 'root', 'hip']),
-        spine: findBone(model, ['spine', 'chest', 'torso', 'body']),
-        leftUpLeg: findBone(model, ['leftupleg', 'leftthigh', 'left_upleg', 'l_upleg', 'leftleg', 'thigh_l', 'upleg_l', 'leg_l']),
-        rightUpLeg: findBone(model, ['rightupleg', 'rightthigh', 'right_upleg', 'r_upleg', 'rightleg', 'thigh_r', 'upleg_r', 'leg_r']),
-        leftLeg: findBone(model, ['leftleg', 'leftlowerleg', 'leftshin', 'left_leg', 'l_leg', 'calf_l', 'shin_l']),
-        rightLeg: findBone(model, ['rightleg', 'rightlowerleg', 'rightshin', 'right_leg', 'r_leg', 'calf_r', 'shin_r']),
-        leftFoot: findBone(model, ['leftfoot', 'left_foot', 'l_foot', 'foot_l']),
-        rightFoot: findBone(model, ['rightfoot', 'right_foot', 'r_foot', 'foot_r']),
-        leftArm: findBone(model, ['leftarm', 'leftupperarm', 'left_arm', 'l_arm', 'upperarm_l', 'arm_l']),
-        rightArm: findBone(model, ['rightarm', 'rightupperarm', 'right_arm', 'r_arm', 'upperarm_r', 'arm_r']),
-        leftForeArm: findBone(model, ['leftforearm', 'leftlowerarm', 'left_forearm', 'l_forearm', 'forearm_l']),
-        rightForeArm: findBone(model, ['rightforearm', 'rightlowerarm', 'right_forearm', 'r_forearm', 'forearm_r'])
+        spine: findBone(model, ['spine', 'spine1', 'spine2', 'chest']),
+        leftUpLeg: findBone(model, ['leftupleg', 'leftthigh', 'thighl', 'uplegl']),
+        rightUpLeg: findBone(model, ['rightupleg', 'rightthigh', 'thighr', 'uplegr']),
+        leftLeg: findBone(model, ['leftleg', 'leftlowerleg', 'leftshin', 'calfl', 'shinl']),
+        rightLeg: findBone(model, ['rightleg', 'rightlowerleg', 'rightshin', 'calfr', 'shinr']),
+        leftFoot: findBone(model, ['leftfoot', 'footl']),
+        rightFoot: findBone(model, ['rightfoot', 'footr']),
+        leftArm: findBone(model, ['leftarm', 'leftupperarm', 'arml', 'upperarml']),
+        rightArm: findBone(model, ['rightarm', 'rightupperarm', 'armr', 'upperarmr']),
+        leftForeArm: findBone(model, ['leftforearm', 'leftlowerarm', 'forearml']),
+        rightForeArm: findBone(model, ['rightforearm', 'rightlowerarm', 'forearmr'])
       };
 
-      // store original rotations so we can blend
       const originals = {};
       for (const key in bones) {
         if (bones[key]) {
-          originals[key] = bones[key].rotation.clone();
+          originals[key] = {
+            rot: bones[key].rotation.clone(),
+            pos: bones[key].position.clone()
+          };
         }
       }
 
       const hasLegs = bones.leftUpLeg || bones.rightUpLeg;
-      if (!hasLegs) return null; // can't do much without legs
+      if (!hasLegs) {
+        console.warn('Procedural walk: no leg bones found');
+        return null;
+      }
+
+      console.log('Procedural bones found:', Object.keys(bones).filter(k => bones[k]));
 
       return {
         bones,
         originals,
-        time: Math.random() * 10, // random start phase so they don't sync
+        time: Math.random() * 10,
         update(delta, speed = 1.0) {
-          this.time += delta * speed * 5.5; // walk frequency
-
+          this.time += delta * speed * 5.5;
           const t = this.time;
           const swing = Math.sin(t);
-          const swing2 = Math.sin(t + Math.PI); // opposite leg
+          const swing2 = Math.sin(t + Math.PI);
 
-          // Legs
           if (this.bones.leftUpLeg) {
-            this.bones.leftUpLeg.rotation.x = this.originals.leftUpLeg.x + swing * 0.55;
+            this.bones.leftUpLeg.rotation.x = this.originals.leftUpLeg.rot.x + swing * 0.6;
           }
           if (this.bones.rightUpLeg) {
-            this.bones.rightUpLeg.rotation.x = this.originals.rightUpLeg.x + swing2 * 0.55;
+            this.bones.rightUpLeg.rotation.x = this.originals.rightUpLeg.rot.x + swing2 * 0.6;
           }
 
-          // Knees (bend more on the forward swing)
           if (this.bones.leftLeg) {
-            this.bones.leftLeg.rotation.x = this.originals.leftLeg.x + Math.max(0, -swing) * 0.7;
+            this.bones.leftLeg.rotation.x = this.originals.leftLeg.rot.x + Math.max(0, -swing) * 0.75;
           }
           if (this.bones.rightLeg) {
-            this.bones.rightLeg.rotation.x = this.originals.rightLeg.x + Math.max(0, -swing2) * 0.7;
+            this.bones.rightLeg.rotation.x = this.originals.rightLeg.rot.x + Math.max(0, -swing2) * 0.75;
           }
 
-          // Feet
           if (this.bones.leftFoot) {
-            this.bones.leftFoot.rotation.x = this.originals.leftFoot.x + swing * 0.25;
+            this.bones.leftFoot.rotation.x = this.originals.leftFoot.rot.x + swing * 0.3;
           }
           if (this.bones.rightFoot) {
-            this.bones.rightFoot.rotation.x = this.originals.rightFoot.x + swing2 * 0.25;
+            this.bones.rightFoot.rotation.x = this.originals.rightFoot.rot.x + swing2 * 0.3;
           }
 
-          // Arms (opposite to legs)
           if (this.bones.leftArm) {
-            this.bones.leftArm.rotation.x = this.originals.leftArm.x + swing2 * 0.4;
+            this.bones.leftArm.rotation.x = this.originals.leftArm.rot.x + swing2 * 0.45;
           }
           if (this.bones.rightArm) {
-            this.bones.rightArm.rotation.x = this.originals.rightArm.x + swing * 0.4;
+            this.bones.rightArm.rotation.x = this.originals.rightArm.rot.x + swing * 0.45;
           }
 
-          // Forearms
           if (this.bones.leftForeArm) {
-            this.bones.leftForeArm.rotation.x = this.originals.leftForeArm.x + Math.max(0, swing2) * 0.3;
+            this.bones.leftForeArm.rotation.x = this.originals.leftForeArm.rot.x + Math.max(0, swing2) * 0.35;
           }
           if (this.bones.rightForeArm) {
-            this.bones.rightForeArm.rotation.x = this.originals.rightForeArm.x + Math.max(0, swing) * 0.3;
+            this.bones.rightForeArm.rotation.x = this.originals.rightForeArm.rot.x + Math.max(0, swing) * 0.35;
           }
 
-          // Body bob + slight lean
           if (this.bones.hips) {
-            this.bones.hips.position.y = (this.originals.hips ? 0 : 0) + Math.abs(Math.sin(t * 2)) * 0.04;
-            this.bones.hips.rotation.y = Math.sin(t) * 0.06;
+            this.bones.hips.position.y = this.originals.hips.pos.y + Math.abs(Math.sin(t * 2)) * 0.045;
+            this.bones.hips.rotation.y = this.originals.hips.rot.y + Math.sin(t) * 0.07;
           }
           if (this.bones.spine) {
-            this.bones.spine.rotation.y = Math.sin(t) * 0.04;
-            this.bones.spine.rotation.z = Math.sin(t) * 0.03;
+            this.bones.spine.rotation.y = this.originals.spine.rot.y + Math.sin(t) * 0.05;
           }
         }
       };
@@ -398,32 +389,34 @@
 
           scene.add(model);
 
-          // real animations?
+          // real animations
           let mixer = null;
           const actions = {};
-          let walkClip = null;
+          let preferredClip = null;
 
           if (gltf.animations && gltf.animations.length) {
             mixer = new THREE.AnimationMixer(model);
             gltf.animations.forEach((clip) => {
-              const name = clip.name.toLowerCase();
-              actions[clip.name] = mixer.clipAction(clip);
-              if (name.includes('walk') || name.includes('run') || name.includes('locomotion') || name.includes('move')) {
-                walkClip = clip.name;
+              const name = clip.name || 'animation';
+              actions[name] = mixer.clipAction(clip);
+              const lower = name.toLowerCase();
+              if (lower.includes('walk') || lower.includes('run') || lower.includes('locomotion') || lower.includes('move')) {
+                preferredClip = name;
               }
             });
-            if (!walkClip) walkClip = gltf.animations[0].name;
+            // if no walk-like name, just use the first animation
+            if (!preferredClip) preferredClip = Object.keys(actions)[0];
           }
 
-          // procedural fallback
-          const procedural = (!walkClip) ? setupProceduralWalk(model) : null;
+          // procedural only if no real animation at all
+          const procedural = (!preferredClip) ? setupProceduralWalk(model) : null;
 
           const char = {
             name: displayName,
             model,
             mixer,
             actions,
-            walkClip,
+            preferredClip,
             procedural,
             walkSpeed: 1.1 + Math.random() * 0.6,
             target: new THREE.Vector3(
@@ -439,15 +432,19 @@
           // UI button
           const btn = document.createElement('button');
           btn.className = 'model-btn';
-          btn.textContent = displayName + (procedural ? ' (procedural)' : '');
+          let label = displayName;
+          if (preferredClip) label += ' (anim)';
+          else if (procedural) label += ' (procedural)';
+          btn.textContent = label;
           btn.onclick = () => focusCharacter(char, btn);
           container.appendChild(btn);
 
-          // start real walk if available
-          if (walkClip && actions[walkClip]) {
-            const action = actions[walkClip];
+          // start real animation if available
+          if (preferredClip && actions[preferredClip]) {
+            const action = actions[preferredClip];
             action.reset().play();
             char.currentAction = action;
+            console.log('Playing animation:', preferredClip);
           }
         } catch (err) {
           console.error('Failed to load', file, err);
@@ -486,13 +483,11 @@
         pos.x += dir.x * char.walkSpeed * delta;
         pos.z += dir.z * char.walkSpeed * delta;
 
-        // face direction
         if (dir.length() > 0.01) {
           const angle = Math.atan2(dir.x, dir.z);
           char.model.rotation.y = THREE.MathUtils.lerp(char.model.rotation.y, angle, 0.08);
         }
 
-        // update animation
         if (char.mixer) {
           char.mixer.update(delta);
         } else if (char.procedural) {
