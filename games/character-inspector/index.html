@@ -73,7 +73,7 @@
 
   <div id="ui">
     <h1>Cube People</h1>
-    <p>Procedural walk + head & torso look toward walking direction</p>
+    <p>Procedural walk + head & torso look + collision</p>
     <button class="btn" id="addBtn">+ Add Person</button>
     <button class="btn" id="clearBtn">Clear All</button>
   </div>
@@ -98,7 +98,7 @@
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
-    camera.position.set(0, 10, 22);
+    camera.position.set(0, 12, 26);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -123,30 +123,30 @@
     skyU['sunPosition'].value.copy(sun);
 
     // Lights
-    const dirLight = new THREE.DirectionalLight(0xfff5e0, 2.3);
-    dirLight.position.copy(sun).multiplyScalar(40);
+    const dirLight = new THREE.DirectionalLight(0xfff5e0, 2.4);
+    dirLight.position.copy(sun).multiplyScalar(45);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.set(2048, 2048);
     dirLight.shadow.camera.near = 1;
-    dirLight.shadow.camera.far = 90;
-    dirLight.shadow.camera.left = -35;
-    dirLight.shadow.camera.right = 35;
-    dirLight.shadow.camera.top = 35;
-    dirLight.shadow.camera.bottom = -35;
+    dirLight.shadow.camera.far = 100;
+    dirLight.shadow.camera.left = -40;
+    dirLight.shadow.camera.right = 40;
+    dirLight.shadow.camera.top = 40;
+    dirLight.shadow.camera.bottom = -40;
     dirLight.shadow.bias = -0.0003;
     scene.add(dirLight);
 
     scene.add(new THREE.HemisphereLight(0xb1e1ff, 0x4a7c3a, 0.55));
     const fill = new THREE.DirectionalLight(0xa0d8ff, 0.3);
-    fill.position.set(-10, 8, -8);
+    fill.position.set(-12, 10, -10);
     scene.add(fill);
 
-    // Grass field
-    const groundGeo = new THREE.PlaneGeometry(140, 140, 80, 80);
+    // Bigger grass field with gentle hills
+    const groundGeo = new THREE.PlaneGeometry(160, 160, 90, 90);
     const pos = groundGeo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), y = pos.getY(i);
-      pos.setZ(i, Math.sin(x * 0.07) * 0.35 + Math.cos(y * 0.06) * 0.3);
+      pos.setZ(i, Math.sin(x * 0.06) * 0.4 + Math.cos(y * 0.05) * 0.35 + Math.sin(x*0.12+y*0.1)*0.15);
     }
     groundGeo.computeVertexNormals();
     const ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({
@@ -156,31 +156,35 @@
     ground.receiveShadow = true;
     scene.add(ground);
 
-    for (let i = 0; i < 22; i++) {
+    // darker grass patches
+    for (let i = 0; i < 28; i++) {
       const p = new THREE.Mesh(
-        new THREE.CircleGeometry(1.8 + Math.random() * 3.5, 20),
+        new THREE.CircleGeometry(2 + Math.random() * 4, 20),
         new THREE.MeshStandardMaterial({ color: 0x2f6b3a, roughness: 0.95 })
       );
       p.rotation.x = -Math.PI / 2;
-      p.position.set((Math.random()-0.5)*100, 0.015, (Math.random()-0.5)*100);
+      p.position.set((Math.random()-0.5)*120, 0.02, (Math.random()-0.5)*120);
       p.receiveShadow = true;
       scene.add(p);
     }
 
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 1.2, 0);
+    controls.target.set(0, 1.4, 0);
     controls.enableDamping = true;
-    controls.minDistance = 3;
-    controls.maxDistance = 70;
+    controls.minDistance = 4;
+    controls.maxDistance = 80;
     controls.maxPolarAngle = Math.PI / 2.05;
 
-    // ========== CUBE PERSON ========== 
+    // ========== CUBE PERSON (better proportions) ========== 
     const COLORS = [
       0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3,
       0xf38181, 0xaa96da, 0xfcbad3, 0xa8d8ea,
-      0xff9a3c, 0x6bcb77, 0x4d96ff, 0xff6b9d
+      0xff9a3c, 0x6bcb77, 0x4d96ff, 0xff6b9d,
+      0xf9a825, 0x26a69a, 0x7e57c2, 0xef5350
     ];
+
+    const PERSON_RADIUS = 0.55; // collision radius
 
     function createPerson() {
       const group = new THREE.Group();
@@ -190,81 +194,95 @@
       const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
       const skinMat = new THREE.MeshStandardMaterial({ color: skin, roughness: 0.65 });
 
-      // Hips (root of body)
+      // Hips (root)
       const hips = new THREE.Group();
       group.add(hips);
 
-      // Torso
+      // Torso - taller
       const torso = new THREE.Mesh(
-        new THREE.BoxGeometry(0.45, 0.55, 0.28),
+        new THREE.BoxGeometry(0.42, 0.65, 0.26),
         mat
       );
-      torso.position.y = 0.55;
+      torso.position.y = 0.72;
       torso.castShadow = true;
       hips.add(torso);
 
       // Head
       const headPivot = new THREE.Group();
-      headPivot.position.y = 0.9;
+      headPivot.position.y = 1.12;
       hips.add(headPivot);
 
       const head = new THREE.Mesh(
-        new THREE.BoxGeometry(0.32, 0.32, 0.32),
+        new THREE.BoxGeometry(0.30, 0.30, 0.30),
         skinMat
       );
-      head.position.y = 0.18;
+      head.position.y = 0.17;
       head.castShadow = true;
       headPivot.add(head);
 
-      // Simple face (just so direction is clear)
+      // Face indicator
       const face = new THREE.Mesh(
-        new THREE.BoxGeometry(0.34, 0.12, 0.06),
+        new THREE.BoxGeometry(0.32, 0.10, 0.05),
         new THREE.MeshStandardMaterial({ color: 0x222222 })
       );
-      face.position.set(0, 0.18, 0.16);
+      face.position.set(0, 0.17, 0.15);
       headPivot.add(face);
 
-      // Arms
+      // Arms - longer
       const leftArm = new THREE.Mesh(
-        new THREE.BoxGeometry(0.12, 0.48, 0.12),
+        new THREE.BoxGeometry(0.11, 0.58, 0.11),
         mat
       );
-      leftArm.position.set(-0.32, 0.55, 0);
-      leftArm.geometry.translate(0, -0.24, 0);
+      leftArm.position.set(-0.30, 0.78, 0);
+      leftArm.geometry.translate(0, -0.29, 0);
       leftArm.castShadow = true;
       hips.add(leftArm);
 
       const rightArm = new THREE.Mesh(
-        new THREE.BoxGeometry(0.12, 0.48, 0.12),
+        new THREE.BoxGeometry(0.11, 0.58, 0.11),
         mat
       );
-      rightArm.position.set(0.32, 0.55, 0);
-      rightArm.geometry.translate(0, -0.24, 0);
+      rightArm.position.set(0.30, 0.78, 0);
+      rightArm.geometry.translate(0, -0.29, 0);
       rightArm.castShadow = true;
       hips.add(rightArm);
 
-      // Legs
+      // Legs - longer
       const leftLeg = new THREE.Mesh(
-        new THREE.BoxGeometry(0.14, 0.55, 0.14),
+        new THREE.BoxGeometry(0.13, 0.68, 0.13),
         mat
       );
       leftLeg.position.set(-0.12, 0.0, 0);
-      leftLeg.geometry.translate(0, -0.275, 0);
+      leftLeg.geometry.translate(0, -0.34, 0);
       leftLeg.castShadow = true;
       hips.add(leftLeg);
 
       const rightLeg = new THREE.Mesh(
-        new THREE.BoxGeometry(0.14, 0.55, 0.14),
+        new THREE.BoxGeometry(0.13, 0.68, 0.13),
         mat
       );
       rightLeg.position.set(0.12, 0.0, 0);
-      rightLeg.geometry.translate(0, -0.275, 0);
+      rightLeg.geometry.translate(0, -0.34, 0);
       rightLeg.castShadow = true;
       hips.add(rightLeg);
 
-      // Random start
+      // Soft ground shadow (blob)
+      const shadow = new THREE.Mesh(
+        new THREE.CircleGeometry(0.45, 16),
+        new THREE.MeshBasicMaterial({
+          color: 0x000000,
+          transparent: true,
+          opacity: 0.28,
+          depthWrite: false
+        })
+      );
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.y = 0.03;
+      group.add(shadow);
+
+      // Random start position
       const angle = Math.random() * Math.PI * 2;
-      const radius = 4 + Math.random() * 12;
+      const radius = 5 + Math.random() * 14;
       group.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
 
       const person = {
@@ -276,17 +294,18 @@
         rightArm,
         leftLeg,
         rightLeg,
+        shadow,
         walkPhase: Math.random() * Math.PI * 2,
-        walkSpeed: 1.3 + Math.random() * 0.9,
+        walkSpeed: 1.4 + Math.random() * 0.9,
         target: new THREE.Vector3(
-          (Math.random() - 0.5) * 50,
+          (Math.random() - 0.5) * 60,
           0,
-          (Math.random() - 0.5) * 50
+          (Math.random() - 0.5) * 60
         ),
-        // smooth look angles
         currentBodyYaw: 0,
         currentHeadYaw: 0,
-        currentHeadPitch: 0
+        currentHeadPitch: 0,
+        velocity: new THREE.Vector3()
       };
 
       scene.add(group);
@@ -299,8 +318,8 @@
       people.push(createPerson());
     }
 
-    // start with a few
-    for (let i = 0; i < 7; i++) addPerson();
+    // start with more people
+    for (let i = 0; i < 10; i++) addPerson();
 
     document.getElementById('addBtn').onclick = () => addPerson();
     document.getElementById('clearBtn').onclick = () => {
@@ -308,76 +327,110 @@
       people.length = 0;
     };
 
-    // ========== ANIMATION ========== 
+    // ========== COLLISION + ANIMATION ========== 
     function updatePeople(delta) {
-      people.forEach(p => {
+      // 1. Move + collision avoidance
+      people.forEach((p, i) => {
         const pos = p.group.position;
         const target = p.target;
 
-        // new target when close
-        if (pos.distanceTo(target) < 2.0) {
+        // new random target when close
+        if (pos.distanceTo(target) < 2.2) {
           target.set(
-            (Math.random() - 0.5) * 55,
+            (Math.random() - 0.5) * 70,
             0,
-            (Math.random() - 0.5) * 55
+            (Math.random() - 0.5) * 70
           );
         }
 
-        // direction of travel
-        const dir = new THREE.Vector3().subVectors(target, pos);
+        // desired direction
+        let dir = new THREE.Vector3().subVectors(target, pos);
         dir.y = 0;
-        if (dir.length() < 0.01) return;
+        if (dir.length() < 0.01) dir.set(1, 0, 0);
         dir.normalize();
 
-        // move
-        pos.x += dir.x * p.walkSpeed * delta;
-        pos.z += dir.z * p.walkSpeed * delta;
+        // simple repulsion from other people (collision)
+        const avoid = new THREE.Vector3();
+        people.forEach((other, j) => {
+          if (i === j) return;
+          const d = pos.distanceTo(other.group.position);
+          if (d < PERSON_RADIUS * 2.4 && d > 0.01) {
+            const push = new THREE.Vector3().subVectors(pos, other.group.position);
+            push.y = 0;
+            push.normalize();
+            const strength = (PERSON_RADIUS * 2.4 - d) / (PERSON_RADIUS * 2.4);
+            avoid.add(push.multiplyScalar(strength * 2.8));
+          }
+        });
 
-        // desired body yaw (facing walk direction)
+        // blend desired direction with avoidance
+        dir.add(avoid);
+        if (dir.length() > 0.01) dir.normalize();
+
+        // apply movement
+        const speed = p.walkSpeed * delta;
+        pos.x += dir.x * speed;
+        pos.z += dir.z * speed;
+
+        // keep inside field roughly
+        pos.x = THREE.MathUtils.clamp(pos.x, -70, 70);
+        pos.z = THREE.MathUtils.clamp(pos.z, -70, 70);
+
+        // store for facing
+        p.velocity.copy(dir);
+      });
+
+      // 2. Animation + smooth look
+      people.forEach(p => {
+        const dir = p.velocity;
+        if (dir.length() < 0.01) return;
+
+        // desired body yaw
         const desiredYaw = Math.atan2(dir.x, dir.z);
 
-        // smooth body turn (torso + whole person)
-        p.currentBodyYaw = THREE.MathUtils.lerp(
-          p.currentBodyYaw,
-          desiredYaw,
-          1 - Math.exp(-4.5 * delta)   // smooth but not instant
-        );
+        // smooth body turn
+        let yawDiff = desiredYaw - p.currentBodyYaw;
+        yawDiff = ((yawDiff + Math.PI) % (Math.PI * 2)) - Math.PI;
+        p.currentBodyYaw += yawDiff * (1 - Math.exp(-5.5 * delta));
         p.group.rotation.y = p.currentBodyYaw;
 
-        // head looks a bit further toward the target (slight lead)
-        // limit so neck doesn't break
-        let headYawOffset = desiredYaw - p.currentBodyYaw;
-        // wrap to -PI..PI
-        headYawOffset = ((headYawOffset + Math.PI) % (Math.PI * 2)) - Math.PI;
-        headYawOffset = THREE.MathUtils.clamp(headYawOffset, -0.7, 0.7); // max ~40°
+        // head looks slightly ahead of body (limited)
+        let headOffset = desiredYaw - p.currentBodyYaw;
+        headOffset = ((headOffset + Math.PI) % (Math.PI * 2)) - Math.PI;
+        headOffset = THREE.MathUtils.clamp(headOffset, -0.65, 0.65);
 
-        p.currentHeadYaw = THREE.MathUtils.lerp(p.currentHeadYaw, headYawOffset, 1 - Math.exp(-6 * delta));
+        p.currentHeadYaw += (headOffset - p.currentHeadYaw) * (1 - Math.exp(-7 * delta));
         p.headPivot.rotation.y = p.currentHeadYaw;
 
-        // tiny head pitch (looking slightly down the path)
-        p.currentHeadPitch = THREE.MathUtils.lerp(p.currentHeadPitch, -0.08, 1 - Math.exp(-3 * delta));
+        // slight downward look
+        p.currentHeadPitch += (-0.06 - p.currentHeadPitch) * (1 - Math.exp(-3 * delta));
         p.headPivot.rotation.x = p.currentHeadPitch;
 
-        // ---- Procedural walk cycle ----
-        p.walkPhase += delta * p.walkSpeed * 5.8;
+        // ---- Stronger procedural walk ----
+        p.walkPhase += delta * p.walkSpeed * 6.2;
         const t = p.walkPhase;
         const swing = Math.sin(t);
         const swing2 = Math.sin(t + Math.PI);
 
-        // Legs
-        p.leftLeg.rotation.x = swing * 0.65;
-        p.rightLeg.rotation.x = swing2 * 0.65;
+        // Legs - bigger swing
+        p.leftLeg.rotation.x = swing * 0.85;
+        p.rightLeg.rotation.x = swing2 * 0.85;
 
-        // Arms (opposite)
-        p.leftArm.rotation.x = swing2 * 0.5;
-        p.rightArm.rotation.x = swing * 0.5;
+        // Arms - bigger opposite swing
+        p.leftArm.rotation.x = swing2 * 0.7;
+        p.rightArm.rotation.x = swing * 0.7;
 
         // Body bob
-        p.hips.position.y = Math.abs(Math.sin(t * 2)) * 0.05;
+        p.hips.position.y = Math.abs(Math.sin(t * 2)) * 0.07;
 
-        // slight torso lean into turn
-        const lean = THREE.MathUtils.clamp((desiredYaw - p.currentBodyYaw) * 0.6, -0.15, 0.15);
-        p.torso.rotation.z = THREE.MathUtils.lerp(p.torso.rotation.z, lean, 0.1);
+        // slight torso lean into the turn
+        const lean = THREE.MathUtils.clamp(yawDiff * 0.5, -0.18, 0.18);
+        p.torso.rotation.z += (lean - p.torso.rotation.z) * 0.12;
+
+        // shadow follows + slight scale with bob
+        p.shadow.position.y = 0.03;
+        const bob = Math.abs(Math.sin(t * 2));
+        p.shadow.scale.setScalar(1.0 - bob * 0.12);
       });
     }
 
