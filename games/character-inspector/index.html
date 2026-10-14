@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Haru Urara - Character Inspector</title>
+  <title>Character Inspector</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       overflow: hidden;
-      background: #1a1a2e;
+      background: #87ceeb;
       font-family: system-ui, -apple-system, sans-serif;
       color: white;
     }
@@ -16,50 +16,53 @@
 
     #ui {
       position: absolute;
-      top: 20px;
-      left: 20px;
+      top: 16px;
+      left: 16px;
       z-index: 10;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(12px);
-      padding: 18px 22px;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.1);
-      max-width: 280px;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(14px);
+      padding: 16px 20px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      max-width: 260px;
+      max-height: 80vh;
+      overflow-y: auto;
     }
 
     #ui h1 {
-      font-size: 22px;
-      margin-bottom: 4px;
-      color: #ff9ecd;
+      font-size: 18px;
+      margin-bottom: 2px;
+      color: #7dffb3;
     }
 
-    #ui p {
-      font-size: 13px;
-      opacity: 0.8;
-      margin-bottom: 14px;
+    #ui .subtitle {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-bottom: 12px;
     }
 
-    .btn {
+    .model-btn {
       display: block;
       width: 100%;
-      padding: 10px 14px;
-      margin-bottom: 8px;
-      background: rgba(255, 158, 205, 0.15);
-      border: 1px solid rgba(255, 158, 205, 0.4);
-      color: #ff9ecd;
-      border-radius: 10px;
+      padding: 9px 12px;
+      margin-bottom: 6px;
+      background: rgba(125, 255, 179, 0.12);
+      border: 1px solid rgba(125, 255, 179, 0.35);
+      color: #7dffb3;
+      border-radius: 9px;
       cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s;
+      font-size: 13px;
+      text-align: left;
+      transition: all 0.15s;
     }
 
-    .btn:hover {
-      background: rgba(255, 158, 205, 0.3);
+    .model-btn:hover {
+      background: rgba(125, 255, 179, 0.25);
     }
 
-    .btn.active {
-      background: #ff9ecd;
-      color: #1a1a2e;
+    .model-btn.active {
+      background: #7dffb3;
+      color: #0a1a12;
       font-weight: 600;
     }
 
@@ -69,21 +72,40 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #1a1a2e;
+      background: #1a2e24;
       font-size: 18px;
       z-index: 20;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #info {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      z-index: 10;
+      background: rgba(0,0,0,0.55);
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      opacity: 0.85;
     }
   </style>
 </head>
 <body>
 
-  <div id="loading">Loading Haru Urara...</div>
+  <div id="loading">
+    <div>Loading Character Inspector...</div>
+    <div style="font-size:13px;opacity:0.7">Drop models in /models and list them in models.json</div>
+  </div>
 
   <div id="ui">
-    <h1>Haru Urara</h1>
-    <p>Uma Musume</p>
-    <div id="anim-buttons"></div>
+    <h1>Character Inspector</h1>
+    <div class="subtitle">Click a model to focus</div>
+    <div id="model-list"></div>
   </div>
+
+  <div id="info">Drag to look around • Scroll to zoom</div>
 
   <script type="importmap">
   {
@@ -98,123 +120,286 @@
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+    import { Sky } from 'three/addons/objects/Sky.js';
+
+    // ============ CONFIG ============
+    // Just edit models.json to add new models
+    // =================================
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a2e);
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.set(0, 1.4, 3.2);
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
+    camera.position.set(0, 8, 18);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 0.95;
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    // ---- Sky ----
+    const sky = new Sky();
+    sky.scale.setScalar(450);
+    scene.add(sky);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
-    dirLight.position.set(3, 6, 4);
+    const skyUniforms = sky.material.uniforms;
+    skyUniforms['turbidity'].value = 4;
+    skyUniforms['rayleigh'].value = 2.2;
+    skyUniforms['mieCoefficient'].value = 0.004;
+    skyUniforms['mieDirectionalG'].value = 0.8;
+
+    const sun = new THREE.Vector3();
+    const phi = THREE.MathUtils.degToRad(78);
+    const theta = THREE.MathUtils.degToRad(180);
+    sun.setFromSphericalCoords(1, phi, theta);
+    skyUniforms['sunPosition'].value.copy(sun);
+
+    // ---- Lights ----
+    const dirLight = new THREE.DirectionalLight(0xfff5e0, 2.4);
+    dirLight.position.copy(sun).multiplyScalar(40);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.set(2048, 2048);
+    dirLight.shadow.camera.near = 1;
+    dirLight.shadow.camera.far = 80;
+    dirLight.shadow.camera.left = -30;
+    dirLight.shadow.camera.right = 30;
+    dirLight.shadow.camera.top = 30;
+    dirLight.shadow.camera.bottom = -30;
+    dirLight.shadow.bias = -0.0003;
     scene.add(dirLight);
 
-    const fill = new THREE.DirectionalLight(0xffb6d9, 0.6);
-    fill.position.set(-3, 2, -2);
-    scene.add(fill);
-
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x444466, 0.6);
+    const hemi = new THREE.HemisphereLight(0xb1e1ff, 0x4a7c3a, 0.55);
     scene.add(hemi);
 
-    const ground = new THREE.Mesh(
-      new THREE.CircleGeometry(4, 64),
-      new THREE.MeshStandardMaterial({ color: 0x2a2a3e, roughness: 0.9 })
-    );
+    const fill = new THREE.DirectionalLight(0xa0d8ff, 0.35);
+    fill.position.set(-10, 8, -8);
+    scene.add(fill);
+
+    // ---- Big Grass Field ----
+    const groundGeo = new THREE.PlaneGeometry(120, 120, 64, 64);
+    // gentle hills
+    const pos = groundGeo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const y = pos.getY(i);
+      const z = Math.sin(x * 0.08) * 0.4 + Math.cos(y * 0.07) * 0.35;
+      pos.setZ(i, z);
+    }
+    groundGeo.computeVertexNormals();
+
+    const groundMat = new THREE.MeshStandardMaterial({
+      color: 0x3d8b4a,
+      roughness: 0.92,
+      metalness: 0.02,
+      flatShading: false
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
 
+    // darker grass patches
+    for (let i = 0; i < 18; i++) {
+      const patch = new THREE.Mesh(
+        new THREE.CircleGeometry(2 + Math.random() * 4, 24),
+        new THREE.MeshStandardMaterial({ color: 0x2f6b3a, roughness: 0.95 })
+      );
+      patch.rotation.x = -Math.PI / 2;
+      patch.position.set(
+        (Math.random() - 0.5) * 90,
+        0.02,
+        (Math.random() - 0.5) * 90
+      );
+      patch.receiveShadow = true;
+      scene.add(patch);
+    }
+
+    // ---- Controls ----
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 1.0, 0);
+    controls.target.set(0, 1.2, 0);
     controls.enableDamping = true;
-    controls.minDistance = 1.2;
-    controls.maxDistance = 8;
-    controls.maxPolarAngle = Math.PI / 1.9;
+    controls.minDistance = 2;
+    controls.maxDistance = 60;
+    controls.maxPolarAngle = Math.PI / 2.05;
 
-    let mixer = null;
-    let actions = {};
-    let currentAction = null;
-
+    // ---- Characters ----
     const loader = new GLTFLoader();
-    loader.load(
-      './models/haru.glb',
-      (gltf) => {
-        const model = gltf.scene;
-        model.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
+    const characters = []; // { name, model, mixer, actions, walkSpeed, target, currentAction }
+
+    async function loadModels() {
+      let list = [];
+      try {
+        const res = await fetch('./models/models.json');
+        list = await res.json();
+      } catch (e) {
+        console.warn('No models.json found, using empty list');
+      }
+
+      if (!list.length) {
+        document.getElementById('loading').innerHTML =
+          '<div>No models yet</div><div style="font-size:13px;opacity:0.7;margin-top:8px">Add .glb files to /models<br>and list them in models.json</div>';
+        return;
+      }
+
+      const container = document.getElementById('model-list');
+
+      for (let i = 0; i < list.length; i++) {
+        const entry = list[i];
+        const file = entry.file || entry;
+        const displayName = entry.name || file.replace('.glb', '').replace(/[-_]/g, ' ');
+
+        try {
+          const gltf = await loader.loadAsync('./models/' + file);
+          const model = gltf.scene;
+
+          model.traverse((c) => {
+            if (c.isMesh) {
+              c.castShadow = true;
+              c.receiveShadow = true;
+            }
+          });
+
+          // center + put on ground
+          const box = new THREE.Box3().setFromObject(model);
+          const size = box.getSize(new THREE.Vector3());
+          const center = box.getCenter(new THREE.Vector3());
+          model.position.sub(center);
+          model.position.y += size.y / 2;
+
+          // scale if too big/small
+          const maxDim = Math.max(size.x, size.y, size.z);
+          if (maxDim > 3.5) model.scale.setScalar(2.8 / maxDim);
+          if (maxDim < 0.8) model.scale.setScalar(1.6 / maxDim);
+
+          // random start position
+          const angle = (i / list.length) * Math.PI * 2;
+          const radius = 6 + Math.random() * 5;
+          model.position.x = Math.cos(angle) * radius;
+          model.position.z = Math.sin(angle) * radius;
+
+          scene.add(model);
+
+          // animations
+          let mixer = null;
+          const actions = {};
+          let walkClip = null;
+
+          if (gltf.animations && gltf.animations.length) {
+            mixer = new THREE.AnimationMixer(model);
+            gltf.animations.forEach((clip) => {
+              const name = clip.name.toLowerCase();
+              actions[clip.name] = mixer.clipAction(clip);
+              if (name.includes('walk') || name.includes('run') || name.includes('locomotion')) {
+                walkClip = clip.name;
+              }
+            });
+            // fallback: use first animation as "walk"
+            if (!walkClip) walkClip = gltf.animations[0].name;
           }
-        });
 
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        const center = box.getCenter(new THREE.Vector3());
-        model.position.sub(center);
-        model.position.y += size.y / 2;
+          const char = {
+            name: displayName,
+            model,
+            mixer,
+            actions,
+            walkClip,
+            walkSpeed: 1.1 + Math.random() * 0.6,
+            target: new THREE.Vector3(
+              (Math.random() - 0.5) * 40,
+              0,
+              (Math.random() - 0.5) * 40
+            ),
+            currentAction: null
+          };
 
-        scene.add(model);
+          characters.push(char);
 
-        if (gltf.animations && gltf.animations.length > 0) {
-          mixer = new THREE.AnimationMixer(model);
+          // UI button
+          const btn = document.createElement('button');
+          btn.className = 'model-btn';
+          btn.textContent = displayName;
+          btn.onclick = () => focusCharacter(char, btn);
+          container.appendChild(btn);
 
-          gltf.animations.forEach((clip, i) => {
-            const action = mixer.clipAction(clip);
-            actions[clip.name || `Anim ${i+1}`] = action;
-          });
+          // start walking animation if available
+          if (walkClip && actions[walkClip]) {
+            playAction(char, walkClip);
+          }
+        } catch (err) {
+          console.error('Failed to load', file, err);
+        }
+      }
 
-          const container = document.getElementById('anim-buttons');
-          Object.keys(actions).forEach((name) => {
-            const btn = document.createElement('button');
-            btn.className = 'btn';
-            btn.textContent = name;
-            btn.onclick = () => playAnimation(name);
-            container.appendChild(btn);
-          });
+      document.getElementById('loading').style.display = 'none';
 
-          playAnimation(Object.keys(actions)[0]);
-        } else {
-          document.getElementById('anim-buttons').innerHTML =
-            '<p style="opacity:0.6;font-size:13px;">No animations found in this GLB</p>';
+      if (characters.length) {
+        focusCharacter(characters[0], document.querySelector('.model-btn'));
+      }
+    }
+
+    function playAction(char, name) {
+      if (!char.actions[name]) return;
+      if (char.currentAction) char.currentAction.fadeOut(0.25);
+      const action = char.actions[name];
+      action.reset().fadeIn(0.25).play();
+      char.currentAction = action;
+    }
+
+    function focusCharacter(char, btn) {
+      document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+
+      // smooth camera target
+      controls.target.copy(char.model.position);
+      controls.target.y += 1.1;
+    }
+
+    // pick new random target every few seconds
+    function updateWalking(delta) {
+      characters.forEach((char) => {
+        const pos = char.model.position;
+        const target = char.target;
+
+        const dist = pos.distanceTo(target);
+        if (dist < 1.5) {
+          // new target
+          target.set(
+            (Math.random() - 0.5) * 50,
+            0,
+            (Math.random() - 0.5) * 50
+          );
         }
 
-        document.getElementById('loading').style.display = 'none';
-      },
-      undefined,
-      (err) => {
-        console.error(err);
-        document.getElementById('loading').textContent = 'Failed to load model. Put haru.glb inside the models folder.';
-      }
-    );
+        // move toward target
+        const dir = new THREE.Vector3().subVectors(target, pos).normalize();
+        pos.x += dir.x * char.walkSpeed * delta;
+        pos.z += dir.z * char.walkSpeed * delta;
 
-    function playAnimation(name) {
-      if (!actions[name]) return;
+        // face direction
+        if (dir.length() > 0.01) {
+          const angle = Math.atan2(dir.x, dir.z);
+          char.model.rotation.y = THREE.MathUtils.lerp(
+            char.model.rotation.y,
+            angle,
+            0.08
+          );
+        }
 
-      if (currentAction) {
-        currentAction.fadeOut(0.3);
-      }
-
-      const action = actions[name];
-      action.reset().fadeIn(0.3).play();
-      currentAction = action;
-
-      document.querySelectorAll('.btn').forEach(btn => {
-        btn.classList.toggle('active', btn.textContent === name);
+        if (char.mixer) char.mixer.update(delta);
       });
+    }
+
+    // ---- Main loop ----
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      updateWalking(delta);
+      controls.update();
+      renderer.render(scene, camera);
     }
 
     window.addEventListener('resize', () => {
@@ -223,14 +408,7 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    const clock = new THREE.Clock();
-    function animate() {
-      requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      if (mixer) mixer.update(delta);
-      controls.update();
-      renderer.render(scene, camera);
-    }
+    loadModels();
     animate();
   </script>
 </body>
