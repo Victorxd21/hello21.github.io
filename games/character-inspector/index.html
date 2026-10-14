@@ -122,10 +122,6 @@
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { Sky } from 'three/addons/objects/Sky.js';
 
-    // ============ CONFIG ============
-    // Just edit models.json to add new models
-    // =================================
-
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
@@ -180,28 +176,25 @@
 
     // ---- Big Grass Field ----
     const groundGeo = new THREE.PlaneGeometry(120, 120, 64, 64);
-    // gentle hills
-    const pos = groundGeo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const y = pos.getY(i);
+    const posAttr = groundGeo.attributes.position;
+    for (let i = 0; i < posAttr.count; i++) {
+      const x = posAttr.getX(i);
+      const y = posAttr.getY(i);
       const z = Math.sin(x * 0.08) * 0.4 + Math.cos(y * 0.07) * 0.35;
-      pos.setZ(i, z);
+      posAttr.setZ(i, z);
     }
     groundGeo.computeVertexNormals();
 
     const groundMat = new THREE.MeshStandardMaterial({
       color: 0x3d8b4a,
       roughness: 0.92,
-      metalness: 0.02,
-      flatShading: false
+      metalness: 0.02
     });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // darker grass patches
     for (let i = 0; i < 18; i++) {
       const patch = new THREE.Mesh(
         new THREE.CircleGeometry(2 + Math.random() * 4, 24),
@@ -227,15 +220,138 @@
 
     // ---- Characters ----
     const loader = new GLTFLoader();
-    const characters = []; // { name, model, mixer, actions, walkSpeed, target, currentAction }
+    const characters = [];
 
+    // ========== PROCEDURAL WALK ========== 
+    // Finds common humanoid bones and applies a simple walk cycle
+    function findBone(root, names) {
+      let found = null;
+      root.traverse((obj) => {
+        if (found) return;
+        if (!obj.isBone && !obj.isSkinnedMesh) return;
+        const n = (obj.name || '').toLowerCase();
+        for (const name of names) {
+          if (n.includes(name)) {
+            found = obj;
+            return;
+          }
+        }
+      });
+      // also search all objects (some models put bones as Object3D)
+      if (!found) {
+        root.traverse((obj) => {
+          if (found) return;
+          const n = (obj.name || '').toLowerCase();
+          for (const name of names) {
+            if (n.includes(name)) {
+              found = obj;
+              return;
+            }
+          }
+        });
+      }
+      return found;
+    }
+
+    function setupProceduralWalk(model) {
+      const bones = {
+        hips: findBone(model, ['hips', 'pelvis', 'root', 'hip']),
+        spine: findBone(model, ['spine', 'chest', 'torso', 'body']),
+        leftUpLeg: findBone(model, ['leftupleg', 'leftthigh', 'left_upleg', 'l_upleg', 'leftleg', 'thigh_l', 'upleg_l', 'leg_l']),
+        rightUpLeg: findBone(model, ['rightupleg', 'rightthigh', 'right_upleg', 'r_upleg', 'rightleg', 'thigh_r', 'upleg_r', 'leg_r']),
+        leftLeg: findBone(model, ['leftleg', 'leftlowerleg', 'leftshin', 'left_leg', 'l_leg', 'calf_l', 'shin_l']),
+        rightLeg: findBone(model, ['rightleg', 'rightlowerleg', 'rightshin', 'right_leg', 'r_leg', 'calf_r', 'shin_r']),
+        leftFoot: findBone(model, ['leftfoot', 'left_foot', 'l_foot', 'foot_l']),
+        rightFoot: findBone(model, ['rightfoot', 'right_foot', 'r_foot', 'foot_r']),
+        leftArm: findBone(model, ['leftarm', 'leftupperarm', 'left_arm', 'l_arm', 'upperarm_l', 'arm_l']),
+        rightArm: findBone(model, ['rightarm', 'rightupperarm', 'right_arm', 'r_arm', 'upperarm_r', 'arm_r']),
+        leftForeArm: findBone(model, ['leftforearm', 'leftlowerarm', 'left_forearm', 'l_forearm', 'forearm_l']),
+        rightForeArm: findBone(model, ['rightforearm', 'rightlowerarm', 'right_forearm', 'r_forearm', 'forearm_r'])
+      };
+
+      // store original rotations so we can blend
+      const originals = {};
+      for (const key in bones) {
+        if (bones[key]) {
+          originals[key] = bones[key].rotation.clone();
+        }
+      }
+
+      const hasLegs = bones.leftUpLeg || bones.rightUpLeg;
+      if (!hasLegs) return null; // can't do much without legs
+
+      return {
+        bones,
+        originals,
+        time: Math.random() * 10, // random start phase so they don't sync
+        update(delta, speed = 1.0) {
+          this.time += delta * speed * 5.5; // walk frequency
+
+          const t = this.time;
+          const swing = Math.sin(t);
+          const swing2 = Math.sin(t + Math.PI); // opposite leg
+
+          // Legs
+          if (this.bones.leftUpLeg) {
+            this.bones.leftUpLeg.rotation.x = this.originals.leftUpLeg.x + swing * 0.55;
+          }
+          if (this.bones.rightUpLeg) {
+            this.bones.rightUpLeg.rotation.x = this.originals.rightUpLeg.x + swing2 * 0.55;
+          }
+
+          // Knees (bend more on the forward swing)
+          if (this.bones.leftLeg) {
+            this.bones.leftLeg.rotation.x = this.originals.leftLeg.x + Math.max(0, -swing) * 0.7;
+          }
+          if (this.bones.rightLeg) {
+            this.bones.rightLeg.rotation.x = this.originals.rightLeg.x + Math.max(0, -swing2) * 0.7;
+          }
+
+          // Feet
+          if (this.bones.leftFoot) {
+            this.bones.leftFoot.rotation.x = this.originals.leftFoot.x + swing * 0.25;
+          }
+          if (this.bones.rightFoot) {
+            this.bones.rightFoot.rotation.x = this.originals.rightFoot.x + swing2 * 0.25;
+          }
+
+          // Arms (opposite to legs)
+          if (this.bones.leftArm) {
+            this.bones.leftArm.rotation.x = this.originals.leftArm.x + swing2 * 0.4;
+          }
+          if (this.bones.rightArm) {
+            this.bones.rightArm.rotation.x = this.originals.rightArm.x + swing * 0.4;
+          }
+
+          // Forearms
+          if (this.bones.leftForeArm) {
+            this.bones.leftForeArm.rotation.x = this.originals.leftForeArm.x + Math.max(0, swing2) * 0.3;
+          }
+          if (this.bones.rightForeArm) {
+            this.bones.rightForeArm.rotation.x = this.originals.rightForeArm.x + Math.max(0, swing) * 0.3;
+          }
+
+          // Body bob + slight lean
+          if (this.bones.hips) {
+            this.bones.hips.position.y = (this.originals.hips ? 0 : 0) + Math.abs(Math.sin(t * 2)) * 0.04;
+            this.bones.hips.rotation.y = Math.sin(t) * 0.06;
+          }
+          if (this.bones.spine) {
+            this.bones.spine.rotation.y = Math.sin(t) * 0.04;
+            this.bones.spine.rotation.z = Math.sin(t) * 0.03;
+          }
+        }
+      };
+    }
+
+    // ========== LOAD MODELS ==========
     async function loadModels() {
       let list = [];
       try {
         const res = await fetch('./models/models.json');
         list = await res.json();
       } catch (e) {
-        console.warn('No models.json found, using empty list');
+        console.warn('No models.json found');
       }
 
       if (!list.length) {
@@ -269,7 +385,7 @@
           model.position.sub(center);
           model.position.y += size.y / 2;
 
-          // scale if too big/small
+          // scale if needed
           const maxDim = Math.max(size.x, size.y, size.z);
           if (maxDim > 3.5) model.scale.setScalar(2.8 / maxDim);
           if (maxDim < 0.8) model.scale.setScalar(1.6 / maxDim);
@@ -282,7 +398,7 @@
 
           scene.add(model);
 
-          // animations
+          // real animations?
           let mixer = null;
           const actions = {};
           let walkClip = null;
@@ -292,13 +408,15 @@
             gltf.animations.forEach((clip) => {
               const name = clip.name.toLowerCase();
               actions[clip.name] = mixer.clipAction(clip);
-              if (name.includes('walk') || name.includes('run') || name.includes('locomotion')) {
+              if (name.includes('walk') || name.includes('run') || name.includes('locomotion') || name.includes('move')) {
                 walkClip = clip.name;
               }
             });
-            // fallback: use first animation as "walk"
             if (!walkClip) walkClip = gltf.animations[0].name;
           }
+
+          // procedural fallback
+          const procedural = (!walkClip) ? setupProceduralWalk(model) : null;
 
           const char = {
             name: displayName,
@@ -306,6 +424,7 @@
             mixer,
             actions,
             walkClip,
+            procedural,
             walkSpeed: 1.1 + Math.random() * 0.6,
             target: new THREE.Vector3(
               (Math.random() - 0.5) * 40,
@@ -320,13 +439,15 @@
           // UI button
           const btn = document.createElement('button');
           btn.className = 'model-btn';
-          btn.textContent = displayName;
+          btn.textContent = displayName + (procedural ? ' (procedural)' : '');
           btn.onclick = () => focusCharacter(char, btn);
           container.appendChild(btn);
 
-          // start walking animation if available
+          // start real walk if available
           if (walkClip && actions[walkClip]) {
-            playAction(char, walkClip);
+            const action = actions[walkClip];
+            action.reset().play();
+            char.currentAction = action;
           }
         } catch (err) {
           console.error('Failed to load', file, err);
@@ -340,32 +461,20 @@
       }
     }
 
-    function playAction(char, name) {
-      if (!char.actions[name]) return;
-      if (char.currentAction) char.currentAction.fadeOut(0.25);
-      const action = char.actions[name];
-      action.reset().fadeIn(0.25).play();
-      char.currentAction = action;
-    }
-
     function focusCharacter(char, btn) {
       document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
       if (btn) btn.classList.add('active');
-
-      // smooth camera target
       controls.target.copy(char.model.position);
       controls.target.y += 1.1;
     }
 
-    // pick new random target every few seconds
     function updateWalking(delta) {
       characters.forEach((char) => {
         const pos = char.model.position;
         const target = char.target;
 
         const dist = pos.distanceTo(target);
-        if (dist < 1.5) {
-          // new target
+        if (dist < 1.8) {
           target.set(
             (Math.random() - 0.5) * 50,
             0,
@@ -373,7 +482,6 @@
           );
         }
 
-        // move toward target
         const dir = new THREE.Vector3().subVectors(target, pos).normalize();
         pos.x += dir.x * char.walkSpeed * delta;
         pos.z += dir.z * char.walkSpeed * delta;
@@ -381,18 +489,18 @@
         // face direction
         if (dir.length() > 0.01) {
           const angle = Math.atan2(dir.x, dir.z);
-          char.model.rotation.y = THREE.MathUtils.lerp(
-            char.model.rotation.y,
-            angle,
-            0.08
-          );
+          char.model.rotation.y = THREE.MathUtils.lerp(char.model.rotation.y, angle, 0.08);
         }
 
-        if (char.mixer) char.mixer.update(delta);
+        // update animation
+        if (char.mixer) {
+          char.mixer.update(delta);
+        } else if (char.procedural) {
+          char.procedural.update(delta, char.walkSpeed * 0.9);
+        }
       });
     }
 
-    // ---- Main loop ----
     const clock = new THREE.Clock();
     function animate() {
       requestAnimationFrame(animate);
