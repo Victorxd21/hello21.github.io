@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Character Inspector</title>
+  <title>Character Inspector - Cube People</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -24,24 +24,23 @@
       padding: 16px 20px;
       border-radius: 14px;
       border: 1px solid rgba(255,255,255,0.12);
-      max-width: 260px;
-      max-height: 80vh;
-      overflow-y: auto;
+      max-width: 240px;
     }
 
     #ui h1 {
       font-size: 18px;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
       color: #7dffb3;
     }
 
-    #ui .subtitle {
+    #ui p {
       font-size: 12px;
-      opacity: 0.7;
+      opacity: 0.75;
       margin-bottom: 12px;
+      line-height: 1.4;
     }
 
-    .model-btn {
+    .btn {
       display: block;
       width: 100%;
       padding: 9px 12px;
@@ -52,32 +51,10 @@
       border-radius: 9px;
       cursor: pointer;
       font-size: 13px;
-      text-align: left;
       transition: all 0.15s;
     }
 
-    .model-btn:hover {
-      background: rgba(125, 255, 179, 0.25);
-    }
-
-    .model-btn.active {
-      background: #7dffb3;
-      color: #0a1a12;
-      font-weight: 600;
-    }
-
-    #loading {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #1a2e24;
-      font-size: 18px;
-      z-index: 20;
-      flex-direction: column;
-      gap: 10px;
-    }
+    .btn:hover { background: rgba(125, 255, 179, 0.25); }
 
     #info {
       position: absolute;
@@ -94,15 +71,11 @@
 </head>
 <body>
 
-  <div id="loading">
-    <div>Loading Character Inspector...</div>
-    <div style="font-size:13px;opacity:0.7">Drop models in /models and list them in models.json</div>
-  </div>
-
   <div id="ui">
-    <h1>Character Inspector</h1>
-    <div class="subtitle">Click a model to focus</div>
-    <div id="model-list"></div>
+    <h1>Cube People</h1>
+    <p>Procedural walk + head & torso look toward walking direction</p>
+    <button class="btn" id="addBtn">+ Add Person</button>
+    <button class="btn" id="clearBtn">Clear All</button>
   </div>
 
   <div id="info">Drag to look around • Scroll to zoom</div>
@@ -119,13 +92,13 @@
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { Sky } from 'three/addons/objects/Sky.js';
 
+    // ========== SCENE ========== 
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
-    camera.position.set(0, 8, 18);
+    camera.position.set(0, 10, 22);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -136,383 +109,294 @@
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    // ---- Sky ----
+    // Sky
     const sky = new Sky();
     sky.scale.setScalar(450);
     scene.add(sky);
-
-    const skyUniforms = sky.material.uniforms;
-    skyUniforms['turbidity'].value = 4;
-    skyUniforms['rayleigh'].value = 2.2;
-    skyUniforms['mieCoefficient'].value = 0.004;
-    skyUniforms['mieDirectionalG'].value = 0.8;
-
+    const skyU = sky.material.uniforms;
+    skyU['turbidity'].value = 4;
+    skyU['rayleigh'].value = 2.2;
+    skyU['mieCoefficient'].value = 0.004;
+    skyU['mieDirectionalG'].value = 0.8;
     const sun = new THREE.Vector3();
-    const phi = THREE.MathUtils.degToRad(78);
-    const theta = THREE.MathUtils.degToRad(180);
-    sun.setFromSphericalCoords(1, phi, theta);
-    skyUniforms['sunPosition'].value.copy(sun);
+    sun.setFromSphericalCoords(1, THREE.MathUtils.degToRad(78), THREE.MathUtils.degToRad(180));
+    skyU['sunPosition'].value.copy(sun);
 
-    // ---- Lights ----
-    const dirLight = new THREE.DirectionalLight(0xfff5e0, 2.4);
+    // Lights
+    const dirLight = new THREE.DirectionalLight(0xfff5e0, 2.3);
     dirLight.position.copy(sun).multiplyScalar(40);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.set(2048, 2048);
     dirLight.shadow.camera.near = 1;
-    dirLight.shadow.camera.far = 80;
-    dirLight.shadow.camera.left = -30;
-    dirLight.shadow.camera.right = 30;
-    dirLight.shadow.camera.top = 30;
-    dirLight.shadow.camera.bottom = -30;
+    dirLight.shadow.camera.far = 90;
+    dirLight.shadow.camera.left = -35;
+    dirLight.shadow.camera.right = 35;
+    dirLight.shadow.camera.top = 35;
+    dirLight.shadow.camera.bottom = -35;
     dirLight.shadow.bias = -0.0003;
     scene.add(dirLight);
 
-    const hemi = new THREE.HemisphereLight(0xb1e1ff, 0x4a7c3a, 0.55);
-    scene.add(hemi);
-
-    const fill = new THREE.DirectionalLight(0xa0d8ff, 0.35);
+    scene.add(new THREE.HemisphereLight(0xb1e1ff, 0x4a7c3a, 0.55));
+    const fill = new THREE.DirectionalLight(0xa0d8ff, 0.3);
     fill.position.set(-10, 8, -8);
     scene.add(fill);
 
-    // ---- Big Grass Field ----
-    const groundGeo = new THREE.PlaneGeometry(120, 120, 64, 64);
-    const posAttr = groundGeo.attributes.position;
-    for (let i = 0; i < posAttr.count; i++) {
-      const x = posAttr.getX(i);
-      const y = posAttr.getY(i);
-      const z = Math.sin(x * 0.08) * 0.4 + Math.cos(y * 0.07) * 0.35;
-      posAttr.setZ(i, z);
+    // Grass field
+    const groundGeo = new THREE.PlaneGeometry(140, 140, 80, 80);
+    const pos = groundGeo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), y = pos.getY(i);
+      pos.setZ(i, Math.sin(x * 0.07) * 0.35 + Math.cos(y * 0.06) * 0.3);
     }
     groundGeo.computeVertexNormals();
-
-    const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x3d8b4a,
-      roughness: 0.92,
-      metalness: 0.02
-    });
-    const ground = new THREE.Mesh(groundGeo, groundMat);
+    const ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({
+      color: 0x3d8b4a, roughness: 0.92, metalness: 0.02
+    }));
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
 
-    for (let i = 0; i < 18; i++) {
-      const patch = new THREE.Mesh(
-        new THREE.CircleGeometry(2 + Math.random() * 4, 24),
+    for (let i = 0; i < 22; i++) {
+      const p = new THREE.Mesh(
+        new THREE.CircleGeometry(1.8 + Math.random() * 3.5, 20),
         new THREE.MeshStandardMaterial({ color: 0x2f6b3a, roughness: 0.95 })
       );
-      patch.rotation.x = -Math.PI / 2;
-      patch.position.set(
-        (Math.random() - 0.5) * 90,
-        0.02,
-        (Math.random() - 0.5) * 90
-      );
-      patch.receiveShadow = true;
-      scene.add(patch);
+      p.rotation.x = -Math.PI / 2;
+      p.position.set((Math.random()-0.5)*100, 0.015, (Math.random()-0.5)*100);
+      p.receiveShadow = true;
+      scene.add(p);
     }
 
-    // ---- Controls ----
+    // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 1.2, 0);
     controls.enableDamping = true;
-    controls.minDistance = 2;
-    controls.maxDistance = 60;
+    controls.minDistance = 3;
+    controls.maxDistance = 70;
     controls.maxPolarAngle = Math.PI / 2.05;
 
-    // ---- Characters ----
-    const loader = new GLTFLoader();
-    const characters = [];
+    // ========== CUBE PERSON ========== 
+    const COLORS = [
+      0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3,
+      0xf38181, 0xaa96da, 0xfcbad3, 0xa8d8ea,
+      0xff9a3c, 0x6bcb77, 0x4d96ff, 0xff6b9d
+    ];
 
-    // ========== PROCEDURAL WALK (improved for Mixamo names) ==========
-    function cleanName(n) {
-      return (n || '').toLowerCase()
-        .replace('mixamorig:', '')
-        .replace(/[_\-\d]+$/g, '')  // remove trailing _01, _00 etc
-        .replace(/[^a-z]/g, '');
-    }
+    function createPerson() {
+      const group = new THREE.Group();
 
-    function findBone(root, candidates) {
-      let found = null;
-      root.traverse((obj) => {
-        if (found) return;
-        const cleaned = cleanName(obj.name);
-        for (const c of candidates) {
-          if (cleaned === c || cleaned.includes(c)) {
-            found = obj;
-            return;
-          }
-        }
-      });
-      return found;
-    }
+      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+      const skin = 0xffdbac;
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+      const skinMat = new THREE.MeshStandardMaterial({ color: skin, roughness: 0.65 });
 
-    function setupProceduralWalk(model) {
-      const bones = {
-        hips: findBone(model, ['hips', 'pelvis', 'root', 'hip']),
-        spine: findBone(model, ['spine', 'spine1', 'spine2', 'chest']),
-        leftUpLeg: findBone(model, ['leftupleg', 'leftthigh', 'thighl', 'uplegl']),
-        rightUpLeg: findBone(model, ['rightupleg', 'rightthigh', 'thighr', 'uplegr']),
-        leftLeg: findBone(model, ['leftleg', 'leftlowerleg', 'leftshin', 'calfl', 'shinl']),
-        rightLeg: findBone(model, ['rightleg', 'rightlowerleg', 'rightshin', 'calfr', 'shinr']),
-        leftFoot: findBone(model, ['leftfoot', 'footl']),
-        rightFoot: findBone(model, ['rightfoot', 'footr']),
-        leftArm: findBone(model, ['leftarm', 'leftupperarm', 'arml', 'upperarml']),
-        rightArm: findBone(model, ['rightarm', 'rightupperarm', 'armr', 'upperarmr']),
-        leftForeArm: findBone(model, ['leftforearm', 'leftlowerarm', 'forearml']),
-        rightForeArm: findBone(model, ['rightforearm', 'rightlowerarm', 'forearmr'])
+      // Hips (root of body)
+      const hips = new THREE.Group();
+      group.add(hips);
+
+      // Torso
+      const torso = new THREE.Mesh(
+        new THREE.BoxGeometry(0.45, 0.55, 0.28),
+        mat
+      );
+      torso.position.y = 0.55;
+      torso.castShadow = true;
+      hips.add(torso);
+
+      // Head
+      const headPivot = new THREE.Group();
+      headPivot.position.y = 0.9;
+      hips.add(headPivot);
+
+      const head = new THREE.Mesh(
+        new THREE.BoxGeometry(0.32, 0.32, 0.32),
+        skinMat
+      );
+      head.position.y = 0.18;
+      head.castShadow = true;
+      headPivot.add(head);
+
+      // Simple face (just so direction is clear)
+      const face = new THREE.Mesh(
+        new THREE.BoxGeometry(0.34, 0.12, 0.06),
+        new THREE.MeshStandardMaterial({ color: 0x222222 })
+      );
+      face.position.set(0, 0.18, 0.16);
+      headPivot.add(face);
+
+      // Arms
+      const leftArm = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.48, 0.12),
+        mat
+      );
+      leftArm.position.set(-0.32, 0.55, 0);
+      leftArm.geometry.translate(0, -0.24, 0);
+      leftArm.castShadow = true;
+      hips.add(leftArm);
+
+      const rightArm = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.48, 0.12),
+        mat
+      );
+      rightArm.position.set(0.32, 0.55, 0);
+      rightArm.geometry.translate(0, -0.24, 0);
+      rightArm.castShadow = true;
+      hips.add(rightArm);
+
+      // Legs
+      const leftLeg = new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, 0.55, 0.14),
+        mat
+      );
+      leftLeg.position.set(-0.12, 0.0, 0);
+      leftLeg.geometry.translate(0, -0.275, 0);
+      leftLeg.castShadow = true;
+      hips.add(leftLeg);
+
+      const rightLeg = new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, 0.55, 0.14),
+        mat
+      );
+      rightLeg.position.set(0.12, 0.0, 0);
+      rightLeg.geometry.translate(0, -0.275, 0);
+      rightLeg.castShadow = true;
+      hips.add(rightLeg);
+
+      // Random start
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 4 + Math.random() * 12;
+      group.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+
+      const person = {
+        group,
+        hips,
+        torso,
+        headPivot,
+        leftArm,
+        rightArm,
+        leftLeg,
+        rightLeg,
+        walkPhase: Math.random() * Math.PI * 2,
+        walkSpeed: 1.3 + Math.random() * 0.9,
+        target: new THREE.Vector3(
+          (Math.random() - 0.5) * 50,
+          0,
+          (Math.random() - 0.5) * 50
+        ),
+        // smooth look angles
+        currentBodyYaw: 0,
+        currentHeadYaw: 0,
+        currentHeadPitch: 0
       };
 
-      const originals = {};
-      for (const key in bones) {
-        if (bones[key]) {
-          originals[key] = {
-            rot: bones[key].rotation.clone(),
-            pos: bones[key].position.clone()
-          };
-        }
-      }
-
-      const hasLegs = bones.leftUpLeg || bones.rightUpLeg;
-      if (!hasLegs) {
-        console.warn('Procedural walk: no leg bones found');
-        return null;
-      }
-
-      console.log('Procedural bones found:', Object.keys(bones).filter(k => bones[k]));
-
-      return {
-        bones,
-        originals,
-        time: Math.random() * 10,
-        update(delta, speed = 1.0) {
-          this.time += delta * speed * 5.5;
-          const t = this.time;
-          const swing = Math.sin(t);
-          const swing2 = Math.sin(t + Math.PI);
-
-          if (this.bones.leftUpLeg) {
-            this.bones.leftUpLeg.rotation.x = this.originals.leftUpLeg.rot.x + swing * 0.6;
-          }
-          if (this.bones.rightUpLeg) {
-            this.bones.rightUpLeg.rotation.x = this.originals.rightUpLeg.rot.x + swing2 * 0.6;
-          }
-
-          if (this.bones.leftLeg) {
-            this.bones.leftLeg.rotation.x = this.originals.leftLeg.rot.x + Math.max(0, -swing) * 0.75;
-          }
-          if (this.bones.rightLeg) {
-            this.bones.rightLeg.rotation.x = this.originals.rightLeg.rot.x + Math.max(0, -swing2) * 0.75;
-          }
-
-          if (this.bones.leftFoot) {
-            this.bones.leftFoot.rotation.x = this.originals.leftFoot.rot.x + swing * 0.3;
-          }
-          if (this.bones.rightFoot) {
-            this.bones.rightFoot.rotation.x = this.originals.rightFoot.rot.x + swing2 * 0.3;
-          }
-
-          if (this.bones.leftArm) {
-            this.bones.leftArm.rotation.x = this.originals.leftArm.rot.x + swing2 * 0.45;
-          }
-          if (this.bones.rightArm) {
-            this.bones.rightArm.rotation.x = this.originals.rightArm.rot.x + swing * 0.45;
-          }
-
-          if (this.bones.leftForeArm) {
-            this.bones.leftForeArm.rotation.x = this.originals.leftForeArm.rot.x + Math.max(0, swing2) * 0.35;
-          }
-          if (this.bones.rightForeArm) {
-            this.bones.rightForeArm.rotation.x = this.originals.rightForeArm.rot.x + Math.max(0, swing) * 0.35;
-          }
-
-          if (this.bones.hips) {
-            this.bones.hips.position.y = this.originals.hips.pos.y + Math.abs(Math.sin(t * 2)) * 0.045;
-            this.bones.hips.rotation.y = this.originals.hips.rot.y + Math.sin(t) * 0.07;
-          }
-          if (this.bones.spine) {
-            this.bones.spine.rotation.y = this.originals.spine.rot.y + Math.sin(t) * 0.05;
-          }
-        }
-      };
+      scene.add(group);
+      return person;
     }
 
-    // ========== LOAD MODELS ==========
-    async function loadModels() {
-      let list = [];
-      try {
-        const res = await fetch('./models/models.json');
-        list = await res.json();
-      } catch (e) {
-        console.warn('No models.json found');
-      }
+    const people = [];
 
-      if (!list.length) {
-        document.getElementById('loading').innerHTML =
-          '<div>No models yet</div><div style="font-size:13px;opacity:0.7;margin-top:8px">Add .glb files to /models<br>and list them in models.json</div>';
-        return;
-      }
-
-      const container = document.getElementById('model-list');
-
-      for (let i = 0; i < list.length; i++) {
-        const entry = list[i];
-        const file = entry.file || entry;
-        const displayName = entry.name || file.replace('.glb', '').replace(/[-_]/g, ' ');
-
-        try {
-          const gltf = await loader.loadAsync('./models/' + file);
-          const model = gltf.scene;
-
-          model.traverse((c) => {
-            if (c.isMesh) {
-              c.castShadow = true;
-              c.receiveShadow = true;
-            }
-          });
-
-          // center + put on ground
-          const box = new THREE.Box3().setFromObject(model);
-          const size = box.getSize(new THREE.Vector3());
-          const center = box.getCenter(new THREE.Vector3());
-          model.position.sub(center);
-          model.position.y += size.y / 2;
-
-          // scale if needed
-          const maxDim = Math.max(size.x, size.y, size.z);
-          if (maxDim > 3.5) model.scale.setScalar(2.8 / maxDim);
-          if (maxDim < 0.8) model.scale.setScalar(1.6 / maxDim);
-
-          // random start position
-          const angle = (i / list.length) * Math.PI * 2;
-          const radius = 6 + Math.random() * 5;
-          model.position.x = Math.cos(angle) * radius;
-          model.position.z = Math.sin(angle) * radius;
-
-          scene.add(model);
-
-          // real animations
-          let mixer = null;
-          const actions = {};
-          let preferredClip = null;
-
-          if (gltf.animations && gltf.animations.length) {
-            mixer = new THREE.AnimationMixer(model);
-            gltf.animations.forEach((clip) => {
-              const name = clip.name || 'animation';
-              actions[name] = mixer.clipAction(clip);
-              const lower = name.toLowerCase();
-              if (lower.includes('walk') || lower.includes('run') || lower.includes('locomotion') || lower.includes('move')) {
-                preferredClip = name;
-              }
-            });
-            // if no walk-like name, just use the first animation
-            if (!preferredClip) preferredClip = Object.keys(actions)[0];
-          }
-
-          // procedural only if no real animation at all
-          const procedural = (!preferredClip) ? setupProceduralWalk(model) : null;
-
-          const char = {
-            name: displayName,
-            model,
-            mixer,
-            actions,
-            preferredClip,
-            procedural,
-            walkSpeed: 1.1 + Math.random() * 0.6,
-            target: new THREE.Vector3(
-              (Math.random() - 0.5) * 40,
-              0,
-              (Math.random() - 0.5) * 40
-            ),
-            currentAction: null
-          };
-
-          characters.push(char);
-
-          // UI button
-          const btn = document.createElement('button');
-          btn.className = 'model-btn';
-          let label = displayName;
-          if (preferredClip) label += ' (anim)';
-          else if (procedural) label += ' (procedural)';
-          btn.textContent = label;
-          btn.onclick = () => focusCharacter(char, btn);
-          container.appendChild(btn);
-
-          // start real animation if available
-          if (preferredClip && actions[preferredClip]) {
-            const action = actions[preferredClip];
-            action.reset().play();
-            char.currentAction = action;
-            console.log('Playing animation:', preferredClip);
-          }
-        } catch (err) {
-          console.error('Failed to load', file, err);
-        }
-      }
-
-      document.getElementById('loading').style.display = 'none';
-
-      if (characters.length) {
-        focusCharacter(characters[0], document.querySelector('.model-btn'));
-      }
+    function addPerson() {
+      people.push(createPerson());
     }
 
-    function focusCharacter(char, btn) {
-      document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
-      if (btn) btn.classList.add('active');
-      controls.target.copy(char.model.position);
-      controls.target.y += 1.1;
-    }
+    // start with a few
+    for (let i = 0; i < 7; i++) addPerson();
 
-    function updateWalking(delta) {
-      characters.forEach((char) => {
-        const pos = char.model.position;
-        const target = char.target;
+    document.getElementById('addBtn').onclick = () => addPerson();
+    document.getElementById('clearBtn').onclick = () => {
+      people.forEach(p => scene.remove(p.group));
+      people.length = 0;
+    };
 
-        const dist = pos.distanceTo(target);
-        if (dist < 1.8) {
+    // ========== ANIMATION ========== 
+    function updatePeople(delta) {
+      people.forEach(p => {
+        const pos = p.group.position;
+        const target = p.target;
+
+        // new target when close
+        if (pos.distanceTo(target) < 2.0) {
           target.set(
-            (Math.random() - 0.5) * 50,
+            (Math.random() - 0.5) * 55,
             0,
-            (Math.random() - 0.5) * 50
+            (Math.random() - 0.5) * 55
           );
         }
 
-        const dir = new THREE.Vector3().subVectors(target, pos).normalize();
-        pos.x += dir.x * char.walkSpeed * delta;
-        pos.z += dir.z * char.walkSpeed * delta;
+        // direction of travel
+        const dir = new THREE.Vector3().subVectors(target, pos);
+        dir.y = 0;
+        if (dir.length() < 0.01) return;
+        dir.normalize();
 
-        if (dir.length() > 0.01) {
-          const angle = Math.atan2(dir.x, dir.z);
-          char.model.rotation.y = THREE.MathUtils.lerp(char.model.rotation.y, angle, 0.08);
-        }
+        // move
+        pos.x += dir.x * p.walkSpeed * delta;
+        pos.z += dir.z * p.walkSpeed * delta;
 
-        if (char.mixer) {
-          char.mixer.update(delta);
-        } else if (char.procedural) {
-          char.procedural.update(delta, char.walkSpeed * 0.9);
-        }
+        // desired body yaw (facing walk direction)
+        const desiredYaw = Math.atan2(dir.x, dir.z);
+
+        // smooth body turn (torso + whole person)
+        p.currentBodyYaw = THREE.MathUtils.lerp(
+          p.currentBodyYaw,
+          desiredYaw,
+          1 - Math.exp(-4.5 * delta)   // smooth but not instant
+        );
+        p.group.rotation.y = p.currentBodyYaw;
+
+        // head looks a bit further toward the target (slight lead)
+        // limit so neck doesn't break
+        let headYawOffset = desiredYaw - p.currentBodyYaw;
+        // wrap to -PI..PI
+        headYawOffset = ((headYawOffset + Math.PI) % (Math.PI * 2)) - Math.PI;
+        headYawOffset = THREE.MathUtils.clamp(headYawOffset, -0.7, 0.7); // max ~40°
+
+        p.currentHeadYaw = THREE.MathUtils.lerp(p.currentHeadYaw, headYawOffset, 1 - Math.exp(-6 * delta));
+        p.headPivot.rotation.y = p.currentHeadYaw;
+
+        // tiny head pitch (looking slightly down the path)
+        p.currentHeadPitch = THREE.MathUtils.lerp(p.currentHeadPitch, -0.08, 1 - Math.exp(-3 * delta));
+        p.headPivot.rotation.x = p.currentHeadPitch;
+
+        // ---- Procedural walk cycle ----
+        p.walkPhase += delta * p.walkSpeed * 5.8;
+        const t = p.walkPhase;
+        const swing = Math.sin(t);
+        const swing2 = Math.sin(t + Math.PI);
+
+        // Legs
+        p.leftLeg.rotation.x = swing * 0.65;
+        p.rightLeg.rotation.x = swing2 * 0.65;
+
+        // Arms (opposite)
+        p.leftArm.rotation.x = swing2 * 0.5;
+        p.rightArm.rotation.x = swing * 0.5;
+
+        // Body bob
+        p.hips.position.y = Math.abs(Math.sin(t * 2)) * 0.05;
+
+        // slight torso lean into turn
+        const lean = THREE.MathUtils.clamp((desiredYaw - p.currentBodyYaw) * 0.6, -0.15, 0.15);
+        p.torso.rotation.z = THREE.MathUtils.lerp(p.torso.rotation.z, lean, 0.1);
       });
     }
 
+    // ========== LOOP ========== 
     const clock = new THREE.Clock();
     function animate() {
       requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      updateWalking(delta);
+      const delta = Math.min(clock.getDelta(), 0.05);
+      updatePeople(delta);
       controls.update();
       renderer.render(scene, camera);
     }
+    animate();
 
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
-
-    loadModels();
-    animate();
   </script>
 </body>
 </html>
