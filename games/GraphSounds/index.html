@@ -119,11 +119,12 @@
 <body>
     <div class="container">
         <h1>Audio-to-Graph Replicator</h1>
-        <p class="subtitle">Upload any audio file to extract its waveform profile into a math function.</p>
+        <p class="subtitle">Upload an audio file (.mp3, .wav, .m4a) to convert its waveform into a math formula.</p>
         
         <div class="upload-section">
-            <label for="audioFile">Upload Sound File (MP3 / WAV):</label>
-            <input type="file" id="audioFile" accept="audio/*">
+            <label for="audioFile">Upload Sound File (MP3 / WAV / M4A):</label>
+            <!-- Fixed filter to strictly target audio files -->
+            <input type="file" id="audioFile" accept=".mp3, .wav, .m4a, .aac, .ogg, audio/mpeg, audio/wav">
         </div>
 
         <div class="input-group">
@@ -159,7 +160,7 @@
 
         const xMin = 0, xMax = 20;
         const yMin = -1.5, yMax = 1.5;
-        const targetDuration = 2.0; // Analyzed snippet length in seconds
+        const targetDuration = 2.0;
 
         function mapX(x) {
             return ((x - xMin) / (xMax - xMin)) * canvas.width;
@@ -181,7 +182,6 @@
         function drawGraph(playProgressX = null) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw grid axes
             ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 1;
             const originY = mapY(0);
@@ -194,7 +194,6 @@
             ctx.lineTo(originX, canvas.height);
             ctx.stroke();
 
-            // Draw function curve
             ctx.strokeStyle = '#38bdf8';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -224,7 +223,6 @@
             }
             ctx.stroke();
 
-            // Playhead
             if (playProgressX !== null) {
                 const px = mapX(playProgressX);
                 const currentY = evaluateFormula(playProgressX, formulaStr);
@@ -250,12 +248,11 @@
             if (!isPlayingMath) drawGraph();
         });
 
-        // Handle File Upload & Feature Extraction
         document.getElementById('audioFile').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            statusMsg.textContent = 'Processing and analyzing audio...';
+            statusMsg.textContent = 'Processing and analyzing audio sound file...';
 
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -266,14 +263,10 @@
                 originalBuffer = await audioCtx.decodeAudioData(arrayBuffer);
                 playOriginalBtn.disabled = false;
 
-                // Extract a representative snippet and downsample to approximate a formula profile
                 const channelData = originalBuffer.getChannelData(0);
                 const sampleRate = originalBuffer.sampleRate;
                 const totalSamplesToRead = Math.floor(sampleRate * targetDuration);
                 
-                let formulaTerms = [];
-                // Simple feature approximation: detect dominant rough harmonic markers
-                // We'll map downsampled points into a synthesized harmonic trigonometric approximation string
                 const resolution = 15;
                 let stepSize = Math.floor(Math.min(channelData.length, totalSamplesToRead) / resolution);
                 
@@ -294,10 +287,10 @@
                 }
 
                 drawGraph();
-                statusMsg.textContent = 'Audio loaded & converted to math graph formula successfully!';
+                statusMsg.textContent = 'Audio file loaded & converted to math graph formula successfully!';
             } catch (err) {
                 console.error(err);
-                statusMsg.textContent = 'Error parsing audio file. Try a standard WAV or MP3.';
+                statusMsg.textContent = 'Error parsing sound file. Make sure it is a valid MP3 or WAV.';
             }
         });
 
