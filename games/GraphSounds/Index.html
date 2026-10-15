@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Graph Sonification</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin: 0 0 10px 0;
+            color: #38bdf8;
+            text-align: center;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+        input[type="text"] {
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus {
+            border-color: #38bdf8;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+        }
+        button {
+            flex: 1;
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s, opacity 0.2s;
+        }
+        button:hover {
+            background: #7dd3fc;
+        }
+        canvas {
+            background: #0f172a;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            width: 100%;
+            height: 300px;
+        }
+        .examples {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            background: #334155;
+            color: #cbd5e1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .badge:hover {
+            background: #475569;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Math Graph Sonification</h1>
+        
+        <div class="input-group">
+            <label for="formula">Function y = f(x) (JavaScript Math syntax):</label>
+            <input type="text" id="formula" value="Math.sin(x) * x">
+        </div>
+
+        <div class="examples">
+            <span class="badge" onclick="setFormula('Math.sin(x)')">sin(x)</span>
+            <span class="badge" onclick="setFormula('Math.sin(x) * x')">sin(x) * x</span>
+            <span class="badge" onclick="setFormula('x * x / 5')">x² / 5</span>
+            <span class="badge" onclick="setFormula('Math.cos(x * 0.5) * 3')">cos(0.5x) * 3</span>
+            <span class="badge" onclick="setFormula('Math.sin(x) + Math.cos(2*x)')">sin(x) + cos(2x)</span>
+        </div>
+
+        <canvas id="graphCanvas" width="540" height="300"></canvas>
+
+        <div class="controls">
+            <button id="playBtn" onclick="togglePlay()">Play Sound</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('graphCanvas');
+        const ctx = canvas.getContext('2d');
+        const formulaInput = document.getElementById('formula');
+        const playBtn = document.getElementById('playBtn');
+
+        let audioCtx = null;
+        let isPlaying = false;
+        let animationId = null;
+
+        const xMin = -10, xMax = 10;
+        const yMin = -10, yMax = 10;
+
+        function setFormula(val) {
+            formulaInput.value = val;
+            drawGraph();
+        }
+
+        function mapX(x) {
+            return ((x - xMin) / (xMax - xMin)) * canvas.width;
+        }
+
+        function mapY(y) {
+            return canvas.height - ((y - yMin) / (yMax - yMin)) * canvas.height;
+        }
+
+        function evaluateFormula(xVal, formulaStr) {
+            try {
+                const fn = new Function('x', `return ${formulaStr};`);
+                return fn(xVal);
+            } catch (e) {
+                return NaN;
+            }
+        }
+
+        function drawGraph(playProgressX = null) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid axes
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+
+            const originY = mapY(0);
+            const originX = mapX(0);
+
+            ctx.beginPath();
+            ctx.moveTo(0, originY);
+            ctx.lineTo(canvas.width, originY);
+            ctx.moveTo(originX, 0);
+            ctx.lineTo(originX, canvas.height);
+            ctx.stroke();
+
+            // Draw function curve
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            const formulaStr = formulaInput.value;
+            let first = true;
+            const steps = 300;
+            
+            for (let i = 0; i <= steps; i++) {
+                const x = xMin + (i / steps) * (xMax - xMin);
+                const y = evaluateFormula(x, formulaStr);
+                
+                if (isNaN(y) || !isFinite(y)) {
+                    first = true;
+                    continue;
+                }
+
+                const px = mapX(x);
+                const py = mapY(y);
+
+                if (first) {
+                    ctx.moveTo(px, py);
+                    first = false;
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            }
+            ctx.stroke();
+
+            // Draw playhead during playback
+            if (playProgressX !== null) {
+                const px = mapX(playProgressX);
+                const currentY = evaluateFormula(playProgressX, formulaStr);
+                
+                ctx.strokeStyle = '#f43f5e';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(px, 0);
+                ctx.lineTo(px, canvas.height);
+                ctx.stroke();
+
+                if (!isNaN(currentY) && isFinite(currentY)) {
+                    const py = mapY(currentY);
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.beginPath();
+                    ctx.arc(px, py, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        formulaInput.addEventListener('input', () => {
+            if (!isPlaying) drawGraph();
+        });
+
+        async function togglePlay() {
+            if (isPlaying) {
+                stopAudio();
+                return;
+            }
+
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+
+            isPlaying = true;
+            playBtn.textContent = 'Stop';
+            playBtn.style.background = '#f43f5e';
+            playBtn.style.color = '#fff';
+
+            const formulaStr = formulaInput.value;
+            const duration = 4.0; // seconds for sweep
+            const startTime = audioCtx.currentTime;
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            osc.type = 'sine';
+            
+            const sampleRate = audioCtx.sampleRate;
+            const totalSamples = Math.floor(sampleRate * duration);
+            const freqCurve = new Float32Array(totalSamples);
+            const gainCurve = new Float32Array(totalSamples);
+
+            for (let i = 0; i < totalSamples; i++) {
+                const t = i / sampleRate;
+                const progress = t / duration;
+                const x = xMin + progress * (xMax - xMin);
+                const y = evaluateFormula(x, formulaStr);
+
+                if (isNaN(y) || !isFinite(y)) {
+                    freqCurve[i] = 200;
+                    gainCurve[i] = 0;
+                } else {
+                    const clampedY = Math.max(yMin, Math.min(yMax, y));
+                    const freq = 150 + ((clampedY - yMin) / (yMax - yMin)) * 1000;
+                    freqCurve[i] = freq;
+                    gainCurve[i] = 0.15;
+                }
+            }
+
+            const freqParam = osc.frequency;
+            const gainParam = gainNode.gain;
+
+            freqParam.setValueAtTime(freqCurve[0], startTime);
+            freqParam.setValueCurveAtTime(freqCurve, startTime, duration);
+
+            gainParam.setValueAtTime(0, startTime);
+            gainParam.setValueCurveAtTime(gainCurve, startTime, duration);
+            gainParam.setTargetAtTime(0, startTime + duration - 0.05, 0.01);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+
+            const animatePlayback = () => {
+                if (!isPlaying) return;
+                const elapsed = audioCtx.currentTime - startTime;
+                const progress = elapsed / duration;
+
+                if (progress >= 1.0) {
+                    stopAudio();
+                    return;
+                }
+
+                const currentX = xMin + progress * (xMax - xMin);
+                drawGraph(currentX);
+                animationId = requestAnimationFrame(animatePlayback);
+            };
+
+            animationId = requestAnimationFrame(animatePlayback);
+        }
+
+        function stopAudio() {
+            isPlaying = false;
+            playBtn.textContent = 'Play Sound';
+            playBtn.style.background = '#38bdf8';
+            playBtn.style.color = '#0f172a';
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            if (audioCtx && audioCtx.state === 'running') {
+                audioCtx.close();
+                audioCtx = null;
+            }
+            drawGraph();
+        }
+
+        drawGraph();
+    </script>
+</body>
+</html>
