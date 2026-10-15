@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Math Graph Sonification</title>
+    <title>Left-to-Right Graph Sonification</title>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -104,25 +104,24 @@
 </head>
 <body>
     <div class="container">
-        <h1>Math Graph Sonification</h1>
+        <h1>Left-to-Right Graph Sonification</h1>
         
         <div class="input-group">
-            <label for="formula">Function y = f(x) (JavaScript Math syntax):</label>
-            <input type="text" id="formula" value="Math.sin(x) * x">
+            <label for="formula">Waveform Formula y = f(x) from left to right:</label>
+            <input type="text" id="formula" value="Math.sin(x * 50) * Math.sin(x * 2)">
         </div>
 
         <div class="examples">
-            <span class="badge" onclick="setFormula('Math.sin(x)')">sin(x)</span>
-            <span class="badge" onclick="setFormula('Math.sin(x) * x')">sin(x) * x</span>
-            <span class="badge" onclick="setFormula('x * x / 5')">x² / 5</span>
-            <span class="badge" onclick="setFormula('Math.cos(x * 0.5) * 3')">cos(0.5x) * 3</span>
-            <span class="badge" onclick="setFormula('Math.sin(x) + Math.cos(2*x)')">sin(x) + cos(2x)</span>
+            <span class="badge" onclick="setFormula('Math.sin(x * 40)')">Sine Tone</span>
+            <span class="badge" onclick="setFormula('Math.sin(x * 30) * Math.sin(x * 2)')">Amplitude Modulated</span>
+            <span class="badge" onclick="setFormula('Math.sin(x * 20) + Math.sin(x * 40) * 0.5')">Harmonic Mix</span>
+            <span class="badge" onclick="setFormula('(x * 10) % 6.28 - 3.14')">Sawtooth Sweep</span>
         </div>
 
         <canvas id="graphCanvas" width="540" height="300"></canvas>
 
         <div class="controls">
-            <button id="playBtn" onclick="togglePlay()">Play Sound</button>
+            <button id="playBtn" onclick="togglePlay()">Play Audio Waveform</button>
         </div>
     </div>
 
@@ -133,15 +132,18 @@
         const playBtn = document.getElementById('playBtn');
 
         let audioCtx = null;
+        let audioBuffer = null;
+        let sourceNode = null;
         let isPlaying = false;
         let animationId = null;
 
-        const xMin = -10, xMax = 10;
-        const yMin = -10, yMax = 10;
+        const xMin = 0, xMax = 20;
+        const yMin = -2, yMax = 2;
+        const duration = 2.0; // Audio duration in seconds
 
         function setFormula(val) {
             formulaInput.value = val;
-            drawGraph();
+            buildAndDraw();
         }
 
         function mapX(x) {
@@ -157,17 +159,16 @@
                 const fn = new Function('x', `return ${formulaStr};`);
                 return fn(xVal);
             } catch (e) {
-                return NaN;
+                return 0;
             }
         }
 
-        function drawGraph(playProgressX = null) {
+        function buildAndDraw(playProgressX = null) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // Draw grid axes
             ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 1;
-
             const originY = mapY(0);
             const originX = mapX(0);
 
@@ -178,14 +179,14 @@
             ctx.lineTo(originX, canvas.height);
             ctx.stroke();
 
-            // Draw function curve
+            // Draw curve
             ctx.strokeStyle = '#38bdf8';
             ctx.lineWidth = 2;
             ctx.beginPath();
 
             const formulaStr = formulaInput.value;
             let first = true;
-            const steps = 300;
+            const steps = 400;
             
             for (let i = 0; i <= steps; i++) {
                 const x = xMin + (i / steps) * (xMax - xMin);
@@ -208,7 +209,7 @@
             }
             ctx.stroke();
 
-            // Draw playhead during playback
+            // Playhead
             if (playProgressX !== null) {
                 const px = mapX(playProgressX);
                 const currentY = evaluateFormula(playProgressX, formulaStr);
@@ -231,7 +232,7 @@
         }
 
         formulaInput.addEventListener('input', () => {
-            if (!isPlaying) drawGraph();
+            if (!isPlaying) buildAndDraw();
         });
 
         async function togglePlay() {
@@ -248,70 +249,50 @@
                 await audioCtx.resume();
             }
 
+            const formulaStr = formulaInput.value;
+            const sampleRate = audioCtx.sampleRate;
+            const totalSamples = Math.floor(sampleRate * duration);
+            
+            // Generate audio buffer directly from left-to-right math samples
+            audioBuffer = audioCtx.createBuffer(1, totalSamples, sampleRate);
+            const channelData = audioBuffer.getChannelData(0);
+
+            for (let i = 0; i < totalSamples; i++) {
+                const progress = i / totalSamples;
+                const x = xMin + progress * (xMax - xMin);
+                let y = evaluateFormula(x, formulaStr);
+
+                if (isNaN(y) || !isFinite(y)) y = 0;
+                // Soft clip to protect speakers
+                channelData[i] = Math.max(-1, Math.min(1, y));
+            }
+
+            sourceNode = audioCtx.createBufferSource();
+            sourceNode.buffer = audioBuffer;
+            sourceNode.connect(audioCtx.destination);
+
             isPlaying = true;
-            playBtn.textContent = 'Stop';
+            playBtn.textContent = 'Stop Audio';
             playBtn.style.background = '#f43f5e';
             playBtn.style.color = '#fff';
 
-            const formulaStr = formulaInput.value;
-            const duration = 4.0; // seconds for sweep
             const startTime = audioCtx.currentTime;
+            sourceNode.start(startTime);
 
-            const osc = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-
-            osc.type = 'sine';
-            
-            const sampleRate = audioCtx.sampleRate;
-            const totalSamples = Math.floor(sampleRate * duration);
-            const freqCurve = new Float32Array(totalSamples);
-            const gainCurve = new Float32Array(totalSamples);
-
-            for (let i = 0; i < totalSamples; i++) {
-                const t = i / sampleRate;
-                const progress = t / duration;
-                const x = xMin + progress * (xMax - xMin);
-                const y = evaluateFormula(x, formulaStr);
-
-                if (isNaN(y) || !isFinite(y)) {
-                    freqCurve[i] = 200;
-                    gainCurve[i] = 0;
-                } else {
-                    const clampedY = Math.max(yMin, Math.min(yMax, y));
-                    const freq = 150 + ((clampedY - yMin) / (yMax - yMin)) * 1000;
-                    freqCurve[i] = freq;
-                    gainCurve[i] = 0.15;
-                }
-            }
-
-            const freqParam = osc.frequency;
-            const gainParam = gainNode.gain;
-
-            freqParam.setValueAtTime(freqCurve[0], startTime);
-            freqParam.setValueCurveAtTime(freqCurve, startTime, duration);
-
-            gainParam.setValueAtTime(0, startTime);
-            gainParam.setValueCurveAtTime(gainCurve, startTime, duration);
-            gainParam.setTargetAtTime(0, startTime + duration - 0.05, 0.01);
-
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
-            osc.start(startTime);
-            osc.stop(startTime + duration);
+            sourceNode.onended = () => {
+                if (isPlaying) stopAudio();
+            };
 
             const animatePlayback = () => {
                 if (!isPlaying) return;
                 const elapsed = audioCtx.currentTime - startTime;
-                const progress = elapsed / duration;
-
-                if (progress >= 1.0) {
+                if (elapsed >= duration) {
                     stopAudio();
                     return;
                 }
 
-                const currentX = xMin + progress * (xMax - xMin);
-                drawGraph(currentX);
+                const currentX = xMin + (elapsed / duration) * (xMax - xMin);
+                buildAndDraw(currentX);
                 animationId = requestAnimationFrame(animatePlayback);
             };
 
@@ -320,20 +301,22 @@
 
         function stopAudio() {
             isPlaying = false;
-            playBtn.textContent = 'Play Sound';
+            playBtn.textContent = 'Play Audio Waveform';
             playBtn.style.background = '#38bdf8';
             playBtn.style.color = '#0f172a';
+            
+            if (sourceNode) {
+                try { sourceNode.stop(); } catch(e) {}
+                sourceNode.disconnect();
+                sourceNode = null;
+            }
             if (animationId) {
                 cancelAnimationFrame(animationId);
             }
-            if (audioCtx && audioCtx.state === 'running') {
-                audioCtx.close();
-                audioCtx = null;
-            }
-            drawGraph();
+            buildAndDraw();
         }
 
-        drawGraph();
+        buildAndDraw();
     </script>
 </body>
 </html>
