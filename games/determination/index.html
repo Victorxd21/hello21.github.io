@@ -4,23 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="mobile-web-app-capable" content="yes" />
   <title>Determination</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div id="game-container">
-    <!-- Title Screen -->
+
+    <!-- TITLE -->
     <div id="title-screen" class="screen active">
       <div class="title-content">
+        <div class="heart">♥</div>
         <h1>DETERMINATION</h1>
         <p class="subtitle">a simple undertale-inspired demo</p>
         <button id="start-btn" class="menu-btn">START</button>
-        <p class="hint">Use on-screen controls or keyboard</p>
+        <p class="hint">Tap / Click to start</p>
       </div>
     </div>
 
-    <!-- Overworld -->
+    <!-- OVERWORLD -->
     <div id="overworld" class="screen">
       <canvas id="world-canvas"></canvas>
       <div id="dialogue-box" class="hidden">
@@ -29,21 +30,24 @@
       </div>
     </div>
 
-    <!-- Battle Screen -->
+    <!-- BATTLE -->
     <div id="battle" class="screen">
       <div id="enemy-area">
         <div id="enemy-sprite">DUMMY</div>
-        <div id="enemy-name">Dummy</div>
+        <div id="enemy-hp-bar"><div id="enemy-hp-fill"></div></div>
       </div>
 
       <div id="soul-box">
+        <div class="grid"></div>
         <div id="soul"></div>
       </div>
 
       <div id="battle-ui">
-        <div id="hp-bar">
-          <span>HP</span>
-          <div class="bar"><div id="hp-fill"></div></div>
+        <div id="player-info">
+          <span>FRISK</span>
+          <span>LV 1</span>
+          <span class="hp-label">HP</span>
+          <div class="hp-bar"><div id="hp-fill"></div></div>
           <span id="hp-text">20 / 20</span>
         </div>
 
@@ -58,25 +62,24 @@
       </div>
     </div>
 
-    <!-- Mobile Controls - always visible on phone -->
+    <!-- MOBILE CONTROLS -->
     <div id="mobile-controls">
       <div id="dpad">
-        <button class="dpad-btn" id="btn-up" data-dir="up">▲</button>
+        <button class="dpad-btn" data-dir="up">▲</button>
         <div class="dpad-row">
-          <button class="dpad-btn" id="btn-left" data-dir="left">◀</button>
-          <button class="dpad-btn center-btn"></button>
-          <button class="dpad-btn" id="btn-right" data-dir="right">▶</button>
+          <button class="dpad-btn" data-dir="left">◀</button>
+          <div class="dpad-center"></div>
+          <button class="dpad-btn" data-dir="right">▶</button>
         </div>
-        <button class="dpad-btn" id="btn-down" data-dir="down">▼</button>
+        <button class="dpad-btn" data-dir="down">▼</button>
       </div>
-
       <div id="action-buttons">
         <button id="btn-b" class="action-btn">B</button>
         <button id="btn-a" class="action-btn">A</button>
       </div>
     </div>
-  </div>
 
+  </div>
   <script src="game.js"></script>
 </body>
 </html>
