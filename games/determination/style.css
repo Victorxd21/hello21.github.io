@@ -4,15 +4,17 @@
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  -webkit-user-select: none;
 }
 
-body {
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
   background: #000;
   color: #fff;
   font-family: 'Courier New', Courier, monospace;
-  overflow: hidden;
-  height: 100vh;
-  width: 100vw;
+  position: fixed;
   touch-action: none;
 }
 
@@ -20,9 +22,9 @@ body {
   width: 100%;
   height: 100%;
   position: relative;
-  max-width: 480px;
-  margin: 0 auto;
   background: #0a0a12;
+  display: flex;
+  flex-direction: column;
 }
 
 .screen {
@@ -32,6 +34,7 @@ body {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: 1;
 }
 
 .screen.active {
@@ -45,11 +48,12 @@ body {
   align-items: center;
   background: linear-gradient(#1a0033, #000);
   text-align: center;
+  z-index: 2;
 }
 
 .title-content h1 {
-  font-size: 2.4rem;
-  letter-spacing: 6px;
+  font-size: clamp(1.8rem, 8vw, 2.6rem);
+  letter-spacing: 4px;
   color: #ff4d6d;
   text-shadow: 0 0 12px #ff4d6d;
   margin-bottom: 8px;
@@ -57,7 +61,7 @@ body {
 
 .subtitle {
   color: #aaa;
-  margin-bottom: 40px;
+  margin-bottom: 36px;
   font-size: 0.85rem;
 }
 
@@ -65,22 +69,20 @@ body {
   background: transparent;
   border: 2px solid #ff4d6d;
   color: #ff4d6d;
-  padding: 12px 40px;
-  font-size: 1.2rem;
+  padding: 14px 42px;
+  font-size: 1.15rem;
   font-family: inherit;
   cursor: pointer;
   letter-spacing: 3px;
-  transition: all 0.2s;
 }
 
-.menu-btn:hover,
 .menu-btn:active {
   background: #ff4d6d;
   color: #000;
 }
 
 .hint {
-  margin-top: 30px;
+  margin-top: 28px;
   font-size: 0.75rem;
   color: #666;
 }
@@ -99,7 +101,7 @@ body {
 
 #dialogue-box {
   position: absolute;
-  bottom: 90px;
+  bottom: 160px;
   left: 10px;
   right: 10px;
   background: #000;
@@ -137,37 +139,39 @@ body {
 }
 
 #enemy-area {
-  height: 28%;
+  height: 22%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   border-bottom: 2px solid #333;
+  flex-shrink: 0;
 }
 
 #enemy-sprite {
-  font-size: 2.5rem;
-  margin-bottom: 6px;
+  font-size: 2.2rem;
+  margin-bottom: 4px;
   color: #f5c6a5;
 }
 
 #enemy-name {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #aaa;
 }
 
 #soul-box {
   flex: 1;
-  margin: 12px;
+  margin: 10px;
   border: 3px solid #fff;
   position: relative;
   background: #111;
   overflow: hidden;
+  min-height: 140px;
 }
 
 #soul {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   background: #ff0000;
   position: absolute;
   left: 50%;
@@ -178,9 +182,10 @@ body {
 }
 
 #battle-ui {
-  padding: 10px;
+  padding: 10px 12px 150px; /* space for mobile controls */
   background: #0a0a12;
   border-top: 2px solid #333;
+  flex-shrink: 0;
 }
 
 #hp-bar {
@@ -215,7 +220,7 @@ body {
   background: transparent;
   border: 2px solid #fff;
   color: #fff;
-  padding: 10px;
+  padding: 12px 8px;
   font-family: inherit;
   font-size: 0.95rem;
   cursor: pointer;
@@ -242,17 +247,18 @@ body {
 
 /* ===== MOBILE CONTROLS ===== */
 #mobile-controls {
-  position: absolute;
+  position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 140px;
+  height: 150px;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  padding: 10px 16px 20px;
+  padding: 8px 18px 24px;
+  z-index: 100;
   pointer-events: none;
-  z-index: 50;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
 }
 
 #dpad, #action-buttons {
@@ -263,64 +269,77 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
-.dpad-middle {
+.dpad-row {
   display: flex;
-  gap: 40px;
+  gap: 2px;
+  align-items: center;
 }
 
 .dpad-btn {
-  width: 52px;
-  height: 52px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 2px solid rgba(255, 255, 255, 0.35);
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.4);
   color: #fff;
-  font-size: 1.3rem;
-  border-radius: 8px;
+  font-size: 1.4rem;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: none;
 }
 
-.dpad-btn:active {
-  background: rgba(255, 77, 109, 0.5);
+.dpad-btn.center-btn {
+  width: 40px;
+  height: 40px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.dpad-btn:active,
+.dpad-btn.active {
+  background: rgba(255, 77, 109, 0.6);
   border-color: #ff4d6d;
 }
 
 #action-buttons {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  align-items: flex-end;
+  margin-bottom: 8px;
 }
 
 .action-btn {
-  width: 58px;
-  height: 58px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: rgba(255, 77, 109, 0.2);
-  border: 2px solid #ff4d6d;
+  background: rgba(255, 77, 109, 0.25);
+  border: 3px solid #ff4d6d;
   color: #ff4d6d;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: bold;
   font-family: inherit;
+  touch-action: none;
 }
 
-.action-btn:active {
+.action-btn:active,
+.action-btn.active {
   background: #ff4d6d;
   color: #000;
 }
 
-/* Hide mobile controls on larger screens if desired, but keep them for tablets too */
-@media (min-width: 600px) {
+/* Desktop: make controls smaller / semi-transparent */
+@media (min-width: 700px) {
   #mobile-controls {
-    opacity: 0.7;
+    opacity: 0.55;
   }
-}
-
-/* When in battle, slightly adjust positions */
-#battle ~ #mobile-controls,
-.battle-active #mobile-controls {
-  /* already absolute */
+  #dialogue-box {
+    bottom: 20px;
+  }
+  #battle-ui {
+    padding-bottom: 20px;
+  }
 }

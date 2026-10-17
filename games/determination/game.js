@@ -1,5 +1,5 @@
 // DETERMINATION - Simple Undertale-inspired demo
-// Mobile + Desktop controls
+// Fixed mobile controls + music support
 
 const canvas = document.getElementById('world-canvas');
 const ctx = canvas.getContext('2d');
@@ -10,38 +10,72 @@ const overworld = document.getElementById('overworld');
 const battleScreen = document.getElementById('battle');
 
 // State
-let state = 'title'; // title | overworld | battle | dialogue
+let state = 'title';
 let keys = {};
-let player = { x: 8, y: 8, size: 0.12 };
+let player = { x: 3, y: 3, speed: 0.13 };
 let map = [];
 let mapW = 16, mapH = 12;
 let tileSize = 32;
 
 let hp = 20, maxHp = 20;
-let inBattle = false;
-let battlePhase = 'menu'; // menu | attack | dialogue
-let soul = { x: 0.5, y: 0.5 }; // normalized 0-1 inside soul-box
+let battlePhase = 'menu';
+let soul = { x: 0.5, y: 0.5 };
 let enemyHP = 30;
 let selectedAction = 0;
 
 const actions = ['fight', 'act', 'item', 'mercy'];
 
-// Simple map (1 = wall, 0 = floor, 2 = dummy encounter)
+// ===== MUSIC =====
+// Put your mp3 files in the music/ folder with these exact names:
+const music = {
+  title: new Audio('music/once-upon-a-time.mp3'),
+  overworld: new Audio('music/ruins.mp3'),
+  battle: new Audio('music/dummy.mp3'),
+  shop: new Audio('music/shop.mp3')
+};
+
+// Make them loop
+Object.values(music).forEach(a => {
+  a.loop = true;
+  a.volume = 0.45;
+});
+
+let currentMusic = null;
+
+function playMusic(track) {
+  if (currentMusic === track) return;
+  if (currentMusic) {
+    currentMusic.pause();
+    currentMusic.currentTime = 0;
+  }
+  currentMusic = track;
+  track.play().catch(() => {
+    // Autoplay blocked until user interacts - normal on mobile
+  });
+}
+
+function stopMusic() {
+  if (currentMusic) {
+    currentMusic.pause();
+    currentMusic.currentTime = 0;
+    currentMusic = null;
+  }
+}
+
+// ===== MAP =====
 function generateMap() {
   map = [];
   for (let y = 0; y < mapH; y++) {
     map[y] = [];
     for (let x = 0; x < mapW; x++) {
       if (x === 0 || y === 0 || x === mapW - 1 || y === mapH - 1) {
-        map[y][x] = 1; // wall
+        map[y][x] = 1;
       } else {
         map[y][x] = 0;
       }
     }
   }
-  // Dummy position
-  map[5][10] = 2;
-  // Some pillars
+  map[5][10] = 2; // Dummy
   map[3][4] = 1;
   map[3][5] = 1;
   map[7][7] = 1;
@@ -49,28 +83,26 @@ function generateMap() {
 }
 
 function resize() {
-  const container = document.getElementById('game-container');
-  const w = container.clientWidth;
-  const h = container.clientHeight - (window.innerWidth < 600 ? 140 : 0);
+  const w = window.innerWidth;
+  const h = window.innerHeight;
   canvas.width = w;
   canvas.height = h;
-  tileSize = Math.floor(Math.min(w / mapW, h / mapH));
+  tileSize = Math.floor(Math.min(w / mapW, (h - 160) / mapH));
 }
 
-// Input
+// ===== INPUT (Keyboard) =====
 window.addEventListener('keydown', e => {
-  keys[e.key.toLowerCase()] = true;
-  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) {
-    e.preventDefault();
-  }
-  handleKeyPress(e.key.toLowerCase());
+  const k = e.key.toLowerCase();
+  keys[k] = true;
+  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
+  handleKeyPress(k);
 });
 window.addEventListener('keyup', e => {
   keys[e.key.toLowerCase()] = false;
 });
 
 function handleKeyPress(key) {
-  if (state === 'title' && (key === 'enter' || key === ' ')) {
+  if (state === 'title' && (key === 'enter' || key === ' ' || key === 'z')) {
     startGame();
   }
   if (state === 'dialogue' && (key === 'enter' || key === ' ' || key === 'z' || key === 'x')) {
@@ -84,55 +116,95 @@ function handleKeyPress(key) {
   }
 }
 
-// Mobile D-pad
-document.querySelectorAll('.dpad-btn').forEach(btn => {
-  const dir = btn.dataset.dir;
-  const setKey = (pressed) => {
-    const mapKeys = { up: 'arrowup', down: 'arrowdown', left: 'arrowleft', right: 'arrowright' };
-    keys[mapKeys[dir]] = pressed;
+// ===== MOBILE CONTROLS (fixed) =====
+function setupMobileControls() {
+  const dirMap = {
+    up: 'arrowup',
+    down: 'arrowdown',
+    left: 'arrowleft',
+    right: 'arrowright'
   };
-  btn.addEventListener('touchstart', e => { e.preventDefault(); setKey(true); }, {passive: false});
-  btn.addEventListener('touchend', e => { e.preventDefault(); setKey(false); }, {passive: false});
-  btn.addEventListener('mousedown', () => setKey(true));
-  btn.addEventListener('mouseup', () => setKey(false));
-  btn.addEventListener('mouseleave', () => setKey(false));
-});
 
-// A / B buttons
-document.getElementById('btn-a').addEventListener('touchstart', e => {
-  e.preventDefault();
-  handleKeyPress('z');
-}, {passive: false});
-document.getElementById('btn-a').addEventListener('mousedown', () => handleKeyPress('z'));
+  document.querySelectorAll('.dpad-btn[data-dir]').forEach(btn => {
+    const dir = btn.dataset.dir;
+    const key = dirMap[dir];
 
-document.getElementById('btn-b').addEventListener('touchstart', e => {
-  e.preventDefault();
-  handleKeyPress('x');
-}, {passive: false});
-document.getElementById('btn-b').addEventListener('mousedown', () => handleKeyPress('x'));
+    const press = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      keys[key] = true;
+      btn.classList.add('active');
+    };
+    const release = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      keys[key] = false;
+      btn.classList.remove('active');
+    };
+
+    btn.addEventListener('touchstart', press, { passive: false });
+    btn.addEventListener('touchend', release, { passive: false });
+    btn.addEventListener('touchcancel', release, { passive: false });
+    btn.addEventListener('mousedown', press);
+    btn.addEventListener('mouseup', release);
+    btn.addEventListener('mouseleave', release);
+  });
+
+  // A button
+  const btnA = document.getElementById('btn-a');
+  const pressA = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    btnA.classList.add('active');
+    handleKeyPress('z');
+  };
+  const releaseA = (e) => {
+    e.preventDefault();
+    btnA.classList.remove('active');
+  };
+  btnA.addEventListener('touchstart', pressA, { passive: false });
+  btnA.addEventListener('touchend', releaseA, { passive: false });
+  btnA.addEventListener('mousedown', pressA);
+  btnA.addEventListener('mouseup', releaseA);
+
+  // B button
+  const btnB = document.getElementById('btn-b');
+  const pressB = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    btnB.classList.add('active');
+    handleKeyPress('x');
+  };
+  const releaseB = (e) => {
+    e.preventDefault();
+    btnB.classList.remove('active');
+  };
+  btnB.addEventListener('touchstart', pressB, { passive: false });
+  btnB.addEventListener('touchend', releaseB, { passive: false });
+  btnB.addEventListener('mousedown', pressB);
+  btnB.addEventListener('mouseup', releaseB);
+}
 
 // Start button
 document.getElementById('start-btn').addEventListener('click', startGame);
 document.getElementById('start-btn').addEventListener('touchstart', e => {
   e.preventDefault();
   startGame();
-}, {passive: false});
+}, { passive: false });
 
-// Battle buttons
+// Battle menu buttons
 document.querySelectorAll('.battle-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (state === 'battle' && battlePhase === 'menu') {
-      doAction(btn.dataset.action);
-    }
-  });
-  btn.addEventListener('touchstart', e => {
+  const activate = (e) => {
     e.preventDefault();
     if (state === 'battle' && battlePhase === 'menu') {
       doAction(btn.dataset.action);
     }
-  }, {passive: false});
+  };
+  btn.addEventListener('click', activate);
+  btn.addEventListener('touchstart', activate, { passive: false });
 });
 
+// ===== GAME FLOW =====
 function startGame() {
   titleScreen.classList.remove('active');
   overworld.classList.add('active');
@@ -141,6 +213,7 @@ function startGame() {
   resize();
   player.x = 3;
   player.y = 3;
+  playMusic(music.overworld);
   showDialogue("You wake up in a purple place...\nSomething feels familiar.");
 }
 
@@ -157,6 +230,7 @@ function closeDialogue() {
 }
 
 function update() {
+  // Overworld movement
   if (state === 'overworld') {
     let dx = 0, dy = 0;
     if (keys['arrowup'] || keys['w']) dy = -1;
@@ -170,7 +244,6 @@ function update() {
       if (canMove(nx, player.y)) player.x = nx;
       if (canMove(player.x, ny)) player.y = ny;
 
-      // Check encounter
       const tx = Math.floor(player.x);
       const ty = Math.floor(player.y);
       if (map[ty] && map[ty][tx] === 2) {
@@ -179,14 +252,13 @@ function update() {
     }
   }
 
+  // Soul movement in battle
   if (state === 'battle' && battlePhase === 'attack') {
-    // Move soul with keys / dpad
-    const speed = 0.012;
-    if (keys['arrowup'] || keys['w']) soul.y = Math.max(0.05, soul.y - speed);
-    if (keys['arrowdown'] || keys['s']) soul.y = Math.min(0.95, soul.y + speed);
-    if (keys['arrowleft'] || keys['a']) soul.x = Math.max(0.05, soul.x - speed);
-    if (keys['arrowright'] || keys['d']) soul.x = Math.min(0.95, soul.x + speed);
-
+    const speed = 0.014;
+    if (keys['arrowup'] || keys['w']) soul.y = Math.max(0.06, soul.y - speed);
+    if (keys['arrowdown'] || keys['s']) soul.y = Math.min(0.94, soul.y + speed);
+    if (keys['arrowleft'] || keys['a']) soul.x = Math.max(0.06, soul.x - speed);
+    if (keys['arrowright'] || keys['d']) soul.x = Math.min(0.94, soul.x + speed);
     updateSoulPosition();
   }
 
@@ -208,7 +280,7 @@ function draw() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const offsetX = (canvas.width - mapW * tileSize) / 2;
-  const offsetY = (canvas.height - mapH * tileSize) / 2;
+  const offsetY = (canvas.height - 160 - mapH * tileSize) / 2; // leave space for controls
 
   for (let y = 0; y < mapH; y++) {
     for (let x = 0; x < mapW; x++) {
@@ -226,7 +298,6 @@ function draw() {
       }
 
       if (map[y][x] === 2) {
-        // Dummy
         ctx.fillStyle = '#f5c6a5';
         ctx.fillRect(px + 6, py + 4, tileSize - 12, tileSize - 10);
         ctx.fillStyle = '#000';
@@ -236,12 +307,12 @@ function draw() {
     }
   }
 
-  // Player (red heart)
+  // Player heart
   const px = offsetX + player.x * tileSize;
   const py = offsetY + player.y * tileSize;
   ctx.fillStyle = '#ff0000';
   ctx.beginPath();
-  const s = tileSize * 0.45;
+  const s = tileSize * 0.42;
   ctx.moveTo(px, py - s * 0.3);
   ctx.bezierCurveTo(px + s, py - s, px + s, py + s * 0.2, px, py + s * 0.6);
   ctx.bezierCurveTo(px - s, py + s * 0.2, px - s, py - s, px, py - s * 0.3);
@@ -250,10 +321,8 @@ function draw() {
 
 function startBattle() {
   state = 'battle';
-  inBattle = true;
   overworld.classList.remove('active');
   battleScreen.classList.add('active');
-  document.body.classList.add('battle-active');
 
   enemyHP = 30;
   battlePhase = 'menu';
@@ -264,13 +333,11 @@ function startBattle() {
   updateBattleButtons();
   document.getElementById('battle-dialogue').classList.add('hidden');
   updateHP();
+  playMusic(music.battle);
 }
 
 function updateSoulPosition() {
-  const box = document.getElementById('soul-box');
   const soulEl = document.getElementById('soul');
-  const rect = box.getBoundingClientRect();
-  // Use percentage so it works with flex
   soulEl.style.left = (soul.x * 100) + '%';
   soulEl.style.top = (soul.y * 100) + '%';
 }
@@ -299,12 +366,10 @@ function doAction(action) {
       return;
     }
     setTimeout(() => enemyTurn(), 1000);
-  }
-  else if (action === 'act') {
+  } else if (action === 'act') {
     dialogue.textContent = "You talk to the Dummy...\nIt seems lonely.";
     setTimeout(() => enemyTurn(), 1200);
-  }
-  else if (action === 'item') {
+  } else if (action === 'item') {
     if (hp < maxHp) {
       hp = Math.min(maxHp, hp + 10);
       updateHP();
@@ -313,8 +378,7 @@ function doAction(action) {
       dialogue.textContent = "You have no items left.";
     }
     setTimeout(() => enemyTurn(), 1000);
-  }
-  else if (action === 'mercy') {
+  } else if (action === 'mercy') {
     dialogue.textContent = "You spare the Dummy.";
     setTimeout(() => endBattle(true), 900);
   }
@@ -326,11 +390,9 @@ function enemyTurn() {
   battlePhase = 'attack';
   document.getElementById('battle-dialogue').textContent = "Dummy attacks!";
 
-  // Simple attack: after 2.2s check if soul is in danger zone (center)
   setTimeout(() => {
-    // Very basic hit chance if soul is near center
     const dist = Math.hypot(soul.x - 0.5, soul.y - 0.5);
-    if (dist < 0.22) {
+    if (dist < 0.25) {
       hp = Math.max(0, hp - 4);
       updateHP();
       document.getElementById('battle-dialogue').textContent = "You got hit! -4 HP";
@@ -351,11 +413,9 @@ function enemyTurn() {
 function endBattle(won) {
   battleScreen.classList.remove('active');
   overworld.classList.add('active');
-  document.body.classList.remove('battle-active');
   state = 'overworld';
-
-  // Remove dummy
   map[5][10] = 0;
+  playMusic(music.overworld);
 
   if (won) {
     showDialogue("You won!\nThe Dummy looks happier somehow.");
@@ -366,8 +426,20 @@ function endBattle(won) {
   }
 }
 
-// Init
+// ===== INIT =====
 window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 100));
+
+setupMobileControls();
 generateMap();
 resize();
+
+// Try to play title music after first interaction
+document.body.addEventListener('touchstart', () => {
+  if (state === 'title') playMusic(music.title);
+}, { once: true });
+document.body.addEventListener('click', () => {
+  if (state === 'title') playMusic(music.title);
+}, { once: true });
+
 update();
