@@ -26,12 +26,12 @@ let selectedAction = 0;
 const actions = ['fight', 'act', 'item', 'mercy'];
 
 // ===== MUSIC =====
-// Put your mp3 files in the music/ folder with these exact names:
+// Using the exact filenames you uploaded
 const music = {
-  title: new Audio('music/once-upon-a-time.mp3'),
-  overworld: new Audio('music/ruins.mp3'),
-  battle: new Audio('music/dummy.mp3'),
-  shop: new Audio('music/shop.mp3')
+  title: new Audio('music/093. Menu (Full).mp3'),
+  overworld: new Audio('music/005. Ruins.mp3'),
+  battle: new Audio('music/036. Dummy!.mp3'),
+  shop: new Audio('music/023. Shop.mp3')
 };
 
 // Make them loop
