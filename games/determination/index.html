@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Determination</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-container">
+    <!-- Title Screen -->
+    <div id="title-screen" class="screen active">
+      <div class="title-content">
+        <h1>DETERMINATION</h1>
+        <p class="subtitle">a simple undertale-inspired demo</p>
+        <button id="start-btn" class="menu-btn">START</button>
+        <p class="hint">Use arrow keys / WASD or the on-screen controls</p>
+      </div>
+    </div>
+
+    <!-- Overworld -->
+    <div id="overworld" class="screen">
+      <canvas id="world-canvas"></canvas>
+      <div id="dialogue-box" class="hidden">
+        <div id="dialogue-text"></div>
+        <div id="dialogue-continue">▼</div>
+      </div>
+    </div>
+
+    <!-- Battle Screen -->
+    <div id="battle" class="screen">
+      <div id="enemy-area">
+        <div id="enemy-sprite">DUMMY</div>
+        <div id="enemy-name">Dummy</div>
+      </div>
+
+      <div id="soul-box">
+        <div id="soul"></div>
+      </div>
+
+      <div id="battle-ui">
+        <div id="hp-bar">
+          <span>HP</span>
+          <div class="bar"><div id="hp-fill"></div></div>
+          <span id="hp-text">20 / 20</span>
+        </div>
+
+        <div id="menu-buttons">
+          <button class="battle-btn" data-action="fight">FIGHT</button>
+          <button class="battle-btn" data-action="act">ACT</button>
+          <button class="battle-btn" data-action="item">ITEM</button>
+          <button class="battle-btn" data-action="mercy">MERCY</button>
+        </div>
+
+        <div id="battle-dialogue" class="hidden"></div>
+      </div>
+    </div>
+
+    <!-- Mobile Controls -->
+    <div id="mobile-controls">
+      <div id="dpad">
+        <button class="dpad-btn" data-dir="up">▲</button>
+        <div class="dpad-middle">
+          <button class="dpad-btn" data-dir="left">◀</button>
+          <button class="dpad-btn" data-dir="right">▶</button>
+        </div>
+        <button class="dpad-btn" data-dir="down">▼</button>
+      </div>
+
+      <div id="action-buttons">
+        <button id="btn-a" class="action-btn">A</button>
+        <button id="btn-b" class="action-btn">B</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
