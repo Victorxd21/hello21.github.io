@@ -1,4 +1,4 @@
-// DETERMINATION - Undertale-inspired demo (visual upgrade)
+// DETERMINATION - Multi-room Undertale-inspired demo
 
 const canvas = document.getElementById('world-canvas');
 const ctx = canvas.getContext('2d');
@@ -9,20 +9,24 @@ const battleScreen = document.getElementById('battle');
 
 let state = 'title';
 let keys = {};
-let player = { x: 4, y: 8, speed: 0.11 };
+let player = { x: 7, y: 8, speed: 0.12 };
+let currentRoom = 0;
 let map = [];
 let mapW = 15, mapH = 11;
 let tileSize = 32;
+let transitioning = false;
+let fadeAlpha = 0;
 
 let hp = 20, maxHp = 20;
 let battlePhase = 'menu';
 let soul = { x: 0.5, y: 0.5 };
 let enemyHP = 40, maxEnemyHP = 40;
 let selectedAction = 0;
+let dummyDefeated = {}; // track which rooms already beat the dummy
 
 const actions = ['fight', 'act', 'item', 'mercy'];
 
-// Music (using your uploaded files)
+// Music
 const music = {
   title: new Audio('music/093. Menu (Full).mp3'),
   overworld: new Audio('music/005. Ruins.mp3'),
@@ -38,25 +42,117 @@ function playMusic(track) {
   track.play().catch(() => {});
 }
 
-// Simple Ruins-style map
-function generateMap() {
-  map = [];
+// ===== ROOMS =====
+// Each room is defined by walls + special tiles
+// 0 = floor, 1 = wall, 2 = dummy, 3 = door (north), 4 = door (south), 5 = door (east), 6 = door (west)
+
+const rooms = [
+  // Room 0 - Starting room
+  {
+    name: "Ruins Entrance",
+    data: null, // generated
+    doors: { north: 1, south: null, east: null, west: null }
+  },
+  // Room 1 - Long hallway
+  {
+    name: "Long Corridor",
+    data: null,
+    doors: { north: 2, south: 0, east: null, west: null }
+  },
+  // Room 2 - Dummy room
+  {
+    name: "Dummy Room",
+    data: null,
+    doors: { north: 3, south: 1, east: null, west: null }
+  },
+  // Room 3 - Small chamber
+  {
+    name: "Quiet Chamber",
+    data: null,
+    doors: { north: null, south: 2, east: null, west: null }
+  }
+];
+
+function generateRoom(roomIndex) {
+  const room = [];
   for (let y = 0; y < mapH; y++) {
-    map[y] = [];
+    room[y] = [];
     for (let x = 0; x < mapW; x++) {
       // outer walls
-      if (x === 0 || y === 0 || x === mapW-1 || y === mapH-1) map[y][x] = 1;
-      else map[y][x] = 0;
+      if (x === 0 || y === 0 || x === mapW - 1 || y === mapH - 1) {
+        room[y][x] = 1;
+      } else {
+        room[y][x] = 0;
+      }
     }
   }
-  // some pillars / walls
-  map[2][3] = 1; map[2][4] = 1;
-  map[2][10] = 1; map[2][11] = 1;
-  map[5][7] = 1;
-  map[7][2] = 1; map[8][2] = 1;
-  map[7][12] = 1; map[8][12] = 1;
-  // Dummy position
-  map[4][7] = 2;
+
+  // Open doors based on connections
+  const r = rooms[roomIndex];
+  if (r.doors.north !== null) {
+    // open top center
+    room[0][6] = 3; room[0][7] = 3; room[0][8] = 3;
+  }
+  if (r.doors.south !== null) {
+    room[mapH-1][6] = 4; room[mapH-1][7] = 4; room[mapH-1][8] = 4;
+  }
+  if (r.doors.east !== null) {
+    room[4][mapW-1] = 5; room[5][mapW-1] = 5; room[6][mapW-1] = 5;
+  }
+  if (r.doors.west !== null) {
+    room[4][0] = 6; room[5][0] = 6; room[6][0] = 6;
+  }
+
+  // Room-specific decoration
+  if (roomIndex === 0) {
+    // starting room - some pillars
+    room[3][3] = 1; room[3][4] = 1;
+    room[3][10] = 1; room[3][11] = 1;
+    room[7][2] = 1; room[8][2] = 1;
+    room[7][12] = 1; room[8][12] = 1;
+  }
+  else if (roomIndex === 1) {
+    // long corridor feel - side pillars
+    for (let y = 2; y < mapH - 2; y += 2) {
+      room[y][3] = 1;
+      room[y][11] = 1;
+    }
+  }
+  else if (roomIndex === 2) {
+    // Dummy room
+    room[3][4] = 1; room[3][5] = 1;
+    room[3][9] = 1; room[3][10] = 1;
+    if (!dummyDefeated[2]) {
+      room[5][7] = 2; // Dummy
+    }
+  }
+  else if (roomIndex === 3) {
+    // quiet chamber - more open, some decoration
+    room[2][7] = 1;
+    room[6][3] = 1; room[6][11] = 1;
+    room[8][7] = 1;
+  }
+
+  return room;
+}
+
+function loadRoom(index, entrySide) {
+  currentRoom = index;
+  map = generateRoom(index);
+
+  // Position player based on which side they entered from
+  if (entrySide === 'north') {
+    player.x = 7; player.y = mapH - 2;
+  } else if (entrySide === 'south') {
+    player.x = 7; player.y = 1.5;
+  } else if (entrySide === 'east') {
+    player.x = 1.5; player.y = 5;
+  } else if (entrySide === 'west') {
+    player.x = mapW - 2.5; player.y = 5;
+  } else {
+    // default start
+    player.x = 7; player.y = 8;
+  }
 }
 
 function resize() {
@@ -135,9 +231,9 @@ function startGame() {
   titleScreen.classList.remove('active');
   overworld.classList.add('active');
   state = 'overworld';
-  generateMap();
+  dummyDefeated = {};
+  loadRoom(0, null);
   resize();
-  player.x = 4; player.y = 8;
   playMusic(music.overworld);
   showDialogue("* You feel a strange sense of determination.\n* This place looks familiar...");
 }
@@ -153,8 +249,36 @@ function closeDialogue() {
   state = 'overworld';
 }
 
+function startTransition(toRoom, entrySide) {
+  if (transitioning) return;
+  transitioning = true;
+  fadeAlpha = 0;
+
+  const fadeIn = () => {
+    fadeAlpha += 0.08;
+    if (fadeAlpha >= 1) {
+      fadeAlpha = 1;
+      loadRoom(toRoom, entrySide);
+      // fade out
+      const fadeOut = () => {
+        fadeAlpha -= 0.08;
+        if (fadeAlpha <= 0) {
+          fadeAlpha = 0;
+          transitioning = false;
+        } else {
+          requestAnimationFrame(fadeOut);
+        }
+      };
+      requestAnimationFrame(fadeOut);
+    } else {
+      requestAnimationFrame(fadeIn);
+    }
+  };
+  requestAnimationFrame(fadeIn);
+}
+
 function update() {
-  if (state === 'overworld') {
+  if (state === 'overworld' && !transitioning) {
     let dx = 0, dy = 0;
     if (keys['arrowup'] || keys['w']) dy = -1;
     if (keys['arrowdown'] || keys['s']) dy = 1;
@@ -164,11 +288,40 @@ function update() {
     if (dx || dy) {
       const nx = player.x + dx * player.speed;
       const ny = player.y + dy * player.speed;
-      if (canMove(nx, player.y)) player.x = nx;
-      if (canMove(player.x, ny)) player.y = ny;
 
-      const tx = Math.floor(player.x), ty = Math.floor(player.y);
-      if (map[ty] && map[ty][tx] === 2) startBattle();
+      // Check door transitions before normal movement
+      const tx = Math.floor(nx);
+      const ty = Math.floor(ny);
+
+      if (ty < 0 || (ty === 0 && map[0] && (map[0][tx] === 3))) {
+        // going north
+        if (rooms[currentRoom].doors.north !== null) {
+          startTransition(rooms[currentRoom].doors.north, 'north');
+        }
+      } else if (ty >= mapH || (ty === mapH-1 && map[mapH-1] && (map[mapH-1][tx] === 4))) {
+        // going south
+        if (rooms[currentRoom].doors.south !== null) {
+          startTransition(rooms[currentRoom].doors.south, 'south');
+        }
+      } else if (tx >= mapW || (tx === mapW-1 && map[ty] && map[ty][mapW-1] === 5)) {
+        if (rooms[currentRoom].doors.east !== null) {
+          startTransition(rooms[currentRoom].doors.east, 'east');
+        }
+      } else if (tx < 0 || (tx === 0 && map[ty] && map[ty][0] === 6)) {
+        if (rooms[currentRoom].doors.west !== null) {
+          startTransition(rooms[currentRoom].doors.west, 'west');
+        }
+      } else {
+        // normal movement
+        if (canMove(nx, player.y)) player.x = nx;
+        if (canMove(player.x, ny)) player.y = ny;
+
+        // Dummy encounter
+        const ptx = Math.floor(player.x), pty = Math.floor(player.y);
+        if (map[pty] && map[pty][ptx] === 2) {
+          startBattle();
+        }
+      }
     }
   }
 
@@ -188,13 +341,14 @@ function update() {
 function canMove(x, y) {
   const tx = Math.floor(x), ty = Math.floor(y);
   if (ty < 0 || ty >= mapH || tx < 0 || tx >= mapW) return false;
-  return map[ty][tx] !== 1;
+  const tile = map[ty][tx];
+  // doors are walkable
+  return tile !== 1;
 }
 
 function draw() {
   if (state !== 'overworld' && state !== 'dialogue') return;
 
-  // dark purple background
   ctx.fillStyle = '#1a0030';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -205,20 +359,27 @@ function draw() {
     for (let x = 0; x < mapW; x++) {
       const px = offsetX + x * tileSize;
       const py = offsetY + y * tileSize;
+      const tile = map[y][x];
 
-      if (map[y][x] === 1) {
+      if (tile === 1) {
         // brick wall
         ctx.fillStyle = '#5a2a7a';
         ctx.fillRect(px, py, tileSize, tileSize);
         ctx.strokeStyle = '#3a1850';
         ctx.lineWidth = 2;
         ctx.strokeRect(px + 1, py + 1, tileSize - 2, tileSize - 2);
-        // brick lines
         ctx.strokeStyle = '#4a2060';
         ctx.beginPath();
         ctx.moveTo(px, py + tileSize/2);
         ctx.lineTo(px + tileSize, py + tileSize/2);
         ctx.stroke();
+      } else if (tile === 3 || tile === 4 || tile === 5 || tile === 6) {
+        // door / opening
+        ctx.fillStyle = '#2a0a40';
+        ctx.fillRect(px, py, tileSize, tileSize);
+        // slight glow
+        ctx.fillStyle = 'rgba(180, 100, 255, 0.15)';
+        ctx.fillRect(px, py, tileSize, tileSize);
       } else {
         // floor
         ctx.fillStyle = '#3b1560';
@@ -226,16 +387,12 @@ function draw() {
       }
 
       // Dummy
-      if (map[y][x] === 2) {
-        // simple white dummy shape
+      if (tile === 2) {
         ctx.fillStyle = '#e8e0d0';
-        // body
         ctx.fillRect(px + tileSize*0.28, py + tileSize*0.25, tileSize*0.44, tileSize*0.55);
-        // head
         ctx.beginPath();
         ctx.arc(px + tileSize*0.5, py + tileSize*0.22, tileSize*0.18, 0, Math.PI*2);
         ctx.fill();
-        // eyes
         ctx.fillStyle = '#222';
         ctx.fillRect(px + tileSize*0.38, py + tileSize*0.16, 3, 3);
         ctx.fillRect(px + tileSize*0.55, py + tileSize*0.16, 3, 3);
@@ -243,7 +400,7 @@ function draw() {
     }
   }
 
-  // Player (red soul / heart)
+  // Player heart
   const px = offsetX + player.x * tileSize;
   const py = offsetY + player.y * tileSize;
   ctx.fillStyle = '#ff0000';
@@ -253,6 +410,12 @@ function draw() {
   ctx.bezierCurveTo(px + s, py - s*0.9, px + s, py + s*0.15, px, py + s*0.55);
   ctx.bezierCurveTo(px - s, py + s*0.15, px - s, py - s*0.9, px, py - s*0.25);
   ctx.fill();
+
+  // Fade overlay for transitions
+  if (fadeAlpha > 0) {
+    ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
 }
 
 function startBattle() {
@@ -354,7 +517,17 @@ function endBattle(won) {
   battleScreen.classList.remove('active');
   overworld.classList.add('active');
   state = 'overworld';
-  map[4][7] = 0;
+
+  if (won) {
+    dummyDefeated[currentRoom] = true;
+    // remove dummy from current map
+    for (let y = 0; y < mapH; y++) {
+      for (let x = 0; x < mapW; x++) {
+        if (map[y][x] === 2) map[y][x] = 0;
+      }
+    }
+  }
+
   playMusic(music.overworld);
 
   if (won) {
@@ -370,7 +543,7 @@ function endBattle(won) {
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 120));
 setupMobileControls();
-generateMap();
+loadRoom(0, null);
 resize();
 
 document.body.addEventListener('touchstart', () => {
