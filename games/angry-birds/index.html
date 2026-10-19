@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Angry Birds Clone</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="ui">
+    <div id="topBar">
+      <button id="btnMenu" title="Menu">☰</button>
+      <span id="levelLabel">Level 1</span>
+      <span id="scoreLabel">Score: 0</span>
+      <span id="birdsLeft">🐦 x 3</span>
+    </div>
+    <div id="message"></div>
+    <div id="menuOverlay" class="hidden">
+      <div class="panel">
+        <h1>🐦 Angry Birds</h1>
+        <p class="sub">Procedural levels · drag to aim · release to launch</p>
+        <button id="btnPlay">Play</button>
+        <button id="btnRandom">Random Level</button>
+        <button id="btnNext">Next Level</button>
+        <p class="hint">Levels are generated randomly. Destroy all pigs!</p>
+      </div>
+    </div>
+    <div id="winOverlay" class="hidden">
+      <div class="panel">
+        <h2>Level Clear!</h2>
+        <div id="stars">⭐⭐⭐</div>
+        <p id="finalScore">Score: 0</p>
+        <button id="btnContinue">Next Level</button>
+        <button id="btnReplay">Replay</button>
+      </div>
+    </div>
+    <div id="loseOverlay" class="hidden">
+      <div class="panel">
+        <h2>Out of Birds</h2>
+        <p>Pigs still remaining…</p>
+        <button id="btnRetry">Retry Level</button>
+        <button id="btnNewRandom">New Random</button>
+      </div>
+    </div>
+  </div>
+  <canvas id="game"></canvas>
+  <script src="game.js"></script>
+</body>
+</html>
