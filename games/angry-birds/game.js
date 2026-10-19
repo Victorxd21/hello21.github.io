@@ -12,10 +12,10 @@
   const finalScoreEl = document.getElementById('finalScore');
 
   let W, H, dpr;
-  const GRAVITY = 0.35;
-  const FRICTION = 0.99;
-  const AIR = 0.995;
-  const REST = 0.35;
+  // Tuned physics — much lighter gravity, soft stacking
+  const GRAVITY = 0.18;
+  const AIR = 0.998;
+  const REST = 0.25;
   const GROUND_Y = () => H * 0.78;
 
   // ─── helpers ───────────────────────────────────────────────
@@ -49,8 +49,9 @@
       this.launched = false;
       this.settled = false;
       this.scoreValue = opts.scoreValue || 0;
-      this.mass = opts.mass || (this.isCircle ? this.radius * this.radius * 0.04 : w * h * 0.008);
+      this.mass = opts.mass || (this.isCircle ? this.radius * this.radius * 0.03 : w * h * 0.006);
       if (this.static) this.mass = 1e9;
+      this.grace = opts.grace || 0; // frames of reduced damage after spawn
     }
     get cx() { return this.x + (this.isCircle ? 0 : this.w / 2); }
     get cy() { return this.y + (this.isCircle ? 0 : this.h / 2); }
@@ -58,6 +59,7 @@
       if (this.isCircle) return { l: this.x - this.radius, r: this.x + this.radius, t: this.y - this.radius, b: this.y + this.radius };
       return { l: this.x, r: this.x + this.w, t: this.y, b: this.y + this.h };
     }
+    speed() { return Math.hypot(this.vx, this.vy); }
   }
 
   // ─── game state ────────────────────────────────────────────
@@ -77,6 +79,7 @@
   let levelSeed = 1;
   let totalBirds = 3;
   let pigsLeft = 0;
+  let levelAge = 0; // frames since level start — used for grace
 
   function resize() {
     dpr = Math.min(devicePixelRatio || 1, 2);
@@ -107,6 +110,7 @@
     bodies = [];
     particles = [];
     levelSeed = seed;
+    levelAge = 0;
     const rng = mulberry32(seed);
     const r = (a, b) => a + rng() * (b - a);
     const ri = (a, b) => (a + rng() * (b - a + 1)) | 0;
@@ -114,7 +118,6 @@
     // ground
     bodies.push(new Body(0, GROUND_Y(), W, H - GROUND_Y() + 50, 'ground', { static: true, color: '#3d8b37' }));
 
-    // difficulty scales with level
     const difficulty = 1 + Math.min(level * 0.12, 2.5);
     const structureCount = ri(1, 1 + Math.min(3, (level / 4) | 0));
     const baseX = W * 0.55;
@@ -127,63 +130,59 @@
       const blockH = 22 + r(0, 10);
 
       for (let f = 0; f < floors; f++) {
-        const y = GROUND_Y() - (f + 1) * (blockH + 4) - 2;
-        // horizontal platform
+        // Place with a small gap so they don't start overlapping
+        const y = GROUND_Y() - (f + 1) * (blockH + 6) - 4;
         for (let i = 0; i < width; i++) {
           const mat = pickMaterial(rng, difficulty);
-          const bx = sx + i * (blockW + 2);
+          const bx = sx + i * (blockW + 3);
           bodies.push(new Body(bx, y, blockW, blockH, mat.type, {
-            hp: mat.hp, color: mat.color, mass: mat.mass, scoreValue: mat.score
+            hp: mat.hp, color: mat.color, mass: mat.mass, scoreValue: mat.score, grace: 90
           }));
         }
-        // vertical supports under next floor (except top)
         if (f < floors - 1) {
           for (let i = 0; i <= width; i += Math.max(1, width - 1)) {
             const mat = pickMaterial(rng, difficulty);
-            const bx = sx + i * (blockW + 2) - 6;
-            bodies.push(new Body(bx, y - blockH - 2, 14, blockH + 4, mat.type, {
-              hp: mat.hp, color: mat.color, mass: mat.mass * 0.7, scoreValue: mat.score
+            const bx = sx + i * (blockW + 3) - 6;
+            bodies.push(new Body(bx, y - blockH - 4, 14, blockH + 2, mat.type, {
+              hp: mat.hp, color: mat.color, mass: mat.mass * 0.7, scoreValue: mat.score, grace: 90
             }));
           }
         }
-        // pigs on some floors
         if (rng() < 0.55 + Math.min(0.3, level * 0.02) || f === floors - 1) {
-          const pigX = sx + r(10, width * blockW - 30);
-          const pigR = 16 + r(0, 6);
-          bodies.push(new Body(pigX, y - pigR - 2, pigR * 2, pigR * 2, 'pig', {
-            circle: true, radius: pigR, hp: 1 + (difficulty > 1.8 ? 1 : 0),
-            color: '#4ade80', mass: 2.2, scoreValue: 5000
+          const pigX = sx + r(12, Math.max(20, width * blockW - 40));
+          const pigR = 15 + r(0, 5);
+          bodies.push(new Body(pigX, y - pigR - 4, pigR * 2, pigR * 2, 'pig', {
+            circle: true, radius: pigR,
+            hp: 40 + (difficulty > 1.5 ? 20 : 0), // pigs are much tougher now
+            color: '#4ade80', mass: 3.5, scoreValue: 5000, grace: 90
           }));
         }
       }
 
-      // occasional tower on the side
       if (rng() < 0.4 && level > 2) {
-        const tx = sx + width * (blockW + 2) + 20;
+        const tx = sx + width * (blockW + 3) + 24;
         const th = ri(2, 4);
         for (let t = 0; t < th; t++) {
           const mat = pickMaterial(rng, difficulty);
-          bodies.push(new Body(tx, GROUND_Y() - (t + 1) * 30, 22, 26, mat.type, {
-            hp: mat.hp, color: mat.color, mass: mat.mass, scoreValue: mat.score
+          bodies.push(new Body(tx, GROUND_Y() - (t + 1) * 32 - 4, 22, 28, mat.type, {
+            hp: mat.hp, color: mat.color, mass: mat.mass, scoreValue: mat.score, grace: 90
           }));
         }
         if (rng() < 0.7) {
-          bodies.push(new Body(tx + 2, GROUND_Y() - th * 30 - 18, 18, 18, 'pig', {
-            circle: true, radius: 14, hp: 1, color: '#4ade80', mass: 2, scoreValue: 5000
+          bodies.push(new Body(tx + 2, GROUND_Y() - th * 32 - 22, 18, 18, 'pig', {
+            circle: true, radius: 14, hp: 45, color: '#4ade80', mass: 3.2, scoreValue: 5000, grace: 90
           }));
         }
       }
     }
 
-    // extra floating pigs / small piles for variety
     if (level > 3 && rng() < 0.5) {
       const px = W * 0.7 + r(-80, 120);
-      bodies.push(new Body(px, GROUND_Y() - 20, 18, 18, 'pig', {
-        circle: true, radius: 14, hp: 1, color: '#4ade80', mass: 2, scoreValue: 5000
+      bodies.push(new Body(px, GROUND_Y() - 22, 18, 18, 'pig', {
+        circle: true, radius: 14, hp: 40, color: '#4ade80', mass: 3, scoreValue: 5000, grace: 90
       }));
     }
 
-    // birds
     totalBirds = clamp(3 + (level / 4 | 0), 3, 6);
     birdsQueue = [];
     for (let i = 0; i < totalBirds; i++) {
@@ -201,9 +200,10 @@
 
   function pickMaterial(rng, difficulty) {
     const roll = rng();
-    if (roll < 0.45 - difficulty * 0.05) return { type: 'wood', hp: 25, color: '#b5651d', mass: 3.5, score: 500 };
-    if (roll < 0.75) return { type: 'stone', hp: 55 + difficulty * 8, color: '#94a3b8', mass: 7, score: 800 };
-    return { type: 'glass', hp: 12, color: '#7dd3fc', mass: 1.8, score: 300 };
+    // Higher HP so blocks survive stacking and need real impacts to break
+    if (roll < 0.45 - difficulty * 0.05) return { type: 'wood', hp: 55, color: '#b5651d', mass: 4.5, score: 500 };
+    if (roll < 0.75) return { type: 'stone', hp: 110 + difficulty * 10, color: '#94a3b8', mass: 9, score: 800 };
+    return { type: 'glass', hp: 28, color: '#7dd3fc', mass: 2.2, score: 300 };
   }
 
   function placeCurrentBird() {
@@ -216,7 +216,7 @@
     currentBird = new Body(sling.x, sling.y, r * 2, r * 2, 'bird', {
       circle: true, radius: r, birdType: type,
       color: type === 'yellow' ? '#facc15' : type === 'blue' ? '#38bdf8' : '#ef4444',
-      mass: type === 'yellow' ? 2.8 : type === 'blue' ? 1.6 : 2.2
+      mass: type === 'yellow' ? 3.2 : type === 'blue' ? 1.8 : 2.5
     });
     bodies.push(currentBird);
     updateUI();
@@ -246,7 +246,6 @@
     let dy = p.y - sling.y;
     const d = Math.hypot(dx, dy);
     if (d > maxPull) { dx = dx / d * maxPull; dy = dy / d * maxPull; }
-    // only pull backward-ish
     if (dx > 20) dx = 20;
     currentBird.x = sling.x + dx;
     currentBird.y = sling.y + dy;
@@ -258,18 +257,16 @@
     dragging = false;
     const power = Math.hypot(aim.x, aim.y);
     if (power < 18) {
-      // snap back
       currentBird.x = sling.x;
       currentBird.y = sling.y;
       return;
     }
-    const mult = currentBird.birdType === 'yellow' ? 0.28 : 0.22;
+    const mult = currentBird.birdType === 'yellow' ? 0.26 : 0.20;
     currentBird.vx = -aim.x * mult;
     currentBird.vy = -aim.y * mult;
     currentBird.launched = true;
     waitingSettle = true;
     settleTimer = 0;
-    // blue bird: split into 3 after short delay
     if (currentBird.birdType === 'blue') {
       setTimeout(() => {
         if (!currentBird || !currentBird.alive) return;
@@ -278,10 +275,10 @@
           if (i === 0) continue;
           const clone = new Body(b.x, b.y, b.radius * 2, b.radius * 2, 'bird', {
             circle: true, radius: b.radius * 0.85, birdType: 'blue',
-            color: '#38bdf8', mass: 1.4
+            color: '#38bdf8', mass: 1.5
           });
-          clone.vx = b.vx + i * 3.5;
-          clone.vy = b.vy + (Math.random() - 0.5) * 2;
+          clone.vx = b.vx + i * 3.2;
+          clone.vy = b.vy + (Math.random() - 0.5) * 1.8;
           clone.launched = true;
           bodies.push(clone);
         }
@@ -300,10 +297,13 @@
 
   // ─── physics ───────────────────────────────────────────────
   function stepPhysics() {
+    levelAge++;
     const gy = GROUND_Y();
+
     for (const b of bodies) {
       if (!b.alive || b.static) continue;
       if (b.type === 'bird' && !b.launched) continue;
+      if (b.grace > 0) b.grace--;
 
       b.vy += GRAVITY;
       b.vx *= AIR;
@@ -311,31 +311,33 @@
       b.x += b.vx;
       b.y += b.vy;
       b.angle += b.omega;
-      b.omega *= 0.98;
+      b.omega *= 0.97;
 
-      // ground collision
+      // ground collision — soft, almost no damage from resting/landing gently
       const bottom = b.isCircle ? b.y + b.radius : b.y + b.h;
       if (bottom > gy) {
         if (b.isCircle) b.y = gy - b.radius;
         else b.y = gy - b.h;
-        if (Math.abs(b.vy) > 2) {
-          damage(b, Math.abs(b.vy) * 2.5);
-          spawnDust(b.cx, gy, 4);
+
+        const impactSpeed = Math.abs(b.vy);
+        // Only damage from hard falls (rare for structures)
+        if (impactSpeed > 8 && b.grace <= 0) {
+          damage(b, (impactSpeed - 8) * 1.2, true);
+          spawnDust(b.cx, gy, 3);
         }
         b.vy *= -REST;
-        b.vx *= 0.85;
-        b.omega *= 0.6;
-        if (Math.abs(b.vy) < 0.8) b.vy = 0;
-        if (Math.abs(b.vx) < 0.3) b.vx = 0;
+        b.vx *= 0.88;
+        b.omega *= 0.5;
+        if (Math.abs(b.vy) < 0.5) b.vy = 0;
+        if (Math.abs(b.vx) < 0.25) b.vx = 0;
       }
 
-      // walls
-      if (b.x < -100 || b.x > W + 100 || b.y > H + 100) {
+      if (b.x < -120 || b.x > W + 120 || b.y > H + 120) {
         if (b.type === 'bird' || b.type === 'pig') b.alive = false;
       }
     }
 
-    // pairwise collisions (simple circle-circle + AABB)
+    // pairwise collisions
     for (let i = 0; i < bodies.length; i++) {
       const a = bodies[i];
       if (!a.alive || a.static) continue;
@@ -346,11 +348,11 @@
       }
     }
 
-    // cleanup dead
     bodies = bodies.filter(b => b.alive);
   }
 
   function resolve(a, b) {
+    // ── circle-circle ──
     if (a.isCircle && b.isCircle) {
       const dx = b.x - a.x, dy = b.y - a.y;
       const d = Math.hypot(dx, dy) || 0.001;
@@ -364,25 +366,19 @@
       const rvx = b.vx - a.vx, rvy = b.vy - a.vy;
       const velAlong = rvx * nx + rvy * ny;
       if (velAlong > 0) return;
-      const e = 0.4;
-      const j = -(1 + e) * velAlong / (1 / a.mass + 1 / b.mass);
-      const ix = j * nx, iy = j * ny;
-      if (!a.static) { a.vx -= ix / a.mass; a.vy -= iy / a.mass; }
-      if (!b.static) { b.vx += ix / b.mass; b.vy += iy / b.mass; }
-      const impact = Math.abs(j);
-      if (impact > 4) {
-        damage(a, impact * 1.8);
-        damage(b, impact * 1.8);
-        spawnDust((a.x + b.x) / 2, (a.y + b.y) / 2, 3);
-      }
+      const e = 0.35;
+      const jImp = -(1 + e) * velAlong / (1 / a.mass + 1 / b.mass);
+      if (!a.static) { a.vx -= jImp * nx / a.mass; a.vy -= jImp * ny / a.mass; }
+      if (!b.static) { b.vx += jImp * nx / b.mass; b.vy += jImp * ny / b.mass; }
+
+      applyImpactDamage(a, b, Math.abs(jImp));
       return;
     }
 
-    // circle vs AABB
+    // ── both AABB ──
     const circle = a.isCircle ? a : b;
     const box = a.isCircle ? b : a;
     if (!circle.isCircle || box.isCircle) {
-      // both AABB
       const ab = a.bounds(), bb = b.bounds();
       if (ab.r < bb.l || ab.l > bb.r || ab.b < bb.t || ab.t > bb.b) return;
       const ox = Math.min(ab.r - bb.l, bb.r - ab.l);
@@ -391,51 +387,105 @@
       if (ox < oy) nx = (a.cx < b.cx) ? -1 : 1;
       else ny = (a.cy < b.cy) ? -1 : 1;
       const totalMass = a.mass + b.mass;
-      if (!a.static) { a.x += nx * ox * 0.5 * (b.mass / totalMass); a.y += ny * oy * 0.5 * (b.mass / totalMass); }
-      if (!b.static) { b.x -= nx * ox * 0.5 * (a.mass / totalMass); b.y -= ny * oy * 0.5 * (a.mass / totalMass); }
+      const sep = Math.min(ox, oy);
+      if (!a.static) { a.x += nx * sep * 0.5 * (b.mass / totalMass); a.y += ny * sep * 0.5 * (b.mass / totalMass); }
+      if (!b.static) { b.x -= nx * sep * 0.5 * (a.mass / totalMass); b.y -= ny * sep * 0.5 * (a.mass / totalMass); }
       const rvx = b.vx - a.vx, rvy = b.vy - a.vy;
       const velAlong = rvx * nx + rvy * ny;
       if (velAlong > 0) return;
-      const j = -(1 + 0.35) * velAlong / (1 / a.mass + 1 / b.mass);
-      if (!a.static) { a.vx -= j * nx / a.mass; a.vy -= j * ny / a.mass; }
-      if (!b.static) { b.vx += j * nx / b.mass; b.vy += j * ny / b.mass; }
-      const impact = Math.abs(j);
-      if (impact > 5) {
-        damage(a, impact * 1.5);
-        damage(b, impact * 1.5);
-      }
+      const jImp = -(1 + 0.3) * velAlong / (1 / a.mass + 1 / b.mass);
+      if (!a.static) { a.vx -= jImp * nx / a.mass; a.vy -= jImp * ny / a.mass; }
+      if (!b.static) { b.vx += jImp * nx / b.mass; b.vy += jImp * ny / b.mass; }
+
+      applyImpactDamage(a, b, Math.abs(jImp));
       return;
     }
 
-    // circle-AABB
+    // ── circle vs AABB ──
     const closestX = clamp(circle.x, box.x, box.x + box.w);
     const closestY = clamp(circle.y, box.y, box.y + box.h);
-    const dx = circle.x - closestX, dy = circle.y - closestY;
-    const d = Math.hypot(dx, dy);
-    if (d >= circle.radius || d < 0.001) return;
-    const nx = dx / d, ny = dy / d;
+    let dx = circle.x - closestX, dy = circle.y - closestY;
+    let d = Math.hypot(dx, dy);
+
+    // If center is inside the box, push out along nearest face
+    if (d < 0.001) {
+      const left = circle.x - box.x;
+      const right = box.x + box.w - circle.x;
+      const top = circle.y - box.y;
+      const bottom = box.y + box.h - circle.y;
+      const m = Math.min(left, right, top, bottom);
+      if (m === left) { dx = -1; dy = 0; d = left; }
+      else if (m === right) { dx = 1; dy = 0; d = right; }
+      else if (m === top) { dx = 0; dy = -1; d = top; }
+      else { dx = 0; dy = 1; d = bottom; }
+    }
+
+    if (d >= circle.radius) return;
+    const nx = dx / (d || 1), ny = dy / (d || 1);
     const overlap = circle.radius - d;
     if (!circle.static) { circle.x += nx * overlap; circle.y += ny * overlap; }
-    if (!box.static) { box.x -= nx * overlap * 0.3; box.y -= ny * overlap * 0.3; }
+    if (!box.static) { box.x -= nx * overlap * 0.25; box.y -= ny * overlap * 0.25; }
+
     const rvx = circle.vx - box.vx, rvy = circle.vy - box.vy;
     const velAlong = rvx * nx + rvy * ny;
-    if (velAlong > 0) {
-      // already separating
-    } else {
-      const j = -(1 + 0.4) * velAlong / (1 / circle.mass + 1 / box.mass);
-      if (!circle.static) { circle.vx += j * nx / circle.mass; circle.vy += j * ny / circle.mass; }
-      if (!box.static) { box.vx -= j * nx / box.mass; box.vy -= j * ny / box.mass; }
-      const impact = Math.abs(j);
-      if (impact > 3.5) {
-        damage(circle, impact * 1.2);
-        damage(box, impact * 2.2);
-        spawnDust(closestX, closestY, 4);
-      }
+    if (velAlong < 0) {
+      const jImp = -(1 + 0.35) * velAlong / (1 / circle.mass + 1 / box.mass);
+      if (!circle.static) { circle.vx += jImp * nx / circle.mass; circle.vy += jImp * ny / circle.mass; }
+      if (!box.static) { box.vx -= jImp * nx / box.mass; box.vy -= jImp * ny / box.mass; }
+      applyImpactDamage(circle, box, Math.abs(jImp));
+      if (Math.abs(jImp) > 6) spawnDust(closestX, closestY, 3);
     }
   }
 
-  function damage(b, amount) {
+  /** Only apply damage when the relative impact is strong enough.
+   *  Gentle stacking / resting does almost nothing. */
+  function applyImpactDamage(a, b, impulse) {
+    // Early level grace: structures settle without dying
+    const graceFactor = (a.grace > 0 || b.grace > 0 || levelAge < 60) ? 0.15 : 1;
+
+    // Relative speed helps decide if this is a real hit
+    const relSpeed = Math.hypot(a.vx - b.vx, a.vy - b.vy);
+
+    // Thresholds — soft contacts ignored
+    if (impulse < 5 && relSpeed < 4) return;
+
+    // Birds deal more damage; blocks/pigs less to each other
+    const aIsBird = a.type === 'bird';
+    const bIsBird = b.type === 'bird';
+
+    let dmgA = 0, dmgB = 0;
+
+    if (aIsBird || bIsBird) {
+      // Bird hit — meaningful damage
+      const bird = aIsBird ? a : b;
+      const other = aIsBird ? b : a;
+      const base = Math.max(0, impulse - 3) * 2.8 + Math.max(0, relSpeed - 3) * 1.5;
+      if (aIsBird) dmgB = base;
+      else dmgA = base;
+      // Yellow bird hits harder
+      if (bird.birdType === 'yellow') {
+        if (aIsBird) dmgB *= 1.35;
+        else dmgA *= 1.35;
+      }
+    } else {
+      // Block vs block / pig — only high-energy collapses hurt
+      if (impulse > 9 || relSpeed > 7) {
+        const base = (impulse - 7) * 1.1;
+        dmgA = base;
+        dmgB = base;
+      }
+    }
+
+    dmgA *= graceFactor;
+    dmgB *= graceFactor;
+
+    if (dmgA > 0.5) damage(a, dmgA);
+    if (dmgB > 0.5) damage(b, dmgB);
+  }
+
+  function damage(b, amount, fromGround) {
     if (b.static || b.type === 'bird') return;
+    if (b.grace > 0 && !fromGround) amount *= 0.2;
     b.hp -= amount;
     if (b.hp <= 0) {
       b.alive = false;
@@ -445,7 +495,7 @@
         spawnBurst(b.x, b.y, '#4ade80', 12);
         showMsg('Pig down! +' + (b.scoreValue || 5000));
       } else {
-        spawnDust(b.cx, b.cy, 8);
+        spawnDust(b.cx, b.cy, 6);
       }
       updateUI();
     }
@@ -454,18 +504,18 @@
   function spawnDust(x, y, n) {
     for (let i = 0; i < n; i++) {
       particles.push({
-        x, y, vx: rand(-3, 3), vy: rand(-4, -1),
-        life: 20 + rand(0, 20), max: 40, color: '#d4a574', size: rand(2, 5)
+        x, y, vx: rand(-2.5, 2.5), vy: rand(-3.5, -0.5),
+        life: 18 + rand(0, 18), max: 36, color: '#d4a574', size: rand(2, 4.5)
       });
     }
   }
   function spawnBurst(x, y, color, n) {
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
-      const sp = rand(2, 6);
+      const sp = rand(2, 5.5);
       particles.push({
         x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-        life: 25 + rand(0, 25), max: 50, color, size: rand(3, 7)
+        life: 22 + rand(0, 22), max: 45, color, size: rand(3, 6.5)
       });
     }
   }
@@ -478,13 +528,12 @@
     for (const b of bodies) {
       if (!b.alive || b.static) continue;
       if (b.type === 'bird' && !b.launched) continue;
-      if (Math.abs(b.vx) > 0.6 || Math.abs(b.vy) > 0.6) { moving = true; break; }
+      if (Math.abs(b.vx) > 0.45 || Math.abs(b.vy) > 0.45) { moving = true; break; }
     }
-    if (!moving && settleTimer > 45) {
+    if (!moving && settleTimer > 50) {
       waitingSettle = false;
-      // remove spent birds that are almost stopped
       bodies.forEach(b => {
-        if (b.type === 'bird' && b.launched && Math.hypot(b.vx, b.vy) < 1) b.alive = false;
+        if (b.type === 'bird' && b.launched && Math.hypot(b.vx, b.vy) < 0.8) b.alive = false;
       });
       bodies = bodies.filter(b => b.alive);
       pigsLeft = bodies.filter(b => b.type === 'pig' && b.alive).length;
@@ -493,15 +542,13 @@
         return;
       }
       if (birdsQueue.length === 0 && !currentBird) {
-        // last bird already used
         endLevel(false);
         return;
       }
       if (!currentBird || currentBird.launched) placeCurrentBird();
       if (!currentBird && birdsQueue.length === 0) endLevel(false);
     }
-    // safety timeout
-    if (settleTimer > 240) {
+    if (settleTimer > 260) {
       waitingSettle = false;
       if (pigsLeft <= 0) endLevel(true);
       else if (birdsQueue.length === 0 && (!currentBird || currentBird.launched)) endLevel(false);
@@ -512,7 +559,6 @@
   function endLevel(won) {
     gameActive = false;
     if (won) {
-      // bonus for unused birds
       const bonus = birdsQueue.length * 10000 + (currentBird && !currentBird.launched ? 10000 : 0);
       score += bonus;
       const stars = score > 40000 ? 3 : score > 20000 ? 2 : 1;
@@ -536,13 +582,11 @@
   function draw() {
     ctx.clearRect(0, 0, W, H);
 
-    // sky already via CSS; draw clouds
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
     drawCloud(W * 0.2, 80, 60);
     drawCloud(W * 0.55, 50, 80);
     drawCloud(W * 0.85, 100, 50);
 
-    // ground detail
     const gy = GROUND_Y();
     ctx.fillStyle = '#2d6a27';
     ctx.fillRect(0, gy, W, H - gy);
@@ -555,19 +599,17 @@
       ctx.fill();
     }
 
-    // slingshot
     drawSling();
 
-    // trajectory preview
     if (dragging && currentBird && !currentBird.launched) {
       ctx.strokeStyle = 'rgba(255,255,255,0.5)';
       ctx.setLineDash([6, 6]);
       ctx.beginPath();
       let px = currentBird.x, py = currentBird.y;
-      let pvx = -aim.x * (currentBird.birdType === 'yellow' ? 0.28 : 0.22);
-      let pvy = -aim.y * (currentBird.birdType === 'yellow' ? 0.28 : 0.22);
+      let pvx = -aim.x * (currentBird.birdType === 'yellow' ? 0.26 : 0.20);
+      let pvy = -aim.y * (currentBird.birdType === 'yellow' ? 0.26 : 0.20);
       ctx.moveTo(px, py);
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 45; i++) {
         pvy += GRAVITY;
         px += pvx; py += pvy;
         pvx *= AIR; pvy *= AIR;
@@ -578,7 +620,6 @@
       ctx.setLineDash([]);
     }
 
-    // bodies
     for (const b of bodies) {
       if (!b.alive) continue;
       if (b.type === 'ground') continue;
@@ -596,10 +637,9 @@
       ctx.restore();
     }
 
-    // particles
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
-      p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life--;
+      p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.life--;
       ctx.globalAlpha = p.life / p.max;
       ctx.fillStyle = p.color;
       ctx.beginPath();
@@ -609,7 +649,6 @@
     }
     ctx.globalAlpha = 1;
 
-    // remaining birds icons
     const left = birdsQueue.length;
     for (let i = 0; i < left; i++) {
       const t = birdsQueue[i];
@@ -635,7 +674,6 @@
 
   function drawSling() {
     const baseY = GROUND_Y();
-    // posts
     ctx.strokeStyle = '#5c3317';
     ctx.lineWidth = 10;
     ctx.lineCap = 'round';
@@ -645,7 +683,6 @@
     ctx.moveTo(sling.x + 18, baseY);
     ctx.lineTo(sling.x + 12, sling.y + 10);
     ctx.stroke();
-    // band
     if (currentBird && !currentBird.launched) {
       ctx.strokeStyle = '#4a2c0a';
       ctx.lineWidth = 4;
@@ -670,12 +707,10 @@
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.fill();
-    // belly
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     ctx.beginPath();
     ctx.ellipse(0, r * 0.25, r * 0.55, r * 0.4, 0, 0, Math.PI * 2);
     ctx.fill();
-    // eyes
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.arc(-r * 0.3, -r * 0.2, r * 0.28, 0, Math.PI * 2);
@@ -686,7 +721,6 @@
     ctx.arc(-r * 0.25, -r * 0.18, r * 0.12, 0, Math.PI * 2);
     ctx.arc(r * 0.3, -r * 0.18, r * 0.12, 0, Math.PI * 2);
     ctx.fill();
-    // beak
     ctx.fillStyle = '#f97316';
     ctx.beginPath();
     ctx.moveTo(r * 0.15, r * 0.05);
@@ -694,7 +728,6 @@
     ctx.lineTo(r * 0.15, r * 0.3);
     ctx.closePath();
     ctx.fill();
-    // brows (angry)
     ctx.strokeStyle = '#111';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -711,13 +744,11 @@
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.fill();
-    // ears
     ctx.fillStyle = '#22c55e';
     ctx.beginPath();
     ctx.ellipse(-r * 0.55, -r * 0.55, r * 0.28, r * 0.22, -0.5, 0, Math.PI * 2);
     ctx.ellipse(r * 0.55, -r * 0.55, r * 0.28, r * 0.22, 0.5, 0, Math.PI * 2);
     ctx.fill();
-    // snout
     ctx.fillStyle = '#86efac';
     ctx.beginPath();
     ctx.ellipse(0, r * 0.25, r * 0.45, r * 0.35, 0, 0, Math.PI * 2);
@@ -727,7 +758,6 @@
     ctx.arc(-r * 0.15, r * 0.25, r * 0.1, 0, Math.PI * 2);
     ctx.arc(r * 0.15, r * 0.25, r * 0.1, 0, Math.PI * 2);
     ctx.fill();
-    // eyes
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.arc(-r * 0.3, -r * 0.15, r * 0.22, 0, Math.PI * 2);
@@ -745,11 +775,9 @@
     const hpRatio = b.hp / b.maxHp;
     ctx.fillStyle = b.color;
     ctx.fillRect(-hw, -hh, b.w, b.h);
-    // edge
     ctx.strokeStyle = 'rgba(0,0,0,0.35)';
     ctx.lineWidth = 2;
     ctx.strokeRect(-hw, -hh, b.w, b.h);
-    // cracks when damaged
     if (hpRatio < 0.7) {
       ctx.strokeStyle = 'rgba(0,0,0,0.45)';
       ctx.lineWidth = 1.5;
@@ -762,7 +790,6 @@
       }
       ctx.stroke();
     }
-    // material hint
     if (b.type === 'glass') {
       ctx.fillStyle = 'rgba(255,255,255,0.35)';
       ctx.fillRect(-hw + 3, -hh + 3, b.w * 0.35, b.h * 0.25);
@@ -823,6 +850,5 @@
     loseOverlay.classList.add('hidden');
   };
 
-  // show menu on load
   menuOverlay.classList.remove('hidden');
 })();
