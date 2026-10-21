@@ -1,1 +1,5 @@
-Copy of Siren Head for VR work. Sounds load from ../Siren Head/SirenSounds/
+Copy of Siren Head prepared for VR work.
+
+- index.html / style.css are full copies
+- game.js loads the original game from ../Siren Head/ and retargets sound paths
+- Sound files are shared from games/Siren Head/SirenSounds/
