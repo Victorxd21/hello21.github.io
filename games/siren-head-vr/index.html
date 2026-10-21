@@ -1,72 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0a0c11">
-<title>Siren Head VR | Siren Head: The Forest Escape</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Special+Elite&family=Reenie+Beanie&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Siren Head VR</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #06080c; font-family: system-ui, sans-serif; }
+    #ui {
+      position: absolute; inset: 0; pointer-events: none; z-index: 10;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+      padding-bottom: 48px;
+    }
+    #hud {
+      position: absolute; top: 16px; left: 16px; right: 16px;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+    }
+    #status {
+      background: rgba(0,0,0,0.6); color: #e2e8f0; padding: 10px 14px;
+      border-radius: 10px; font-size: 13px; border: 1px solid rgba(224,112,45,0.25);
+      max-width: 320px;
+    }
+    #status strong { color: #e0702d; }
+    #hint {
+      background: rgba(0,0,0,0.5); color: #94a3b8; padding: 8px 14px;
+      border-radius: 10px; font-size: 12px; max-width: 260px; text-align: right; line-height: 1.5;
+    }
+    #hint strong { color: #fca5a5; }
+    #btnEnter {
+      pointer-events: auto;
+      padding: 16px 36px; font-size: 18px; font-weight: 700;
+      border: none; border-radius: 14px; cursor: pointer;
+      background: linear-gradient(135deg, #e0702d, #9a3412);
+      color: #111; box-shadow: 0 8px 32px rgba(224,112,45,0.35);
+    }
+    #btnEnter:disabled { background: #334155; color: #94a3b8; box-shadow: none; cursor: not-allowed; }
+    #desktopNote { margin-top: 12px; color: #64748b; font-size: 12px; text-align: center; }
+    canvas { display: block; width: 100%; height: 100%; }
+  </style>
 </head>
 <body>
-
-<canvas id="gl"></canvas>
-<div id="vignette"></div>
-<div id="redpulse"></div>
-<div id="flash"></div>
-<div id="fade"></div>
-
-<div id="loading">
-  <div class="loading-inner">
-    <div class="loading-title">SIREN HEAD</div>
-    <div class="loading-sub">Loading the forest&hellip;</div>
+  <div id="ui">
+    <div id="hud">
+      <div id="status">Checking WebXR…</div>
+      <div id="hint">
+        <strong>Thumbstick</strong> = walk<br/>
+        <strong>Grip</strong> = sprint<br/>
+        <strong>Trigger</strong> (right) = flashlight<br/>
+        <strong>Y</strong> (left) = restart after death
+      </div>
+    </div>
+    <button id="btnEnter" disabled>Enter VR</button>
+    <p id="desktopNote">Siren Head hunts by light and noise. Stay dark. Stay quiet.</p>
   </div>
-</div>
-
-<!-- ============ HUD ============ -->
-<div id="hud" class="hidden">
-  <div id="reticle"></div>
-  <div id="prompt" class="hidden"><span id="prompt-key">E</span><span id="prompt-text"></span></div>
-  <div id="objective"><span id="objective-label">Objective</span><span id="objective-text"></span></div>
-  <div id="toast"></div>
-  <div id="subtitle"></div>
-  <div id="status">
-    <span id="st-run" title="Sprint">RUN</span>
-    <span id="st-crouch" title="Crouch">CROUCH</span>
-    <span id="st-light" title="Flashlight">LIGHT</span>
-  </div>
-  <div id="stamina"><i id="stamina-fill"></i></div>
-</div>
-
-<!-- ============ INVENTORY ============ -->
-<div id="inventory" class="panel hidden">
-  <div class="panel-head">
-    <h2>Pockets</h2>
-    <button class="icon-btn" id="btn-inv-close" aria-label="Close inventory">&times;</button>
-  </div>
-  <div id="inv-grid"></div>
-  <h3>Ways out</h3>
-  <div id="inv-routes"></div>
-</div>
-
-<!-- ============ MAP ============ -->
-<div id="map-overlay" class="hidden">
-  <canvas id="map-canvas" width="900" height="900"></canvas>
-  <button class="icon-btn map-close" id="btn-map-close" aria-label="Close map">&times;</button>
-</div>
-
-<!-- ============ NOTE ============ -->
-<div id="note" class="hidden">
-  <div class="note-paper">
-    <h3 id="note-title"></h3>
-    <p id="note-body"></p>
-    <button class="btn small" id="btn-note-close">Put it down</button>
-  </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="game.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="game.js"></script>
+  <script>
+    if (navigator.xr) {
+      navigator.xr.isSessionSupported('immersive-vr').then(ok => {
+        const b = document.getElementById('btnEnter');
+        if (ok) { b.disabled = false; document.getElementById('status').textContent = 'WebXR ready — Enter VR'; }
+        else { document.getElementById('status').textContent = 'WebXR VR not supported on this device'; }
+      });
+    } else {
+      document.getElementById('status').textContent = 'WebXR not available';
+    }
+  </script>
 </body>
 </html>
