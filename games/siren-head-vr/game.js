@@ -53,10 +53,10 @@
         '      player.pitch = eul.x;\n' +
         '    } catch (err) {}\n' +
         '    player.flashLevel += ((player.flashOn ? 1 : 0) - player.flashLevel) * (1 - Math.exp(-dt * 25));\n' +
-        '    var fl = player.flashLevel * 3.0;\n' +
+        '    var flXR = player.flashLevel * 3.0;\n' +
         "    if (player.flashOn && typeof mon !== 'undefined' && mon.state !== 'cutscene' && mon.dist < 48)\n" +
-        '      fl *= (Math.random() < (1 - mon.dist / 48) * 0.35 ? 0.15 : 1);\n' +
-        '    flashlight.intensity = fl;\n' +
+        '      flXR *= (Math.random() < (1 - mon.dist / 48) * 0.35 ? 0.15 : 1);\n' +
+        '    flashlight.intensity = flXR;\n' +
         '    return;\n' +
         '  }\n' +
         '  const p = player.pos;'
