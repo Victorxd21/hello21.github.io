@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0c11">
+<title>Siren Head VR | Siren Head: The Forest Escape</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Special+Elite&family=Reenie+Beanie&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<canvas id="gl"></canvas>
+<div id="vignette"></div>
+<div id="redpulse"></div>
+<div id="flash"></div>
+<div id="fade"></div>
+
+<div id="loading">
+  <div class="loading-inner">
+    <div class="loading-title">SIREN HEAD</div>
+    <div class="loading-sub">Loading the forest&hellip;</div>
+  </div>
+</div>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hidden">
+  <div id="reticle"></div>
+  <div id="prompt" class="hidden"><span id="prompt-key">E</span><span id="prompt-text"></span></div>
+  <div id="objective"><span id="objective-label">Objective</span><span id="objective-text"></span></div>
+  <div id="toast"></div>
+  <div id="subtitle"></div>
+  <div id="status">
+    <span id="st-run" title="Sprint">RUN</span>
+    <span id="st-crouch" title="Crouch">CROUCH</span>
+    <span id="st-light" title="Flashlight">LIGHT</span>
+  </div>
+  <div id="stamina"><i id="stamina-fill"></i></div>
+</div>
+
+<!-- ============ INVENTORY ============ -->
+<div id="inventory" class="panel hidden">
+  <div class="panel-head">
+    <h2>Pockets</h2>
+    <button class="icon-btn" id="btn-inv-close" aria-label="Close inventory">&times;</button>
+  </div>
+  <div id="inv-grid"></div>
+  <h3>Ways out</h3>
+  <div id="inv-routes"></div>
+</div>
+
+<!-- ============ MAP ============ -->
+<div id="map-overlay" class="hidden">
+  <canvas id="map-canvas" width="900" height="900"></canvas>
+  <button class="icon-btn map-close" id="btn-map-close" aria-label="Close map">&times;</button>
+</div>
+
+<!-- ============ NOTE ============ -->
+<div id="note" class="hidden">
+  <div class="note-paper">
+    <h3 id="note-title"></h3>
+    <p id="note-body"></p>
+    <button class="btn small" id="btn-note-close">Put it down</button>
+  </div>
+</div>
+
+<script type="module" src="game.js"></script>
+</body>
+</html>
