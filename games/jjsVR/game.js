@@ -1,10 +1,10 @@
 (async()=>{
   try {
-    const parts = [];
-    for (let i = 0; i < 3; i++) {
-      parts.push(await (await fetch("./part" + i + ".js")).text());
-    }
-    await import(URL.createObjectURL(new Blob([parts.join("")], { type: "text/javascript" })));
+    const p0 = await (await fetch("./part0.js")).text();
+    let b64 = "";
+    for (let i = 0; i < 4; i++) b64 += await (await fetch("./bc" + i + ".txt")).text();
+    const rest = atob(b64.replace(/\s+/g,""));
+    await import(URL.createObjectURL(new Blob([p0 + rest], { type: "text/javascript" })));
   } catch(e) {
     console.error(e);
     const s = document.getElementById("status");
