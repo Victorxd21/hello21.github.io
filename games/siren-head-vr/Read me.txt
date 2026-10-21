@@ -1,10 +1,6 @@
-Siren Head VR — WebXR forest horror.
+Siren Head VR
 
-Controls:
-- Thumbstick: walk
-- Grip: sprint
-- Right trigger: flashlight on/off
-- Left Y: restart after death
+This folder loads the FULL original game from games/Siren Head/
+and only adds WebXR (Enter VR, headset camera, controller sticks/triggers).
 
-Sounds load from ../Siren Head/SirenSounds/
-Siren Head hunts by light and noise. Stay dark. Stay quiet.
+Gameplay, forest, Siren Head AI, items, map, audio = the real game.
