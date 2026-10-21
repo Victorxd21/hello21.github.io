@@ -1,9 +1,10 @@
 (async()=>{
   try {
-    const a = await (await fetch("./part0.js")).text();
-    const b = await (await fetch("./part1.js")).text();
-    const code = a + b;
-    await import(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
+    const parts = [];
+    for (let i = 0; i < 3; i++) {
+      parts.push(await (await fetch("./part" + i + ".js")).text());
+    }
+    await import(URL.createObjectURL(new Blob([parts.join("")], { type: "text/javascript" })));
   } catch(e) {
     console.error(e);
     const s = document.getElementById("status");
