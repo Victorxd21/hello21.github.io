@@ -1,1 +1,14 @@
-(async()=>{try{const a=await(await fetch("./p0.txt")).text();const b=await(await fetch("./p1.txt")).text();const bin=Uint8Array.from(atob((a+b).replace(/\s+/g,"")),c=>c.charCodeAt(0));const ds=new DecompressionStream("gzip");const code=await new Response(new Response(bin).body.pipeThrough(ds)).text();await import(URL.createObjectURL(new Blob([code],{type:"text/javascript"})));}catch(e){console.error(e);const s=document.getElementById("status");if(s)s.innerHTML="<strong>Load error:</strong> "+e;}})();
+(async()=>{
+  try {
+    const parts = [];
+    for (let i = 0; i < 3; i++) {
+      parts.push(await (await fetch("./part" + i + ".js")).text());
+    }
+    const code = parts.join("");
+    await import(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
+  } catch(e) {
+    console.error(e);
+    const s = document.getElementById("status");
+    if (s) s.innerHTML = "<strong>Load error:</strong> " + e;
+  }
+})();
