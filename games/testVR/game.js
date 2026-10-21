@@ -1,16 +1,14 @@
-const parts = [];
-async function load() {
-  for (let i = 0; i < 4; i++) {
-    const r = await fetch('./c' + i + '.txt');
-    parts.push(await r.text());
+(async () => {
+  try {
+    const a = await (await fetch("./p0.txt")).text();
+    const b = await (await fetch("./p1.txt")).text();
+    const code = a + b;
+    const blob = new Blob([code], { type: "text/javascript" });
+    const url = URL.createObjectURL(blob);
+    await import(url);
+  } catch (e) {
+    console.error(e);
+    const s = document.getElementById("status");
+    if (s) s.innerHTML = "<strong>Load error:</strong> " + e;
   }
-  const code = atob(parts.join(''));
-  const blob = new Blob([code], { type: 'text/javascript' });
-  const url = URL.createObjectURL(blob);
-  await import(url);
-}
-load().catch(e => {
-  console.error(e);
-  const s = document.getElementById('status');
-  if (s) s.textContent = 'Load error: ' + e;
-});
+})();
