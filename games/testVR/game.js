@@ -1,6 +1,7 @@
 /**
  * testVR — physics playground
- * Grip = grab · Trigger = shoot / menu · Thumbstick = move · Spawn menu
+ * Fixed: grip grab (squeeze + gamepad), thumbstick move (world offset)
+ * Added: outlines, trails, sounds
  */
 import * as THREE from 'three';
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
@@ -9,6 +10,38 @@ import * as CANNON from 'cannon-es';
 const statusEl = document.getElementById('status');
 const btnEnter = document.getElementById('btnEnter');
 const desktopNote = document.getElementById('desktopNote');
+
+// ─── audio (simple Web Audio beeps) ─────────────────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+function ensureAudio() {
+  if (!actx) actx = new AudioCtx();
+  if (actx.state === 'suspended') actx.resume();
+}
+function beep(freq, dur = 0.06, type = 'square', vol = 0.08) {
+  try {
+    ensureAudio();
+    const t = actx.currentTime;
+    const o = actx.createOscillator();
+    const g = actx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g);
+    g.connect(actx.destination);
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  } catch (_) {}
+}
+const SFX = {
+  grab: () => beep(320, 0.07, 'sine', 0.1),
+  release: () => beep(180, 0.08, 'triangle', 0.07),
+  shoot: () => { beep(120, 0.05, 'sawtooth', 0.09); setTimeout(() => beep(80, 0.08, 'square', 0.05), 30); },
+  hit: () => beep(90, 0.05, 'square', 0.06),
+  menu: () => beep(520, 0.05, 'sine', 0.08),
+  spawn: () => beep(440, 0.06, 'triangle', 0.07)
+};
 
 // ─── renderer ───────────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -25,13 +58,12 @@ scene.fog = new THREE.Fog(0x0b1020, 16, 55);
 
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 100);
 camera.position.set(0, 1.6, 3.5);
+scene.add(camera);
 
-// Player rig: we move this for locomotion (world stays, rig shifts)
-const rig = new THREE.Group();
-rig.add(camera);
-scene.add(rig);
+// World stage — we move THIS for VR locomotion (keeps XR poses correct)
+const stage = new THREE.Group();
+scene.add(stage);
 
-// ─── lights ─────────────────────────────────────────────────
 scene.add(new THREE.HemisphereLight(0xa5b4fc, 0x1e1b4b, 0.75));
 const dir = new THREE.DirectionalLight(0xffffff, 1.05);
 dir.position.set(5, 12, 6);
@@ -55,21 +87,25 @@ groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
 world.addBody(groundBody);
 
 const floor = new THREE.Mesh(
-  new THREE.CircleGeometry(20, 64),
+  new THREE.CircleGeometry(22, 64),
   new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9, metalness: 0.05 })
 );
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
-scene.add(floor);
-scene.add(new THREE.GridHelper(24, 24, 0x6366f1, 0x312e81).translateY(0.01));
+stage.add(floor);
+stage.add(new THREE.GridHelper(24, 24, 0x6366f1, 0x312e81).translateY(0.01));
 
-// ─── objects ────────────────────────────────────────────────
+// ─── state ──────────────────────────────────────────────────
 const objects = [];
-const menuButtons = []; // { mesh, action }
+const menuButtons = [];
+const trails = []; // { mesh, points, life }
 const GRAB_RANGE = 9;
 const PULL_SPEED = 14;
-const MOVE_SPEED = 3.2;
+const MOVE_SPEED = 3.5;
 const cubeColors = [0xef4444, 0x22c55e, 0x3b82f6, 0xf59e0b, 0xa855f7, 0xec4899, 0x14b8a6, 0xf97316];
+
+// player offset for desktop (camera moves); VR uses stage
+const playerPos = new THREE.Vector3(0, 0, 0);
 
 function syncMeshToBody(mesh, body) {
   mesh.position.copy(body.position);
@@ -79,14 +115,110 @@ function syncMeshToBody(mesh, body) {
 function setBodyKinematic(body, on) {
   if (on) {
     body.type = CANNON.Body.KINEMATIC;
-    body.velocity.set(0, 0, 0);
-    body.angularVelocity.set(0, 0, 0);
+    body.velocity.setZero();
+    body.angularVelocity.setZero();
   } else {
     body.type = CANNON.Body.DYNAMIC;
     body.wakeUp();
   }
 }
 
+// ─── outlines ───────────────────────────────────────────────
+const outlineMat = new THREE.MeshBasicMaterial({
+  color: 0x38bdf8,
+  side: THREE.BackSide,
+  transparent: true,
+  opacity: 0.85
+});
+let outlineMesh = null;
+
+function showOutline(obj) {
+  clearOutline();
+  if (!obj || !obj.mesh) return;
+  // clone geometry from primary mesh
+  let geo = null;
+  obj.mesh.traverse((c) => {
+    if (!geo && c.isMesh && c.geometry) geo = c.geometry;
+  });
+  if (!geo) return;
+  outlineMesh = new THREE.Mesh(geo, outlineMat);
+  outlineMesh.scale.multiplyScalar(1.12);
+  outlineMesh.renderOrder = 9;
+  // attach as child so it follows
+  const host = obj.mesh.isMesh ? obj.mesh : obj.mesh;
+  host.add(outlineMesh);
+  // if group, center outline roughly
+  if (!obj.mesh.isMesh) {
+    outlineMesh.position.set(0, 0, 0);
+  }
+}
+
+function clearOutline() {
+  if (outlineMesh) {
+    if (outlineMesh.parent) outlineMesh.parent.remove(outlineMesh);
+    outlineMesh = null;
+  }
+}
+
+// ─── trails ─────────────────────────────────────────────────
+function addTrailPoint(obj) {
+  if (!obj.trail) {
+    obj.trail = {
+      positions: [],
+      mesh: null,
+      life: 0.6
+    };
+  }
+  const p = obj.mesh.position;
+  obj.trail.positions.push(p.x, p.y, p.z);
+  // keep last N points
+  const maxPts = 12;
+  while (obj.trail.positions.length > maxPts * 3) {
+    obj.trail.positions.splice(0, 3);
+  }
+  obj.trail.life = 0.7;
+
+  const arr = obj.trail.positions;
+  if (arr.length < 6) return;
+
+  if (!obj.trail.mesh) {
+    const geo = new THREE.BufferGeometry();
+    const mat = new THREE.LineBasicMaterial({
+      color: obj.kind === 'ball' ? 0x38bdf8 : 0xa78bfa,
+      transparent: true,
+      opacity: 0.7
+    });
+    obj.trail.mesh = new THREE.Line(geo, mat);
+    scene.add(obj.trail.mesh);
+  }
+  obj.trail.mesh.geometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(arr.slice(), 3)
+  );
+  obj.trail.mesh.geometry.attributes.position.needsUpdate = true;
+  obj.trail.mesh.material.opacity = 0.75;
+}
+
+function updateTrails(dt) {
+  for (const o of objects) {
+    if (!o.trail) continue;
+    const spd = o.body ? o.body.velocity.length() : 0;
+    if (spd > 2.5 || o.kind === 'ball') {
+      addTrailPoint(o);
+    }
+    o.trail.life -= dt;
+    if (o.trail.mesh) {
+      o.trail.mesh.material.opacity = Math.max(0, o.trail.life) * 1.1;
+      if (o.trail.life <= 0) {
+        scene.remove(o.trail.mesh);
+        o.trail.mesh.geometry.dispose();
+        o.trail = null;
+      }
+    }
+  }
+}
+
+// ─── create objects ─────────────────────────────────────────
 function addCube(x, y, z, size = 0.35, color = 0xef4444) {
   const half = size / 2;
   const mesh = new THREE.Mesh(
@@ -99,7 +231,7 @@ function addCube(x, y, z, size = 0.35, color = 0xef4444) {
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   mesh.position.set(x, y, z);
-  scene.add(mesh);
+  stage.add(mesh);
 
   const body = new CANNON.Body({
     mass: 1.2 * (size / 0.35),
@@ -126,7 +258,7 @@ function addSphere(x, y, z, r = 0.2, color = 0xf472b6) {
   );
   mesh.castShadow = true;
   mesh.position.set(x, y, z);
-  scene.add(mesh);
+  stage.add(mesh);
 
   const body = new CANNON.Body({
     mass: 0.9,
@@ -143,7 +275,6 @@ function addSphere(x, y, z, r = 0.2, color = 0xf472b6) {
   return obj;
 }
 
-// initial cubes
 for (let i = 0; i < 10; i++) {
   const a = (i / 10) * Math.PI * 2;
   const r = 1.5 + Math.random() * 2;
@@ -154,7 +285,6 @@ for (let i = 0; i < 4; i++) {
   addCube(-1.5, 0.2 + i * 0.36, -1.2, 0.34, cubeColors[i % cubeColors.length]);
 }
 
-// ─── gun ────────────────────────────────────────────────────
 function createGunMesh() {
   const g = new THREE.Group();
   const dark = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.35 });
@@ -177,7 +307,7 @@ function createGunMesh() {
 function addGun(x, y, z) {
   const mesh = createGunMesh();
   mesh.position.set(x, y, z);
-  scene.add(mesh);
+  stage.add(mesh);
   const body = new CANNON.Body({
     mass: 1.5,
     shape: new CANNON.Box(new CANNON.Vec3(0.06, 0.1, 0.22)),
@@ -193,116 +323,111 @@ function addGun(x, y, z) {
 }
 addGun(0.9, 1.1, 1.3);
 
-// ─── balls ──────────────────────────────────────────────────
 const ballGeo = new THREE.SphereGeometry(0.07, 14, 14);
 const ballMat = new THREE.MeshStandardMaterial({
   color: 0xf8fafc, emissive: 0x38bdf8, emissiveIntensity: 0.55, roughness: 0.25, metalness: 0.15
 });
 
 function shootBall(origin, direction, speed = 14) {
+  SFX.shoot();
+  // origin is world space; convert to stage-local
+  const local = stage.worldToLocal(origin.clone());
   const mesh = new THREE.Mesh(ballGeo, ballMat.clone());
   mesh.castShadow = true;
-  mesh.position.copy(origin);
-  scene.add(mesh);
+  mesh.position.copy(local);
+  stage.add(mesh);
+
   const body = new CANNON.Body({
     mass: 0.35,
     shape: new CANNON.Sphere(0.07),
-    position: new CANNON.Vec3(origin.x, origin.y, origin.z),
+    position: new CANNON.Vec3(local.x, local.y, local.z),
     linearDamping: 0.05, angularDamping: 0.1
   });
+  // direction is world; velocity in physics is stage/world aligned since stage only translates
   const dir = direction.clone().normalize().multiplyScalar(speed);
   body.velocity.set(dir.x, dir.y, dir.z);
   world.addBody(body);
+
   const obj = { mesh, body, kind: 'ball', grabbedBy: null, life: 8, size: 0.14 };
   mesh.userData.obj = obj;
   objects.push(obj);
 }
 
-// ─── spawn helpers (menu actions) ───────────────────────────
 function spawnInFront(kind) {
-  // spawn a few meters in front of player head
+  SFX.spawn();
   const origin = new THREE.Vector3();
   const look = new THREE.Vector3();
   if (renderer.xr.isPresenting) {
-    const xrCam = renderer.xr.getCamera();
-    xrCam.getWorldPosition(origin);
-    xrCam.getWorldDirection(look);
+    renderer.xr.getCamera().getWorldPosition(origin);
+    renderer.xr.getCamera().getWorldDirection(look);
   } else {
     camera.getWorldPosition(origin);
     camera.getWorldDirection(look);
   }
-  const pos = origin.clone().addScaledVector(look, 2.2);
-  pos.y = Math.max(0.5, pos.y);
+  const worldPos = origin.clone().addScaledVector(look, 2.2);
+  worldPos.y = Math.max(0.5, worldPos.y);
+  const local = stage.worldToLocal(worldPos.clone());
 
   if (kind === 'cube') {
-    const c = cubeColors[(Math.random() * cubeColors.length) | 0];
-    const s = 0.28 + Math.random() * 0.2;
-    addCube(pos.x + (Math.random() - 0.5) * 0.3, pos.y, pos.z + (Math.random() - 0.5) * 0.3, s, c);
+    addCube(local.x, local.y, local.z, 0.28 + Math.random() * 0.2, cubeColors[(Math.random() * cubeColors.length) | 0]);
   } else if (kind === 'sphere') {
-    addSphere(pos.x, pos.y, pos.z, 0.18 + Math.random() * 0.12, cubeColors[(Math.random() * cubeColors.length) | 0]);
+    addSphere(local.x, local.y, local.z, 0.18 + Math.random() * 0.12, cubeColors[(Math.random() * cubeColors.length) | 0]);
   } else if (kind === 'stack') {
-    for (let i = 0; i < 5; i++) {
-      addCube(pos.x, 0.2 + i * 0.38, pos.z, 0.34, cubeColors[i % cubeColors.length]);
-    }
+    for (let i = 0; i < 5; i++) addCube(local.x, 0.2 + i * 0.38, local.z, 0.34, cubeColors[i % cubeColors.length]);
   } else if (kind === 'rain') {
     for (let i = 0; i < 8; i++) {
-      addCube(
-        pos.x + (Math.random() - 0.5) * 2,
-        2.5 + Math.random() * 2,
-        pos.z + (Math.random() - 0.5) * 2,
-        0.25 + Math.random() * 0.15,
-        cubeColors[i % cubeColors.length]
-      );
+      addCube(local.x + (Math.random() - 0.5) * 2, 2.5 + Math.random() * 2, local.z + (Math.random() - 0.5) * 2,
+        0.25 + Math.random() * 0.15, cubeColors[i % cubeColors.length]);
     }
   }
 }
 
 function clearToys() {
+  SFX.menu();
   for (let i = objects.length - 1; i >= 0; i--) {
     const o = objects[i];
-    if (o.kind === 'gun') continue;
-    if (o.grabbedBy) continue;
+    if (o.kind === 'gun' || o.grabbedBy) continue;
+    if (o.trail && o.trail.mesh) {
+      scene.remove(o.trail.mesh);
+      o.trail.mesh.geometry.dispose();
+    }
     world.removeBody(o.body);
-    scene.remove(o.mesh);
+    stage.remove(o.mesh);
     objects.splice(i, 1);
   }
+  clearOutline();
 }
 
-// ─── in-world menu panel ────────────────────────────────────
+// ─── menu ───────────────────────────────────────────────────
 const menuGroup = new THREE.Group();
 menuGroup.position.set(-2.2, 1.4, 0.5);
-scene.add(menuGroup);
+stage.add(menuGroup);
 
-// panel background
-const panel = new THREE.Mesh(
+menuGroup.add(new THREE.Mesh(
   new THREE.PlaneGeometry(1.1, 1.35),
   new THREE.MeshStandardMaterial({
     color: 0x0f172a, roughness: 0.6, metalness: 0.2,
     transparent: true, opacity: 0.92, side: THREE.DoubleSide
   })
-);
-panel.position.z = -0.02;
-menuGroup.add(panel);
+).translateZ(-0.02));
 
-// title
-function makeLabel(text, y, size = 0.08, color = 0xe2e8f0) {
+function makeLabel(text, y) {
   const canvas = document.createElement('canvas');
   canvas.width = 512; canvas.height = 128;
   const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, 512, 128);
   ctx.fillStyle = '#e2e8f0';
-  ctx.font = 'bold 64px system-ui, sans-serif';
+  ctx.font = 'bold 64px system-ui,sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, 256, 64);
-  const tex = new THREE.CanvasTexture(canvas);
-  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size * 8, size * 2), mat);
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.56, 0.14),
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, side: THREE.DoubleSide })
+  );
   mesh.position.set(0, y, 0.01);
   menuGroup.add(mesh);
-  return mesh;
 }
-makeLabel('PLAYGROUND', 0.55, 0.07);
+makeLabel('PLAYGROUND', 0.55);
 
 function makeButton(label, y, action, color = 0x4f46e5) {
   const w = 0.85, h = 0.16;
@@ -316,26 +441,23 @@ function makeButton(label, y, action, color = 0x4f46e5) {
   mesh.position.set(0, y, 0.02);
   menuGroup.add(mesh);
 
-  // text on button
   const canvas = document.createElement('canvas');
   canvas.width = 512; canvas.height = 96;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 52px system-ui, sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 52px system-ui,sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, 256, 48);
-  const tex = new THREE.CanvasTexture(canvas);
   const textMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(w * 0.92, h * 0.75),
-    new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide })
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, side: THREE.DoubleSide })
   );
   textMesh.position.set(0, y, 0.03);
   menuGroup.add(textMesh);
 
   mesh.userData.isMenuButton = true;
   mesh.userData.action = action;
-  mesh.userData.baseColor = color;
   menuButtons.push(mesh);
   return mesh;
 }
@@ -346,24 +468,20 @@ makeButton('+ Stack', -0.08, () => spawnInFront('stack'), 0x2563eb);
 makeButton('Cube Rain', -0.28, () => spawnInFront('rain'), 0x0891b2);
 makeButton('Clear toys', -0.48, () => clearToys(), 0xb91c1c);
 
-// ─── blue grab ring ─────────────────────────────────────────
+// ─── blue ring (extra target marker) ────────────────────────
 const ringMat = new THREE.MeshBasicMaterial({
-  color: 0x38bdf8, transparent: true, opacity: 0.9,
+  color: 0x38bdf8, transparent: true, opacity: 0.85,
   side: THREE.DoubleSide, depthWrite: false
 });
 const ring = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.28, 32), ringMat);
 ring.visible = false;
 ring.renderOrder = 10;
 scene.add(ring);
-ring.add(new THREE.Mesh(
-  new THREE.RingGeometry(0.08, 0.1, 24),
-  new THREE.MeshBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false })
-));
 
-// menu hover highlight
 let hoveredButton = null;
+let highlightedObj = null;
 
-// ─── controllers ────────────────────────────────────────────
+// ─── controllers (stay in SCENE root — critical for XR poses) ─
 const controllerModelFactory = new XRControllerModelFactory();
 const tempMatrix = new THREE.Matrix4();
 const raycaster = new THREE.Raycaster();
@@ -371,7 +489,7 @@ raycaster.far = GRAB_RANGE;
 
 function setupController(index) {
   const controller = renderer.xr.getController(index);
-  rig.add(controller); // move with player rig
+  scene.add(controller);
 
   const line = new THREE.Line(
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1)]),
@@ -382,23 +500,24 @@ function setupController(index) {
 
   const gripCtrl = renderer.xr.getControllerGrip(index);
   gripCtrl.add(controllerModelFactory.createControllerModel(gripCtrl));
-  rig.add(gripCtrl);
+  scene.add(gripCtrl);
 
   controller.userData = {
     index,
-    ray: line,
     holding: null,
     pulling: null,
-    gripHeld: false,
+    gripDown: false,
+    prevGripDown: false,
+    triggerDown: false,
+    prevTriggerDown: false,
     prevPos: new THREE.Vector3(),
     velocity: new THREE.Vector3()
   };
 
-  // SIDE button (grip) = grab
-  controller.addEventListener('squeezestart', () => onGripStart(controller));
-  controller.addEventListener('squeezeend', () => onGripEnd(controller));
-  // FRONT trigger = shoot / menu
-  controller.addEventListener('selectstart', () => onTriggerStart(controller));
+  // Event API (when browser supports it)
+  controller.addEventListener('squeezestart', () => startGrab(controller));
+  controller.addEventListener('squeezeend', () => endGrab(controller));
+  controller.addEventListener('selectstart', () => onTrigger(controller));
 
   return controller;
 }
@@ -415,11 +534,11 @@ function getControllerRay(controller) {
 }
 
 function resolveObj(object) {
-  let o = object.userData.obj;
+  let o = object.userData && object.userData.obj;
   if (o) return o;
   let p = object.parent;
   while (p) {
-    if (p.userData.obj) return p.userData.obj;
+    if (p.userData && p.userData.obj) return p.userData.obj;
     p = p.parent;
   }
   return null;
@@ -441,36 +560,54 @@ function pickObject(controller) {
 function pickMenuButton(controller) {
   const rc = getControllerRay(controller);
   const hits = rc.intersectObjects(menuButtons, false);
-  if (hits.length) return hits[0].object;
-  return null;
+  return hits.length ? hits[0].object : null;
 }
 
-// Grip (side) = start grab
-function onGripStart(controller) {
+function startGrab(controller) {
   const ud = controller.userData;
-  ud.gripHeld = true;
   if (ud.holding || ud.pulling) return;
   const hit = pickObject(controller);
   if (!hit) return;
+  SFX.grab();
   ud.pulling = hit.obj;
   hit.obj.grabbedBy = controller;
   setBodyKinematic(hit.obj.body, true);
+  // move mesh from stage to world temporarily for parenting math
+  const wp = new THREE.Vector3();
+  const wq = new THREE.Quaternion();
+  hit.obj.mesh.getWorldPosition(wp);
+  hit.obj.mesh.getWorldQuaternion(wq);
+  stage.remove(hit.obj.mesh);
+  scene.add(hit.obj.mesh);
+  hit.obj.mesh.position.copy(wp);
+  hit.obj.mesh.quaternion.copy(wq);
 }
 
-function onGripEnd(controller) {
+function endGrab(controller) {
   const ud = controller.userData;
-  ud.gripHeld = false;
   const held = ud.holding || ud.pulling;
   if (!held) return;
+
+  SFX.release();
 
   const worldPos = new THREE.Vector3();
   const worldQuat = new THREE.Quaternion();
   held.mesh.getWorldPosition(worldPos);
   held.mesh.getWorldQuaternion(worldQuat);
 
-  if (held.mesh.parent === controller) scene.attach(held.mesh);
+  if (held.mesh.parent === controller) {
+    scene.attach(held.mesh);
+  }
 
-  held.body.position.set(worldPos.x, worldPos.y, worldPos.z);
+  // back into stage space
+  scene.remove(held.mesh);
+  stage.add(held.mesh);
+  const local = stage.worldToLocal(worldPos.clone());
+  held.mesh.position.copy(local);
+  // quaternion: approx keep world rotation
+  held.mesh.quaternion.copy(worldQuat);
+
+  held.body.position.set(local.x, local.y, local.z);
   held.body.quaternion.set(worldQuat.x, worldQuat.y, worldQuat.z, worldQuat.w);
   setBodyKinematic(held.body, false);
 
@@ -487,23 +624,19 @@ function onGripEnd(controller) {
   ud.pulling = null;
 }
 
-// Trigger (front) = shoot gun OR click menu
-function onTriggerStart(controller) {
+function onTrigger(controller) {
+  ensureAudio();
   const ud = controller.userData;
-
-  // menu click
   const btn = pickMenuButton(controller);
   if (btn && btn.userData.action) {
+    SFX.menu();
     btn.userData.action();
-    // flash
     const mat = btn.material;
     const prev = mat.emissiveIntensity;
-    mat.emissiveIntensity = 0.9;
+    mat.emissiveIntensity = 0.95;
     setTimeout(() => { mat.emissiveIntensity = prev; }, 120);
     return;
   }
-
-  // shoot if holding gun
   if (ud.holding && ud.holding.kind === 'gun') {
     fireGun(ud.holding);
   }
@@ -533,11 +666,10 @@ function updateGrab(controller, dt) {
     const obj = ud.pulling;
     const target = new THREE.Vector3().setFromMatrixPosition(controller.matrixWorld);
     target.add(new THREE.Vector3(0, 0, -0.25).applyQuaternion(controller.quaternion));
-    const cur = new THREE.Vector3().copy(obj.mesh.position);
-    // when not parented yet, mesh follows body or we set directly
-    const to = target.clone().sub(cur);
+    const cur = obj.mesh.position.clone();
+    const to = target.sub(cur);
     const dist = to.length();
-    if (dist < 0.18) {
+    if (dist < 0.2) {
       controller.attach(obj.mesh);
       if (obj.kind === 'gun') {
         obj.mesh.position.set(0, -0.02, -0.15);
@@ -550,9 +682,10 @@ function updateGrab(controller, dt) {
       ud.pulling = null;
     } else {
       to.normalize().multiplyScalar(Math.min(dist, PULL_SPEED * dt));
-      cur.add(to);
-      obj.mesh.position.copy(cur);
-      obj.body.position.set(cur.x, cur.y, cur.z);
+      obj.mesh.position.add(to);
+      // kinematic body tracks world pos in stage space for physics sleep
+      const loc = stage.worldToLocal(obj.mesh.position.clone());
+      obj.body.position.set(loc.x, loc.y, loc.z);
     }
   }
 
@@ -562,15 +695,59 @@ function updateGrab(controller, dt) {
     const wq = new THREE.Quaternion();
     obj.mesh.getWorldPosition(wp);
     obj.mesh.getWorldQuaternion(wq);
-    obj.body.position.set(wp.x, wp.y, wp.z);
+    const loc = stage.worldToLocal(wp.clone());
+    obj.body.position.set(loc.x, loc.y, loc.z);
     obj.body.quaternion.set(wq.x, wq.y, wq.z, wq.w);
-    obj.body.velocity.set(0, 0, 0);
-    obj.body.angularVelocity.set(0, 0, 0);
+    obj.body.velocity.setZero();
+    obj.body.angularVelocity.setZero();
   }
 }
 
+// Poll gamepad for grip/trigger (more reliable on some headsets)
+function pollGamepads(dt) {
+  const session = renderer.xr.getSession();
+  if (!session) return;
+
+  const sources = session.inputSources;
+  for (let i = 0; i < sources.length; i++) {
+    const src = sources[i];
+    const controller = src.handedness === 'left' ? controller0 :
+      src.handedness === 'right' ? controller1 :
+      controllers[i] || null;
+    if (!controller || !src.gamepad) continue;
+
+    const gp = src.gamepad;
+    const ud = controller.userData;
+
+    // buttons[0] = trigger, buttons[1] = grip (Quest / OpenXR common)
+    const triggerPressed = !!(gp.buttons[0] && gp.buttons[0].pressed);
+    const gripPressed = !!(gp.buttons[1] && gp.buttons[1].pressed) ||
+      !!(gp.buttons[2] && gp.buttons[2].pressed); // some devices
+
+    // Grip edges
+    if (gripPressed && !ud.prevGripDown) startGrab(controller);
+    if (!gripPressed && ud.prevGripDown) endGrab(controller);
+    ud.prevGripDown = gripPressed;
+    ud.gripDown = gripPressed;
+
+    // Trigger edge for menu/shoot (select event may also fire — debounce with flag)
+    if (triggerPressed && !ud.prevTriggerDown) {
+      // only fire if select event might not — call onTrigger; double-fire is mostly ok for shoot
+      // skip if we already handled via selectstart this frame: use a light debounce
+      if (!ud._triggerEvt) onTrigger(controller);
+    }
+    ud.prevTriggerDown = triggerPressed;
+    ud.triggerDown = triggerPressed;
+    ud._triggerEvt = false;
+  }
+}
+
+// Mark select event so poll doesn't double
+for (const c of controllers) {
+  c.addEventListener('selectstart', () => { c.userData._triggerEvt = true; });
+}
+
 function updateHighlight() {
-  // reset menu hover
   if (hoveredButton) {
     hoveredButton.material.emissiveIntensity = 0.25;
     hoveredButton = null;
@@ -579,14 +756,14 @@ function updateHighlight() {
   let best = null;
   let bestBtn = null;
 
-  for (const c of controllers) {
-    if (!renderer.xr.isPresenting) continue;
-    const btn = pickMenuButton(c);
-    if (btn) bestBtn = btn;
-
-    if (c.userData.holding || c.userData.pulling) continue;
-    const hit = pickObject(c);
-    if (hit && (!best || hit.distance < best.distance)) best = hit;
+  if (renderer.xr.isPresenting) {
+    for (const c of controllers) {
+      const btn = pickMenuButton(c);
+      if (btn) bestBtn = btn;
+      if (c.userData.holding || c.userData.pulling) continue;
+      const hit = pickObject(c);
+      if (hit && (!best || hit.distance < best.distance)) best = hit;
+    }
   }
 
   if (bestBtn) {
@@ -595,62 +772,70 @@ function updateHighlight() {
   }
 
   if (best) {
+    if (highlightedObj !== best.obj) {
+      highlightedObj = best.obj;
+      showOutline(best.obj);
+    }
     ring.visible = true;
     const s = (best.obj.size || 0.35) * 1.15 + 0.15;
     ring.scale.setScalar(s / 0.25);
-    ring.position.copy(best.obj.mesh.position);
+    best.obj.mesh.getWorldPosition(ring.position);
     ring.lookAt(camera.position);
-    ringMat.opacity = 0.75 + Math.sin(performance.now() * 0.008) * 0.15;
+    ringMat.opacity = 0.7 + Math.sin(performance.now() * 0.008) * 0.2;
   } else {
+    if (highlightedObj) {
+      highlightedObj = null;
+      clearOutline();
+    }
     ring.visible = false;
   }
 }
 
-// ─── thumbstick locomotion ──────────────────────────────────
-function getThumbstick() {
-  const session = renderer.xr.getSession();
-  if (!session) return null;
-  let x = 0, y = 0;
-  for (const src of session.inputSources) {
-    if (!src.gamepad || !src.gamepad.axes) continue;
-    const axes = src.gamepad.axes;
-    // Common layouts: axes[2],axes[3] = right stick / main stick on Quest
-    let ax = 0, ay = 0;
-    if (axes.length >= 4) {
-      ax = axes[2]; ay = axes[3];
-    } else if (axes.length >= 2) {
-      ax = axes[0]; ay = axes[1];
-    }
-    if (Math.abs(ax) > Math.abs(x)) x = ax;
-    if (Math.abs(ay) > Math.abs(y)) y = ay;
-  }
-  if (Math.abs(x) < 0.15) x = 0;
-  if (Math.abs(y) < 0.15) y = 0;
-  if (!x && !y) return null;
-  return { x, y };
-}
-
+// ─── locomotion: move STAGE opposite to stick (XR-safe) ─────
 function updateLocomotion(dt) {
   if (!renderer.xr.isPresenting) return;
-  const stick = getThumbstick();
-  if (!stick) return;
+  const session = renderer.xr.getSession();
+  if (!session) return;
+
+  let sx = 0, sy = 0;
+  for (const src of session.inputSources) {
+    if (!src.gamepad || !src.gamepad.axes) continue;
+    const a = src.gamepad.axes;
+    let ax = 0, ay = 0;
+    if (a.length >= 4) { ax = a[2]; ay = a[3]; }
+    else if (a.length >= 2) { ax = a[0]; ay = a[1]; }
+    if (Math.abs(ax) > Math.abs(sx)) sx = ax;
+    if (Math.abs(ay) > Math.abs(sy)) sy = ay;
+  }
+  if (Math.abs(sx) < 0.15) sx = 0;
+  if (Math.abs(sy) < 0.15) sy = 0;
+  if (!sx && !sy) return;
 
   const xrCam = renderer.xr.getCamera();
   const forward = new THREE.Vector3();
   xrCam.getWorldDirection(forward);
   forward.y = 0;
-  if (forward.lengthSq() < 0.001) return;
+  if (forward.lengthSq() < 1e-6) return;
   forward.normalize();
   const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
-  // stick.y: forward/back (often inverted on Quest: -y = forward)
+  // Move world opposite so player feels like walking forward
   const move = new THREE.Vector3();
-  move.addScaledVector(forward, -stick.y * MOVE_SPEED * dt);
-  move.addScaledVector(right, stick.x * MOVE_SPEED * dt);
-  rig.position.add(move);
+  move.addScaledVector(forward, sy * MOVE_SPEED * dt);  // stick forward often -Y on Quest → use +sy with invert:
+  // Quest: up on stick = axes[3] negative → want walk forward
+  move.set(0, 0, 0);
+  move.addScaledVector(forward, -sy * MOVE_SPEED * dt);
+  move.addScaledVector(right, sx * MOVE_SPEED * dt);
+
+  // shift stage
+  stage.position.sub(move);
+
+  // shift all dynamic bodies the same amount (stage visual moved; physics coords are stage-local,
+  // so when we only move stage group, mesh.position is local and stays correct WITHOUT moving bodies).
+  // bodies already in stage-local space — good, no body shift needed.
 }
 
-// ─── WebXR ──────────────────────────────────────────────────
+// ─── WebXR enter ────────────────────────────────────────────
 async function checkXR() {
   if (!navigator.xr) {
     statusEl.innerHTML = '<strong>WebXR not available</strong>';
@@ -658,20 +843,26 @@ async function checkXR() {
     btnEnter.textContent = 'VR not supported';
     return;
   }
-  const ok = await navigator.xr.isSessionSupported('immersive-vr');
-  if (ok) {
-    statusEl.innerHTML = '<strong>WebXR ready</strong>';
-    btnEnter.disabled = false;
-    btnEnter.textContent = 'Enter VR';
-  } else {
-    statusEl.innerHTML = '<strong>No VR headset</strong> — desktop mode';
+  try {
+    const ok = await navigator.xr.isSessionSupported('immersive-vr');
+    if (ok) {
+      statusEl.innerHTML = '<strong>WebXR ready</strong>';
+      btnEnter.disabled = false;
+      btnEnter.textContent = 'Enter VR';
+    } else {
+      statusEl.innerHTML = '<strong>No VR headset</strong> — desktop mode';
+      btnEnter.disabled = true;
+      btnEnter.textContent = 'No VR headset';
+    }
+  } catch {
+    statusEl.innerHTML = '<strong>WebXR check failed</strong>';
     btnEnter.disabled = true;
-    btnEnter.textContent = 'No VR headset';
   }
 }
 checkXR();
 
 btnEnter.addEventListener('click', async () => {
+  ensureAudio();
   try {
     const session = await navigator.xr.requestSession('immersive-vr', {
       optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
@@ -684,7 +875,7 @@ btnEnter.addEventListener('click', async () => {
       btnEnter.classList.remove('hidden');
       desktopNote.style.display = '';
       for (const c of controllers) {
-        if (c.userData.holding || c.userData.pulling) onGripEnd(c);
+        if (c.userData.holding || c.userData.pulling) endGrab(c);
       }
       checkXR();
     });
@@ -701,6 +892,7 @@ let desktopPulling = null;
 
 window.addEventListener('keydown', (e) => {
   keys[e.code] = true;
+  ensureAudio();
   if (e.code === 'KeyG') spawnInFront('cube');
   if (e.code === 'KeyB') spawnInFront('sphere');
   if (e.code === 'KeyR') spawnInFront('rain');
@@ -708,6 +900,7 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+renderer.domElement.addEventListener('pointerdown', () => ensureAudio());
 
 renderer.domElement.addEventListener('pointermove', (e) => {
   if (renderer.xr.isPresenting) return;
@@ -739,9 +932,11 @@ function desktopPickMenu() {
 
 renderer.domElement.addEventListener('pointerdown', (e) => {
   if (renderer.xr.isPresenting || e.button !== 0 || e.shiftKey) return;
+  ensureAudio();
 
   const btn = desktopPickMenu();
   if (btn && btn.userData.action) {
+    SFX.menu();
     btn.userData.action();
     return;
   }
@@ -754,6 +949,7 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
 
   const hit = desktopPickObj();
   if (!hit) return;
+  SFX.grab();
   desktopPulling = hit.obj;
   hit.obj.grabbedBy = 'desktop';
   setBodyKinematic(hit.obj.body, true);
@@ -763,14 +959,26 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   if (renderer.xr.isPresenting || e.button !== 0) return;
   const held = desktopHolding || desktopPulling;
   if (!held) return;
+  SFX.release();
+
   if (held.mesh.parent === camera) scene.attach(held.mesh);
+
+  // ensure in stage
   const wp = new THREE.Vector3();
   const wq = new THREE.Quaternion();
   held.mesh.getWorldPosition(wp);
   held.mesh.getWorldQuaternion(wq);
-  held.body.position.set(wp.x, wp.y, wp.z);
+  if (held.mesh.parent !== stage) {
+    if (held.mesh.parent) held.mesh.parent.remove(held.mesh);
+    stage.add(held.mesh);
+  }
+  const local = stage.worldToLocal(wp.clone());
+  held.mesh.position.copy(local);
+  held.mesh.quaternion.copy(wq);
+  held.body.position.set(local.x, local.y, local.z);
   held.body.quaternion.set(wq.x, wq.y, wq.z, wq.w);
   setBodyKinematic(held.body, false);
+
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir);
   held.body.velocity.set(dir.x * 3, dir.y * 3 + 1, dir.z * 3);
@@ -782,7 +990,6 @@ renderer.domElement.addEventListener('pointerup', (e) => {
 function updateDesktop(dt) {
   if (renderer.xr.isPresenting) return;
 
-  // highlight
   if (hoveredButton) {
     hoveredButton.material.emissiveIntensity = 0.25;
     hoveredButton = null;
@@ -796,12 +1003,19 @@ function updateDesktop(dt) {
   if (!desktopHolding && !desktopPulling) {
     const hit = desktopPickObj();
     if (hit) {
+      if (highlightedObj !== hit.obj) {
+        highlightedObj = hit.obj;
+        showOutline(hit.obj);
+      }
       ring.visible = true;
       const s = (hit.obj.size || 0.35) * 1.15 + 0.15;
       ring.scale.setScalar(s / 0.25);
-      ring.position.copy(hit.obj.mesh.position);
+      hit.obj.mesh.getWorldPosition(ring.position);
       ring.lookAt(camera.position);
-    } else ring.visible = false;
+    } else {
+      if (highlightedObj) { highlightedObj = null; clearOutline(); }
+      ring.visible = false;
+    }
   }
 
   if (desktopPulling && !desktopHolding) {
@@ -811,8 +1025,10 @@ function updateDesktop(dt) {
     const dir = new THREE.Vector3();
     camera.getWorldDirection(dir);
     target.addScaledVector(dir, 1.0);
-    const cur = obj.mesh.position.clone();
-    const to = target.sub(cur);
+    // work in world, then write stage local
+    const wp = new THREE.Vector3();
+    obj.mesh.getWorldPosition(wp);
+    const to = target.sub(wp);
     const dist = to.length();
     if (dist < 0.25) {
       camera.attach(obj.mesh);
@@ -822,8 +1038,14 @@ function updateDesktop(dt) {
       desktopPulling = null;
     } else {
       to.normalize().multiplyScalar(Math.min(dist, PULL_SPEED * dt));
-      obj.mesh.position.add(to);
-      obj.body.position.copy(obj.mesh.position);
+      wp.add(to);
+      const loc = stage.worldToLocal(wp.clone());
+      if (obj.mesh.parent !== stage) {
+        scene.attach(obj.mesh);
+        stage.attach(obj.mesh);
+      }
+      obj.mesh.position.copy(loc);
+      obj.body.position.set(loc.x, loc.y, loc.z);
     }
   }
 
@@ -833,7 +1055,8 @@ function updateDesktop(dt) {
     const wq = new THREE.Quaternion();
     obj.mesh.getWorldPosition(wp);
     obj.mesh.getWorldQuaternion(wq);
-    obj.body.position.set(wp.x, wp.y, wp.z);
+    const loc = stage.worldToLocal(wp.clone());
+    obj.body.position.set(loc.x, loc.y, loc.z);
     obj.body.quaternion.set(wq.x, wq.y, wq.z, wq.w);
   }
 
@@ -842,13 +1065,13 @@ function updateDesktop(dt) {
   camera.getWorldDirection(forward);
   forward.y = 0; forward.normalize();
   const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
-  if (keys['KeyW']) rig.position.addScaledVector(forward, speed);
-  if (keys['KeyS']) rig.position.addScaledVector(forward, -speed);
-  if (keys['KeyA']) rig.position.addScaledVector(right, -speed);
-  if (keys['KeyD']) rig.position.addScaledVector(right, speed);
-  if (keys['KeyQ'] || keys['Space']) rig.position.y += speed;
-  if (keys['KeyE'] || keys['ControlLeft']) rig.position.y -= speed;
-  rig.position.y = Math.max(0, Math.min(4, rig.position.y));
+  if (keys['KeyW']) camera.position.addScaledVector(forward, speed);
+  if (keys['KeyS']) camera.position.addScaledVector(forward, -speed);
+  if (keys['KeyA']) camera.position.addScaledVector(right, -speed);
+  if (keys['KeyD']) camera.position.addScaledVector(right, speed);
+  if (keys['KeyQ'] || keys['Space']) camera.position.y += speed;
+  if (keys['KeyE'] || keys['ControlLeft']) camera.position.y -= speed;
+  camera.position.y = Math.max(0.4, Math.min(5, camera.position.y));
 }
 
 // ─── loop ───────────────────────────────────────────────────
@@ -860,8 +1083,12 @@ function cleanupBalls(dt) {
     if (o.kind !== 'ball') continue;
     o.life -= dt;
     if (o.life <= 0 || o.body.position.y < -5) {
+      if (o.trail && o.trail.mesh) {
+        scene.remove(o.trail.mesh);
+        o.trail.mesh.geometry.dispose();
+      }
       world.removeBody(o.body);
-      scene.remove(o.mesh);
+      stage.remove(o.mesh);
       objects.splice(i, 1);
     }
   }
@@ -877,6 +1104,7 @@ renderer.setAnimationLoop(() => {
   }
 
   if (renderer.xr.isPresenting) {
+    pollGamepads(dt);
     for (const c of controllers) updateGrab(c, dt);
     updateHighlight();
     updateLocomotion(dt);
@@ -884,6 +1112,7 @@ renderer.setAnimationLoop(() => {
     updateDesktop(dt);
   }
 
+  updateTrails(dt);
   cleanupBalls(dt);
   renderer.render(scene, camera);
 });
