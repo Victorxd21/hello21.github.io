@@ -25,9 +25,10 @@
     #status strong { color: #a78bfa; }
     #hint {
       background: rgba(0,0,0,0.5); color: #94a3b8; padding: 8px 14px;
-      border-radius: 10px; font-size: 12px; max-width: 280px; text-align: right;
-      line-height: 1.45;
+      border-radius: 10px; font-size: 12px; max-width: 300px; text-align: right;
+      line-height: 1.5;
     }
+    #hint strong { color: #93c5fd; }
     #btnEnter {
       pointer-events: auto;
       padding: 16px 36px;
@@ -39,22 +40,10 @@
       background: linear-gradient(135deg, #7c3aed, #4f46e5);
       color: #fff;
       box-shadow: 0 8px 32px rgba(124, 58, 237, 0.45);
-      transition: transform 0.15s, box-shadow 0.15s;
     }
-    #btnEnter:hover { transform: scale(1.04); }
-    #btnEnter:disabled {
-      background: #334155;
-      box-shadow: none;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
+    #btnEnter:disabled { background: #334155; box-shadow: none; opacity: 0.7; cursor: not-allowed; }
     #btnEnter.hidden { display: none; }
-    #desktopNote {
-      margin-top: 12px;
-      color: #64748b;
-      font-size: 12px;
-      text-align: center;
-    }
+    #desktopNote { margin-top: 12px; color: #64748b; font-size: 12px; text-align: center; }
     canvas { display: block; width: 100%; height: 100%; }
   </style>
 </head>
@@ -63,14 +52,14 @@
     <div id="hud">
       <div id="status">Checking WebXR…</div>
       <div id="hint">
-        Point at object → blue ring<br/>
-        <strong style="color:#93c5fd">Trigger</strong> = distance grab / pull<br/>
-        Hold <strong style="color:#93c5fd">gun</strong> + trigger = shoot<br/>
-        Release trigger = throw
+        <strong>Grip</strong> (side button) = grab / throw<br/>
+        <strong>Trigger</strong> (front) = shoot gun / menu click<br/>
+        <strong>Thumbstick</strong> = move around<br/>
+        Point at <strong>menu</strong> to spawn cubes
       </div>
     </div>
     <button id="btnEnter" disabled>Enter VR</button>
-    <p id="desktopNote">Desktop: right-drag look · WASD move · click = grab / shoot · Shift+click look</p>
+    <p id="desktopNote">Desktop: WASD move · right-drag look · click grab · G spawn cube · menu on the left</p>
   </div>
   <script type="importmap">
   {
