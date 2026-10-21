@@ -1,9 +1,7 @@
 (function(){
-  // Supabase credentials for global view sync
   const SB_URL="https://makmmhmsssfhbfpzqfcj.supabase.co";
   const SB_KEY="sb_publishable_QPZuusUtLAqEz2gRuvbrlQ_ZlrzBII6";
 
-  // Optional metadata overrides
   const GAME_META={
     "angry-birds":{name:"Angry Birds",file:"index.html",icon:"🐦",tags:["arcade","physics"]},
     "blackjack":{name:"Blackjack",file:"index.html",icon:"🂡",tags:["card"]},
@@ -22,6 +20,7 @@
     "voxel-world":{name:"Voxel World",file:"index.html",icon:"🧱",tags:["3d"]},
     "world-explorer":{name:"World Explorer",file:"index.html",icon:"🚀",tags:["3d","explore"]},
     "Monochrome":{name:"Monochrome",file:"index.html",icon:"⬛",tags:["fun"]},
+    "Siren Head":{name:"Siren Head",file:"index.html",icon:"📢",tags:["action","fun"]},
     "heads":{name:"Heads",file:"index.html",icon:"🧠",tags:["fun"]},
     "NotByMe":{name:"Not By Me",file:"index.html",icon:"👥",tags:["community"],notByMe:true}
   };
@@ -36,6 +35,7 @@
 
   /* --- Views & Plays System --- */
   const VIEWS_KEY="hub_game_views_v1";
+  const CACHE_GAMES_KEY="hub_cached_games_v2";
   let VIEWS={};
   try{const saved=localStorage.getItem(VIEWS_KEY);if(saved)VIEWS=JSON.parse(saved);}catch(e){}
 
@@ -45,6 +45,29 @@
     if(n>=1000)return(n/1000).toFixed(1).replace(/\.0$/,"")+"k";
     return String(n);
   }
+
+  // Expose helpers globally so featured-admin can read views
+  window.__hubViews=VIEWS;
+  window.__formatViews=formatViews;
+  window.__recordView=function(path){
+    VIEWS[path]=(VIEWS[path]||0)+1;
+    try{localStorage.setItem(VIEWS_KEY,JSON.stringify(VIEWS));}catch(e){}
+    try{
+      fetch(SB_URL+"/rest/v1/rpc/increment_game_view",{
+        method:"POST",
+        headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json"},
+        body:JSON.stringify({p_path:path}),
+        keepalive:true
+      }).catch(()=>{});
+    }catch(e){}
+    // Update any visible badges on the screen
+    document.querySelectorAll('.views-badge[data-path="'+path+'"]').forEach(b=>{
+      b.textContent="👁️ "+formatViews(VIEWS[path]);
+    });
+    document.querySelectorAll('.feat-views[data-path="'+path+'"]').forEach(b=>{
+      b.textContent="👁️ "+formatViews(VIEWS[path])+" plays";
+    });
+  };
 
   async function loadGlobalViews(){
     try{
@@ -60,22 +83,9 @@
           });
           try{localStorage.setItem(VIEWS_KEY,JSON.stringify(VIEWS));}catch(e){}
           draw();
+          if(window.__updateFeaturedViews)window.__updateFeaturedViews();
         }
       }
-    }catch(e){}
-  }
-
-  function recordView(path){
-    VIEWS[path]=(VIEWS[path]||0)+1;
-    try{localStorage.setItem(VIEWS_KEY,JSON.stringify(VIEWS));}catch(e){}
-    // Sync to Supabase in background
-    try{
-      fetch(SB_URL+"/rest/v1/rpc/increment_game_view",{
-        method:"POST",
-        headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json"},
-        body:JSON.stringify({p_path:path}),
-        keepalive:true
-      }).catch(()=>{});
     }catch(e){}
   }
 
@@ -97,32 +107,46 @@
 
   async function discoverGames(){
     const api="https://api.github.com/repos/Victorxd21/hello21.github.io/contents/games";
+    let foundFolders=[];
     try{
       const r=await fetch(api,{headers:{"Accept":"application/vnd.github+json"},cache:"no-store"});
       if(!r.ok)throw new Error("GitHub API "+r.status);
       const items=await r.json();
-      const folders=items.filter(x=>x.type==="dir").map(x=>x.name);
-      const fromFolders=folders.map(entryFromFolder);
-      const seen=new Set(fromFolders.map(g=>(g.folder||"")+":"+(g.file||"")));
-      const extras=ROOT_GAMES.filter(g=>!seen.has((g.folder||"")+":"+(g.file||"")));
-      GAMES=[...fromFolders,...extras];
+      if(Array.isArray(items)){
+        foundFolders=items.filter(x=>x.type==="dir").map(x=>x.name);
+      }
     }catch(e){
-      console.warn("discoverGames failed, using meta fallback",e);
-      GAMES=[...Object.keys(GAME_META).map(entryFromFolder),...ROOT_GAMES];
+      console.warn("GitHub discovery unavailable (rate-limit/offline), loading cache & fallbacks:",e);
     }
+
+    // If GitHub API failed or returned empty, restore from localStorage cache
+    if(!foundFolders.length){
+      try{
+        const cached=localStorage.getItem(CACHE_GAMES_KEY);
+        if(cached)foundFolders=JSON.parse(cached);
+      }catch(e){}
+    }
+
+    // If still empty, use default GAME_META keys
+    if(!foundFolders.length){
+      foundFolders=Object.keys(GAME_META);
+    }else{
+      // Save working folder list to localStorage for offline / rate-limit resilience
+      try{localStorage.setItem(CACHE_GAMES_KEY,JSON.stringify(foundFolders));}catch(e){}
+    }
+
+    const fromFolders=foundFolders.map(entryFromFolder);
+    const seen=new Set(fromFolders.map(g=>(g.folder||"")+":"+(g.file||"")));
+    const extras=ROOT_GAMES.filter(g=>!seen.has((g.folder||"")+":"+(g.file||"")));
+    GAMES=[...fromFolders,...extras];
     return GAMES;
   }
 
   const HUB_LOGS=[
+    {v:"3.7.1",d:"2026-10-21",t:"Persistent game cache (fixes rate limits) + Featured views counter"},
     {v:"3.7.0",d:"2026-10-10",t:"Added plays counter & sorted games by most played"},
     {v:"3.6.0",d:"2026-10-10",t:"Featured games with rotating banners + password admin (Supabase)"},
-    {v:"3.5.0",d:"2026-10-10",t:"Auto-discover every folder in /games via GitHub API"},
-    {v:"3.4.0",d:"2026-10-09",t:"Options panel (gear top-right) — fun + dev toggles"},
-    {v:"3.3.2",d:"2026-10-09",t:"Scroll reveal animations, progress bar, orb parallax"},
-    {v:"3.2.1",d:"2026-10-09",t:"Extra effects — name shine, tag rings, button spotlight, sparkles"},
-    {v:"3.2.0",d:"2026-10-09",t:"Creative UI — mesh orbs, glass cards, gradient borders"},
-    {v:"3.1.3",d:"2026-10-09",t:"Self-contained restore"},
-    {v:"3.1.0",d:"2026-10-08",t:"Tags, skeletons, health, seasonal, Logs, Feedback, Grok credit"}
+    {v:"3.5.0",d:"2026-10-10",t:"Auto-discover every folder in /games via GitHub API"}
   ];
 
   const now0=new Date();const mo=now0.getMonth()+1;const dy=now0.getDate();let season="default";
@@ -159,7 +183,7 @@
 
   window.__reloadSeasonFx=function(which){
     const fx=document.getElementById("seasonFx");if(!fx)return;
-    const s=which||(function(){const mo=new Date().getMonth()+1,dy=new Date().getDate();if(mo===10)return"halloween";if(mo===12&&dy>=20)return"christmas";if(mo===12||mo<=2)return"winter";if(mo<=5)return"spring";if(mo<=8)return"summer";if(mo===9)return"autumn";return"default";})();
+    const s=which||season;
     const n=s==="winter"||s==="christmas"?28:s==="autumn"||s==="halloween"?18:s==="spring"?16:s==="summer"?8:0;
     let html="";
     for(let i=0;i<n;i++){
@@ -207,16 +231,22 @@
   function checkHealth(g){const p=pathOf(g);if(health[p]!==undefined)return;health[p]=null;fetch(p,{method:"HEAD",cache:"no-store"}).then(r=>{health[p]=r.ok;const el=document.querySelector('.game[data-path="'+p+'"]');if(el&&!r.ok)el.classList.add("dead");}).catch(()=>{fetch(p,{method:"GET",cache:"no-store"}).then(r=>{health[p]=r.ok;const el=document.querySelector('.game[data-path="'+p+'"]');if(el&&!r.ok)el.classList.add("dead");}).catch(()=>{health[p]=false;});});}
 
   function draw(){
-    const q=(document.getElementById("search").value||"").trim().toLowerCase();const root=document.getElementById("root");
+    const sInput=document.getElementById("search");
+    const q=(sInput&&sInput.value||"").trim().toLowerCase();
+    const root=document.getElementById("root");
+
     const mine=GAMES.filter(g=>!g.notByMe);
     const other=GAMES.filter(g=>g.notByMe);
-    const filterFn=g=>{if(q&&!g.name.toLowerCase().includes(q)&&!(g.folder||"").toLowerCase().includes(q))return false;if(activeTag!=="all"&&!(g.tags||[]).includes(activeTag))return false;return true;};
+    const filterFn=g=>{
+      if(q&&!(g.name||"").toLowerCase().includes(q)&&!(g.folder||"").toLowerCase().includes(q))return false;
+      if(activeTag!=="all"&&!(g.tags||[]).includes(activeTag))return false;
+      return true;
+    };
 
-    // Sort by plays first, then by name
     const sortByPlays=(a,b)=>{
       const va=VIEWS[pathOf(a)]||0, vb=VIEWS[pathOf(b)]||0;
       if(vb!==va)return vb-va;
-      return a.name.localeCompare(b.name,undefined,{sensitivity:"base"});
+      return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});
     };
 
     const list=mine.filter(filterFn).sort(sortByPlays);
@@ -229,7 +259,7 @@
       const v=VIEWS[p]||0;
       h+='<div class="game'+(dead?" dead":"")+'" style="--i:'+i+'" data-path="'+p+'">';
       if(g.name==="World Explorer")h+='<span class="new">NEW</span>';
-      h+='<span class="views-badge" title="'+v+' plays">👁️ '+formatViews(v)+'</span>';
+      h+='<span class="views-badge" data-path="'+p+'" title="'+v+' plays">👁️ '+formatViews(v)+'</span>';
       h+='<div class="icon">'+g.icon+'</div><div class="name">'+g.name+'</div><div class="path">'+p+'</div><span class="play">Play</span></div>';
       checkHealth(g);
     });
@@ -241,7 +271,7 @@
       const dead=health[p]===false;
       const v=VIEWS[p]||0;
       h+='<div class="game'+(dead?" dead":"")+'" style="--i:'+i+'" data-path="'+p+'">';
-      h+='<span class="views-badge" title="'+v+' plays">👁️ '+formatViews(v)+'</span>';
+      h+='<span class="views-badge" data-path="'+p+'" title="'+v+' plays">👁️ '+formatViews(v)+'</span>';
       h+='<div class="icon">'+g.icon+'</div><div class="name">'+g.name+'</div><div class="path">'+p+'</div><span class="play">Play</span></div>';
       checkHealth(g);
     });
@@ -250,10 +280,9 @@
     root.innerHTML=h;
     root.querySelectorAll(".cat-h").forEach(b=>b.addEventListener("click",()=>{document.getElementById(b.getAttribute("data-c")).classList.toggle("closed");}));
 
-    // Record views and navigate smoothly on click
     root.querySelectorAll(".game:not(.dead)").forEach(el=>el.addEventListener("click",()=>{
       const p=el.getAttribute("data-path");
-      recordView(p);
+      if(window.__recordView)window.__recordView(p);
       setTimeout(()=>{ location.href=p; },80);
     }));
 
@@ -262,7 +291,10 @@
   }
 
   document.getElementById("search").addEventListener("input",draw);
-  document.getElementById("refresh").addEventListener("click",()=>{Object.keys(health).forEach(k=>delete health[k]);discoverGames().then(()=>{rebuildTags();draw();loadGlobalViews();});});
+  document.getElementById("refresh").addEventListener("click",()=>{
+    Object.keys(health).forEach(k=>delete health[k]);
+    discoverGames().then(()=>{rebuildTags();draw();loadGlobalViews();});
+  });
   document.getElementById("aboutBtn").addEventListener("click",()=>document.getElementById("aboutModal").classList.add("on"));
   document.getElementById("aboutX").addEventListener("click",()=>document.getElementById("aboutModal").classList.remove("on"));
   document.getElementById("logsBtn").addEventListener("click",()=>{document.getElementById("logHub").innerHTML=HUB_LOGS.map(l=>'<div class="log"><strong>v'+l.v+'</strong> · '+l.d+' — '+l.t+'</div>').join("");document.getElementById("logsModal").classList.add("on");});
@@ -283,7 +315,6 @@
     setTimeout(()=>{if(bar){bar.style.opacity="0";setTimeout(()=>{bar.style.width="0";bar.style.opacity="1"},300);}},250);
   });
 
-  /* Physics canvas in hero */
   (function(){
     const canvas=document.getElementById("cubeCanvas");const hero=canvas.parentElement;const ctx=canvas.getContext("2d");let W,H,dpr;
     const COLORS=season==="halloween"?["#ff8c42","#9b30ff","#ffb347","#22c55e","#f97316"]:season==="winter"?["#93c5fd","#60a5fa","#e0f2fe","#a5b4fc","#bfdbfe"]:season==="spring"?["#86efac","#4ade80","#f9a8d4","#a7f3d0","#bbf7d0"]:season==="summer"?["#fbbf24","#f59e0b","#38bdf8","#fb923c","#fde68a"]:season==="autumn"?["#fb923c","#ea580c","#fbbf24","#c2410c","#fdba74"]:season==="christmas"?["#ef4444","#22c55e","#fbbf24","#f87171","#4ade80"]:["#a78bfa","#6366f1","#22d3ee","#f472b6","#818cf8","#c4b5fd"];
