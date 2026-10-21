@@ -1,6 +1,6 @@
 Siren Head VR
 
-This folder loads the FULL original game from games/Siren Head/
-and only adds WebXR (Enter VR, headset camera, controller sticks/triggers).
+Loads the FULL original game from games/Siren Head/
+and only adds WebXR (Enter VR, headset camera, controller sticks).
 
 Gameplay, forest, Siren Head AI, items, map, audio = the real game.
