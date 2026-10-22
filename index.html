@@ -159,7 +159,61 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
       <span class="pill" id="season" style="display:none"></span>
     </div>
   </div>
-  <!-- REST OF FILE CONTINUES FROM ORIGINAL - this is truncated for length, need full file -->
+
+  <div id="featuredRoot"></div>
+
+  <div class="toolbar">
+    <div class="search"><input type="search" id="search" placeholder="Search games..." autocomplete="off"/></div>
+  </div>
+  <div class="tags" id="tags"></div>
+  <div id="cats"></div>
 </div>
+
+<div class="mbg" id="aboutBg">
+  <div class="modal">
+    <button class="x" id="aboutX">×</button>
+    <h2>About</h2>
+    <p>Game Hub is a collection of browser games. Click any card to play.</p>
+    <p>Press the <strong>`</strong> key for Matrix Mode (infinite void + desk zoom).</p>
+    <p style="margin-top:12px">Made for fun · <a href="https://github.com/Victorxd21/hello21.github.io" target="_blank">Source</a></p>
+    <button class="btn admin-btn" id="adminToggle">Admin</button>
+    <div class="admin-gate" id="adminGate" style="display:none">
+      <label>Password</label>
+      <input type="password" id="adminPass" placeholder="Enter admin password"/>
+      <div class="admin-err" id="adminErr">Wrong password</div>
+      <button class="btn" id="adminLogin">Login</button>
+    </div>
+    <div class="admin-panel" id="adminPanel" style="display:none">
+      <div class="admin-ok" id="adminOk">Logged in</div>
+      <label>Featured games</label>
+      <div class="admin-list" id="adminList"></div>
+      <button class="btn" id="adminAdd">+ Add game</button>
+      <div class="admin-add-box" id="adminAddBox">
+        <select id="adminSelect"></select>
+        <div class="admin-actions">
+          <button class="btn" id="adminConfirmAdd">Add</button>
+          <button class="btn" id="adminCancelAdd">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mbg" id="logsBg">
+  <div class="modal">
+    <button class="x" id="logsX">×</button>
+    <h2>Logs</h2>
+    <div class="tabs">
+      <button class="tab on" data-t="hub">Hub updates</button>
+      <button class="tab" data-t="games">Games</button>
+    </div>
+    <div id="logHub"></div>
+    <div id="logGames" style="display:none"></div>
+  </div>
+</div>
+<script src="hub-core.js?v=3.7.1"></script>
+<script src="featured-admin.js?v=3.7.1"></script>
+<script src="options.js?v=3.7.1" defer></script>
+<script src="chat.js?v=1.0.0" defer></script>
 </body>
 </html>
