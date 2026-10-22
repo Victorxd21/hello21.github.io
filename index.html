@@ -24,40 +24,32 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
 .bg .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:56px 56px;mask-image:radial-gradient(ellipse at 50% 30%,black 20%,transparent 75%)}
 .bg .spark{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;opacity:0;animation:sparkle 4s ease-in-out infinite}
 @keyframes sparkle{0%,100%{opacity:0;transform:scale(0)}50%{opacity:.7;transform:scale(1.5)}}
-
 #clock{position:fixed;top:14px;left:16px;z-index:200;font:600 12px/1.35 ui-monospace,monospace;color:var(--muted);background:rgba(0,0,0,.35);border:1px solid var(--border);backdrop-filter:blur(10px);padding:8px 12px;border-radius:12px;letter-spacing:.02em;pointer-events:none}
 #clock .time{color:var(--text);font-size:14px;font-weight:700}
 #clock .date{opacity:.85;margin-top:2px}
 #topProgress{position:fixed;top:0;left:0;height:2.5px;width:0;z-index:300;background:linear-gradient(90deg,var(--a),var(--c),var(--d),var(--a));background-size:200% 100%;box-shadow:0 0 16px var(--glow);transition:width .4s var(--out);pointer-events:none}
 #scrollProgress{position:fixed;top:0;left:0;height:2.5px;width:0;z-index:301;background:linear-gradient(90deg,var(--c),var(--a),var(--d));box-shadow:0 0 12px var(--glow);pointer-events:none}
-
 .content{position:relative;max-width:1100px;margin:0 auto;padding:40px 18px 64px;z-index:1}
 .hero{position:relative;text-align:center;margin-bottom:28px;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center}
 #cubeCanvas{position:absolute;inset:-40px -50px 0;width:calc(100% + 100px);height:calc(100% + 50px);z-index:0;cursor:grab}
 #cubeCanvas:active{cursor:grabbing}
-
 .hero h1{position:relative;z-index:2;font-size:clamp(42px,9vw,68px);font-weight:900;letter-spacing:-2.5px;background:linear-gradient(125deg,#fff 10%,var(--a) 35%,var(--c) 55%,var(--d) 80%,#fff 95%);background-size:250% auto;-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 30px var(--glow));pointer-events:none}
 .hero p{position:relative;z-index:2;color:var(--muted);margin-top:8px;pointer-events:none}
 .hero-meta{position:relative;z-index:2;display:flex;gap:8px;margin-top:14px;justify-content:center;flex-wrap:wrap;pointer-events:none}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700;color:var(--a);background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3)}
 .pill .dot{width:6px;height:6px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c)}
-
 .toolbar{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
 .btn{position:relative;overflow:hidden;padding:10px 18px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,.04);color:#d4d0ff;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;transition:transform .3s var(--spring),background .2s}
 .btn:hover{transform:translateY(-2px);background:rgba(167,139,250,.2)}
 .btn:active{transform:scale(.95)}
-
 .search{width:min(360px,100%);position:relative}
 .search input{width:100%;padding:12px 18px 12px 44px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-size:14px;outline:none}
 .search input:focus{border-color:var(--a);box-shadow:0 0 0 4px rgba(167,139,250,.22)}
 .search::before{content:"⌕";position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--muted)}
-
 .tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:22px}
 .tag{padding:7px 14px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:transform .2s,background .2s,color .2s}
 .tag:hover{color:#fff;background:rgba(255,255,255,.08)}
 .tag.on{background:linear-gradient(135deg,rgba(167,139,250,.35),rgba(99,102,241,.3));color:#fff;border-color:rgba(167,139,250,.6);box-shadow:0 0 16px var(--glow)}
-
-/* Categories & Game Cards */
 .cat{margin-bottom:22px}
 .cat-h{display:flex;align-items:center;gap:12px;width:100%;padding:14px 18px;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.04);cursor:pointer;transition:background .2s}
 .cat-h:hover{background:rgba(167,139,250,.1)}
@@ -68,7 +60,6 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
 .cat-b{display:grid;grid-template-rows:1fr;transition:grid-template-rows .35s,opacity .3s;opacity:1}
 .cat.closed .cat-b{grid-template-rows:0fr;opacity:0;pointer-events:none}
 .cat-bi{overflow:hidden;padding-top:16px}
-
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:16px}
 .game{position:relative;padding:22px 18px 18px;min-height:150px;border:1px solid var(--border);border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.02));cursor:pointer;overflow:hidden;transition:transform .3s var(--spring),box-shadow .3s,border-color .25s}
 .game:hover{transform:translateY(-8px) scale(1.04);border-color:rgba(167,139,250,.45);box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 35px rgba(167,139,250,.2)}
@@ -80,8 +71,6 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
 .game:hover .play{opacity:1}
 .views-badge{position:absolute;bottom:14px;right:14px;display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:700;font-family:ui-monospace,monospace;pointer-events:none}
 .game:hover .views-badge{color:var(--a);border-color:rgba(167,139,250,.35)}
-
-/* Featured Banner */
 #featuredRoot{margin-bottom:28px}
 .featured-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .featured-head h2{font-size:15px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
@@ -93,17 +82,13 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
 .feat-slides img.on{opacity:1}
 .feat-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(6,6,14,.8) 0%,rgba(6,6,14,.3) 45%,transparent 100%)}
 .feat-body{position:relative;padding:28px 24px;display:flex;flex-direction:column;justify-content:flex-end;min-height:220px;gap:8px}
-.feat-meta-row{display:flex;align-items:center;gap:8px}
-.feat-badge{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:8px;background:linear-gradient(135deg,var(--a),var(--b));color:#fff}
-.feat-views{font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text);font-family:ui-monospace,monospace}
+.feat-badge{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:8px;background:linear-gradient(135deg,var(--a),var(--b));color:#fff;align-self:flex-start}
 .feat-title{font-size:clamp(22px,4vw,32px);font-weight:900}
 .feat-sub{color:rgba(226,222,255,.8);font-size:12px}
 .feat-play{align-self:flex-start;margin-top:6px;padding:8px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:rgba(167,139,250,.3);color:#fff;font-weight:700;font-size:12px}
 .feat-dots{position:absolute;bottom:14px;right:16px;display:flex;gap:6px}
 .feat-dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3)}
 .feat-dots span.on{background:#fff}
-
-/* Modals */
 .mbg{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(4,4,12,.75);backdrop-filter:blur(16px)}
 .mbg.on{display:flex}
 .modal{background:linear-gradient(165deg,#14121f,#0e0c16);border:1px solid rgba(167,139,250,.25);border-radius:24px;padding:32px 28px;max-width:460px;width:100%;max-height:80vh;overflow:auto;box-shadow:0 24px 80px rgba(0,0,0,.6)}
@@ -116,8 +101,6 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
 .tab.on{background:rgba(167,139,250,.25);color:#fff}
 .log{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
 .log strong{color:var(--text)}
-
-/* Admin inside modal */
 .admin-btn{margin-top:16px;width:100%}
 .admin-gate,.admin-panel{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
 .admin-gate label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600}
@@ -134,6 +117,25 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
 .admin-add-box.on{display:block}
 .admin-actions{display:flex;gap:8px;margin-top:10px}
 .admin-actions .btn{flex:1;justify-content:center}
+/* Game Detail Modal */
+#gameDetailModal.mbg .modal{max-width:560px;padding:0;overflow:hidden}
+.gd-hero{position:relative;height:200px;background:#0a0a14;overflow:hidden}
+.gd-hero img{width:100%;height:100%;object-fit:cover}
+.gd-hero .gd-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(14,12,22,.95) 0%,transparent 60%)}
+.gd-body{padding:20px 24px 28px}
+.gd-title{font-size:24px;font-weight:900;margin-bottom:4px}
+.gd-path{font-size:12px;color:var(--muted);font-family:ui-monospace,monospace;margin-bottom:14px}
+.gd-photos{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:16px}
+.gd-photos img{height:72px;border-radius:10px;border:1px solid var(--border);cursor:pointer;flex-shrink:0}
+.gd-photos img:hover{border-color:var(--a)}
+.gd-actions{display:flex;gap:10px;flex-wrap:wrap}
+.gd-play{flex:1;justify-content:center;padding:14px 20px;font-size:15px;font-weight:800;background:linear-gradient(135deg,var(--a),var(--b));border:none;color:#fff;border-radius:14px}
+.gd-play:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(167,139,250,.4)}
+.gd-video-box{margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
+.gd-video-box label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px}
+.gd-video-box input[type=url]{width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-size:13px;outline:none;margin-bottom:8px}
+.gd-video-box video,.gd-video-box iframe{width:100%;border-radius:12px;margin-top:8px;max-height:200px;background:#000}
+.gd-close{position:absolute;top:12px;right:12px;z-index:5;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;cursor:pointer;font-size:18px}
 </style>
 </head>
 <body>
@@ -149,57 +151,70 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
 <div id="clock"><div class="time" id="clockTime">--:--:--</div><div class="date" id="clockDate">---</div></div>
 <div id="topProgress"></div>
 <div id="scrollProgress"></div>
+
 <div class="content">
   <div class="hero">
     <canvas id="cubeCanvas" title="Click & fling cubes!"></canvas>
     <h1>Game Hub</h1>
     <p>Pick a game and play · Press ` for Matrix Mode</p>
     <div class="hero-meta">
-      <span class="pill"><span class="dot"></span><span>v3.8.1</span></span>
+      <span class="pill"><span class="dot"></span><span>v3.8.2</span></span>
       <span class="pill" id="season" style="display:none"></span>
     </div>
   </div>
 
-  <div id="featuredRoot"></div>
-
   <div class="toolbar">
-    <div class="search"><input type="search" id="search" placeholder="Search games..." autocomplete="off"/></div>
+    <div class="search"><input id="search" type="search" placeholder="Search games..." autocomplete="off"/></div>
+    <button class="btn" id="refresh" title="Refresh">↻</button>
+    <button class="btn" id="aboutBtn">About</button>
+    <button class="btn" id="logsBtn">Logs</button>
   </div>
+
+  <div id="featuredRoot"></div>
   <div class="tags" id="tags"></div>
-  <div id="cats"></div>
+  <div id="root"></div>
 </div>
 
-<div class="mbg" id="aboutBg">
+<!-- About Modal -->
+<div class="mbg" id="aboutModal">
   <div class="modal">
     <button class="x" id="aboutX">×</button>
     <h2>About</h2>
     <p>Game Hub is a collection of browser games. Click any card to play.</p>
-    <p>Press the <strong>`</strong> key for Matrix Mode (infinite void + desk zoom).</p>
+    <p>Press the <strong>`</strong> key for Matrix Mode.</p>
     <p style="margin-top:12px">Made for fun · <a href="https://github.com/Victorxd21/hello21.github.io" target="_blank">Source</a></p>
-    <button class="btn admin-btn" id="adminToggle">Admin</button>
+    <button class="btn admin-btn" type="button" id="adminOpenBtn">Admin</button>
     <div class="admin-gate" id="adminGate" style="display:none">
       <label>Password</label>
-      <input type="password" id="adminPass" placeholder="Enter admin password"/>
+      <input type="password" id="adminPass" placeholder="Enter password" autocomplete="off"/>
       <div class="admin-err" id="adminErr">Wrong password</div>
-      <button class="btn" id="adminLogin">Login</button>
+      <div class="admin-actions">
+        <button class="btn" type="button" id="adminUnlockBtn">Unlock</button>
+        <button class="btn" type="button" id="adminCancelGate">Cancel</button>
+      </div>
     </div>
     <div class="admin-panel" id="adminPanel" style="display:none">
-      <div class="admin-ok" id="adminOk">Logged in</div>
-      <label>Featured games</label>
-      <div class="admin-list" id="adminList"></div>
-      <button class="btn" id="adminAdd">+ Add game</button>
+      <div class="admin-ok" id="adminOk"></div>
+      <div class="admin-err" id="adminPanelErr"></div>
+      <div class="admin-setup" id="adminSetup"></div>
+      <div class="admin-list" id="adminList"><div style="padding:12px;color:var(--muted);font-size:12px">Loading…</div></div>
+      <button class="btn" type="button" id="adminAddBtn" style="width:100%;justify-content:center">+ Add featured game</button>
       <div class="admin-add-box" id="adminAddBox">
-        <select id="adminSelect"></select>
+        <select id="adminGameSelect"><option value="">Select a game…</option></select>
+        <input type="file" id="adminFiles" accept="image/*" multiple style="width:100%;margin:8px 0;font-size:12px;color:var(--muted)"/>
+        <div class="admin-previews" id="adminPreviews"></div>
         <div class="admin-actions">
-          <button class="btn" id="adminConfirmAdd">Add</button>
-          <button class="btn" id="adminCancelAdd">Cancel</button>
+          <button class="btn" type="button" id="adminSubmitFeat">Submit</button>
+          <button class="btn" type="button" id="adminCancelAdd">Cancel</button>
         </div>
       </div>
+      <button class="btn" type="button" id="adminLockBtn" style="width:100%;justify-content:center;margin-top:12px">Lock admin</button>
     </div>
   </div>
 </div>
 
-<div class="mbg" id="logsBg">
+<!-- Logs Modal -->
+<div class="mbg" id="logsModal">
   <div class="modal">
     <button class="x" id="logsX">×</button>
     <h2>Logs</h2>
@@ -211,8 +226,33 @@ body{min-height:100vh;background:var(--bg);color:var(--text);font:15px/1.5 syste
     <div id="logGames" style="display:none"></div>
   </div>
 </div>
-<script src="hub-core.js?v=3.7.1"></script>
-<script src="featured-admin.js?v=3.7.1"></script>
+
+<!-- Game Detail Modal (Featured / Game Profile) -->
+<div class="mbg" id="gameDetailModal">
+  <div class="modal" style="position:relative">
+    <button class="gd-close" id="gdClose">×</button>
+    <div class="gd-hero" id="gdHero">
+      <div class="gd-grad"></div>
+    </div>
+    <div class="gd-body">
+      <div class="gd-title" id="gdTitle">Game</div>
+      <div class="gd-path" id="gdPath"></div>
+      <div class="gd-photos" id="gdPhotos"></div>
+      <div class="gd-actions">
+        <button class="btn gd-play" id="gdPlay">▶ Play now</button>
+      </div>
+      <div class="gd-video-box">
+        <label>Showcase video (YouTube / direct link)</label>
+        <input type="url" id="gdVideoUrl" placeholder="https://youtube.com/watch?v=... or .mp4 link"/>
+        <button class="btn" id="gdVideoSave" style="width:100%;justify-content:center;margin-top:4px">Save video</button>
+        <div id="gdVideoPreview"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="hub-core.js?v=3.8.2"></script>
+<script src="featured-admin.js?v=3.8.2"></script>
 <script src="options.js?v=3.7.1" defer></script>
 <script src="chat.js?v=1.0.0" defer></script>
 </body>
