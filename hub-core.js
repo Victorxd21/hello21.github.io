@@ -16,7 +16,6 @@
     "storm-chaser":{name:"Storm Chaser",file:"index.html",icon:"⛈️",tags:["action"]},
     "super-mario":{name:"Super Mario",file:"index.html",icon:"🍄",tags:["platform"]},
     "TikTok":{name:"TikTok",file:"index.html",icon:"📱",tags:["fun"]},
-    "testVR":{name:"Test VR",file:"index.html",icon:"🥽",tags:["3d","vr"]},
     "uno":{name:"UNO",file:"index.html",icon:"🃏",tags:["card","multiplayer"]},
     "voxel-world":{name:"Voxel World",file:"index.html",icon:"🧱",tags:["3d"]},
     "world-explorer":{name:"World Explorer",file:"index.html",icon:"🚀",tags:["3d","explore"]},
@@ -47,7 +46,6 @@
     return String(n);
   }
 
-  // Expose helpers globally so featured-admin can read views
   window.__hubViews=VIEWS;
   window.__formatViews=formatViews;
   window.__recordView=function(path){
@@ -61,7 +59,6 @@
         keepalive:true
       }).catch(()=>{});
     }catch(e){}
-    // Update any visible badges on the screen
     document.querySelectorAll('.views-badge[data-path="'+path+'"]').forEach(b=>{
       b.textContent="👁️ "+formatViews(VIEWS[path]);
     });
@@ -117,22 +114,18 @@
         foundFolders=items.filter(x=>x.type==="dir").map(x=>x.name);
       }
     }catch(e){
-      console.warn("GitHub discovery unavailable (rate-limit/offline), loading cache & fallbacks:",e);
+      console.warn("GitHub discovery unavailable, restoring cache:",e);
     }
 
-    // If GitHub API failed or returned empty, restore from localStorage cache
     if(!foundFolders.length){
       try{
         const cached=localStorage.getItem(CACHE_GAMES_KEY);
         if(cached)foundFolders=JSON.parse(cached);
       }catch(e){}
     }
-
-    // If still empty, use default GAME_META keys
     if(!foundFolders.length){
       foundFolders=Object.keys(GAME_META);
     }else{
-      // Save working folder list to localStorage for offline / rate-limit resilience
       try{localStorage.setItem(CACHE_GAMES_KEY,JSON.stringify(foundFolders));}catch(e){}
     }
 
@@ -143,61 +136,128 @@
     return GAMES;
   }
 
-  const HUB_LOGS=[
-    {v:"3.7.1",d:"2026-10-21",t:"Persistent game cache (fixes rate limits) + Featured views counter"},
-    {v:"3.7.0",d:"2026-10-10",t:"Added plays counter & sorted games by most played"},
-    {v:"3.6.0",d:"2026-10-10",t:"Featured games with rotating banners + password admin (Supabase)"},
-    {v:"3.5.0",d:"2026-10-10",t:"Auto-discover every folder in /games via GitHub API"}
-  ];
+  /* --- Dynamic Season & Time-of-Day System --- */
+  function naturalSeason(){
+    const now=new Date(),mo=now.getMonth()+1,dy=now.getDate();
+    if(mo===10)return"halloween";
+    if(mo===12&&dy>=20)return"christmas";
+    if(mo===12||mo===1||mo===2)return"winter";
+    if(mo>=3&&mo<=5)return"spring";
+    if(mo>=6&&mo<=8)return"summer";
+    if(mo===9)return"autumn";
+    return"default";
+  }
 
-  const now0=new Date();const mo=now0.getMonth()+1;const dy=now0.getDate();let season="default";
-  const seasonEl=document.getElementById("season");
-  if(mo===10){season="halloween";document.body.classList.add("season-halloween");seasonEl.style.display="";seasonEl.textContent="🎃 Halloween";}
-  else if(mo===12&&dy>=20){season="christmas";document.body.classList.add("season-christmas");seasonEl.style.display="";seasonEl.textContent="🎄 Christmas";}
-  else if(mo===12||mo===1||mo===2){season="winter";document.body.classList.add("season-winter");seasonEl.style.display="";seasonEl.textContent="❄ Winter";}
-  else if(mo>=3&&mo<=5){season="spring";document.body.classList.add("season-spring");seasonEl.style.display="";seasonEl.textContent="🌸 Spring";}
-  else if(mo>=6&&mo<=8){season="summer";document.body.classList.add("season-summer");seasonEl.style.display="";seasonEl.textContent="☀ Summer";}
-  else if(mo===9){season="autumn";document.body.classList.add("season-autumn");seasonEl.style.display="";seasonEl.textContent="🍂 Autumn";}
+  function naturalTimeOfDay(){
+    const hr=new Date().getHours();
+    if(hr>=5&&hr<12)return"morning";
+    if(hr>=12&&hr<17)return"afternoon";
+    if(hr>=17&&hr<21)return"sunset";
+    return"night";
+  }
+
+  let activeSeason=naturalSeason();
+  let activeTimeOfDay=naturalTimeOfDay();
+
+  function applyAtmosphere(seasonChoice, timeChoice){
+    activeSeason=(!seasonChoice||seasonChoice==="auto")?naturalSeason():seasonChoice;
+    activeTimeOfDay=(!timeChoice||timeChoice==="auto")?naturalTimeOfDay():timeChoice;
+
+    const b=document.body;
+    ["season-halloween","season-winter","season-spring","season-summer","season-autumn","season-christmas","season-default"].forEach(c=>b.classList.remove(c));
+    ["time-morning","time-afternoon","time-sunset","time-night"].forEach(c=>b.classList.remove(c));
+
+    b.classList.add("season-"+activeSeason);
+    b.classList.add("time-"+activeTimeOfDay);
+
+    const sEl=document.getElementById("season");
+    if(sEl){
+      const sNames={halloween:"🎃 Halloween",winter:"❄ Winter",spring:"🌸 Spring",summer:"☀ Summer",autumn:"🍂 Autumn",christmas:"🎄 Christmas",default:"🌌 Hub"};
+      const tNames={morning:"🌅 Dawn",afternoon:"☀️ Noon",sunset:"🌇 Dusk",night:"🌙 Night"};
+      sEl.style.display="";
+      sEl.textContent=(sNames[activeSeason]||activeSeason)+" · "+(tNames[activeTimeOfDay]||activeTimeOfDay);
+    }
+
+    renderWeatherFX(activeSeason, activeTimeOfDay);
+    updateCubeColors();
+  }
+
+  /* --- Realistic Weather Particle FX Engine --- */
+  function renderWeatherFX(season, time){
+    const fx=document.getElementById("seasonFx");
+    if(!fx)return;
+    fx.innerHTML="";
+
+    const count=season==="winter"||season==="christmas"?36:season==="autumn"||season==="halloween"?24:season==="spring"?20:season==="summer"?18:14;
+    const isNight=time==="night", isSunset=time==="sunset";
+
+    let html="";
+    for(let i=0;i<count;i++){
+      const left=(Math.random()*100).toFixed(1);
+      const delay=(-Math.random()*16).toFixed(1);
+      const dur=(5+Math.random()*9).toFixed(1);
+      const size=(4+Math.random()*8).toFixed(1);
+
+      if(season==="winter"||season==="christmas"){
+        const opacity=(0.4+Math.random()*0.5).toFixed(2);
+        const blur=(Math.random()>0.6?1.5:0);
+        html+=`<div class="flake" style="left:${left}%;animation-duration:${dur}s;animation-delay:${delay}s;width:${size}px;height:${size}px;opacity:${opacity};filter:blur(${blur}px)"></div>`;
+      }else if(season==="autumn"){
+        const hue=Math.floor(15+Math.random()*35);
+        const light=isNight?35:50;
+        html+=`<div class="leaf" style="left:${left}%;animation-duration:${dur}s;animation-delay:${delay}s;width:${size*1.3}px;height:${size*1.3}px;background:hsl(${hue} 85% ${light}%);opacity:0.85"></div>`;
+      }else if(season==="spring"){
+        const rotX=Math.floor(Math.random()*360);
+        html+=`<div class="petal" style="left:${left}%;animation-duration:${dur}s;animation-delay:${delay}s;width:${size}px;height:${size}px;transform:rotate(${rotX}deg)"></div>`;
+      }else if(season==="summer"){
+        if(isNight||isSunset){
+          const top=(15+Math.random()*70).toFixed(1);
+          const glowDur=(1.5+Math.random()*3).toFixed(1);
+          html+=`<div class="firefly" style="left:${left}%;top:${top}%;animation-delay:${delay}s;animation-duration:${glowDur}s"></div>`;
+        }else{
+          const top=(10+Math.random()*35).toFixed(1);
+          const h=(40+Math.random()*70).toFixed(0);
+          html+=`<div class="ray" style="left:${left}%;top:${top}%;height:${h}px;animation-delay:${delay}s"></div>`;
+        }
+      }else if(season==="halloween"){
+        if(i%4===0){
+          const top=(12+Math.random()*50).toFixed(1);
+          html+=`<div class="bat" style="top:${top}%;animation-duration:${(9+Math.random()*7).toFixed(1)}s;animation-delay:${delay}s">🦇</div>`;
+        }else{
+          const top=(Math.random()*85).toFixed(1);
+          const wispColor=isNight?"rgba(74,222,128,0.7)":"rgba(251,146,60,0.6)";
+          html+=`<div class="star" style="left:${left}%;top:${top}%;animation-delay:${delay}s;box-shadow:0 0 10px ${wispColor}"></div>`;
+        }
+      }else{
+        const top=(Math.random()*90).toFixed(1);
+        html+=`<div class="star" style="left:${left}%;top:${top}%;animation-delay:${delay}s"></div>`;
+      }
+    }
+
+    if((season==="winter"||season==="christmas")&&isNight){
+      html+=`<div class="aurora-glow"></div>`;
+    }
+    fx.innerHTML=html;
+  }
+
+  window.__reloadAtmosphere=applyAtmosphere;
+  window.__reloadSeasonFx=function(which){ applyAtmosphere(which, activeTimeOfDay); };
 
   (function(){
     const tEl=document.getElementById("clockTime"),dEl=document.getElementById("clockDate");
-    function tick(){const n=new Date();tEl.textContent=n.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});dEl.textContent=n.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric",year:"numeric"});}
+    function tick(){
+      const n=new Date();
+      tEl.textContent=n.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+      dEl.textContent=n.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+      const newT=naturalTimeOfDay();
+      if(newT!==activeTimeOfDay&&(!window.__hubOpts||window.__hubOpts.timeOfDay==="auto")){
+        applyAtmosphere(activeSeason, newT);
+      }
+    }
     tick();setInterval(tick,1000);
   })();
 
-  (function(){
-    const fx=document.getElementById("seasonFx");if(!fx)return;
-    const n=season==="winter"||season==="christmas"?28:season==="autumn"||season==="halloween"?18:season==="spring"?16:season==="summer"?8:0;
-    if(!n)return;
-    let html="";
-    for(let i=0;i<n;i++){
-      const left=(Math.random()*100).toFixed(1),delay=(-Math.random()*12).toFixed(1),dur=(6+Math.random()*10).toFixed(1),size=(4+Math.random()*8).toFixed(0);
-      if(season==="winter"||season==="christmas")html+='<div class="flake" style="left:'+left+'%;animation-duration:'+dur+'s;animation-delay:'+delay+'s;width:'+size+'px;height:'+size+'px"></div>';
-      else if(season==="autumn")html+='<div class="leaf" style="left:'+left+'%;animation-duration:'+dur+'s;animation-delay:'+delay+'s;width:'+size+'px;height:'+size+'px;background:hsl('+Math.floor(20+Math.random()*40)+' 80% 55%)"></div>';
-      else if(season==="spring")html+='<div class="petal" style="left:'+left+'%;animation-duration:'+dur+'s;animation-delay:'+delay+'s"></div>';
-      else if(season==="summer")html+='<div class="ray" style="left:'+left+'%;top:'+(10+Math.random()*40).toFixed(0)+'%;animation-delay:'+delay+'s;height:'+(30+Math.random()*50).toFixed(0)+'px"></div>';
-      else if(season==="halloween"){if(i%3===0)html+='<div class="bat" style="top:'+(10+Math.random()*50).toFixed(0)+'%;animation-duration:'+(10+Math.random()*8).toFixed(1)+'s;animation-delay:'+delay+'s">🦇</div>';else html+='<div class="star" style="left:'+left+'%;top:'+(Math.random()*80).toFixed(0)+'%;animation-delay:'+delay+'s"></div>';}
-    }
-    if(season==="christmas"){for(let i=0;i<12;i++){const left=(Math.random()*100).toFixed(1);html+='<div class="star" style="left:'+left+'%;top:'+(Math.random()*70).toFixed(0)+'%;animation-delay:'+(-Math.random()*3).toFixed(1)+'s"></div>';}}
-    fx.innerHTML=html;
-  })();
-
-  window.__reloadSeasonFx=function(which){
-    const fx=document.getElementById("seasonFx");if(!fx)return;
-    const s=which||season;
-    const n=s==="winter"||s==="christmas"?28:s==="autumn"||s==="halloween"?18:s==="spring"?16:s==="summer"?8:0;
-    let html="";
-    for(let i=0;i<n;i++){
-      const left=(Math.random()*100).toFixed(1),delay=(-Math.random()*12).toFixed(1),dur=(6+Math.random()*10).toFixed(1),size=(4+Math.random()*8).toFixed(0);
-      if(s==="winter"||s==="christmas")html+='<div class="flake" style="left:'+left+'%;animation-duration:'+dur+'s;animation-delay:'+delay+'s;width:'+size+'px;height:'+size+'px"></div>';
-      else if(s==="autumn")html+='<div class="leaf" style="left:'+left+'%;animation-duration:'+dur+'s;animation-delay:'+delay+'s;width:'+size+'px;height:'+size+'px;background:hsl('+Math.floor(20+Math.random()*40)+' 80% 55%)"></div>';
-      else if(s==="spring")html+='<div class="petal" style="left:'+left+'%;animation-duration:'+dur+'s;animation-delay:'+delay+'s"></div>';
-      else if(s==="summer")html+='<div class="ray" style="left:'+left+'%;top:'+(10+Math.random()*40).toFixed(0)+'%;animation-delay:'+delay+'s"></div>';
-      else if(s==="halloween"){if(i%3===0)html+='<div class="bat" style="top:'+(10+Math.random()*50).toFixed(0)+'%;animation-duration:'+(10+Math.random()*8).toFixed(1)+'s;animation-delay:'+delay+'s">🦇</div>';else html+='<div class="star" style="left:'+left+'%;top:'+(Math.random()*80).toFixed(0)+'%;animation-delay:'+delay+'s"></div>';}
-    }
-    if(s==="christmas"){for(let i=0;i<12;i++){const left=(Math.random()*100).toFixed(1);html+='<div class="star" style="left:'+left+'%;top:'+(Math.random()*70).toFixed(0)+'%;animation-delay:'+(-Math.random()*3).toFixed(1)+'s"></div>';}}
-    fx.innerHTML=html;
-  };
+  applyAtmosphere(naturalSeason(), naturalTimeOfDay());
 
   (function(){
     const sp=document.getElementById("scrollProgress");
@@ -207,7 +267,12 @@
       const max=Math.max(1,document.documentElement.scrollHeight-window.innerHeight);
       if(sp)sp.style.width=((st/max)*100)+"%";
       const p=st*0.04;
-      if(typeof opts==="undefined"||!document.body.classList.contains("no-parallax")){orbs.forEach((o,i)=>{const m=(i%2?1:-1)*(1+i*0.15);o.style.transform="translate("+ (p*m*0.3)+"px,"+(-p*(0.6+i*0.1))+"px) scale("+(1+Math.min(0.08,st/4000))+")";});}
+      if(typeof opts==="undefined"||!document.body.classList.contains("no-parallax")){
+        orbs.forEach((o,i)=>{
+          const m=(i%2?1:-1)*(1+i*0.15);
+          o.style.transform="translate("+(p*m*0.3)+"px,"+(-p*(0.6+i*0.1))+"px) scale("+(1+Math.min(0.08,st/4000))+")";
+        });
+      }
     }
     let ticking=false;
     addEventListener("scroll",()=>{if(!ticking){requestAnimationFrame(()=>{onScroll();ticking=false;});ticking=true;}},{passive:true});
@@ -298,14 +363,29 @@
   });
   document.getElementById("aboutBtn").addEventListener("click",()=>document.getElementById("aboutModal").classList.add("on"));
   document.getElementById("aboutX").addEventListener("click",()=>document.getElementById("aboutModal").classList.remove("on"));
-  document.getElementById("logsBtn").addEventListener("click",()=>{document.getElementById("logHub").innerHTML=HUB_LOGS.map(l=>'<div class="log"><strong>v'+l.v+'</strong> · '+l.d+' — '+l.t+'</div>').join("");document.getElementById("logsModal").classList.add("on");});
+  document.getElementById("logsBtn").addEventListener("click",()=>{
+    const HUB_LOGS=[
+      {v:"3.8.0",d:"2026-10-22",t:"Active 2D rigid-body cube physics (drag & fling) + dynamic time-of-day seasonal themes"},
+      {v:"3.7.1",d:"2026-10-21",t:"Persistent game cache + Featured views counter"},
+      {v:"3.7.0",d:"2026-10-10",t:"Added plays counter & sorted games by most played"},
+      {v:"3.6.0",d:"2026-10-10",t:"Featured games with rotating banners + Supabase admin"}
+    ];
+    document.getElementById("logHub").innerHTML=HUB_LOGS.map(l=>'<div class="log"><strong>v'+l.v+'</strong> · '+l.d+' — '+l.t+'</div>').join("");
+    document.getElementById("logsModal").classList.add("on");
+  });
   document.getElementById("logsX").addEventListener("click",()=>document.getElementById("logsModal").classList.remove("on"));
   document.querySelectorAll(".mbg").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("on");}));
-  document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===t));document.getElementById("logHub").style.display=t.getAttribute("data-t")==="hub"?"":"none";document.getElementById("logGames").style.display=t.getAttribute("data-t")==="games"?"":"none";}));
+  document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===t));
+    document.getElementById("logHub").style.display=t.getAttribute("data-t")==="hub"?"":"none";
+    document.getElementById("logGames").style.display=t.getAttribute("data-t")==="games"?"":"none";
+  }));
   document.querySelectorAll(".btn").forEach(btn=>{btn.addEventListener("pointermove",e=>{const r=btn.getBoundingClientRect();btn.style.setProperty("--mx",((e.clientX-r.left)/r.width*100)+"%");btn.style.setProperty("--my",((e.clientY-r.top)/r.height*100)+"%");});});
+
   const bar=document.getElementById("topProgress");
   if(bar){bar.style.width="25%";setTimeout(()=>bar.style.width="70%",100);}
   document.getElementById("root").innerHTML='<div class="grid">'+Array(6).fill(0).map(()=>'<div class="skel"></div>').join("")+'</div>';
+
   discoverGames().then(()=>{
     rebuildTags();
     if(bar)bar.style.width="100%";
@@ -313,4 +393,296 @@
     loadGlobalViews();
     setTimeout(()=>{if(bar){bar.style.opacity="0";setTimeout(()=>{bar.style.width="0";bar.style.opacity="1"},300);}},250);
   });
+
+  /* ========================================================
+     ACTIVE 2D RIGID-BODY SIMULATION & INTERACTIVE FLING HERO
+     ======================================================== */
+  let updateCubeColors=()=>{};
+  (function(){
+    const canvas=document.getElementById("cubeCanvas");
+    if(!canvas)return;
+    const hero=canvas.parentElement;
+    const ctx=canvas.getContext("2d");
+    let W,H,dpr;
+
+    function getSeasonalPalette(){
+      const cs=getComputedStyle(document.body);
+      const cA=cs.getPropertyValue("--a").trim()||"#a78bfa";
+      const cB=cs.getPropertyValue("--b").trim()||"#6366f1";
+      const cC=cs.getPropertyValue("--c").trim()||"#22d3ee";
+      const cD=cs.getPropertyValue("--d").trim()||"#f472b6";
+      return [cA, cB, cC, cD, "#ffffff"];
+    }
+
+    let COLORS=getSeasonalPalette();
+    updateCubeColors=function(){
+      COLORS=getSeasonalPalette();
+      cubes.forEach((c,i)=>{ c.color=COLORS[i%COLORS.length]; });
+    };
+
+    function resize(){
+      dpr=Math.min(devicePixelRatio||1,2);
+      const r=hero.getBoundingClientRect();
+      W=r.width+100;
+      H=r.height+50;
+      canvas.width=W*dpr;
+      canvas.height=H*dpr;
+      canvas.style.width=W+"px";
+      canvas.style.height=H+"px";
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    resize();
+    addEventListener("resize",resize);
+
+    const GRAVITY=0.22;
+    const BOUNCE=0.58;
+    const FRICTION=0.988;
+    const ANGULAR_DRAG=0.985;
+
+    function plat(){
+      const tw=Math.min(W*0.55,340);
+      return{x:(W-tw)/2, y:H*0.44, w:tw, h:20};
+    }
+
+    class RigidCube{
+      constructor(i){
+        this.i=i;
+        this.reset(true);
+      }
+      reset(firstTime){
+        this.size=9+Math.random()*9;
+        this.mass=this.size*this.size*0.1;
+        this.invMass=1/this.mass;
+        this.inertia=(this.mass*this.size*this.size)/6;
+        this.invInertia=1/this.inertia;
+
+        this.x=60+Math.random()*Math.max(60,W-120);
+        this.y=firstTime?H*0.45+Math.random()*(H*0.35):-40-Math.random()*60;
+        this.vx=(Math.random()-0.5)*2.5;
+        this.vy=firstTime?(Math.random()-0.5)*1.5:1+Math.random()*2;
+
+        this.angle=Math.random()*Math.PI*2;
+        this.vr=(Math.random()-0.5)*0.06;
+        this.color=COLORS[this.i%COLORS.length];
+        this.isHeld=false;
+        this.grounded=false;
+      }
+      step(dt,p){
+        if(this.isHeld)return;
+
+        this.vy+=GRAVITY*dt;
+        this.vx*=Math.pow(FRICTION,dt);
+        this.vy*=Math.pow(0.999,dt);
+        this.vr*=Math.pow(ANGULAR_DRAG,dt);
+
+        this.x+=this.vx*dt;
+        this.y+=this.vy*dt;
+        this.angle+=this.vr*dt;
+        this.grounded=false;
+
+        // Platform collision (Rigid body response)
+        const rad=this.size*0.95;
+        if(this.x+rad>p.x && this.x-rad<p.x+p.w && this.y+rad>p.y && this.y-rad<p.y+p.h){
+          // Top collision
+          if(this.y < p.y && this.vy > 0){
+            this.y = p.y - rad;
+            this.vy = -this.vy * BOUNCE;
+            this.vx *= 0.94;
+            this.grounded=true;
+            if(Math.abs(this.vy)<0.35) this.vy=0;
+            this.vr += (this.vx)*0.015;
+          }
+          // Side collision
+          else if(this.y > p.y && this.y < p.y+p.h){
+            if(this.x < p.x + p.w/2){
+              this.x = p.x - rad;
+              this.vx = -Math.abs(this.vx)*BOUNCE;
+            }else{
+              this.x = p.x + p.w + rad;
+              this.vx = Math.abs(this.vx)*BOUNCE;
+            }
+          }
+        }
+
+        // Screen left & right boundaries
+        if(this.x - rad < 10){
+          this.x = 10 + rad;
+          this.vx = Math.abs(this.vx)*BOUNCE;
+        }else if(this.x + rad > W - 10){
+          this.x = W - 10 - rad;
+          this.vx = -Math.abs(this.vx)*BOUNCE;
+        }
+
+        // Screen floor reset
+        if(this.y > H + 90){
+          this.reset(false);
+        }
+      }
+      draw(ctx){
+        ctx.save();
+        ctx.translate(this.x,this.y);
+        ctx.rotate(this.angle);
+        const s=this.size;
+
+        if(this.isHeld){
+          ctx.shadowColor=this.color;
+          ctx.shadowBlur=16;
+        }
+
+        ctx.fillStyle=this.color;
+        ctx.fillRect(-s,-s,s*2,s*2);
+
+        ctx.strokeStyle="rgba(0,0,0,0.3)";
+        ctx.lineWidth=1.5;
+        ctx.strokeRect(-s,-s,s*2,s*2);
+
+        ctx.fillStyle="rgba(255,255,255,0.22)";
+        ctx.fillRect(-s,-s,s*2,3);
+
+        ctx.restore();
+      }
+    }
+
+    const cubes=Array.from({length:15},(_,i)=>new RigidCube(i));
+
+    // Full 2D Rigid Body Cube-to-Cube Collision Solver
+    function resolveCollisions(){
+      for(let i=0;i<cubes.length;i++){
+        for(let j=i+1;j<cubes.length;j++){
+          const a=cubes[i], b=cubes[j];
+          const dx=b.x-a.x, dy=b.y-a.y;
+          const dist=Math.hypot(dx,dy);
+          const minDist=(a.size+b.size)*0.92;
+
+          if(dist>0&&dist<minDist){
+            const nx=dx/dist, ny=dy/dist;
+            const penetration=minDist-dist;
+
+            // Positional separation based on mass
+            const invMassSum=a.invMass+b.invMass;
+            if(!a.isHeld) { a.x -= nx*penetration*(a.invMass/invMassSum); a.y -= ny*penetration*(a.invMass/invMassSum); }
+            if(!b.isHeld) { b.x += nx*penetration*(b.invMass/invMassSum); b.y += ny*penetration*(b.invMass/invMassSum); }
+
+            // Relative velocity along normal
+            const rvX = b.vx - a.vx;
+            const rvY = b.vy - a.vy;
+            const velAlongNormal = rvX*nx + rvY*ny;
+
+            if(velAlongNormal < 0){
+              const impulse = -(1 + BOUNCE) * velAlongNormal / invMassSum;
+              if(!a.isHeld){
+                a.vx -= impulse * a.invMass * nx;
+                a.vy -= impulse * a.invMass * ny;
+                a.vr -= (impulse * 0.03) * (Math.random()-0.5);
+              }
+              if(!b.isHeld){
+                b.vx += impulse * b.invMass * nx;
+                b.vy += impulse * b.invMass * ny;
+                b.vr += (impulse * 0.03) * (Math.random()-0.5);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Interactive Grab, Drag, and Fling mechanics
+    let heldCube=null;
+    let mousePos={x:0,y:0};
+    let prevMousePos={x:0,y:0};
+    let mouseVel={x:0,y:0};
+
+    function getCanvasCoords(e){
+      const r=canvas.getBoundingClientRect();
+      const clientX=e.touches?e.touches[0].clientX:e.clientX;
+      const clientY=e.touches?e.touches[0].clientY:e.clientY;
+      return{
+        x:(clientX-r.left)*(W/r.width),
+        y:(clientY-r.top)*(H/r.height)
+      };
+    }
+
+    function onPointerDown(e){
+      const pt=getCanvasCoords(e);
+      mousePos={x:pt.x,y:pt.y};
+      prevMousePos={x:pt.x,y:pt.y};
+
+      for(let i=cubes.length-1;i>=0;i--){
+        const c=cubes[i];
+        if(Math.hypot(pt.x-c.x, pt.y-c.y) < c.size*1.8){
+          heldCube=c;
+          c.isHeld=true;
+          c.vx=0; c.vy=0;
+          canvas.style.cursor="grabbing";
+          break;
+        }
+      }
+    }
+
+    function onPointerMove(e){
+      const pt=getCanvasCoords(e);
+      mouseVel={x:pt.x-prevMousePos.x, y:pt.y-prevMousePos.y};
+      prevMousePos={x:pt.x,y:pt.y};
+      mousePos=pt;
+
+      if(heldCube){
+        heldCube.x = pt.x;
+        heldCube.y = pt.y;
+      }else{
+        const hovering=cubes.some(c=>Math.hypot(pt.x-c.x,pt.y-c.y)<c.size*1.6);
+        canvas.style.cursor=hovering?"grab":"default";
+      }
+    }
+
+    function onPointerUp(){
+      if(heldCube){
+        heldCube.isHeld=false;
+        // Fling with mouse throw velocity!
+        heldCube.vx=Math.max(-14, Math.min(14, mouseVel.x*1.3));
+        heldCube.vy=Math.max(-14, Math.min(14, mouseVel.y*1.3));
+        heldCube.vr=(Math.random()-0.5)*0.3;
+        heldCube=null;
+      }
+      canvas.style.cursor="default";
+    }
+
+    canvas.style.pointerEvents="auto";
+    canvas.addEventListener("mousedown",onPointerDown);
+    addEventListener("mousemove",onPointerMove);
+    addEventListener("mouseup",onPointerUp);
+    canvas.addEventListener("touchstart",onPointerDown,{passive:true});
+    addEventListener("touchmove",onPointerMove,{passive:true});
+    addEventListener("touchend",onPointerUp);
+
+    window.__shakeCubes=function(){
+      cubes.forEach(c=>{
+        c.vy = -6 - Math.random()*8;
+        c.vx = (Math.random()-0.5)*12;
+        c.vr = (Math.random()-0.5)*0.4;
+      });
+    };
+
+    let last=performance.now();
+    function loop(now){
+      const dt=Math.min(2.5,(now-last)/16);
+      last=now;
+      const p=plat();
+
+      cubes.forEach(c=>c.step(dt,p));
+      resolveCollisions();
+
+      ctx.clearRect(0,0,W,H);
+
+      // Draw glass platform
+      ctx.fillStyle="rgba(255,255,255,0.08)";
+      ctx.fillRect(p.x,p.y,p.w,p.h);
+      ctx.strokeStyle="rgba(255,255,255,0.18)";
+      ctx.lineWidth=1;
+      ctx.strokeRect(p.x,p.y,p.w,p.h);
+
+      cubes.forEach(c=>c.draw(ctx));
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  })();
 })();
