@@ -299,7 +299,7 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
     const opts=['<option value="">Select a game…</option>'];
     games.filter(g=>g.folder!=="NotByMe").forEach(g=>{
       const disabled=featuredFolders.has(g.folder)?" disabled":"";
-      opts.push('<option value="'+g.folder+'" data-name="'+g.name.replace(/"/g,""")+'" data-file="'+(g.file||"index.html")+'" data-icon="'+(g.icon||"🎮")+'"'+disabled+'>'+g.name+(disabled?" (already featured)":"")+'</option>');
+      opts.push('<option value="'+g.folder+'" data-name="'+g.name.replace(/"/g,"&quot;")+'" data-file="'+(g.file||"index.html")+'" data-icon="'+(g.icon||"🎮")+'"'+disabled+'>'+g.name+(disabled?" (already featured)":"")+'</option>');
     });
     sel.innerHTML=opts.join("");
   }
@@ -320,7 +320,7 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
     });
     if(!r.ok){
       const t=await r.text();
-      throw new Error("Upload failed ("+r.status+"): "+t.slice(0,200));
+      throw new Error("Upload failed ("+r.status+") : "+t.slice(0,200));
     }
     return SB_URL+"/storage/v1/object/public/featured-banners/"+objectPath.split("/").map(encodeURIComponent).join("/");
   }
