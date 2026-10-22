@@ -108,14 +108,13 @@
     let foundFolders=[];
     try{
       const r=await fetch(api,{headers:{"Accept":"application/vnd.github+json"},cache:"no-store"});
-      if(!r.ok)throw new Error("GitHub API "+r.status);
-      const items=await r.json();
-      if(Array.isArray(items)){
-        foundFolders=items.filter(x=>x.type==="dir").map(x=>x.name);
+      if(r.ok){
+        const items=await r.json();
+        if(Array.isArray(items)){
+          foundFolders=items.filter(x=>x.type==="dir").map(x=>x.name);
+        }
       }
-    }catch(e){
-      console.warn("GitHub discovery unavailable, restoring cache:",e);
-    }
+    }catch(e){}
 
     if(!foundFolders.length){
       try{
@@ -136,7 +135,6 @@
     return GAMES;
   }
 
-  /* --- Dynamic Season & Time-of-Day System --- */
   function naturalSeason(){
     const now=new Date(),mo=now.getMonth()+1,dy=now.getDate();
     if(mo===10)return"halloween";
@@ -179,16 +177,15 @@
     }
 
     renderWeatherFX(activeSeason, activeTimeOfDay);
-    updateCubeColors();
+    if(window.__updateCubeColors) window.__updateCubeColors();
   }
 
-  /* --- Realistic Weather Particle FX Engine --- */
   function renderWeatherFX(season, time){
     const fx=document.getElementById("seasonFx");
     if(!fx)return;
     fx.innerHTML="";
 
-    const count=season==="winter"||season==="christmas"?36:season==="autumn"||season==="halloween"?24:season==="spring"?20:season==="summer"?18:14;
+    const count=season==="winter"||season==="christmas"?32:season==="autumn"||season==="halloween"?22:season==="spring"?18:season==="summer"?16:12;
     const isNight=time==="night", isSunset=time==="sunset";
 
     let html="";
@@ -199,43 +196,29 @@
       const size=(4+Math.random()*8).toFixed(1);
 
       if(season==="winter"||season==="christmas"){
-        const opacity=(0.4+Math.random()*0.5).toFixed(2);
-        const blur=(Math.random()>0.6?1.5:0);
-        html+=`<div class="flake" style="left:${left}%;animation-duration:${dur}s;animation-delay:${delay}s;width:${size}px;height:${size}px;opacity:${opacity};filter:blur(${blur}px)"></div>`;
+        html+=`<div class="flake" style="left:${left}%;animation-duration:${dur}s;animation-delay:${delay}s;width:${size}px;height:${size}px"></div>`;
       }else if(season==="autumn"){
         const hue=Math.floor(15+Math.random()*35);
-        const light=isNight?35:50;
-        html+=`<div class="leaf" style="left:${left}%;animation-duration:${dur}s;animation-delay:${delay}s;width:${size*1.3}px;height:${size*1.3}px;background:hsl(${hue} 85% ${light}%);opacity:0.85"></div>`;
+        html+=`<div class="leaf" style="left:${left}%;animation-duration:${dur}s;animation-delay:${delay}s;width:${size*1.3}px;height:${size*1.3}px;background:hsl(${hue} 85% ${isNight?35:50}%)"></div>`;
       }else if(season==="spring"){
-        const rotX=Math.floor(Math.random()*360);
-        html+=`<div class="petal" style="left:${left}%;animation-duration:${dur}s;animation-delay:${delay}s;width:${size}px;height:${size}px;transform:rotate(${rotX}deg)"></div>`;
+        html+=`<div class="petal" style="left:${left}%;animation-duration:${dur}s;animation-delay:${delay}s;width:${size}px;height:${size}px"></div>`;
       }else if(season==="summer"){
         if(isNight||isSunset){
           const top=(15+Math.random()*70).toFixed(1);
-          const glowDur=(1.5+Math.random()*3).toFixed(1);
-          html+=`<div class="firefly" style="left:${left}%;top:${top}%;animation-delay:${delay}s;animation-duration:${glowDur}s"></div>`;
+          html+=`<div class="firefly" style="left:${left}%;top:${top}%;animation-delay:${delay}s"></div>`;
         }else{
           const top=(10+Math.random()*35).toFixed(1);
-          const h=(40+Math.random()*70).toFixed(0);
-          html+=`<div class="ray" style="left:${left}%;top:${top}%;height:${h}px;animation-delay:${delay}s"></div>`;
+          html+=`<div class="ray" style="left:${left}%;top:${top}%;height:${(40+Math.random()*60).toFixed(0)}px;animation-delay:${delay}s"></div>`;
         }
       }else if(season==="halloween"){
         if(i%4===0){
-          const top=(12+Math.random()*50).toFixed(1);
-          html+=`<div class="bat" style="top:${top}%;animation-duration:${(9+Math.random()*7).toFixed(1)}s;animation-delay:${delay}s">🦇</div>`;
+          html+=`<div class="bat" style="top:${(12+Math.random()*50).toFixed(1)}%;animation-duration:${(9+Math.random()*7).toFixed(1)}s;animation-delay:${delay}s">🦇</div>`;
         }else{
-          const top=(Math.random()*85).toFixed(1);
-          const wispColor=isNight?"rgba(74,222,128,0.7)":"rgba(251,146,60,0.6)";
-          html+=`<div class="star" style="left:${left}%;top:${top}%;animation-delay:${delay}s;box-shadow:0 0 10px ${wispColor}"></div>`;
+          html+=`<div class="star" style="left:${left}%;top:${(Math.random()*85).toFixed(1)}%;animation-delay:${delay}s"></div>`;
         }
       }else{
-        const top=(Math.random()*90).toFixed(1);
-        html+=`<div class="star" style="left:${left}%;top:${top}%;animation-delay:${delay}s"></div>`;
+        html+=`<div class="star" style="left:${left}%;top:${(Math.random()*90).toFixed(1)}%;animation-delay:${delay}s"></div>`;
       }
-    }
-
-    if((season==="winter"||season==="christmas")&&isNight){
-      html+=`<div class="aurora-glow"></div>`;
     }
     fx.innerHTML=html;
   }
@@ -247,8 +230,8 @@
     const tEl=document.getElementById("clockTime"),dEl=document.getElementById("clockDate");
     function tick(){
       const n=new Date();
-      tEl.textContent=n.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});
-      dEl.textContent=n.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+      if(tEl) tEl.textContent=n.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+      if(dEl) dEl.textContent=n.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric",year:"numeric"});
       const newT=naturalTimeOfDay();
       if(newT!==activeTimeOfDay&&(!window.__hubOpts||window.__hubOpts.timeOfDay==="auto")){
         applyAtmosphere(activeSeason, newT);
@@ -277,29 +260,51 @@
     let ticking=false;
     addEventListener("scroll",()=>{if(!ticking){requestAnimationFrame(()=>{onScroll();ticking=false;});ticking=true;}},{passive:true});
     onScroll();
-    const io=new IntersectionObserver((entries)=>{
-      entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});
-    },{root:null,rootMargin:"0px 0px -8% 0px",threshold:0.12});
-    window.__observeReveal=function(nodes){nodes.forEach(n=>io.observe(n));};
-    document.querySelectorAll(".toolbar.reveal,.tags.reveal,.foot.reveal").forEach(n=>io.observe(n));
   })();
 
   function pathOf(g){return g.folder?"games/"+g.folder+"/"+(g.file||"index.html"):"games/"+(g.file||"index.html");}
   let activeTag="all";const tagsEl=document.getElementById("tags");
   function rebuildTags(){
+    if(!tagsEl)return;
     const allTags=["all"];
     GAMES.forEach(g=>(g.tags||[]).forEach(t=>{if(t!=="all"&&!allTags.includes(t))allTags.push(t);}));
     tagsEl.innerHTML=allTags.map(t=>'<button class="tag'+(t===activeTag?" on":"")+'" data-t="'+t+'">'+t+'</button>').join("");
   }
-  tagsEl.addEventListener("click",e=>{const b=e.target.closest(".tag");if(!b)return;activeTag=b.getAttribute("data-t");tagsEl.querySelectorAll(".tag").forEach(x=>x.classList.toggle("on",x.getAttribute("data-t")===activeTag));draw();});
+  if(tagsEl){
+    tagsEl.addEventListener("click",e=>{
+      const b=e.target.closest(".tag");
+      if(!b)return;
+      activeTag=b.getAttribute("data-t");
+      tagsEl.querySelectorAll(".tag").forEach(x=>x.classList.toggle("on",x.getAttribute("data-t")===activeTag));
+      draw();
+    });
+  }
 
   const health={};
-  function checkHealth(g){const p=pathOf(g);if(health[p]!==undefined)return;health[p]=null;fetch(p,{method:"HEAD",cache:"no-store"}).then(r=>{health[p]=r.ok;const el=document.querySelector('.game[data-path="'+p+'"]');if(el&&!r.ok)el.classList.add("dead");}).catch(()=>{fetch(p,{method:"GET",cache:"no-store"}).then(r=>{health[p]=r.ok;const el=document.querySelector('.game[data-path="'+p+'"]');if(el&&!r.ok)el.classList.add("dead");}).catch(()=>{health[p]=false;});});}
+  function checkHealth(g){
+    const p=pathOf(g);
+    if(health[p]!==undefined)return;
+    health[p]=null;
+    fetch(p,{method:"HEAD",cache:"no-store"}).then(r=>{
+      health[p]=r.ok;
+      const el=document.querySelector('.game[data-path="'+p+'"]');
+      if(el&&!r.ok)el.classList.add("dead");
+    }).catch(()=>{
+      fetch(p,{method:"GET",cache:"no-store"}).then(r=>{
+        health[p]=r.ok;
+        const el=document.querySelector('.game[data-path="'+p+'"]');
+        if(el&&!r.ok)el.classList.add("dead");
+      }).catch(()=>{
+        health[p]=true; // Default to true if blocked by local CORS
+      });
+    });
+  }
 
   function draw(){
     const sInput=document.getElementById("search");
     const q=(sInput&&sInput.value||"").trim().toLowerCase();
     const root=document.getElementById("root");
+    if(!root)return;
 
     const mine=GAMES.filter(g=>!g.notByMe);
     const other=GAMES.filter(g=>g.notByMe);
@@ -323,7 +328,7 @@
       const p=pathOf(g);
       const dead=health[p]===false;
       const v=VIEWS[p]||0;
-      h+='<div class="game'+(dead?" dead":"")+'" style="--i:'+i+'" data-path="'+p+'">';
+      h+='<div class="game'+(dead?" dead":"")+' in" style="--i:'+i+'" data-path="'+p+'">';
       if(g.name==="World Explorer")h+='<span class="new">NEW</span>';
       h+='<span class="views-badge" data-path="'+p+'" title="'+v+' plays">👁️ '+formatViews(v)+'</span>';
       h+='<div class="icon">'+g.icon+'</div><div class="name">'+g.name+'</div><div class="path">'+p+'</div><span class="play">Play</span></div>';
@@ -336,7 +341,7 @@
       const p=pathOf(g);
       const dead=health[p]===false;
       const v=VIEWS[p]||0;
-      h+='<div class="game'+(dead?" dead":"")+'" style="--i:'+i+'" data-path="'+p+'">';
+      h+='<div class="game'+(dead?" dead":"")+' in" style="--i:'+i+'" data-path="'+p+'">';
       h+='<span class="views-badge" data-path="'+p+'" title="'+v+' plays">👁️ '+formatViews(v)+'</span>';
       h+='<div class="icon">'+g.icon+'</div><div class="name">'+g.name+'</div><div class="path">'+p+'</div><span class="play">Play</span></div>';
       checkHealth(g);
@@ -351,41 +356,50 @@
       if(window.__recordView)window.__recordView(p);
       setTimeout(()=>{ location.href=p; },80);
     }));
-
-    root.querySelectorAll(".cat,.game").forEach((el,i)=>{el.classList.add("reveal");el.style.transitionDelay=(Math.min(i,12)*0.045)+"s";});
-    if(window.__observeReveal)window.__observeReveal(root.querySelectorAll(".reveal"));
   }
 
-  document.getElementById("search").addEventListener("input",draw);
-  document.getElementById("refresh").addEventListener("click",()=>{
-    Object.keys(health).forEach(k=>delete health[k]);
-    discoverGames().then(()=>{rebuildTags();draw();loadGlobalViews();});
-  });
-  document.getElementById("aboutBtn").addEventListener("click",()=>document.getElementById("aboutModal").classList.add("on"));
-  document.getElementById("aboutX").addEventListener("click",()=>document.getElementById("aboutModal").classList.remove("on"));
-  document.getElementById("logsBtn").addEventListener("click",()=>{
-    const HUB_LOGS=[
-      {v:"3.8.0",d:"2026-10-22",t:"Active 2D rigid-body cube physics (drag & fling) + dynamic time-of-day seasonal themes"},
-      {v:"3.7.1",d:"2026-10-21",t:"Persistent game cache + Featured views counter"},
-      {v:"3.7.0",d:"2026-10-10",t:"Added plays counter & sorted games by most played"},
-      {v:"3.6.0",d:"2026-10-10",t:"Featured games with rotating banners + Supabase admin"}
-    ];
-    document.getElementById("logHub").innerHTML=HUB_LOGS.map(l=>'<div class="log"><strong>v'+l.v+'</strong> · '+l.d+' — '+l.t+'</div>').join("");
-    document.getElementById("logsModal").classList.add("on");
-  });
-  document.getElementById("logsX").addEventListener("click",()=>document.getElementById("logsModal").classList.remove("on"));
+  const sBox=document.getElementById("search");
+  if(sBox) sBox.addEventListener("input",draw);
+
+  const refBtn=document.getElementById("refresh");
+  if(refBtn){
+    refBtn.addEventListener("click",()=>{
+      Object.keys(health).forEach(k=>delete health[k]);
+      discoverGames().then(()=>{rebuildTags();draw();loadGlobalViews();});
+    });
+  }
+
+  const abBtn=document.getElementById("aboutBtn");
+  if(abBtn) abBtn.addEventListener("click",()=>document.getElementById("aboutModal").classList.add("on"));
+  const abX=document.getElementById("aboutX");
+  if(abX) abX.addEventListener("click",()=>document.getElementById("aboutModal").classList.remove("on"));
+
+  const lgBtn=document.getElementById("logsBtn");
+  if(lgBtn){
+    lgBtn.addEventListener("click",()=>{
+      const HUB_LOGS=[
+        {v:"3.8.1",d:"2026-10-22",t:"Restored full games grid + First-person seated 3D Matrix screen"},
+        {v:"3.8.0",d:"2026-10-22",t:"Active 2D rigid-body cube physics (drag & fling) + dynamic time themes"},
+        {v:"3.7.1",d:"2026-10-21",t:"Persistent game cache + Featured views counter"}
+      ];
+      document.getElementById("logHub").innerHTML=HUB_LOGS.map(l=>'<div class="log"><strong>v'+l.v+'</strong> · '+l.d+' — '+l.t+'</div>').join("");
+      document.getElementById("logsModal").classList.add("on");
+    });
+  }
+  const lgX=document.getElementById("logsX");
+  if(lgX) lgX.addEventListener("click",()=>document.getElementById("logsModal").classList.remove("on"));
+
   document.querySelectorAll(".mbg").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("on");}));
   document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===t));
     document.getElementById("logHub").style.display=t.getAttribute("data-t")==="hub"?"":"none";
     document.getElementById("logGames").style.display=t.getAttribute("data-t")==="games"?"":"none";
   }));
-  document.querySelectorAll(".btn").forEach(btn=>{btn.addEventListener("pointermove",e=>{const r=btn.getBoundingClientRect();btn.style.setProperty("--mx",((e.clientX-r.left)/r.width*100)+"%");btn.style.setProperty("--my",((e.clientY-r.top)/r.height*100)+"%");});});
 
   const bar=document.getElementById("topProgress");
   if(bar){bar.style.width="25%";setTimeout(()=>bar.style.width="70%",100);}
-  document.getElementById("root").innerHTML='<div class="grid">'+Array(6).fill(0).map(()=>'<div class="skel"></div>').join("")+'</div>';
 
+  // Load games and draw immediately
   discoverGames().then(()=>{
     rebuildTags();
     if(bar)bar.style.width="100%";
@@ -395,9 +409,8 @@
   });
 
   /* ========================================================
-     ACTIVE 2D RIGID-BODY SIMULATION & INTERACTIVE FLING HERO
+     ACTIVE 2D RIGID-BODY CUBE PHYSICS IN HERO
      ======================================================== */
-  let updateCubeColors=()=>{};
   (function(){
     const canvas=document.getElementById("cubeCanvas");
     if(!canvas)return;
@@ -415,7 +428,7 @@
     }
 
     let COLORS=getSeasonalPalette();
-    updateCubeColors=function(){
+    window.__updateCubeColors=function(){
       COLORS=getSeasonalPalette();
       cubes.forEach((c,i)=>{ c.color=COLORS[i%COLORS.length]; });
     };
@@ -437,7 +450,6 @@
     const GRAVITY=0.22;
     const BOUNCE=0.58;
     const FRICTION=0.988;
-    const ANGULAR_DRAG=0.985;
 
     function plat(){
       const tw=Math.min(W*0.55,340);
@@ -453,99 +465,53 @@
         this.size=9+Math.random()*9;
         this.mass=this.size*this.size*0.1;
         this.invMass=1/this.mass;
-        this.inertia=(this.mass*this.size*this.size)/6;
-        this.invInertia=1/this.inertia;
-
         this.x=60+Math.random()*Math.max(60,W-120);
         this.y=firstTime?H*0.45+Math.random()*(H*0.35):-40-Math.random()*60;
         this.vx=(Math.random()-0.5)*2.5;
         this.vy=firstTime?(Math.random()-0.5)*1.5:1+Math.random()*2;
-
         this.angle=Math.random()*Math.PI*2;
         this.vr=(Math.random()-0.5)*0.06;
         this.color=COLORS[this.i%COLORS.length];
         this.isHeld=false;
-        this.grounded=false;
       }
       step(dt,p){
         if(this.isHeld)return;
-
         this.vy+=GRAVITY*dt;
         this.vx*=Math.pow(FRICTION,dt);
-        this.vy*=Math.pow(0.999,dt);
-        this.vr*=Math.pow(ANGULAR_DRAG,dt);
-
         this.x+=this.vx*dt;
         this.y+=this.vy*dt;
         this.angle+=this.vr*dt;
-        this.grounded=false;
 
-        // Platform collision (Rigid body response)
         const rad=this.size*0.95;
         if(this.x+rad>p.x && this.x-rad<p.x+p.w && this.y+rad>p.y && this.y-rad<p.y+p.h){
-          // Top collision
           if(this.y < p.y && this.vy > 0){
             this.y = p.y - rad;
             this.vy = -this.vy * BOUNCE;
             this.vx *= 0.94;
-            this.grounded=true;
             if(Math.abs(this.vy)<0.35) this.vy=0;
             this.vr += (this.vx)*0.015;
           }
-          // Side collision
-          else if(this.y > p.y && this.y < p.y+p.h){
-            if(this.x < p.x + p.w/2){
-              this.x = p.x - rad;
-              this.vx = -Math.abs(this.vx)*BOUNCE;
-            }else{
-              this.x = p.x + p.w + rad;
-              this.vx = Math.abs(this.vx)*BOUNCE;
-            }
-          }
         }
-
-        // Screen left & right boundaries
-        if(this.x - rad < 10){
-          this.x = 10 + rad;
-          this.vx = Math.abs(this.vx)*BOUNCE;
-        }else if(this.x + rad > W - 10){
-          this.x = W - 10 - rad;
-          this.vx = -Math.abs(this.vx)*BOUNCE;
-        }
-
-        // Screen floor reset
-        if(this.y > H + 90){
-          this.reset(false);
-        }
+        if(this.x - rad < 10){ this.x=10+rad; this.vx=Math.abs(this.vx)*BOUNCE; }
+        else if(this.x + rad > W - 10){ this.x=W-10-rad; this.vx=-Math.abs(this.vx)*BOUNCE; }
+        if(this.y > H + 90) this.reset(false);
       }
       draw(ctx){
         ctx.save();
         ctx.translate(this.x,this.y);
         ctx.rotate(this.angle);
         const s=this.size;
-
-        if(this.isHeld){
-          ctx.shadowColor=this.color;
-          ctx.shadowBlur=16;
-        }
-
         ctx.fillStyle=this.color;
         ctx.fillRect(-s,-s,s*2,s*2);
-
         ctx.strokeStyle="rgba(0,0,0,0.3)";
         ctx.lineWidth=1.5;
         ctx.strokeRect(-s,-s,s*2,s*2);
-
-        ctx.fillStyle="rgba(255,255,255,0.22)";
-        ctx.fillRect(-s,-s,s*2,3);
-
         ctx.restore();
       }
     }
 
     const cubes=Array.from({length:15},(_,i)=>new RigidCube(i));
 
-    // Full 2D Rigid Body Cube-to-Cube Collision Solver
     function resolveCollisions(){
       for(let i=0;i<cubes.length;i++){
         for(let j=i+1;j<cubes.length;j++){
@@ -553,112 +519,65 @@
           const dx=b.x-a.x, dy=b.y-a.y;
           const dist=Math.hypot(dx,dy);
           const minDist=(a.size+b.size)*0.92;
-
           if(dist>0&&dist<minDist){
             const nx=dx/dist, ny=dy/dist;
             const penetration=minDist-dist;
-
-            // Positional separation based on mass
             const invMassSum=a.invMass+b.invMass;
-            if(!a.isHeld) { a.x -= nx*penetration*(a.invMass/invMassSum); a.y -= ny*penetration*(a.invMass/invMassSum); }
-            if(!b.isHeld) { b.x += nx*penetration*(b.invMass/invMassSum); b.y += ny*penetration*(b.invMass/invMassSum); }
-
-            // Relative velocity along normal
-            const rvX = b.vx - a.vx;
-            const rvY = b.vy - a.vy;
-            const velAlongNormal = rvX*nx + rvY*ny;
-
+            if(!a.isHeld){ a.x -= nx*penetration*(a.invMass/invMassSum); a.y -= ny*penetration*(a.invMass/invMassSum); }
+            if(!b.isHeld){ b.x += nx*penetration*(b.invMass/invMassSum); b.y += ny*penetration*(b.invMass/invMassSum); }
+            const velAlongNormal = (b.vx - a.vx)*nx + (b.vy - a.vy)*ny;
             if(velAlongNormal < 0){
               const impulse = -(1 + BOUNCE) * velAlongNormal / invMassSum;
-              if(!a.isHeld){
-                a.vx -= impulse * a.invMass * nx;
-                a.vy -= impulse * a.invMass * ny;
-                a.vr -= (impulse * 0.03) * (Math.random()-0.5);
-              }
-              if(!b.isHeld){
-                b.vx += impulse * b.invMass * nx;
-                b.vy += impulse * b.invMass * ny;
-                b.vr += (impulse * 0.03) * (Math.random()-0.5);
-              }
+              if(!a.isHeld){ a.vx -= impulse*a.invMass*nx; a.vy -= impulse*a.invMass*ny; }
+              if(!b.isHeld){ b.vx += impulse*b.invMass*nx; b.vy += impulse*b.invMass*ny; }
             }
           }
         }
       }
     }
 
-    // Interactive Grab, Drag, and Fling mechanics
     let heldCube=null;
-    let mousePos={x:0,y:0};
-    let prevMousePos={x:0,y:0};
+    let prevMouse={x:0,y:0};
     let mouseVel={x:0,y:0};
 
-    function getCanvasCoords(e){
+    function getCoords(e){
       const r=canvas.getBoundingClientRect();
-      const clientX=e.touches?e.touches[0].clientX:e.clientX;
-      const clientY=e.touches?e.touches[0].clientY:e.clientY;
-      return{
-        x:(clientX-r.left)*(W/r.width),
-        y:(clientY-r.top)*(H/r.height)
-      };
+      const cx=e.touches?e.touches[0].clientX:e.clientX;
+      const cy=e.touches?e.touches[0].clientY:e.clientY;
+      return{ x:(cx-r.left)*(W/r.width), y:(cy-r.top)*(H/r.height) };
     }
 
-    function onPointerDown(e){
-      const pt=getCanvasCoords(e);
-      mousePos={x:pt.x,y:pt.y};
-      prevMousePos={x:pt.x,y:pt.y};
-
+    canvas.addEventListener("mousedown",e=>{
+      const pt=getCoords(e);
+      prevMouse={x:pt.x,y:pt.y};
       for(let i=cubes.length-1;i>=0;i--){
         const c=cubes[i];
         if(Math.hypot(pt.x-c.x, pt.y-c.y) < c.size*1.8){
-          heldCube=c;
-          c.isHeld=true;
-          c.vx=0; c.vy=0;
-          canvas.style.cursor="grabbing";
-          break;
+          heldCube=c; c.isHeld=true; c.vx=0; c.vy=0; break;
         }
       }
-    }
+    });
 
-    function onPointerMove(e){
-      const pt=getCanvasCoords(e);
-      mouseVel={x:pt.x-prevMousePos.x, y:pt.y-prevMousePos.y};
-      prevMousePos={x:pt.x,y:pt.y};
-      mousePos=pt;
+    addEventListener("mousemove",e=>{
+      const pt=getCoords(e);
+      mouseVel={x:pt.x-prevMouse.x, y:pt.y-prevMouse.y};
+      prevMouse={x:pt.x,y:pt.y};
+      if(heldCube){ heldCube.x=pt.x; heldCube.y=pt.y; }
+    });
 
-      if(heldCube){
-        heldCube.x = pt.x;
-        heldCube.y = pt.y;
-      }else{
-        const hovering=cubes.some(c=>Math.hypot(pt.x-c.x,pt.y-c.y)<c.size*1.6);
-        canvas.style.cursor=hovering?"grab":"default";
-      }
-    }
-
-    function onPointerUp(){
+    addEventListener("mouseup",()=>{
       if(heldCube){
         heldCube.isHeld=false;
-        // Fling with mouse throw velocity!
         heldCube.vx=Math.max(-14, Math.min(14, mouseVel.x*1.3));
         heldCube.vy=Math.max(-14, Math.min(14, mouseVel.y*1.3));
-        heldCube.vr=(Math.random()-0.5)*0.3;
         heldCube=null;
       }
-      canvas.style.cursor="default";
-    }
-
-    canvas.style.pointerEvents="auto";
-    canvas.addEventListener("mousedown",onPointerDown);
-    addEventListener("mousemove",onPointerMove);
-    addEventListener("mouseup",onPointerUp);
-    canvas.addEventListener("touchstart",onPointerDown,{passive:true});
-    addEventListener("touchmove",onPointerMove,{passive:true});
-    addEventListener("touchend",onPointerUp);
+    });
 
     window.__shakeCubes=function(){
       cubes.forEach(c=>{
         c.vy = -6 - Math.random()*8;
         c.vx = (Math.random()-0.5)*12;
-        c.vr = (Math.random()-0.5)*0.4;
       });
     };
 
@@ -667,19 +586,11 @@
       const dt=Math.min(2.5,(now-last)/16);
       last=now;
       const p=plat();
-
       cubes.forEach(c=>c.step(dt,p));
       resolveCollisions();
-
       ctx.clearRect(0,0,W,H);
-
-      // Draw glass platform
       ctx.fillStyle="rgba(255,255,255,0.08)";
       ctx.fillRect(p.x,p.y,p.w,p.h);
-      ctx.strokeStyle="rgba(255,255,255,0.18)";
-      ctx.lineWidth=1;
-      ctx.strokeRect(p.x,p.y,p.w,p.h);
-
       cubes.forEach(c=>c.draw(ctx));
       requestAnimationFrame(loop);
     }
