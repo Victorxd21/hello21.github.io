@@ -38,13 +38,13 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
   let adminUnlocked=false;
   let pendingFiles=[];
   let carouselTimers=[];
+  let currentDetail=null;
 
   function encodePathSeg(s){
     return String(s||"").split("/").map(function(p){
       try{return encodeURIComponent(decodeURIComponent(p));}catch(e){return encodeURIComponent(p);}
     }).join("/");
   }
-  /** Fix storage URLs that contain unencoded spaces / special chars in the path */
   function fixImgUrl(src){
     if(!src)return src;
     try{
@@ -58,7 +58,6 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
       return String(src).replace(/ /g,"%20");
     }
   }
-  /** Safe folder key for Supabase storage (no spaces) */
   function storageFolderKey(folder){
     return String(folder||"game").replace(/[^a-zA-Z0-9._-]+/g,"-").replace(/^-+|-+$/g,"")||"game";
   }
@@ -91,6 +90,102 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
     return "games/"+encodePathSeg(file);
   }
 
+  /* ---------- Game Detail Modal ---------- */
+  function openGameDetail(f){
+    currentDetail=f;
+    const modal=document.getElementById("gameDetailModal");
+    if(!modal)return;
+    const path=pathOfFeat(f);
+    const imgs=Array.isArray(f.images)?f.images.filter(Boolean):[];
+    const hero=document.getElementById("gdHero");
+    const title=document.getElementById("gdTitle");
+    const pathEl=document.getElementById("gdPath");
+    const photos=document.getElementById("gdPhotos");
+    const playBtn=document.getElementById("gdPlay");
+    const videoUrl=document.getElementById("gdVideoUrl");
+    const videoPrev=document.getElementById("gdVideoPreview");
+
+    if(title) title.textContent=(f.icon?f.icon+" ":"")+(f.name||f.folder||"Game");
+    if(pathEl) pathEl.textContent=path;
+
+    if(hero){
+      if(imgs.length){
+        hero.innerHTML='<img src="'+fixImgUrl(imgs[0])+'" alt=""/><div class="gd-grad"></div>';
+      }else{
+        hero.innerHTML='<div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(167,139,250,.4),rgba(99,102,241,.25))"></div><div class="gd-grad"></div>';
+      }
+    }
+
+    if(photos){
+      if(imgs.length){
+        photos.innerHTML=imgs.map(function(src,i){
+          return '<img src="'+fixImgUrl(src)+'" alt="" data-i="'+i+'"/>';
+        }).join("");
+        photos.querySelectorAll("img").forEach(function(img){
+          img.addEventListener("click",function(){
+            if(hero) hero.innerHTML='<img src="'+img.src+'" alt=""/><div class="gd-grad"></div>';
+          });
+        });
+      }else{
+        photos.innerHTML='<span style="color:var(--muted);font-size:12px">No photos yet — add them in Admin</span>';
+      }
+    }
+
+    if(playBtn){
+      playBtn.onclick=function(){
+        if(window.__recordView) window.__recordView(path);
+        setTimeout(function(){ location.href=path; },80);
+      };
+    }
+
+    // Load saved video from localStorage
+    const videoKey="hub_game_video_"+(f.folder||f.name||path);
+    let savedVideo="";
+    try{ savedVideo=localStorage.getItem(videoKey)||""; }catch(e){}
+    if(videoUrl) videoUrl.value=savedVideo;
+    renderVideoPreview(savedVideo, videoPrev);
+
+    modal.classList.add("on");
+  }
+
+  function renderVideoPreview(url, el){
+    if(!el)return;
+    if(!url){ el.innerHTML=""; return; }
+    // YouTube
+    var yt=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]+)/);
+    if(yt){
+      el.innerHTML='<iframe src="https://www.youtube.com/embed/'+yt[1]+'" frameborder="0" allowfullscreen style="width:100%;height:200px;border-radius:12px;margin-top:8px"></iframe>';
+      return;
+    }
+    // Direct video
+    if(/\.(mp4|webm|ogg)(\?|$)/i.test(url)){
+      el.innerHTML='<video src="'+url+'" controls style="width:100%;max-height:200px;border-radius:12px;margin-top:8px"></video>';
+      return;
+    }
+    el.innerHTML='<a href="'+url+'" target="_blank" style="color:var(--a);font-size:13px">Open video link →</a>';
+  }
+
+  function wireDetailModal(){
+    const modal=document.getElementById("gameDetailModal");
+    const closeBtn=document.getElementById("gdClose");
+    const saveBtn=document.getElementById("gdVideoSave");
+    const videoUrl=document.getElementById("gdVideoUrl");
+    const videoPrev=document.getElementById("gdVideoPreview");
+    if(closeBtn) closeBtn.addEventListener("click",function(){ if(modal) modal.classList.remove("on"); });
+    if(modal) modal.addEventListener("click",function(e){ if(e.target===modal) modal.classList.remove("on"); });
+    if(saveBtn&&videoUrl){
+      saveBtn.addEventListener("click",function(){
+        if(!currentDetail)return;
+        const url=(videoUrl.value||"").trim();
+        const key="hub_game_video_"+(currentDetail.folder||currentDetail.name||"");
+        try{ localStorage.setItem(key,url); }catch(e){}
+        renderVideoPreview(url, videoPrev);
+        saveBtn.textContent="Saved!";
+        setTimeout(function(){ saveBtn.textContent="Save video"; },1200);
+      });
+    }
+  }
+
   function renderFeatured(){
     const root=document.getElementById("featuredRoot");
     if(!root)return;
@@ -110,7 +205,7 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
       h+='<div class="feat-body"><span class="feat-badge">Featured</span>';
       h+='<div class="feat-title">'+(f.icon?f.icon+" ":"")+(f.name||f.folder)+'</div>';
       h+='<div class="feat-sub">'+p+'</div>';
-      h+='<span class="feat-play">Play now →</span></div>';
+      h+='<span class="feat-play">View →</span></div>';
       if(imgs.length>1){
         h+='<div class="feat-dots">';
         imgs.forEach((_,i)=>{h+='<span class="'+(i===0?'on':'')+'"></span>';});
@@ -120,7 +215,11 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
     });
     root.innerHTML=h;
     root.querySelectorAll(".feat-card").forEach(el=>{
-      el.addEventListener("click",()=>{location.href=el.getAttribute("data-path");});
+      el.addEventListener("click",function(){
+        const idx=parseInt(el.getAttribute("data-feat"),10);
+        const f=FEATURED[idx];
+        if(f) openGameDetail(f);
+      });
     });
     startFeaturedCarousels(root);
   }
@@ -152,7 +251,7 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
     const setupEl=document.getElementById("adminSetup");
     if(!setupEl)return;
     setupEl.classList.add("on");
-    setupEl.innerHTML="<strong>Supabase setup needed.</strong> Run this once in Supabase → SQL Editor, then try again.<br><br><textarea readonly style=\"width:100%;height:100px;margin-top:8px;font-size:10px;background:#0a0a12;color:#e2e8f0;border:1px solid #333;border-radius:8px;padding:8px\">"+SETUP_SQL.replace(/</g,"&lt;")+"</textarea>";
+    setupEl.innerHTML="<strong>Supabase setup needed.</strong> Run this once in Supabase → SQL Editor, then try again.<br><br><textarea readonly style=\"width:100%;height:100px;margin-top:8px;font-size:10px;background:#0a0a12;color:#e2e8f0;border:1px solid #333;border-radius:8px;padding:8px\">"+SETUP_SQL.replace(/</g,"<")+"</textarea>";
   }
 
   function renderAdminList(){
@@ -200,7 +299,7 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
     const opts=['<option value="">Select a game…</option>'];
     games.filter(g=>g.folder!=="NotByMe").forEach(g=>{
       const disabled=featuredFolders.has(g.folder)?" disabled":"";
-      opts.push('<option value="'+g.folder+'" data-name="'+g.name.replace(/"/g,"&quot;")+'" data-file="'+(g.file||"index.html")+'" data-icon="'+(g.icon||"🎮")+'"'+disabled+'>'+g.name+(disabled?" (already featured)":"")+'</option>');
+      opts.push('<option value="'+g.folder+'" data-name="'+g.name.replace(/"/g,""")+'" data-file="'+(g.file||"index.html")+'" data-icon="'+(g.icon||"🎮")+'"'+disabled+'>'+g.name+(disabled?" (already featured)":"")+'</option>');
     });
     sel.innerHTML=opts.join("");
   }
@@ -223,7 +322,6 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
       const t=await r.text();
       throw new Error("Upload failed ("+r.status+"): "+t.slice(0,200));
     }
-    // Public URL with each path segment encoded (safe for spaces / special chars)
     return SB_URL+"/storage/v1/object/public/featured-banners/"+objectPath.split("/").map(encodeURIComponent).join("/");
   }
 
@@ -332,8 +430,12 @@ create policy "Public delete banners" on storage.objects for delete using (bucke
   }
 
   loadFeatured().then(()=>renderFeatured());
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",wireAdmin);
-  else wireAdmin();
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",function(){ wireAdmin(); wireDetailModal(); });
+  }else{
+    wireAdmin();
+    wireDetailModal();
+  }
 
   const ref=document.getElementById("refresh");
   if(ref) ref.addEventListener("click",()=>loadFeatured().then(()=>renderFeatured()));
