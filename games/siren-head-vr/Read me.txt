@@ -1,8 +1,0 @@
-Siren Head VR — original game + WebXR only.
-Loads ../Siren Head/game.js and patches:
-- renderer.xr.enabled
-- XR reference-space offset so headset sits on player.pos (farmhouse spawn)
-- applyCamera early-return while presenting
-- controller sticks -> src.padx/padz
-- Enter VR button starts session + startGame
-Sounds from ../Siren Head/SirenSounds/
