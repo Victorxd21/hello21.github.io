@@ -1,0 +1,6 @@
+{
+  "name": "Windows First Logon Animation Explorer",
+  "description": "Interactive emulator and technical breakdown of the Windows OOBE First Logon Animation (FirstLogonAnim.html).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
