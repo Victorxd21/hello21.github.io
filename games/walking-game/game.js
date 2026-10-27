@@ -9,6 +9,13 @@ const BUILDING_MIN_H = 10;
 const BUILDING_MAX_H = 55;
 const STREET_W = 10;
 const BLOCK = 22;
+const GRID = BLOCK + STREET_W; // 32
+
+// Traffic light cycle (seconds)
+const CYCLE_GREEN = 8;
+const CYCLE_YELLOW = 2.5;
+const CYCLE_RED = 8; // pedestrian walk time roughly matches
+const CYCLE_TOTAL = CYCLE_GREEN + CYCLE_YELLOW + CYCLE_RED;
 
 // ─────────────────────────────────────────────
 // STATE
@@ -31,6 +38,7 @@ let dayTime = 0.38;
 let sun, ambient, hemi;
 let cars = [];
 let npcs = [];
+let trafficLights = []; // {x, z, group, lightsNS, lightsEW, phaseOffset}
 let camYaw = 0, camPitch = 0.35;
 let camDist = 7.5;
 let targetCamDist = 7.5;
@@ -41,7 +49,7 @@ let lookTouch = { id: null, lastX: 0, lastY: 0 };
 let sprintHeld = false;
 let jumpPressed = false;
 
-// Simple audio context for ambience
+// Audio
 let audioCtx = null;
 let ambGain = null;
 
@@ -68,7 +76,6 @@ function init() {
   renderer.toneMappingExposure = 1.1;
   document.getElementById('canvas-wrap').appendChild(renderer.domElement);
 
-  // Lights
   ambient = new THREE.AmbientLight(0x6688aa, 0.4);
   scene.add(ambient);
   hemi = new THREE.HemisphereLight(0x87c0f0, 0x3a5a2a, 0.5);
@@ -85,7 +92,6 @@ function init() {
   }
   scene.add(sun);
 
-  // Ground
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(3000, 3000),
     new THREE.MeshStandardMaterial({ color: 0x2f6b35, roughness: 0.95 })
@@ -94,20 +100,16 @@ function init() {
   ground.receiveShadow = true;
   scene.add(ground);
 
-  // Player character (simple low-poly person)
   playerMesh = createPerson(0x3a7bd5, 0x222233);
-  playerMesh.position.set(0, 0, 0);
   scene.add(playerMesh);
   player.pos.set(0, 0, 0);
 
-  // Input
   window.addEventListener('keydown', e => {
     keys[e.code] = true;
     if (e.code === 'Space') e.preventDefault();
   });
   window.addEventListener('keyup', e => { keys[e.code] = false; });
 
-  // Mouse orbit (desktop)
   let dragging = false;
   renderer.domElement.addEventListener('mousedown', e => {
     if (e.button === 0 || e.button === 2) dragging = true;
@@ -133,7 +135,6 @@ function init() {
     window.location.href = '../';
   });
 
-  // Start audio on first interaction
   const startAudio = () => {
     if (!audioCtx) initAudio();
     document.body.removeEventListener('click', startAudio);
@@ -149,7 +150,7 @@ function init() {
 }
 
 // ─────────────────────────────────────────────
-// AUDIO (simple procedural city hum)
+// AUDIO
 // ─────────────────────────────────────────────
 function initAudio() {
   try {
@@ -158,7 +159,6 @@ function initAudio() {
     ambGain.gain.value = 0.035;
     ambGain.connect(audioCtx.destination);
 
-    // Soft city drone
     const osc = audioCtx.createOscillator();
     osc.type = 'sine';
     osc.frequency.value = 55;
@@ -169,7 +169,6 @@ function initAudio() {
     filt.connect(ambGain);
     osc.start();
 
-    // Subtle noise layer
     const bufferSize = 2 * audioCtx.sampleRate;
     const noiseBuf = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = noiseBuf.getChannelData(0);
@@ -186,7 +185,7 @@ function initAudio() {
 }
 
 // ─────────────────────────────────────────────
-// CHARACTER + PROPS
+// CREATORS
 // ─────────────────────────────────────────────
 function createPerson(shirtColor, pantsColor) {
   const g = new THREE.Group();
@@ -194,19 +193,16 @@ function createPerson(shirtColor, pantsColor) {
   const shirt = new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.8 });
   const pants = new THREE.MeshStandardMaterial({ color: pantsColor, roughness: 0.85 });
 
-  // Body
   const torso = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.55, 0.28), shirt);
   torso.position.y = 1.15;
   torso.castShadow = true;
   g.add(torso);
 
-  // Head
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.34, 0.3), skin);
   head.position.y = 1.6;
   head.castShadow = true;
   g.add(head);
 
-  // Legs
   const legL = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.55, 0.18), pants);
   legL.position.set(-0.12, 0.4, 0);
   legL.castShadow = true;
@@ -215,7 +211,6 @@ function createPerson(shirtColor, pantsColor) {
   legR.position.x = 0.12;
   g.add(legR);
 
-  // Arms
   const armL = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.45, 0.13), shirt);
   armL.position.set(-0.32, 1.15, 0);
   armL.castShadow = true;
@@ -241,23 +236,19 @@ function createCar(color) {
   cabin.castShadow = true;
   g.add(cabin);
 
-  // Windows
   const glass = new THREE.MeshBasicMaterial({ color: 0x88aacc });
   const win = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.4, 1.9), glass);
   win.position.set(0, 1.1, -0.15);
   g.add(win);
 
-  // Wheels
   const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
-  const positions = [[-0.85, 0.28, 1.3], [0.85, 0.28, 1.3], [-0.85, 0.28, -1.3], [0.85, 0.28, -1.3]];
-  for (const [x, y, z] of positions) {
+  for (const [x, y, z] of [[-0.85, 0.28, 1.3], [0.85, 0.28, 1.3], [-0.85, 0.28, -1.3], [0.85, 0.28, -1.3]]) {
     const w = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.22, 10), wheelMat);
     w.rotation.z = Math.PI / 2;
     w.position.set(x, y, z);
     g.add(w);
   }
 
-  // Headlights
   const lightMat = new THREE.MeshBasicMaterial({ color: 0xffeebb });
   const hl1 = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.15, 0.08), lightMat);
   hl1.position.set(-0.55, 0.55, 2.12);
@@ -271,18 +262,13 @@ function createCar(color) {
 
 function createBuilding(w, d, h, color, seed) {
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({
-    color,
-    roughness: 0.72,
-    metalness: 0.12
-  });
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.72, metalness: 0.12 });
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
   mesh.position.y = h / 2;
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   g.add(mesh);
 
-  // Windows grid
   const winOn = new THREE.MeshBasicMaterial({ color: 0xffe6a0 });
   const winOff = new THREE.MeshBasicMaterial({ color: 0x1a2230 });
   const floors = Math.floor(h / 3.1);
@@ -292,10 +278,7 @@ function createBuilding(w, d, h, color, seed) {
   for (let f = 1; f < floors; f++) {
     for (let c = 0; c < colsX; c++) {
       const lit = hash(seed + f * 17 + c * 3, 1) > 0.55;
-      const win = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.85, 1.15),
-        lit ? winOn : winOff
-      );
+      const win = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 1.15), lit ? winOn : winOff);
       const x = -w / 2 + 1.2 + c * ((w - 2.4) / Math.max(1, colsX - 1));
       win.position.set(x, f * 3.1 + 0.9, d / 2 + 0.02);
       g.add(win);
@@ -306,10 +289,7 @@ function createBuilding(w, d, h, color, seed) {
     }
     for (let c = 0; c < colsZ; c++) {
       const lit = hash(seed + f * 19 + c * 5, 2) > 0.55;
-      const win = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.85, 1.15),
-        lit ? winOn : winOff
-      );
+      const win = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 1.15), lit ? winOn : winOff);
       const z = -d / 2 + 1.2 + c * ((d - 2.4) / Math.max(1, colsZ - 1));
       win.position.set(w / 2 + 0.02, f * 3.1 + 0.9, z);
       win.rotation.y = Math.PI / 2;
@@ -321,7 +301,6 @@ function createBuilding(w, d, h, color, seed) {
     }
   }
 
-  // Simple roof ledge
   const ledge = new THREE.Mesh(
     new THREE.BoxGeometry(w + 0.4, 0.35, d + 0.4),
     new THREE.MeshStandardMaterial({ color: 0x333340, roughness: 0.7 })
@@ -329,7 +308,6 @@ function createBuilding(w, d, h, color, seed) {
   ledge.position.y = h + 0.1;
   g.add(ledge);
 
-  // Occasional storefront awning on ground floor
   if (hash(seed, 9) > 0.6 && h > 12) {
     const awn = new THREE.Mesh(
       new THREE.BoxGeometry(w * 0.7, 0.12, 1.4),
@@ -338,7 +316,6 @@ function createBuilding(w, d, h, color, seed) {
     awn.position.set(0, 3.2, d / 2 + 0.7);
     g.add(awn);
   }
-
   return g;
 }
 
@@ -352,7 +329,7 @@ function createTree(scale = 1) {
   trunk.castShadow = true;
   g.add(trunk);
   const fol = new THREE.MeshStandardMaterial({ color: 0x2a6a2a, roughness: 0.85 });
-  [[3.0, 1.9, 2.2], [4.3, 1.4, 1.7], [5.3, 0.85, 1.2]].forEach(([y, r, h], i) => {
+  [[3.0, 1.9, 2.2], [4.3, 1.4, 1.7], [5.3, 0.85, 1.2]].forEach(([y, r, h]) => {
     const c = new THREE.Mesh(new THREE.ConeGeometry(r * scale, h * scale, 7), fol);
     c.position.y = y * scale;
     c.castShadow = true;
@@ -393,6 +370,81 @@ function createBench() {
   return g;
 }
 
+// Traffic light head (3 stacked lights)
+function createTrafficLightHead() {
+  const g = new THREE.Group();
+  const housing = new THREE.Mesh(
+    new THREE.BoxGeometry(0.35, 1.05, 0.28),
+    new THREE.MeshStandardMaterial({ color: 0x222228, metalness: 0.4, roughness: 0.5 })
+  );
+  housing.position.y = 0;
+  g.add(housing);
+
+  const colors = [0x222222, 0x222222, 0x222222]; // will be updated
+  const mats = colors.map(c => new THREE.MeshBasicMaterial({ color: c }));
+  const positions = [0.32, 0, -0.32];
+  const lights = [];
+  for (let i = 0; i < 3; i++) {
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.12, 12), mats[i]);
+    lens.position.set(0, positions[i], 0.15);
+    g.add(lens);
+    lights.push({ mesh: lens, mat: mats[i] });
+  }
+  g.userData.lights = lights; // [red, yellow, green]
+  return g;
+}
+
+function createTrafficLightPole(x, z) {
+  const g = new THREE.Group();
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.1, 4.2, 8),
+    new THREE.MeshStandardMaterial({ color: 0x333340, metalness: 0.5, roughness: 0.4 })
+  );
+  pole.position.y = 2.1;
+  g.add(pole);
+
+  // Two heads: one facing NS, one facing EW
+  const headNS = createTrafficLightHead();
+  headNS.position.set(0, 4.0, 0.25);
+  g.add(headNS);
+
+  const headEW = createTrafficLightHead();
+  headEW.position.set(0.25, 4.0, 0);
+  headEW.rotation.y = Math.PI / 2;
+  g.add(headEW);
+
+  g.position.set(x, 0, z);
+  g.userData = { headNS, headEW };
+  return g;
+}
+
+function createCrosswalk(wx, wz, alongX) {
+  // alongX true = stripes run along X (crossing a Z-road)
+  const g = new THREE.Group();
+  const stripeMat = new THREE.MeshBasicMaterial({ color: 0xeeeeee });
+  const num = 6;
+  const len = STREET_W * 0.9;
+  const width = 0.45;
+  for (let i = 0; i < num; i++) {
+    const stripe = new THREE.Mesh(
+      new THREE.PlaneGeometry(alongX ? width : len, alongX ? len : width),
+      stripeMat
+    );
+    stripe.rotation.x = -Math.PI / 2;
+    stripe.position.y = 0.03;
+    if (alongX) {
+      stripe.position.x = (i - (num - 1) / 2) * 0.7;
+      stripe.position.z = 0;
+    } else {
+      stripe.position.x = 0;
+      stripe.position.z = (i - (num - 1) / 2) * 0.7;
+    }
+    g.add(stripe);
+  }
+  g.position.set(wx, 0, wz);
+  return g;
+}
+
 // ─────────────────────────────────────────────
 // HASH + BIOME
 // ─────────────────────────────────────────────
@@ -410,6 +462,88 @@ function getBiome(cx, cz) {
 }
 
 // ─────────────────────────────────────────────
+// TRAFFIC LIGHT STATE
+// Returns: 'green' | 'yellow' | 'red' for a given axis at world time
+// NS and EW are opposite phases
+// ─────────────────────────────────────────────
+function getLightState(axis, phaseOffset = 0) {
+  // axis: 'NS' or 'EW'
+  const t = (performance.now() / 1000 + phaseOffset) % CYCLE_TOTAL;
+  let state;
+  if (t < CYCLE_GREEN) state = 'green';
+  else if (t < CYCLE_GREEN + CYCLE_YELLOW) state = 'yellow';
+  else state = 'red';
+
+  // Opposite axis is inverted
+  if (axis === 'EW') {
+    if (state === 'green') state = 'red';
+    else if (state === 'red') state = 'green';
+    // yellow stays yellow for simplicity on the other axis (or force red)
+    else state = 'red';
+  }
+  return state;
+}
+
+function updateTrafficLightVisuals(tl) {
+  const stateNS = getLightState('NS', tl.phaseOffset);
+  const stateEW = getLightState('EW', tl.phaseOffset);
+
+  const apply = (head, state) => {
+    const lights = head.userData.lights; // [red, yellow, green]
+    lights[0].mat.color.setHex(state === 'red' ? 0xff2222 : 0x331111);
+    lights[1].mat.color.setHex(state === 'yellow' ? 0xffcc00 : 0x332200);
+    lights[2].mat.color.setHex(state === 'green' ? 0x22ff44 : 0x113311);
+  };
+  apply(tl.group.userData.headNS, stateNS);
+  apply(tl.group.userData.headEW, stateEW);
+}
+
+// Find nearest traffic light and whether car should stop
+function getCarSignal(car) {
+  // Determine car travel axis from rotation
+  const yaw = car.rotation.y;
+  // 0 or PI ≈ traveling along Z (NS),  ±PI/2 ≈ along X (EW)
+  const alongNS = Math.abs(Math.sin(yaw)) < 0.7; // roughly facing N/S
+
+  let nearest = null;
+  let nearestDist = 25;
+
+  for (const tl of trafficLights) {
+    const dx = tl.x - car.position.x;
+    const dz = tl.z - car.position.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < nearestDist) {
+      // Check if car is approaching the intersection (roughly in front)
+      const fwdX = Math.sin(yaw);
+      const fwdZ = Math.cos(yaw);
+      const toLight = (dx * fwdX + dz * fwdZ);
+      if (toLight > -2 && toLight < 18) {
+        nearest = tl;
+        nearestDist = dist;
+      }
+    }
+  }
+
+  if (!nearest) return { state: 'green', dist: 999 };
+
+  const axis = alongNS ? 'NS' : 'EW';
+  const state = getLightState(axis, nearest.phaseOffset);
+  return { state, dist: nearestDist, tl: nearest };
+}
+
+// For NPCs: is it safe to cross at this light?
+function isPedestrianSafe(tl) {
+  // Pedestrians can walk when cars on both axes are red, or more simply
+  // when the NS light is red (EW has green? wait) — classic: walk when cars are red.
+  // We treat pedestrian walk phase as the RED period of the cars on the road they cross.
+  // Simplified: safe when the relevant car light is red.
+  const stateNS = getLightState('NS', tl.phaseOffset);
+  // During car red (NS), pedestrians can cross the NS road (i.e. walk along X)
+  // We'll just say safe if either axis is fully red (long red window)
+  return stateNS === 'red';
+}
+
+// ─────────────────────────────────────────────
 // CHUNK GENERATION
 // ─────────────────────────────────────────────
 function generateChunk(cx, cz) {
@@ -421,32 +555,55 @@ function generateChunk(cx, cz) {
   const biome = getBiome(cx, cz);
   const rng = (a, b) => hash(cx * 131 + a, cz * 137 + b);
 
-  // Roads (simple asphalt strips)
   if (biome !== 'forest') {
     const roadMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2e, roughness: 0.9 });
-    // Horizontal roads
-    for (let iz = 0; iz < CHUNK_SIZE; iz += BLOCK + STREET_W) {
+    for (let iz = 0; iz < CHUNK_SIZE; iz += GRID) {
       const road = new THREE.Mesh(new THREE.PlaneGeometry(CHUNK_SIZE, STREET_W), roadMat);
       road.rotation.x = -Math.PI / 2;
       road.position.set(CHUNK_SIZE / 2, 0.02, iz + STREET_W / 2);
       road.receiveShadow = true;
       group.add(road);
     }
-    // Vertical roads
-    for (let ix = 0; ix < CHUNK_SIZE; ix += BLOCK + STREET_W) {
+    for (let ix = 0; ix < CHUNK_SIZE; ix += GRID) {
       const road = new THREE.Mesh(new THREE.PlaneGeometry(STREET_W, CHUNK_SIZE), roadMat);
       road.rotation.x = -Math.PI / 2;
       road.position.set(ix + STREET_W / 2, 0.025, CHUNK_SIZE / 2);
       road.receiveShadow = true;
       group.add(road);
     }
+
+    // Intersections → traffic lights + crosswalks
+    for (let ix = 0; ix < CHUNK_SIZE; ix += GRID) {
+      for (let iz = 0; iz < CHUNK_SIZE; iz += GRID) {
+        const wx = cx * CHUNK_SIZE + ix + STREET_W / 2;
+        const wz = cz * CHUNK_SIZE + iz + STREET_W / 2;
+
+        // Traffic light pole (slightly offset from center)
+        const tlGroup = createTrafficLightPole(wx + 4.5, wz + 4.5);
+        scene.add(tlGroup);
+
+        const phaseOffset = hash(Math.floor(wx / GRID), Math.floor(wz / GRID)) * CYCLE_TOTAL;
+        trafficLights.push({
+          x: wx,
+          z: wz,
+          group: tlGroup,
+          phaseOffset
+        });
+
+        // Crosswalks on all 4 sides of the intersection
+        const cw1 = createCrosswalk(wx, wz - STREET_W * 0.55, true);
+        const cw2 = createCrosswalk(wx, wz + STREET_W * 0.55, true);
+        const cw3 = createCrosswalk(wx - STREET_W * 0.55, wz, false);
+        const cw4 = createCrosswalk(wx + STREET_W * 0.55, wz, false);
+        group.add(cw1, cw2, cw3, cw4);
+      }
+    }
   }
 
   // Buildings
   if (biome === 'city' || biome === 'mixed') {
-    const step = BLOCK + STREET_W;
-    for (let ix = 0; ix < CHUNK_SIZE - 2; ix += step) {
-      for (let iz = 0; iz < CHUNK_SIZE - 2; iz += step) {
+    for (let ix = 0; ix < CHUNK_SIZE - 2; ix += GRID) {
+      for (let iz = 0; iz < CHUNK_SIZE - 2; iz += GRID) {
         if (rng(ix, iz) > (biome === 'mixed' ? 0.5 : 0.18)) continue;
 
         const bw = 7 + rng(ix + 1, iz) * 11;
@@ -465,7 +622,6 @@ function generateChunk(cx, cz) {
         );
         group.add(b);
 
-        // Street furniture
         if (rng(ix + 8, iz + 8) > 0.55) {
           const lamp = createLamp();
           lamp.position.set(ix + 2.5, 0, iz + 2.5);
@@ -488,7 +644,7 @@ function generateChunk(cx, cz) {
     for (let i = 0; i < count; i++) {
       const x = rng(i * 11, 3) * CHUNK_SIZE;
       const z = rng(i * 17, 7) * CHUNK_SIZE;
-      if (biome !== 'forest' && (x % (BLOCK + STREET_W) < STREET_W + 2)) continue;
+      if (biome !== 'forest' && (x % GRID < STREET_W + 2)) continue;
       const scale = 0.8 + rng(i, 19) * 0.7;
       const tree = createTree(scale);
       tree.position.set(x, 0, z);
@@ -497,7 +653,7 @@ function generateChunk(cx, cz) {
     }
   }
 
-  // Spawn local cars + NPCs for this chunk (only in city/mixed)
+  // Cars + NPCs
   if (biome !== 'forest') {
     const carCount = 2 + Math.floor(rng(50, 50) * 3);
     for (let i = 0; i < carCount; i++) {
@@ -505,7 +661,7 @@ function generateChunk(cx, cz) {
       const car = createCar(colors[Math.floor(rng(i + 60, 1) * colors.length)]);
       const alongX = rng(i + 70, 2) > 0.5;
       const roadIdx = Math.floor(rng(i + 80, 3) * 2);
-      const base = roadIdx * (BLOCK + STREET_W) + STREET_W / 2;
+      const base = roadIdx * GRID + STREET_W / 2;
       if (alongX) {
         car.position.set(rng(i, 4) * CHUNK_SIZE, 0, base);
         car.rotation.y = rng(i, 5) > 0.5 ? 0 : Math.PI;
@@ -516,15 +672,17 @@ function generateChunk(cx, cz) {
       car.position.x += cx * CHUNK_SIZE;
       car.position.z += cz * CHUNK_SIZE;
       car.userData = {
-        speed: 4 + rng(i, 8) * 6,
+        baseSpeed: 5 + rng(i, 8) * 5,
+        speed: 5 + rng(i, 8) * 5,
         dir: car.rotation.y,
-        life: 40 + rng(i, 9) * 40
+        life: 50 + rng(i, 9) * 40,
+        stopped: false
       };
       scene.add(car);
       cars.push(car);
     }
 
-    const npcCount = 3 + Math.floor(rng(90, 90) * 5);
+    const npcCount = 4 + Math.floor(rng(90, 90) * 5);
     for (let i = 0; i < npcCount; i++) {
       const shirts = [0xe74c3c, 0x3498db, 0x2ecc71, 0x9b59b6, 0xf1c40f, 0x1abc9c, 0xe67e22, 0x34495e];
       const pants = [0x2c3e50, 0x34495e, 0x1a1a2e, 0x4a3728];
@@ -538,9 +696,11 @@ function generateChunk(cx, cz) {
         cz * CHUNK_SIZE + rng(i + 130, 4) * CHUNK_SIZE
       );
       person.rotation.y = rng(i, 15) * Math.PI * 2;
-      person.userData.speed = 1.1 + rng(i, 16) * 1.4;
+      person.userData.speed = 1.2 + rng(i, 16) * 1.3;
       person.userData.dir = person.rotation.y;
-      person.userData.turnTimer = 2 + rng(i, 17) * 6;
+      person.userData.turnTimer = 2 + rng(i, 17) * 5;
+      person.userData.waiting = false;
+      person.userData.crossTarget = null;
       scene.add(person);
       npcs.push(person);
     }
@@ -560,7 +720,6 @@ function updateChunks() {
     }
   }
 
-  // Cleanup far chunks + their dynamic objects
   for (const [key, ch] of chunks) {
     if (Math.abs(ch.cx - pcx) > VIEW_DIST + 1 || Math.abs(ch.cz - pcz) > VIEW_DIST + 1) {
       scene.remove(ch.group);
@@ -575,8 +734,16 @@ function updateChunks() {
     }
   }
 
-  // Cull distant cars / npcs
-  const maxD = (VIEW_DIST + 1.5) * CHUNK_SIZE;
+  // Cull far traffic lights
+  const maxD = (VIEW_DIST + 1.8) * CHUNK_SIZE;
+  trafficLights = trafficLights.filter(tl => {
+    if (Math.hypot(tl.x - player.pos.x, tl.z - player.pos.z) > maxD) {
+      scene.remove(tl.group);
+      return false;
+    }
+    return true;
+  });
+
   cars = cars.filter(c => {
     if (c.position.distanceTo(player.pos) > maxD) {
       scene.remove(c);
@@ -690,20 +857,16 @@ function updatePlayer(dt) {
     const len = Math.hypot(mx, mz);
     mx /= len; mz /= len;
 
-    // Move relative to camera yaw
     const sin = Math.sin(camYaw);
     const cos = Math.cos(camYaw);
     const dx = (mx * cos + mz * sin) * speed * dt;
     const dz = (-mx * sin + mz * cos) * speed * dt;
 
-    // Simple collision vs buildings
     const tryPos = player.pos.clone().add(new THREE.Vector3(dx, 0, dz));
     let blocked = false;
     const checkR = 0.55;
     for (const ch of chunks.values()) {
       for (const child of ch.group.children) {
-        if (!child.isMesh && !child.isGroup) continue;
-        // Rough AABB using building-like objects (height > 4)
         child.traverse(o => {
           if (o.isMesh && o.geometry && o.geometry.type === 'BoxGeometry') {
             const box = new THREE.Box3().setFromObject(o);
@@ -712,9 +875,7 @@ function updatePlayer(dt) {
               const cz = (box.min.z + box.max.z) / 2;
               const hw = (box.max.x - box.min.x) / 2 + checkR;
               const hd = (box.max.z - box.min.z) / 2 + checkR;
-              if (Math.abs(tryPos.x - cx) < hw && Math.abs(tryPos.z - cz) < hd) {
-                blocked = true;
-              }
+              if (Math.abs(tryPos.x - cx) < hw && Math.abs(tryPos.z - cz) < hd) blocked = true;
             }
           }
         });
@@ -727,12 +888,9 @@ function updatePlayer(dt) {
       player.pos.x += dx;
       player.pos.z += dz;
     }
-
-    // Face movement direction
     player.yaw = Math.atan2(dx, dz);
   }
 
-  // Jump / gravity
   if ((keys['Space'] || jumpPressed) && player.onGround) {
     player.velocity.y = 7.2;
     player.onGround = false;
@@ -746,11 +904,9 @@ function updatePlayer(dt) {
     player.onGround = true;
   }
 
-  // Apply to mesh
   playerMesh.position.copy(player.pos);
   playerMesh.rotation.y = player.yaw;
 
-  // Walk animation
   const moving = (mx !== 0 || mz !== 0);
   const phase = performance.now() * 0.012;
   if (playerMesh.userData.legL) {
@@ -761,11 +917,9 @@ function updatePlayer(dt) {
     playerMesh.userData.armR.rotation.x = swing * 0.7;
   }
 
-  // Distance
   totalDist += player.pos.distanceTo(lastPos);
   lastPos.copy(player.pos);
 
-  // Camera follow (third person orbit)
   camDist += (targetCamDist - camDist) * 0.1;
   const camX = player.pos.x + Math.sin(camYaw) * camDist * Math.cos(camPitch);
   const camZ = player.pos.z + Math.cos(camYaw) * camDist * Math.cos(camPitch);
@@ -778,45 +932,107 @@ function updatePlayer(dt) {
 }
 
 function updateDynamics(dt) {
-  // Cars
+  // Update traffic light visuals
+  for (const tl of trafficLights) {
+    updateTrafficLightVisuals(tl);
+  }
+
+  // Cars — respect lights
   for (const car of cars) {
     const ud = car.userData;
-    car.position.x += Math.sin(ud.dir) * ud.speed * dt;
-    car.position.z += Math.cos(ud.dir) * ud.speed * dt;
+    const signal = getCarSignal(car);
+
+    if (signal.state === 'red' && signal.dist < 12) {
+      // Slow to stop
+      ud.speed = Math.max(0, ud.speed - 12 * dt);
+      ud.stopped = true;
+    } else if (signal.state === 'yellow' && signal.dist < 14) {
+      // Slow down
+      ud.speed = Math.max(ud.baseSpeed * 0.35, ud.speed - 6 * dt);
+      ud.stopped = false;
+    } else {
+      // Accelerate back to base speed
+      ud.speed = Math.min(ud.baseSpeed, ud.speed + 5 * dt);
+      ud.stopped = false;
+    }
+
+    if (ud.speed > 0.05) {
+      car.position.x += Math.sin(ud.dir) * ud.speed * dt;
+      car.position.z += Math.cos(ud.dir) * ud.speed * dt;
+    }
+
     ud.life -= dt;
     if (ud.life < 0) {
-      // Respawn nearby
-      ud.life = 30 + Math.random() * 40;
+      ud.life = 40 + Math.random() * 50;
       const ang = Math.random() * Math.PI * 2;
       car.position.set(
-        player.pos.x + Math.cos(ang) * 40,
+        player.pos.x + Math.cos(ang) * 45,
         0,
-        player.pos.z + Math.sin(ang) * 40
+        player.pos.z + Math.sin(ang) * 45
       );
       ud.dir = Math.random() * Math.PI * 2;
       car.rotation.y = ud.dir;
+      ud.speed = ud.baseSpeed;
     }
   }
 
-  // NPCs wander
+  // NPCs — wait at crosswalks when not safe
   for (const npc of npcs) {
     const ud = npc.userData;
-    ud.turnTimer -= dt;
-    if (ud.turnTimer <= 0) {
-      ud.dir += (Math.random() - 0.5) * 1.8;
-      ud.turnTimer = 2 + Math.random() * 5;
-      npc.rotation.y = ud.dir;
-    }
-    npc.position.x += Math.sin(ud.dir) * ud.speed * dt;
-    npc.position.z += Math.cos(ud.dir) * ud.speed * dt;
 
-    // Walk cycle
-    if (ud.legL) {
-      const swing = Math.sin(performance.now() * 0.01 + ud.phase) * 0.5;
-      ud.legL.rotation.x = swing;
-      ud.legR.rotation.x = -swing;
-      ud.armL.rotation.x = -swing * 0.6;
-      ud.armR.rotation.x = swing * 0.6;
+    // Find nearest traffic light / intersection
+    let nearestTl = null;
+    let nearestD = 14;
+    for (const tl of trafficLights) {
+      const d = Math.hypot(tl.x - npc.position.x, tl.z - npc.position.z);
+      if (d < nearestD) {
+        nearestD = d;
+        nearestTl = tl;
+      }
+    }
+
+    if (nearestTl && nearestD < 9) {
+      const safe = isPedestrianSafe(nearestTl);
+      if (!safe) {
+        // Wait near the curb
+        ud.waiting = true;
+        // Small idle animation only
+        if (ud.legL) {
+          ud.legL.rotation.x = 0;
+          ud.legR.rotation.x = 0;
+          ud.armL.rotation.x = 0;
+          ud.armR.rotation.x = 0;
+        }
+        continue;
+      } else {
+        ud.waiting = false;
+        // Face toward the crosswalk / intersection center and walk across
+        const toCenterX = nearestTl.x - npc.position.x;
+        const toCenterZ = nearestTl.z - npc.position.z;
+        ud.dir = Math.atan2(toCenterX, toCenterZ);
+        npc.rotation.y = ud.dir;
+      }
+    } else {
+      ud.waiting = false;
+      ud.turnTimer -= dt;
+      if (ud.turnTimer <= 0) {
+        ud.dir += (Math.random() - 0.5) * 1.6;
+        ud.turnTimer = 2.5 + Math.random() * 5;
+        npc.rotation.y = ud.dir;
+      }
+    }
+
+    if (!ud.waiting) {
+      npc.position.x += Math.sin(ud.dir) * ud.speed * dt;
+      npc.position.z += Math.cos(ud.dir) * ud.speed * dt;
+
+      if (ud.legL) {
+        const swing = Math.sin(performance.now() * 0.01 + ud.phase) * 0.5;
+        ud.legL.rotation.x = swing;
+        ud.legR.rotation.x = -swing;
+        ud.armL.rotation.x = -swing * 0.6;
+        ud.armR.rotation.x = swing * 0.6;
+      }
     }
   }
 }
@@ -870,9 +1086,6 @@ function updateHUD() {
   document.getElementById('npcCount').textContent = npcs.length;
 }
 
-// ─────────────────────────────────────────────
-// MAIN LOOP
-// ─────────────────────────────────────────────
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
