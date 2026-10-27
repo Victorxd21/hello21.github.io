@@ -5,34 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>Walking Game — Infinite City</title>
+  <title>Walking Game — Alive City</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div id="canvas-wrap"></div>
 
-  <!-- HUD -->
   <div id="hud">
     <div class="panel top-left">
       <div class="title">🚶 Walking Game</div>
-      <div class="sub">Infinite city & forest</div>
+      <div class="sub">Third-person · Infinite living city</div>
       <div class="stats">
         <div class="stat"><span class="label">Walked</span><strong id="dist">0 m</strong></div>
         <div class="stat"><span class="label">Zone</span><strong id="zone">City</strong></div>
         <div class="stat"><span class="label">Time</span><strong id="time">—</strong></div>
+        <div class="stat"><span class="label">People</span><strong id="npcCount">0</strong></div>
       </div>
     </div>
 
     <div class="panel top-right" id="hintPanel">
       <div class="title">Controls</div>
-      <div class="sub desktop-only">WASD move · Mouse look · Shift sprint · Space jump</div>
-      <div class="sub mobile-only">Joystick move · Drag to look · Sprint & Jump buttons</div>
+      <div class="sub desktop-only">WASD move · Mouse orbit · Shift sprint · Space jump</div>
+      <div class="sub mobile-only">Joystick move · Drag to orbit camera · Sprint & Jump</div>
     </div>
 
     <button class="back" id="backBtn" title="Back">←</button>
   </div>
 
-  <!-- Mobile Controls -->
   <div id="mobile-controls">
     <div id="joystick-zone">
       <div id="joystick-base">
@@ -47,7 +46,7 @@
 
   <div id="loading">
     <div class="spin"></div>
-    <div>Generating world…</div>
+    <div>Building the city…</div>
   </div>
 
   <script type="importmap">
