@@ -21,7 +21,6 @@ html, body {
   inset: 0;
   z-index: 0;
 }
-
 #canvas-wrap canvas {
   display: block;
   width: 100% !important;
@@ -37,7 +36,7 @@ html, body {
 
 .panel {
   position: absolute;
-  background: rgba(12, 14, 22, 0.75);
+  background: rgba(12, 14, 22, 0.78);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.09);
@@ -50,69 +49,66 @@ html, body {
 .top-left {
   top: 16px;
   left: 16px;
-  max-width: 230px;
+  max-width: 240px;
 }
-
 .top-right {
   top: 16px;
   right: 16px;
-  max-width: 250px;
+  max-width: 260px;
   text-align: right;
 }
 
 .title {
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.02em;
   margin-bottom: 2px;
 }
-
 .sub {
   font-size: 12px;
   opacity: 0.65;
   margin-bottom: 10px;
-  line-height: 1.35;
+  line-height: 1.4;
 }
-
 .stats {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-
 .stat {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
   font-size: 13px;
 }
-
 .stat .label { opacity: 0.55; }
 .stat strong {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
 
-.back {
+.back, .cam-toggle {
   position: absolute;
   bottom: 20px;
-  left: 16px;
   width: 44px;
   height: 44px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(12, 14, 22, 0.8);
   color: #fff;
-  font-size: 20px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(10px);
-  transition: background 0.15s;
 }
-.back:active { background: rgba(40, 44, 60, 0.95); }
+.back { left: 16px; font-size: 20px; }
+.cam-toggle { left: 70px; }
+.back:active, .cam-toggle:active {
+  background: rgba(40, 44, 60, 0.95);
+}
 
 #loading {
   position: fixed;
@@ -125,18 +121,16 @@ html, body {
   justify-content: center;
   gap: 18px;
   font-size: 15px;
-  opacity: 1;
   transition: opacity 0.6s ease;
 }
 #loading.hidden {
   opacity: 0;
   pointer-events: none;
 }
-
 .spin {
   width: 38px;
   height: 38px;
-  border: 3px solid rgba(255, 255, 255, 0.12);
+  border: 3px solid rgba(255,255,255,0.12);
   border-top-color: #7eb8ff;
   border-radius: 50%;
   animation: spin 0.75s linear infinite;
@@ -153,6 +147,7 @@ html, body {
 body.is-mobile #mobile-controls { display: block; }
 body.is-mobile .desktop-only { display: none; }
 body:not(.is-mobile) .mobile-only { display: none; }
+body.is-mobile .cam-toggle { display: none; }
 
 #joystick-zone {
   position: absolute;
@@ -167,7 +162,7 @@ body:not(.is-mobile) .mobile-only { display: none; }
   height: 120px;
   border-radius: 50%;
   background: rgba(20, 24, 36, 0.55);
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255,255,255,0.15);
   position: relative;
   backdrop-filter: blur(6px);
 }
@@ -175,13 +170,12 @@ body:not(.is-mobile) .mobile-only { display: none; }
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.28);
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255,255,255,0.28);
+  border: 2px solid rgba(255,255,255,0.4);
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  transition: background 0.1s;
 }
 #joystick-stick.active {
   background: rgba(126, 184, 255, 0.55);
@@ -193,21 +187,26 @@ body:not(.is-mobile) .mobile-only { display: none; }
   right: 24px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   pointer-events: auto;
 }
 .action-btn {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255,255,255,0.2);
   background: rgba(20, 24, 36, 0.6);
   color: #e8e8f0;
   font-size: 13px;
   font-weight: 600;
   backdrop-filter: blur(8px);
   cursor: pointer;
-  transition: background 0.12s, transform 0.1s;
+}
+.action-btn.small {
+  width: 56px;
+  height: 56px;
+  font-size: 12px;
+  align-self: flex-end;
 }
 .action-btn:active,
 .action-btn.active {
@@ -216,11 +215,11 @@ body:not(.is-mobile) .mobile-only { display: none; }
 }
 
 @media (max-width: 600px) {
-  .top-left, .top-right { padding: 10px 12px; max-width: 165px; }
+  .top-left, .top-right { padding: 10px 12px; max-width: 170px; }
   .title { font-size: 13px; }
   .sub { font-size: 11px; }
   .stat { font-size: 12px; }
   #joystick-zone { bottom: 24px; left: 16px; }
-  #action-buttons { bottom: 30px; right: 16px; }
-  .action-btn { width: 64px; height: 64px; font-size: 12px; }
+  #action-buttons { bottom: 28px; right: 14px; }
+  .action-btn { width: 62px; height: 62px; font-size: 12px; }
 }

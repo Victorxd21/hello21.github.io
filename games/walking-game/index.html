@@ -14,22 +14,30 @@
   <div id="hud">
     <div class="panel top-left">
       <div class="title">🚶 Walking Game</div>
-      <div class="sub">Third-person · Infinite living city</div>
+      <div class="sub" id="camModeLabel">Third-person · Living city</div>
       <div class="stats">
         <div class="stat"><span class="label">Walked</span><strong id="dist">0 m</strong></div>
         <div class="stat"><span class="label">Zone</span><strong id="zone">City</strong></div>
         <div class="stat"><span class="label">Time</span><strong id="time">—</strong></div>
-        <div class="stat"><span class="label">People</span><strong id="npcCount">0</strong></div>
+        <div class="stat"><span class="label">Weather</span><strong id="weather">Clear</strong></div>
+        <div class="stat"><span class="label">Stamina</span><strong id="stamina">100%</strong></div>
       </div>
     </div>
 
     <div class="panel top-right" id="hintPanel">
       <div class="title">Controls</div>
-      <div class="sub desktop-only">WASD move · Mouse orbit · Shift sprint · Space jump</div>
-      <div class="sub mobile-only">Joystick move · Drag to orbit camera · Sprint & Jump</div>
+      <div class="sub desktop-only">
+        WASD move · Mouse orbit · Shift sprint<br>
+        C camera · Space jump · F sit (near bench)
+      </div>
+      <div class="sub mobile-only">
+        Joystick · Drag look · Sprint / Jump<br>
+        Tap Cam button to toggle view
+      </div>
     </div>
 
     <button class="back" id="backBtn" title="Back">←</button>
+    <button class="cam-toggle" id="camToggle" title="Toggle camera">Cam</button>
   </div>
 
   <div id="mobile-controls">
@@ -41,12 +49,13 @@
     <div id="action-buttons">
       <button id="sprintBtn" class="action-btn">Sprint</button>
       <button id="jumpBtn" class="action-btn">Jump</button>
+      <button id="camBtn" class="action-btn small">Cam</button>
     </div>
   </div>
 
   <div id="loading">
     <div class="spin"></div>
-    <div>Building the city…</div>
+    <div>Building living city…</div>
   </div>
 
   <script type="importmap">
