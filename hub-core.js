@@ -354,7 +354,7 @@
     root.querySelectorAll(".game:not(.dead)").forEach(el=>el.addEventListener("click",()=>{
       const p=el.getAttribute("data-path");
       if(window.__recordView)window.__recordView(p);
-      setTimeout(()=>{ location.href=p; },80);
+      window.open(p,"_blank","noopener,noreferrer");
     }));
   }
 

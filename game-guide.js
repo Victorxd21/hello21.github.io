@@ -112,7 +112,7 @@
     });
   }
   function escapeHtml(s) {
-    return String(s || "").replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">").replace(/"/g, """);
+    return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
   function appendUser(text) {
     const div = document.createElement("div");
@@ -136,7 +136,10 @@
     div.querySelectorAll(".gg-card").forEach(function (card) {
       card.addEventListener("click", function () {
         const p = card.getAttribute("data-path");
-        if (p) { if (window.__recordView) window.__recordView(p); location.href = p; }
+        if (p) {
+          if (window.__recordView) window.__recordView(p);
+          window.open(p, "_blank", "noopener,noreferrer");
+        }
       });
     });
     body.scrollTop = body.scrollHeight;

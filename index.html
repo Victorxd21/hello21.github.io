@@ -3,10 +3,17 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<meta name="theme-color" content="#07060f"/>
+<meta name="theme-color" content="#101923"/>
+<meta name="description" content="Browse and play a growing collection of free browser games."/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <title>Game Hub</title>
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="icon" href="game-hub-icon.svg" type="image/svg+xml"/>
+<link rel="apple-touch-icon" href="game-hub-icon.svg"/>
 <link rel="stylesheet" href="ui-kit/tokens.css?v=1.0.1"/>
-<link rel="stylesheet" href="hub-v5.css?v=7.1.0"/>
+<link rel="stylesheet" href="hub-v5.css?v=7.2.0"/>
 <style>
 body.season-halloween{--a:#ff8c42;--b:#9b30ff;--c:#ffb347;--d:#22c55e;--glow:rgba(255,140,66,.45);--bg:#0a0610}
 body.season-winter{--a:#93c5fd;--b:#60a5fa;--c:#e0f2fe;--d:#a5b4fc;--glow:rgba(147,197,253,.4);--bg:#050810}
@@ -50,6 +57,7 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
 <header class="hub-top" id="hubTop">
   <div class="logo" aria-hidden="true">GH</div>
   <div class="search"><input id="search" type="search" placeholder="Find your next game…" autocomplete="off" enterkeyhint="search"/></div>
+  <button type="button" class="icon-btn install-btn" id="installApp" title="Install Game Hub" aria-label="Install Game Hub" hidden>↓</button>
   <button type="button" class="icon-btn" id="refresh" title="Refresh" aria-label="Refresh library">↻</button>
   <button type="button" class="icon-btn" id="navRefresh" title="Refresh" aria-label="Refresh" style="display:none">↻</button>
 </header>
@@ -70,6 +78,7 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
     </div>
     <div class="meta">
       <span class="pill"><span class="dot"></span>v7.0.0</span>
+      <span class="pill network-status" id="networkStatus" role="status">Online</span>
       <span class="pill" id="season" style="display:none"></span>
     </div>
   </div>
@@ -110,7 +119,8 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
   <div class="modal">
     <button class="x" id="aboutX" type="button" aria-label="Close">×</button>
     <h2>About</h2>
-    <p>Game Hub is a collection of browser games. Tap any card to play.</p>
+    <p>Game Hub is a collection of browser games. Tap a game to open it in a new tab.</p>
+    <p>Install from your browser’s menu for quick access. Previously opened games may work offline; some games and features still need an internet connection.</p>
     <p>Press the <strong>`</strong> key for Matrix Mode.</p>
     <div class="about-links">
       <a href="https://github.com/Victorxd21/hello21.github.io" target="_blank" rel="noopener">Source</a>
@@ -182,6 +192,7 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
 <script src="options.js?v=3.7.1"></script>
 <script src="chat.js?v=2.0.0"></script>
 <script src="hub-loader.js?v=1.0.0"></script>
+<script src="pwa.js?v=1.0.0"></script>
 <script src="whats-new.js?v=1.0.1"></script>
 <script src="game-guide.js?v=1.0.1"></script>
 <script>

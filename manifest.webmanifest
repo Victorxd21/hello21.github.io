@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "Game Hub",
+  "short_name": "Game Hub",
+  "description": "Browse and play a growing collection of free browser games.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#101923",
+  "theme_color": "#101923",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "game-hub-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

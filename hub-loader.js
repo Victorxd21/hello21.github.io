@@ -1,8 +1,8 @@
-/*! Game Hub Loader — GH fill + split animation (failsafe reveal) */
+/*! Game Hub Loader — library boot screen (failsafe reveal) */
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "hub_loader_done_v2";
+  var STORAGE_KEY = "hub_loader_done_v3";
 
   function revealHub() {
     try {
@@ -20,30 +20,23 @@
 
   var css =
     "#hubLoader{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;" +
-    "align-items:center;justify-content:center;background:#06060e;" +
-    "transition:opacity .5s ease,visibility .5s ease}" +
+    "align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 42%,#20384c 0%,#152331 40%,#101923 76%);" +
+    "transition:opacity .45s ease,visibility .45s ease;color:#e6edf3}" +
     "#hubLoader.done{opacity:0;visibility:hidden;pointer-events:none}" +
-    "#hubLoader .loader-title{font-size:clamp(28px,6vw,48px);font-weight:900;letter-spacing:-1.5px;" +
-    "background:linear-gradient(125deg,#fff 10%,#a78bfa 40%,#22d3ee 70%,#f472b6 95%);" +
-    "-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:28px}" +
-    "#hubLoader .gh-wrap{position:relative;width:140px;height:90px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}" +
-    "#hubLoader .gh-letter{font-size:72px;font-weight:900;line-height:1;letter-spacing:-4px;position:relative;display:inline-block;color:rgba(255,255,255,.12)}" +
-    "#hubLoader .gh-letter .fill{position:absolute;left:0;bottom:0;width:100%;overflow:hidden;height:0%;transition:height .3s ease}" +
-    "#hubLoader .gh-letter .fill span{position:absolute;left:0;bottom:0;font-size:72px;font-weight:900;line-height:1;letter-spacing:-4px}" +
-    "#hubLoader .gh-g .fill{color:#a78bfa}" +
-    "#hubLoader .gh-h .fill{color:#22d3ee}" +
-    "#hubLoader .loader-status{font-size:12px;color:#8b87a8;margin-top:8px;min-height:18px}" +
-    "#hubLoader .loader-bar{width:min(200px,50vw);height:3px;border-radius:999px;background:rgba(255,255,255,.08);margin-top:16px;overflow:hidden}" +
-    "#hubLoader .loader-bar > i{display:block;height:100%;width:8%;border-radius:999px;background:linear-gradient(90deg,#a78bfa,#22d3ee);transition:width .35s ease}" +
+    "#hubLoader .loader-brand{width:72px;height:72px;display:grid;place-items:center;border:1px solid rgba(164,215,245,.25);" +
+    "border-radius:20px;background:linear-gradient(145deg,#244964,#172b3b);box-shadow:0 12px 38px rgba(0,0,0,.32),0 0 32px rgba(26,159,255,.12);margin-bottom:24px}" +
+    "#hubLoader .loader-brand span{font-size:24px;font-weight:900;letter-spacing:-2px;color:#c7eaff}" +
+    "#hubLoader .loader-title{font-size:clamp(25px,5vw,36px);font-weight:800;letter-spacing:-1px;margin-bottom:6px}" +
+    "#hubLoader .loader-caption{font-size:13px;color:#91aec3;margin-bottom:26px}" +
+    "#hubLoader .loader-status{font-size:12px;color:#b1c8d8;margin-top:13px;min-height:18px}" +
+    "#hubLoader .loader-bar{width:min(250px,62vw);height:5px;border-radius:999px;background:rgba(255,255,255,.09);margin-top:14px;overflow:hidden}" +
+    "#hubLoader .loader-bar > i{display:block;height:100%;width:8%;border-radius:999px;background:linear-gradient(90deg,#1a9fff,#66c0f4);transition:width .35s ease}" +
     "#hubLoader.err .loader-status{color:#fca5a5}" +
-    "#hubLoader .retry-btn{margin-top:18px;padding:10px 20px;border-radius:999px;border:1px solid rgba(167,139,250,.4);" +
-    "background:rgba(167,139,250,.15);color:#e0d9ff;font-weight:700;font-size:13px;cursor:pointer;display:none}" +
+    "#hubLoader .retry-btn{margin-top:18px;padding:10px 20px;border-radius:8px;border:1px solid rgba(102,192,244,.4);" +
+    "background:rgba(26,159,255,.14);color:#d8efff;font-weight:700;font-size:13px;cursor:pointer;display:none}" +
     "#hubLoader.err .retry-btn{display:inline-flex}" +
-    "@keyframes hubSplitG{to{transform:translateX(-80px);opacity:0}}" +
-    "@keyframes hubSplitH{to{transform:translateX(80px);opacity:0}}" +
-    "#hubLoader.split .gh-g{animation:hubSplitG .5s ease forwards}" +
-    "#hubLoader.split .gh-h{animation:hubSplitH .5s ease forwards}" +
-    "#hubLoader.split .loader-title{opacity:0;transition:opacity .4s ease}" +
+    "#hubLoader .loader-orbit{width:20px;height:20px;margin-top:22px;border:2px solid rgba(255,255,255,.12);border-top-color:#66c0f4;border-radius:50%;animation:hubLoaderSpin .85s linear infinite}" +
+    "@keyframes hubLoaderSpin{to{transform:rotate(360deg)}}" +
     "body.hub-booting .content{opacity:0}" +
     "body.hub-ready .content{opacity:1;transition:opacity .45s ease}";
 
@@ -57,28 +50,23 @@
     var el = document.createElement("div");
     el.id = "hubLoader";
     el.innerHTML =
+      '<div class="loader-brand" aria-hidden="true"><span>GH</span></div>' +
       '<div class="loader-title">Game Hub</div>' +
-      '<div class="gh-wrap">' +
-      '<span class="gh-letter gh-g">G<span class="fill"><span>G</span></span></span>' +
-      '<span class="gh-letter gh-h">H<span class="fill"><span>H</span></span></span>' +
-      "</div>" +
+      '<div class="loader-caption">Getting your library ready</div>' +
       '<div class="loader-status" id="hubLoaderStatus">Starting…</div>' +
       '<div class="loader-bar"><i id="hubLoaderBar"></i></div>' +
+      '<div class="loader-orbit" aria-hidden="true"></div>' +
       '<button type="button" class="retry-btn" id="hubLoaderRetry">Skip & continue</button>';
     document.body.appendChild(el);
 
     var statusEl = document.getElementById("hubLoaderStatus");
     var barEl = document.getElementById("hubLoaderBar");
-    var fillG = el.querySelector(".gh-g .fill");
-    var fillH = el.querySelector(".gh-h .fill");
     var finished = false;
     var progress = 0;
 
     function setProgress(p, msg) {
       progress = Math.max(progress, Math.min(100, p));
       if (barEl) barEl.style.width = progress + "%";
-      if (fillG) fillG.style.height = Math.min(100, progress) + "%";
-      if (fillH) fillH.style.height = Math.min(100, Math.max(0, progress - 5)) + "%";
       if (msg && statusEl) statusEl.textContent = msg;
     }
 
@@ -86,7 +74,6 @@
       if (finished) return;
       finished = true;
       setProgress(100, "Ready");
-      el.classList.add("split");
       setTimeout(function () {
         el.classList.add("done");
         revealHub();

@@ -224,7 +224,7 @@ create policy "Auth delete featured media" on storage.objects for delete to auth
   function playFeatured(f){
     const path=pathOfFeat(f);
     if(window.__recordView) window.__recordView(path);
-    setTimeout(function(){ location.href=path; },80);
+    window.open(path,"_blank","noopener,noreferrer");
   }
 
   function renderVideoPreview(url, el){
