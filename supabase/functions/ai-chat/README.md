@@ -1,4 +1,4 @@
-# AI Chat Edge Function
+# AI Chat Edge Function (Google Gemini)
 
 ## Deploy
 
@@ -13,17 +13,12 @@ Rate limiting and body validation are enforced inside the function.
 ## Secrets
 
 ```bash
-# Required — pick one provider
-supabase secrets set OPENAI_API_KEY=sk-...
-# OR for xAI / Grok:
-supabase secrets set XAI_API_KEY=xai-...
+# Required — Google Gemini API key from https://aistudio.google.com/apikey
+supabase secrets set GEMINI_API_KEY=your-gemini-api-key
 
-# Optional overrides
-supabase secrets set AI_BASE_URL=https://api.openai.com/v1
-supabase secrets set AI_MODEL=gpt-4o-mini
-# For xAI example:
-# supabase secrets set AI_BASE_URL=https://api.x.ai/v1
-# supabase secrets set AI_MODEL=grok-2-latest
+# Optional model override (default: gemini-2.0-flash)
+# Examples: gemini-2.0-flash, gemini-1.5-flash, gemini-2.5-flash, gemini-3.5-flash
+supabase secrets set AI_MODEL=gemini-2.0-flash
 ```
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically by the platform.
