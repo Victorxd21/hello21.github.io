@@ -1,0 +1,104 @@
+/*! Game Hub UI Kit — Design Tokens */
+:root {
+  --gh-brand: #a78bfa;
+  --gh-brand-2: #6366f1;
+  --gh-brand-3: #22d3ee;
+  --gh-brand-4: #f472b6;
+  --gh-primary: var(--gh-brand);
+  --gh-primary-hover: #c4b5fd;
+  --gh-secondary: var(--gh-brand-2);
+  --gh-accent: var(--gh-brand-3);
+  --gh-success: #34d399;
+  --gh-warning: #fbbf24;
+  --gh-error: #f87171;
+  --gh-info: #60a5fa;
+  --gh-bg: #05050c;
+  --gh-bg-elevated: #0c0c16;
+  --gh-surface: rgba(16, 14, 28, 0.92);
+  --gh-surface-2: rgba(24, 22, 40, 0.95);
+  --gh-surface-3: rgba(36, 32, 56, 0.98);
+  --gh-border: rgba(255, 255, 255, 0.08);
+  --gh-border-strong: rgba(167, 139, 250, 0.35);
+  --gh-divider: rgba(255, 255, 255, 0.06);
+  --gh-text: #f4f2ff;
+  --gh-text-muted: #9b97b5;
+  --gh-text-subtle: #6b6785;
+  --gh-text-inverse: #0a0a12;
+  --gh-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --gh-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --gh-fs-xs: 11px;
+  --gh-fs-sm: 12px;
+  --gh-fs-md: 14px;
+  --gh-fs-base: 15px;
+  --gh-fs-lg: 17px;
+  --gh-fs-xl: 20px;
+  --gh-fs-2xl: 24px;
+  --gh-fs-3xl: 32px;
+  --gh-fs-4xl: 42px;
+  --gh-fw-normal: 400;
+  --gh-fw-medium: 600;
+  --gh-fw-bold: 700;
+  --gh-fw-black: 900;
+  --gh-lh-tight: 1.25;
+  --gh-lh-normal: 1.5;
+  --gh-lh-relaxed: 1.65;
+  --gh-space-1: 4px;
+  --gh-space-2: 8px;
+  --gh-space-3: 12px;
+  --gh-space-4: 16px;
+  --gh-space-5: 20px;
+  --gh-space-6: 24px;
+  --gh-space-8: 32px;
+  --gh-space-10: 40px;
+  --gh-space-12: 48px;
+  --gh-radius-sm: 8px;
+  --gh-radius-md: 12px;
+  --gh-radius-lg: 16px;
+  --gh-radius-xl: 20px;
+  --gh-radius-2xl: 24px;
+  --gh-radius-full: 999px;
+  --gh-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --gh-shadow-md: 0 12px 32px rgba(0, 0, 0, 0.4);
+  --gh-shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.55);
+  --gh-glow: 0 0 28px rgba(167, 139, 250, 0.35);
+  --gh-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --gh-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --gh-duration-fast: 150ms;
+  --gh-duration: 250ms;
+  --gh-duration-slow: 400ms;
+  --gh-z-base: 1;
+  --gh-z-nav: 250;
+  --gh-z-dropdown: 400;
+  --gh-z-sticky: 500;
+  --gh-z-overlay: 2000;
+  --gh-z-modal: 2100;
+  --gh-z-toast: 3000;
+  --gh-z-loader: 9999;
+  --gh-focus-ring: 0 0 0 3px rgba(167, 139, 250, 0.45);
+  --gh-control-h: 40px;
+  --gh-control-h-sm: 32px;
+  --gh-control-h-lg: 48px;
+}
+[data-theme="light"] {
+  --gh-bg: #f4f2ff;
+  --gh-bg-elevated: #ffffff;
+  --gh-surface: rgba(255, 255, 255, 0.95);
+  --gh-surface-2: #f0eef8;
+  --gh-surface-3: #e8e4f5;
+  --gh-border: rgba(30, 20, 60, 0.12);
+  --gh-border-strong: rgba(99, 102, 241, 0.4);
+  --gh-text: #1a1630;
+  --gh-text-muted: #5c5678;
+  --gh-text-subtle: #8a84a8;
+  --gh-text-inverse: #ffffff;
+  --gh-shadow-sm: 0 4px 12px rgba(40, 30, 80, 0.08);
+  --gh-shadow-md: 0 12px 32px rgba(40, 30, 80, 0.12);
+  --gh-shadow-lg: 0 24px 64px rgba(40, 30, 80, 0.16);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --gh-duration-fast: 0ms;
+    --gh-duration: 0ms;
+    --gh-duration-slow: 0ms;
+  }
+}
