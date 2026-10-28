@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Game Hub</title>
-<link rel="stylesheet" href="hub-v5.css?v=5.1.0"/>
+<link rel="stylesheet" href="hub-v5.css?v=5.2.0"/>
 <style>
 body.season-halloween{--a:#ff8c42;--b:#9b30ff;--c:#ffb347;--d:#22c55e;--glow:rgba(255,140,66,.45);--bg:#0a0610}
 body.season-winter{--a:#93c5fd;--b:#60a5fa;--c:#e0f2fe;--d:#a5b4fc;--glow:rgba(147,197,253,.4);--bg:#050810}
@@ -12,7 +12,7 @@ body.season-spring{--a:#86efac;--b:#4ade80;--c:#f9a8d4;--d:#a7f3d0;--glow:rgba(1
 body.season-summer{--a:#fbbf24;--b:#f59e0b;--c:#38bdf8;--d:#fb923c;--glow:rgba(251,191,36,.4);--bg:#08060a}
 body.season-autumn{--a:#fb923c;--b:#ea580c;--c:#fbbf24;--d:#c2410c;--glow:rgba(251,146,60,.45);--bg:#0a0705}
 body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgba(239,68,68,.4);--bg:#08050a}
-#cubeCanvas{position:absolute;inset:-40px -50px 0;width:calc(100% + 100px);height:calc(100% + 50px);z-index:0;cursor:grab}
+#cubeCanvas{position:absolute;inset:-40px -50px 0;width:calc(100% + 100px);height:calc(100% + 50px);z-index:0;cursor:grab;pointer-events:auto}
 .admin-btn{margin-top:16px;width:100%}
 .admin-gate,.admin-panel{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
 .admin-gate label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600}
@@ -39,6 +39,11 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
 .gd-close{position:absolute;top:12px;right:12px;z-index:5;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;cursor:pointer;font-size:18px}
 .tabs{display:flex;gap:8px;margin-bottom:16px}.tab{padding:7px 14px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600}.tab.on{background:rgba(167,139,250,.25);color:#fff}
 .log{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}.log strong{color:var(--text)}
+/* Hide duplicate floating entry points — use top nav */
+#whatsNewBtn{display:none!important}
+#gameGuideBtn{display:none!important}
+.hub-nav{pointer-events:auto;z-index:500!important}
+.hub-nav-btn,.hub-nav-right .btn{pointer-events:auto;-webkit-tap-highlight-color:transparent}
 </style>
 </head>
 <body>
@@ -49,6 +54,7 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
     <button type="button" class="hub-nav-btn" data-nav="guide">Game Guide</button>
     <button type="button" class="hub-nav-btn" data-nav="whatsnew">What's New</button>
     <button type="button" class="hub-nav-btn" data-nav="about">About</button>
+    <button type="button" class="hub-nav-btn" data-nav="logs">Logs</button>
   </div>
   <div class="hub-nav-right"><button type="button" class="btn" id="navRefresh" title="Refresh">↻</button></div>
 </nav>
@@ -71,8 +77,6 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
   <div class="toolbar">
     <div class="search"><input id="search" type="search" placeholder="Search games..." autocomplete="off"/></div>
     <button class="btn" id="refresh" title="Refresh">↻</button>
-    <button class="btn" id="aboutBtn">About</button>
-    <button class="btn" id="logsBtn">Logs</button>
   </div>
   <div id="featuredRoot"></div>
   <div class="tags" id="tags"></div>
@@ -145,25 +149,65 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
 </div>
 <script src="hub-core.js?v=3.9.0"></script>
 <script src="featured-admin.js?v=4.0.0"></script>
-<script src="options.js?v=3.7.1" defer></script>
-<script src="chat.js?v=2.0.0" defer></script>
+<script src="options.js?v=3.7.1"></script>
+<script src="chat.js?v=2.0.0"></script>
 <script src="hub-loader.js?v=1.0.0"></script>
-<script src="whats-new.js?v=1.0.0" defer></script>
-<script src="game-guide.js?v=1.0.0" defer></script>
+<script src="whats-new.js?v=1.0.1"></script>
+<script src="game-guide.js?v=1.0.1"></script>
 <script>
 (function(){
-  var nav=document.getElementById('hubNav'); if(!nav) return;
-  nav.addEventListener('click',function(e){
-    var b=e.target.closest('[data-nav]'); if(!b) return;
-    var t=b.getAttribute('data-nav');
-    nav.querySelectorAll('.hub-nav-btn').forEach(function(x){x.classList.toggle('on',x===b);});
-    if(t==='guide'){var g=document.getElementById('gameGuideBtn'); if(g) g.click();}
-    if(t==='whatsnew'){if(window.__hubWhatsNew) window.__hubWhatsNew.open(); else {var w=document.getElementById('whatsNewBtn'); if(w) w.click();}}
-    if(t==='about'){var a=document.getElementById('aboutModal'); if(a) a.classList.add('on');}
-    if(t==='library') window.scrollTo({top:0,behavior:'smooth'});
-  });
+  function openGuide(){
+    if(window.__openGameGuide){ window.__openGameGuide(true); return; }
+    var g=document.getElementById('gameGuideBtn');
+    if(g){ g.style.display='flex'; g.click(); return; }
+    alert('Game Guide is still loading. Try again in a second.');
+  }
+  function openWhatsNew(){
+    if(window.__hubWhatsNew && window.__hubWhatsNew.open){ window.__hubWhatsNew.open(); return; }
+    var w=document.getElementById('whatsNewBtn');
+    if(w){ w.style.display='flex'; w.click(); return; }
+    var m=document.getElementById('whatsNewModal');
+    if(m){ m.classList.add('on'); return; }
+    alert('What\'s New is still loading. Try again in a second.');
+  }
+  function openAbout(){
+    var a=document.getElementById('aboutModal');
+    if(a) a.classList.add('on');
+  }
+  function openLogs(){
+    var btn=document.getElementById('logsBtn');
+    if(btn){ btn.click(); return; }
+    var m=document.getElementById('logsModal');
+    if(m){
+      var box=document.getElementById('logHub');
+      if(box && !box.innerHTML){
+        box.innerHTML='<div class="log"><strong>v5.0.0</strong> · Hub visual overhaul + AI Game Guide + What\'s New</div>';
+      }
+      m.classList.add('on');
+    }
+  }
+  var nav=document.getElementById('hubNav');
+  if(nav){
+    nav.addEventListener('click',function(e){
+      var b=e.target.closest('[data-nav]');
+      if(!b) return;
+      e.preventDefault();
+      var t=b.getAttribute('data-nav');
+      nav.querySelectorAll('.hub-nav-btn').forEach(function(x){ x.classList.toggle('on', x===b); });
+      if(t==='library'){ window.scrollTo({top:0,behavior:'smooth'}); }
+      if(t==='guide') openGuide();
+      if(t==='whatsnew') openWhatsNew();
+      if(t==='about') openAbout();
+      if(t==='logs') openLogs();
+    });
+  }
   var nr=document.getElementById('navRefresh'), r=document.getElementById('refresh');
-  if(nr&&r) nr.addEventListener('click',function(){r.click();});
+  if(nr&&r) nr.addEventListener('click',function(){ r.click(); });
+  // Keep hidden about/logs wiring from hub-core working if elements exist
+  var aboutX=document.getElementById('aboutX');
+  if(aboutX) aboutX.addEventListener('click',function(){ document.getElementById('aboutModal').classList.remove('on'); });
+  var logsX=document.getElementById('logsX');
+  if(logsX) logsX.addEventListener('click',function(){ document.getElementById('logsModal').classList.remove('on'); });
 })();
 </script>
 </body>
