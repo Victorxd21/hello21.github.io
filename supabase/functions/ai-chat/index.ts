@@ -1,6 +1,7 @@
 // Supabase Edge Function: ai-chat
-// Secure general-purpose AI proxy with 10s server-side cooldown + safety system prompt.
-// Secrets: OPENAI_API_KEY or XAI_API_KEY (optional AI_BASE_URL, AI_MODEL)
+// General-purpose AI proxy using Google Gemini + 10s server-side cooldown + safety system prompt.
+// Secret required: GEMINI_API_KEY
+// Optional: AI_MODEL (default gemini-2.0-flash)
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -143,58 +144,77 @@ serve(async (req: Request) => {
     return json(503, { error: "Rate limit service unavailable. Try again shortly." });
   }
 
-  const openaiKey = Deno.env.get("OPENAI_API_KEY") || "";
-  const xaiKey = Deno.env.get("XAI_API_KEY") || "";
-  const apiKey = openaiKey || xaiKey;
-  if (!apiKey) {
-    console.error("No OPENAI_API_KEY or XAI_API_KEY set");
+  // --- Gemini ---
+  const geminiKey = Deno.env.get("GEMINI_API_KEY") || "";
+  if (!geminiKey) {
+    console.error("No GEMINI_API_KEY set");
     return json(503, { error: "AI provider is not configured. Please try again later." });
   }
 
-  const baseUrl = (
-    Deno.env.get("AI_BASE_URL") ||
-    (xaiKey && !openaiKey ? "https://api.x.ai/v1" : "https://api.openai.com/v1")
-  ).replace(/\/$/, "");
-  const model =
-    Deno.env.get("AI_MODEL") ||
-    (xaiKey && !openaiKey ? "grok-2-latest" : "gpt-4o-mini");
+  const model = Deno.env.get("AI_MODEL") || "gemini-2.0-flash";
 
-  const apiMessages = [{ role: "system", content: SYSTEM_PROMPT }, ...cleaned];
+  // Gemini uses role "user" | "model" (not "assistant")
+  const geminiContents = cleaned.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
 
   let reply = "";
   try {
-    const aiRes = await fetch(`${baseUrl}/chat/completions`, {
+    const url =
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+
+    const aiRes = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        "x-goog-api-key": geminiKey,
       },
       body: JSON.stringify({
-        model,
-        messages: apiMessages,
-        temperature: 0.7,
-        max_tokens: 1200,
+        systemInstruction: {
+          parts: [{ text: SYSTEM_PROMPT }],
+        },
+        contents: geminiContents,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1200,
+        },
       }),
     });
 
     const aiText = await aiRes.text();
-    let aiJson: { choices?: { message?: { content?: string } }[]; error?: { message?: string } } | null = null;
-    try { aiJson = JSON.parse(aiText); } catch { aiJson = null; }
+    let aiJson: {
+      candidates?: { content?: { parts?: { text?: string }[] } }[];
+      error?: { message?: string };
+    } | null = null;
+    try {
+      aiJson = JSON.parse(aiText);
+    } catch {
+      aiJson = null;
+    }
 
     if (!aiRes.ok) {
-      console.error("AI provider error", aiRes.status, aiText.slice(0, 300));
+      console.error("Gemini error", aiRes.status, aiText.slice(0, 400));
       return json(502, {
         error: "The AI service returned an error. Please try again later.",
         cooldown_ms: COOLDOWN_MS,
       });
     }
 
-    reply = aiJson?.choices?.[0]?.message?.content?.trim() || "";
+    const parts = aiJson?.candidates?.[0]?.content?.parts || [];
+    reply = parts
+      .map((p) => p.text || "")
+      .join("")
+      .trim();
+
     if (!reply) {
-      return json(502, { error: "Empty response from the AI service.", cooldown_ms: COOLDOWN_MS });
+      return json(502, {
+        error: "Empty response from the AI service.",
+        cooldown_ms: COOLDOWN_MS,
+      });
     }
   } catch (e) {
-    console.error("AI fetch failed", e);
+    console.error("Gemini fetch failed", e);
     return json(502, {
       error: "Could not reach the AI service. Check your connection and try again.",
       cooldown_ms: COOLDOWN_MS,
