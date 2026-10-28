@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#05050c"/>
 <title>Game Hub</title>
-<link rel="stylesheet" href="hub-v5.css?v=5.2.0"/>
+<link rel="stylesheet" href="ui-kit/tokens.css?v=1.0.0"/>
+<link rel="stylesheet" href="hub-v5.css?v=6.0.0"/>
 <style>
 body.season-halloween{--a:#ff8c42;--b:#9b30ff;--c:#ffb347;--d:#22c55e;--glow:rgba(255,140,66,.45);--bg:#0a0610}
 body.season-winter{--a:#93c5fd;--b:#60a5fa;--c:#e0f2fe;--d:#a5b4fc;--glow:rgba(147,197,253,.4);--bg:#050810}
@@ -39,11 +41,13 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
 .gd-close{position:absolute;top:12px;right:12px;z-index:5;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;cursor:pointer;font-size:18px}
 .tabs{display:flex;gap:8px;margin-bottom:16px}.tab{padding:7px 14px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600}.tab.on{background:rgba(167,139,250,.25);color:#fff}
 .log{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}.log strong{color:var(--text)}
-/* Hide duplicate floating entry points — use top nav */
 #whatsNewBtn{display:none!important}
 #gameGuideBtn{display:none!important}
 .hub-nav{pointer-events:auto;z-index:500!important}
 .hub-nav-btn,.hub-nav-right .btn{pointer-events:auto;-webkit-tap-highlight-color:transparent}
+.about-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.about-links a{color:var(--a);font-weight:700;font-size:13px;text-decoration:none}
+.about-links a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -56,7 +60,7 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
     <button type="button" class="hub-nav-btn" data-nav="about">About</button>
     <button type="button" class="hub-nav-btn" data-nav="logs">Logs</button>
   </div>
-  <div class="hub-nav-right"><button type="button" class="btn" id="navRefresh" title="Refresh">↻</button></div>
+  <div class="hub-nav-right"><button type="button" class="btn" id="navRefresh" title="Refresh" aria-label="Refresh">↻</button></div>
 </nav>
 <div class="bg">
   <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div><div class="orb o4"></div>
@@ -70,13 +74,13 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
     <h1>Game Hub</h1>
     <p>Your games library · AI Guide · Press ` for Matrix Mode</p>
     <div class="hero-meta">
-      <span class="pill"><span class="dot"></span><span>v5.0.0</span></span>
+      <span class="pill"><span class="dot"></span><span>v6.0.0</span></span>
       <span class="pill" id="season" style="display:none"></span>
     </div>
   </div>
   <div class="toolbar">
     <div class="search"><input id="search" type="search" placeholder="Search games..." autocomplete="off"/></div>
-    <button class="btn" id="refresh" title="Refresh">↻</button>
+    <button class="btn" id="refresh" title="Refresh" aria-label="Refresh library">↻</button>
   </div>
   <div id="featuredRoot"></div>
   <div class="tags" id="tags"></div>
@@ -84,11 +88,14 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
 </div>
 <div class="mbg" id="aboutModal">
   <div class="modal">
-    <button class="x" id="aboutX">×</button>
+    <button class="x" id="aboutX" type="button" aria-label="Close">×</button>
     <h2>About</h2>
     <p>Game Hub is a collection of browser games. Click any card to play.</p>
     <p>Press the <strong>`</strong> key for Matrix Mode.</p>
-    <p style="margin-top:12px">Made for fun · <a href="https://github.com/Victorxd21/hello21.github.io" target="_blank">Source</a></p>
+    <div class="about-links">
+      <a href="https://github.com/Victorxd21/hello21.github.io" target="_blank" rel="noopener">Source</a>
+      <a href="ui-kit.html">UI Kit</a>
+    </div>
     <button class="btn admin-btn" type="button" id="adminOpenBtn">Admin</button>
     <div class="admin-gate" id="adminGate" style="display:none">
       <label>Admin email</label>
@@ -124,11 +131,11 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
 </div>
 <div class="mbg" id="logsModal">
   <div class="modal">
-    <button class="x" id="logsX">×</button>
+    <button class="x" id="logsX" type="button" aria-label="Close">×</button>
     <h2>Logs</h2>
     <div class="tabs">
-      <button class="tab on" data-t="hub">Hub updates</button>
-      <button class="tab" data-t="games">Games</button>
+      <button class="tab on" data-t="hub" type="button">Hub updates</button>
+      <button class="tab" data-t="games" type="button">Games</button>
     </div>
     <div id="logHub"></div>
     <div id="logGames" style="display:none"></div>
@@ -136,13 +143,13 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
 </div>
 <div class="mbg" id="gameDetailModal">
   <div class="modal" style="position:relative">
-    <button class="gd-close" id="gdClose">×</button>
+    <button class="gd-close" id="gdClose" type="button" aria-label="Close">×</button>
     <div class="gd-hero" id="gdHero"><div class="gd-grad"></div></div>
     <div class="gd-body">
       <div class="gd-title" id="gdTitle">Game</div>
       <div class="gd-path" id="gdPath"></div>
       <div class="gd-photos" id="gdPhotos"></div>
-      <div class="gd-actions"><button class="btn gd-play" id="gdPlay">Play now</button></div>
+      <div class="gd-actions"><button class="btn gd-play" id="gdPlay" type="button">Play now</button></div>
       <div class="gd-video-box" id="gdVideoBox" style="display:none"><label>Showcase video</label><div id="gdVideoPreview"></div></div>
     </div>
   </div>
@@ -175,16 +182,17 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
     if(a) a.classList.add('on');
   }
   function openLogs(){
-    var btn=document.getElementById('logsBtn');
-    if(btn){ btn.click(); return; }
     var m=document.getElementById('logsModal');
-    if(m){
-      var box=document.getElementById('logHub');
-      if(box && !box.innerHTML){
-        box.innerHTML='<div class="log"><strong>v5.0.0</strong> · Hub visual overhaul + AI Game Guide + What\'s New</div>';
-      }
-      m.classList.add('on');
+    if(!m) return;
+    var box=document.getElementById('logHub');
+    if(box){
+      box.innerHTML=[
+        '<div class="log"><strong>v6.0.0</strong> · UI kit integrated into the live hub</div>',
+        '<div class="log"><strong>v5.0.0</strong> · Visual overhaul + AI Game Guide + What\'s New</div>',
+        '<div class="log"><strong>v3.8.1</strong> · Games grid + Matrix mode</div>'
+      ].join('');
     }
+    m.classList.add('on');
   }
   var nav=document.getElementById('hubNav');
   if(nav){
@@ -203,7 +211,6 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
   }
   var nr=document.getElementById('navRefresh'), r=document.getElementById('refresh');
   if(nr&&r) nr.addEventListener('click',function(){ r.click(); });
-  // Keep hidden about/logs wiring from hub-core working if elements exist
   var aboutX=document.getElementById('aboutX');
   if(aboutX) aboutX.addEventListener('click',function(){ document.getElementById('aboutModal').classList.remove('on'); });
   var logsX=document.getElementById('logsX');
