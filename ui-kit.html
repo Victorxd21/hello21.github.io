@@ -1,1 +1,223 @@
-PLACEHOLDER
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Game Hub — UI Kit</title>
+<link rel="stylesheet" href="ui-kit/components.css"/>
+<style>
+body{margin:0;background:var(--gh-bg);color:var(--gh-text);font-family:var(--gh-font)}
+.kit-layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.kit-side{position:sticky;top:0;height:100vh;overflow:auto;padding:20px 14px;border-right:1px solid var(--gh-border);background:var(--gh-bg-elevated)}
+.kit-side a{display:block;padding:8px 12px;border-radius:10px;color:var(--gh-text-muted);text-decoration:none;font-size:13px;font-weight:600}
+.kit-side a:hover{background:rgba(167,139,250,.12);color:var(--gh-text)}
+.kit-main{padding:28px 24px 80px;max-width:960px}
+.kit-section{margin-bottom:48px;scroll-margin-top:24px}
+.kit-section h2{font-size:22px;font-weight:900;margin:0 0 8px;background:linear-gradient(90deg,#fff,var(--gh-primary));-webkit-background-clip:text;background-clip:text;color:transparent}
+.kit-section p.lead{color:var(--gh-text-muted);margin:0 0 20px;font-size:14px}
+.swatch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
+.swatch{border-radius:12px;border:1px solid var(--gh-border);overflow:hidden;background:var(--gh-surface)}
+.swatch .chip{height:48px}.swatch .meta{padding:8px 10px;font-size:11px;color:var(--gh-text-muted)}
+.swatch .meta strong{display:block;color:var(--gh-text);font-size:12px}
+.demo-box{padding:16px;border-radius:16px;border:1px solid var(--gh-border);background:rgba(255,255,255,.02);margin-bottom:16px}
+.back-hub{display:inline-flex;gap:8px;margin-bottom:16px;color:var(--gh-primary);text-decoration:none;font-weight:700;font-size:13px}
+@media(max-width:800px){.kit-layout{grid-template-columns:1fr}.kit-side{position:relative;height:auto;max-height:200px}}
+</style>
+</head>
+<body class="gh-kit">
+<div class="kit-layout">
+<aside class="kit-side" aria-label="UI Kit sections">
+  <div class="gh-nav__brand" style="margin-bottom:16px"><span class="gh-nav__logo">GH</span><span>UI Kit</span></div>
+  <a href="#tokens">Tokens</a>
+  <a href="#buttons">Buttons</a>
+  <a href="#forms">Forms</a>
+  <a href="#cards">Cards</a>
+  <a href="#feedback">Feedback</a>
+  <a href="#ai">AI</a>
+  <a href="#loading">Loading</a>
+  <a href="#dev">Developer</a>
+  <a href="index.html" style="margin-top:16px;color:var(--gh-accent)">← Back to Hub</a>
+</aside>
+<main class="kit-main">
+  <a class="back-hub" href="index.html">← Game Hub</a>
+  <h1 style="font-size:32px;font-weight:900;margin:0 0 8px">Game Hub UI Kit</h1>
+  <p class="gh-muted" style="margin:0 0 32px;max-width:560px">Design system for the hub. Demo only — does not write to Supabase or change games.</p>
+
+  <section class="kit-section" id="tokens">
+    <h2>Colors & tokens</h2>
+    <p class="lead">CSS variables in <code>ui-kit/tokens.css</code>. Dark default; light via data-theme.</p>
+    <div class="gh-row" style="margin-bottom:16px">
+      <button type="button" class="gh-btn gh-btn--secondary gh-btn--sm" id="themeToggle">Toggle light / dark</button>
+    </div>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="chip" style="background:var(--gh-primary)"></div><div class="meta"><strong>Primary</strong>--gh-primary</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--gh-secondary)"></div><div class="meta"><strong>Secondary</strong>--gh-secondary</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--gh-accent)"></div><div class="meta"><strong>Accent</strong>--gh-accent</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--gh-success)"></div><div class="meta"><strong>Success</strong>--gh-success</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--gh-error)"></div><div class="meta"><strong>Error</strong>--gh-error</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--gh-bg)"></div><div class="meta"><strong>Background</strong>--gh-bg</div></div>
+    </div>
+  </section>
+
+  <section class="kit-section" id="buttons">
+    <h2>Buttons & controls</h2>
+    <div class="demo-box gh-row">
+      <button type="button" class="gh-btn gh-btn--primary">Primary</button>
+      <button type="button" class="gh-btn gh-btn--secondary">Secondary</button>
+      <button type="button" class="gh-btn gh-btn--outline">Outline</button>
+      <button type="button" class="gh-btn gh-btn--ghost">Ghost</button>
+      <button type="button" class="gh-btn gh-btn--destructive">Destructive</button>
+      <button type="button" class="gh-btn gh-btn--primary is-loading" aria-label="Loading">Load</button>
+      <button type="button" class="gh-btn gh-btn--secondary" disabled>Disabled</button>
+    </div>
+    <div class="demo-box">
+      <div class="gh-segment" role="group">
+        <button type="button" aria-selected="true">Grid</button>
+        <button type="button" aria-selected="false">List</button>
+      </div>
+    </div>
+    <div class="demo-box gh-row">
+      <span class="gh-badge">Default</span>
+      <span class="gh-badge gh-badge--success">Published</span>
+      <span class="gh-badge gh-badge--warning">Draft</span>
+      <span class="gh-badge gh-badge--new">New</span>
+      <button type="button" class="gh-chip on">3d</button>
+    </div>
+  </section>
+
+  <section class="kit-section" id="forms">
+    <h2>Forms</h2>
+    <div class="demo-box" style="max-width:420px">
+      <div class="gh-field"><label class="gh-label" for="demoName">Title</label><input class="gh-input" id="demoName" placeholder="Game title"/></div>
+      <div class="gh-field"><label class="gh-label" for="demoSearch">Search</label><div class="gh-search"><input class="gh-input" id="demoSearch" type="search" placeholder="Search…"/></div></div>
+      <div class="gh-field"><label class="gh-label" for="demoArea">Description</label><textarea class="gh-textarea" id="demoArea"></textarea></div>
+      <div class="gh-row"><button type="button" class="gh-switch on" id="demoSwitch" role="switch" aria-checked="true" aria-label="Featured"></button><span class="gh-muted" style="font-size:13px">Featured</span></div>
+    </div>
+  </section>
+
+  <section class="kit-section" id="cards">
+    <h2>Cards</h2>
+    <div class="gh-grid-3" style="margin-bottom:16px">
+      <article class="gh-game-card" tabindex="0"><div class="gh-game-card__cover">⬛</div><div class="gh-game-card__body"><div class="gh-game-card__name">Monochrome</div><div class="gh-game-card__meta">demo</div></div><span class="gh-game-card__play">Play</span></article>
+      <article class="gh-game-card" tabindex="0"><div class="gh-game-card__cover">🚀</div><div class="gh-game-card__body"><div class="gh-game-card__name">World Explorer</div><div class="gh-game-card__meta">demo</div></div><span class="gh-badge gh-badge--new" style="position:absolute;top:10px;left:10px">New</span><span class="gh-game-card__play">Play</span></article>
+      <article class="gh-card gh-card--interactive"><div class="gh-card__title">Content card</div><div class="gh-card__body">Generic surface.</div></article>
+    </div>
+    <div class="gh-grid-3">
+      <div class="gh-stat"><div class="gh-stat__label">Games</div><div class="gh-stat__value">29</div></div>
+      <div class="gh-stat"><div class="gh-stat__label">Plays</div><div class="gh-stat__value">12.4k</div></div>
+      <div class="gh-stat"><div class="gh-stat__label">Featured</div><div class="gh-stat__value">4</div></div>
+    </div>
+  </section>
+
+  <section class="kit-section" id="feedback">
+    <h2>Feedback</h2>
+    <div class="gh-stack" style="margin-bottom:16px">
+      <div class="gh-alert gh-alert--info">Informational</div>
+      <div class="gh-alert gh-alert--success">Saved</div>
+      <div class="gh-alert gh-alert--error">Request failed</div>
+    </div>
+    <div class="gh-row">
+      <button type="button" class="gh-btn gh-btn--primary" id="openModal">Open modal</button>
+      <button type="button" class="gh-btn gh-btn--secondary" id="showToast">Show toast</button>
+    </div>
+  </section>
+
+  <section class="kit-section" id="ai">
+    <h2>AI components</h2>
+    <p class="lead">Styling only — does not call the backend.</p>
+    <div class="demo-box gh-stack" style="max-width:420px">
+      <div class="gh-msg gh-msg--user"><div class="gh-msg__meta">You</div><div class="gh-msg__bubble">Recommend a short arcade game.</div></div>
+      <div class="gh-msg gh-msg--ai"><div class="gh-msg__meta">AI</div><div class="gh-msg__bubble">Try Snake or Heads for a quick session.</div></div>
+      <div class="gh-typing" aria-label="Typing"><span></span><span></span><span></span></div>
+      <div class="gh-code"><button type="button" class="gh-code__copy" data-copy>Copy</button><pre><code>console.log("hello hub");</code></pre></div>
+    </div>
+  </section>
+
+  <section class="kit-section" id="loading">
+    <h2>Loading</h2>
+    <div class="demo-box gh-stack">
+      <div class="gh-progress" style="max-width:240px"><i style="width:65%"></i></div>
+      <div class="gh-spinner" aria-label="Loading"></div>
+      <div class="gh-skeleton" style="height:72px;max-width:280px"></div>
+    </div>
+  </section>
+
+  <section class="kit-section" id="dev">
+    <h2>Developer pieces</h2>
+    <div class="gh-table-wrap">
+      <table class="gh-table">
+        <thead><tr><th>Title</th><th>Status</th><th>Updated</th></tr></thead>
+        <tbody>
+          <tr><td>Welcome to v5</td><td><span class="gh-badge gh-badge--success">Published</span></td><td>Oct 27</td></tr>
+          <tr><td>Halloween theme</td><td><span class="gh-badge gh-badge--warning">Draft</span></td><td>Oct 26</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</div>
+
+<div class="gh-modal-backdrop" id="demoModal" role="dialog" aria-modal="true" aria-labelledby="demoModalTitle">
+  <div class="gh-modal">
+    <button type="button" class="gh-modal__close" id="closeModal" aria-label="Close">×</button>
+    <h3 class="gh-modal__title" id="demoModalTitle">Confirm</h3>
+    <p class="gh-muted">Demo dialog. Escape closes it.</p>
+    <div class="gh-row" style="margin-top:16px">
+      <button type="button" class="gh-btn gh-btn--primary" id="closeModal2">OK</button>
+      <button type="button" class="gh-btn gh-btn--ghost" id="closeModal3">Cancel</button>
+    </div>
+  </div>
+</div>
+<div class="gh-toast-host" id="toastHost" aria-live="polite"></div>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  document.getElementById("themeToggle").addEventListener("click",function(){
+    root.setAttribute("data-theme", root.getAttribute("data-theme")==="light"?"dark":"light");
+  });
+  document.querySelectorAll(".gh-segment").forEach(function(seg){
+    seg.addEventListener("click",function(e){
+      var b=e.target.closest("button"); if(!b) return;
+      seg.querySelectorAll("button").forEach(function(x){
+        x.setAttribute("aria-selected", x===b?"true":"false");
+        x.classList.toggle("on", x===b);
+      });
+    });
+  });
+  var sw=document.getElementById("demoSwitch");
+  if(sw) sw.addEventListener("click",function(){
+    var on=sw.getAttribute("aria-checked")!=="true";
+    sw.setAttribute("aria-checked", on?"true":"false");
+    sw.classList.toggle("on", on);
+  });
+  var modal=document.getElementById("demoModal");
+  function openM(){ modal.classList.add("is-open"); document.getElementById("closeModal").focus(); }
+  function closeM(){ modal.classList.remove("is-open"); document.getElementById("openModal").focus(); }
+  document.getElementById("openModal").addEventListener("click", openM);
+  ["closeModal","closeModal2","closeModal3"].forEach(function(id){
+    document.getElementById(id).addEventListener("click", closeM);
+  });
+  modal.addEventListener("click", function(e){ if(e.target===modal) closeM(); });
+  document.addEventListener("keydown", function(e){
+    if(e.key==="Escape" && modal.classList.contains("is-open")) closeM();
+  });
+  document.getElementById("showToast").addEventListener("click", function(){
+    var host=document.getElementById("toastHost");
+    var t=document.createElement("div");
+    t.className="gh-toast"; t.textContent="Saved (demo toast)";
+    host.appendChild(t);
+    setTimeout(function(){ t.remove(); }, 2800);
+  });
+  document.querySelectorAll("[data-copy]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var pre=btn.parentElement.querySelector("pre"); if(!pre) return;
+      navigator.clipboard.writeText(pre.textContent||"").then(function(){
+        btn.textContent="Copied"; setTimeout(function(){ btn.textContent="Copy"; }, 1200);
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
