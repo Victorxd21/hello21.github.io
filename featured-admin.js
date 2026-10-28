@@ -212,14 +212,19 @@ create policy "Auth delete featured media" on storage.objects for delete to auth
     }
     if(playBtn){
       playBtn.onclick=function(){
-        if(window.__recordView) window.__recordView(path);
-        setTimeout(function(){ location.href=path; },80);
+        playFeatured(f);
       };
     }
     const vurl=(f.video_url||"").trim();
     if(videoBox) videoBox.style.display=vurl?"":"none";
     renderVideoPreview(vurl, videoPrev);
     modal.classList.add("on");
+  }
+
+  function playFeatured(f){
+    const path=pathOfFeat(f);
+    if(window.__recordView) window.__recordView(path);
+    setTimeout(function(){ location.href=path; },80);
   }
 
   function renderVideoPreview(url, el){
@@ -247,12 +252,12 @@ create policy "Auth delete featured media" on storage.objects for delete to auth
   function renderFeatured(){
     const root=document.getElementById("featuredRoot");
     if(!root)return;
-    if(!FEATURED.length){root.innerHTML="";return;}
+    if(!FEATURED.length)return;
     let h='<div class="featured-head"><h2>Featured</h2><div class="line"></div></div>';
     FEATURED.forEach((f,fi)=>{
       const imgs=Array.isArray(f.images)?f.images.filter(Boolean):[];
       const p=pathOfFeat(f);
-      h+='<div class="feat-card" data-path="'+p+'" data-feat="'+fi+'">';
+      h+='<div class="feat-card'+(fi===0?' feat-card-primary':'')+'" data-path="'+p+'" data-feat="'+fi+'">';
       h+='<div class="feat-slides">';
       if(imgs.length) imgs.forEach((src,i)=>{h+='<img src="'+fixImgUrl(src)+'" alt="" class="'+(i===0?'on':'')+'" loading="'+(i===0?'eager':'lazy')+'"/>';});
       else h+='<div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(167,139,250,.35),rgba(99,102,241,.2))"></div>';
@@ -260,7 +265,7 @@ create policy "Auth delete featured media" on storage.objects for delete to auth
       h+='<div class="feat-body"><span class="feat-badge">Featured</span>';
       h+='<div class="feat-title">'+(f.icon?f.icon+" ":"")+(f.name||f.folder)+'</div>';
       h+='<div class="feat-sub">'+p+'</div>';
-      h+='<span class="feat-play">View →</span></div>';
+      h+='<button class="feat-play" type="button">Play now <span aria-hidden="true">→</span></button></div>';
       if(imgs.length>1){
         h+='<div class="feat-dots">';
         imgs.forEach((_,i)=>{h+='<span class="'+(i===0?'on':'')+'"></span>';});
@@ -274,6 +279,14 @@ create policy "Auth delete featured media" on storage.objects for delete to auth
         const idx=parseInt(el.getAttribute("data-feat"),10);
         const f=FEATURED[idx];
         if(f) openGameDetail(f);
+      });
+    });
+    root.querySelectorAll(".feat-play").forEach(btn=>{
+      btn.addEventListener("click",function(e){
+        e.stopPropagation();
+        const card=btn.closest("[data-feat]");
+        const f=card&&FEATURED[parseInt(card.getAttribute("data-feat"),10)];
+        if(f) playFeatured(f);
       });
     });
     startFeaturedCarousels(root);
@@ -356,7 +369,7 @@ create policy "Auth delete featured media" on storage.objects for delete to auth
     const opts=['<option value="">Select a game…</option>'];
     games.filter(g=>g.folder!=="NotByMe").forEach(g=>{
       const disabled=featuredFolders.has(g.folder)?" disabled":"";
-      opts.push('<option value="'+g.folder+'" data-name="'+g.name.replace(/"/g,""")+'" data-file="'+(g.file||"index.html")+'" data-icon="'+(g.icon||"🎮")+'"'+disabled+'>'+g.name+(disabled?" (already featured)":"")+'</option>');
+      opts.push('<option value="'+g.folder+'" data-name="'+g.name.replace(/"/g,"&quot;")+'" data-file="'+(g.file||"index.html")+'" data-icon="'+(g.icon||"🎮")+'"'+disabled+'>'+g.name+(disabled?" (already featured)":"")+'</option>');
     });
     sel.innerHTML=opts.join("");
   }

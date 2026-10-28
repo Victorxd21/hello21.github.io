@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#07060f"/>
 <title>Game Hub</title>
 <link rel="stylesheet" href="ui-kit/tokens.css?v=1.0.1"/>
-<link rel="stylesheet" href="hub-v5.css?v=7.0.0"/>
+<link rel="stylesheet" href="hub-v5.css?v=7.1.0"/>
 <style>
 body.season-halloween{--a:#ff8c42;--b:#9b30ff;--c:#ffb347;--d:#22c55e;--glow:rgba(255,140,66,.45);--bg:#0a0610}
 body.season-winter{--a:#93c5fd;--b:#60a5fa;--c:#e0f2fe;--d:#a5b4fc;--glow:rgba(147,197,253,.4);--bg:#050810}
@@ -49,7 +49,7 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
 <!-- Top app bar: logo + search + refresh -->
 <header class="hub-top" id="hubTop">
   <div class="logo" aria-hidden="true">GH</div>
-  <div class="search"><input id="search" type="search" placeholder="Search games…" autocomplete="off" enterkeyhint="search"/></div>
+  <div class="search"><input id="search" type="search" placeholder="Find your next game…" autocomplete="off" enterkeyhint="search"/></div>
   <button type="button" class="icon-btn" id="refresh" title="Refresh" aria-label="Refresh library">↻</button>
   <button type="button" class="icon-btn" id="navRefresh" title="Refresh" aria-label="Refresh" style="display:none">↻</button>
 </header>
@@ -64,7 +64,10 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
 
 <main class="content">
   <div class="library-head">
-    <h1><span>Library</span>Game Hub</h1>
+    <div class="library-copy">
+      <h1><span>THE ARCADE IS OPEN</span>Game Hub</h1>
+      <p>Pick a game. Jump in. Find your next favorite.</p>
+    </div>
     <div class="meta">
       <span class="pill"><span class="dot"></span>v7.0.0</span>
       <span class="pill" id="season" style="display:none"></span>
@@ -75,7 +78,18 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
   <div class="toolbar" aria-hidden="true" style="display:none"></div>
   <div class="hero" aria-hidden="true" style="display:none"><h1>Game Hub</h1><p></p><div class="hero-meta"></div></div>
 
-  <div id="featuredRoot"></div>
+  <div id="featuredRoot">
+    <section class="feat-card feat-card-fallback" aria-labelledby="welcomeTitle">
+      <div class="fallback-art" aria-hidden="true"><span>🎮</span><i></i><b></b></div>
+      <div class="feat-grad"></div>
+      <div class="feat-body">
+        <span class="feat-badge">READY TO PLAY</span>
+        <h2 class="feat-title" id="welcomeTitle">Your next adventure starts here</h2>
+        <p class="feat-sub">Explore the arcade and find something fun to play.</p>
+        <a class="feat-play" href="#root">Browse games <span aria-hidden="true">↓</span></a>
+      </div>
+    </section>
+  </div>
   <div class="tags" id="tags"></div>
   <div id="root"></div>
 </main>
