@@ -20,9 +20,8 @@
     "Recommend a multiplayer game.",
     "What 3D games do you have?",
   ];
-  const css = `#gameGuideBtn{position:fixed;bottom:20px;left:20px;z-index:220;height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--border);background:rgba(18,16,28,.85);backdrop-filter:blur(14px);color:var(--text);font:700 13px system-ui,sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
-#gameGuideBtn:hover{transform:translateY(-3px);background:rgba(34,211,238,.15)}
-#gameGuideWin{position:fixed;bottom:74px;left:20px;z-index:230;width:min(400px,calc(100vw - 40px));height:min(560px,calc(100vh - 100px));border-radius:20px;border:1px solid rgba(34,211,238,.3);background:linear-gradient(165deg,rgba(20,18,34,.98),rgba(10,8,18,.99));backdrop-filter:blur(24px);box-shadow:0 24px 70px rgba(0,0,0,.65);display:flex;flex-direction:column;overflow:hidden;transform:translateY(16px) scale(.95);opacity:0;pointer-events:none;transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .25s}
+  const css = `#gameGuideBtn{position:fixed;bottom:20px;left:20px;z-index:220;height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--border);background:rgba(18,16,28,.85);backdrop-filter:blur(14px);color:var(--text);font:700 13px system-ui,sans-serif;cursor:pointer;display:none;align-items:center;gap:8px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+#gameGuideWin{position:fixed;bottom:74px;left:20px;right:20px;z-index:2300;width:min(400px,calc(100vw - 40px));height:min(560px,calc(100vh - 120px));margin:0 auto;border-radius:20px;border:1px solid rgba(34,211,238,.3);background:linear-gradient(165deg,rgba(20,18,34,.98),rgba(10,8,18,.99));backdrop-filter:blur(24px);box-shadow:0 24px 70px rgba(0,0,0,.65);display:flex;flex-direction:column;overflow:hidden;transform:translateY(16px) scale(.95);opacity:0;pointer-events:none;transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .25s}
 #gameGuideWin.on{transform:none;opacity:1;pointer-events:auto}
 .gg-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .gg-title{font-size:14px;font-weight:800;display:flex;align-items:center;gap:6px}
@@ -34,7 +33,6 @@
 .gg-welcome p{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px}
 .gg-sugs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 .gg-sug{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(34,211,238,.08);color:var(--text);font-size:11px;font-weight:600;cursor:pointer}
-.gg-sug:hover{background:rgba(34,211,238,.2)}
 .gg-msg{max-width:92%;font-size:13px;line-height:1.5}
 .gg-msg.user{align-self:flex-end}
 .gg-msg.user .gg-bubble{background:linear-gradient(135deg,#0891b2,#22d3ee);color:#041016;border-radius:14px 14px 4px 14px;padding:10px 12px}
@@ -42,14 +40,9 @@
 .gg-msg.ai .gg-bubble{background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:14px 14px 14px 4px;padding:10px 12px;color:var(--text);white-space:pre-wrap}
 .gg-cards{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .gg-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.25);cursor:pointer}
-.gg-card:hover{border-color:rgba(34,211,238,.45);background:rgba(34,211,238,.08)}
-.gg-card .ic{font-size:22px}
-.gg-card .nm{font-weight:800;font-size:13px}
-.gg-card .meta{font-size:10px;color:var(--muted)}
-.gg-card .go{margin-left:auto;font-size:11px;font-weight:800;color:#22d3ee}
+.gg-card .ic{font-size:22px}.gg-card .nm{font-weight:800;font-size:13px}.gg-card .meta{font-size:10px;color:var(--muted)}.gg-card .go{margin-left:auto;font-size:11px;font-weight:800;color:#22d3ee}
 .gg-input{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;background:rgba(0,0,0,.25)}
 .gg-input input{flex:1;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-size:13px;outline:none}
-.gg-input input:focus{border-color:#22d3ee}
 .gg-input button{padding:0 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#0891b2,#22d3ee);color:#041016;font-weight:800;cursor:pointer}
 .gg-input button:disabled{opacity:.45;cursor:not-allowed}
 .gg-cooldown{padding:6px 12px;font-size:11px;color:var(--muted);text-align:center;display:none;border-top:1px solid rgba(255,255,255,.05)}
@@ -109,7 +102,7 @@
     return scored.filter(function (x) { return x.score > 0; }).slice(0, 6).map(function (x) { return x.g; });
   }
   function showWelcome() {
-    body.innerHTML = '<div class="gg-welcome"><h3>Game Guide</h3><p>Ask about games in <strong>this</strong> hub only. I recommend from the real library—not invent titles.</p><div class="gg-sugs" id="ggSugs"></div></div>';
+    body.innerHTML = '<div class="gg-welcome"><h3>Game Guide</h3><p>Ask about games in <strong>this</strong> hub only. I recommend from the real library.</p><div class="gg-sugs" id="ggSugs"></div></div>';
     const sugs = document.getElementById("ggSugs");
     SUGGESTIONS.forEach(function (s) {
       const b = document.createElement("button");
@@ -190,8 +183,8 @@
         sending = false; updateCooldown(); return;
       }
       if (!r.ok) {
-        if (localHits.length) appendAI("Here are matching games from this hub (AI is temporarily unavailable):", localHits);
-        else appendAI((data && (data.error || data.message)) || "Could not reach the guide. Try again later.", []);
+        if (localHits.length) appendAI("Matching games from this hub (AI offline):", localHits);
+        else appendAI((data && (data.error || data.message)) || "Could not reach the guide.", []);
         sending = false; updateCooldown(); return;
       }
       const reply = (data && data.reply) || "Here are some options from this hub.";
@@ -205,8 +198,8 @@
       appendAI(reply, cards);
       if (data && typeof data.cooldown_ms === "number") startCooldown(data.cooldown_ms);
     } catch (e) {
-      if (localHits.length) appendAI("Network issue — showing local matches from this hub:", localHits);
-      else appendAI("Network error. Browse the main library or try again.", []);
+      if (localHits.length) appendAI("Network issue — local matches:", localHits);
+      else appendAI("Network error. Try again.", []);
     } finally {
       sending = false; updateCooldown(); input.focus();
     }
@@ -217,6 +210,10 @@
     if (open && !body.childElementCount) showWelcome();
     if (open) setTimeout(function () { input.focus(); }, 120);
   }
+  window.__openGameGuide = function (forceOpen) {
+    if (forceOpen === true) toggle(true);
+    else toggle();
+  };
   btn.addEventListener("click", function () { toggle(); });
   document.getElementById("ggClose").addEventListener("click", function () { toggle(false); });
   form.addEventListener("submit", function (e) { e.preventDefault(); ask(input.value); });
