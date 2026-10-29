@@ -8,6 +8,7 @@ const APP_SHELL = [
   "./hub-v5.css",
   "./hub-core.js",
   "./featured-admin.js",
+  "./hub-feedback.js",
   "./options.js",
   "./chat.js",
   "./hub-loader.js",

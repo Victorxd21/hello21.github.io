@@ -2,6 +2,7 @@
 (function(){
   const SB_URL="https://makmmhmsssfhbfpzqfcj.supabase.co";
   const SB_KEY="sb_publishable_QPZuusUtLAqEz2gRuvbrlQ_ZlrzBII6";
+  const ADMIN_AUTH_EMAIL="hub-admin@gamehub.invalid";
 
   const SETUP_SQL=`-- Run once in Supabase → SQL Editor (or apply the migration file)
 
@@ -48,6 +49,10 @@ create policy "Auth write settings" on public.hub_settings for insert to authent
 create policy "Auth update settings" on public.hub_settings for update to authenticated using (true);
 
 delete from public.hub_settings where key = 'admin_password';
+grant select on public.featured_games to anon, authenticated;
+grant insert, update, delete on public.featured_games to authenticated;
+grant select on public.hub_settings to anon, authenticated;
+grant insert, update on public.hub_settings to authenticated;
 
 create table if not exists public.ai_rate_limits (
   rate_key text primary key,
@@ -74,6 +79,75 @@ create policy "Public read banners" on storage.objects for select using (bucket_
 create policy "Auth upload featured media" on storage.objects for insert to authenticated with check (bucket_id in ('featured-banners','featured-videos'));
 create policy "Auth update featured media" on storage.objects for update to authenticated using (bucket_id in ('featured-banners','featured-videos'));
 create policy "Auth delete featured media" on storage.objects for delete to authenticated using (bucket_id in ('featured-banners','featured-videos'));
+
+drop policy if exists "Auth insert featured" on public.featured_games;
+create policy "Auth insert featured" on public.featured_games for insert to authenticated
+  with check ((auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid');
+drop policy if exists "Auth update featured" on public.featured_games;
+create policy "Auth update featured" on public.featured_games for update to authenticated
+  using ((auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid')
+  with check ((auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid');
+drop policy if exists "Auth delete featured" on public.featured_games;
+create policy "Auth delete featured" on public.featured_games for delete to authenticated
+  using ((auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid');
+drop policy if exists "Auth write settings" on public.hub_settings;
+create policy "Auth write settings" on public.hub_settings for insert to authenticated
+  with check ((auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid');
+drop policy if exists "Auth update settings" on public.hub_settings;
+create policy "Auth update settings" on public.hub_settings for update to authenticated
+  using ((auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid')
+  with check ((auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid');
+drop policy if exists "Auth upload featured media" on storage.objects;
+create policy "Auth upload featured media" on storage.objects for insert to authenticated
+  with check (bucket_id in ('featured-banners','featured-videos') and (auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid');
+drop policy if exists "Auth update featured media" on storage.objects;
+create policy "Auth update featured media" on storage.objects for update to authenticated
+  using (bucket_id in ('featured-banners','featured-videos') and (auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid')
+  with check (bucket_id in ('featured-banners','featured-videos') and (auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid');
+drop policy if exists "Auth delete featured media" on storage.objects;
+create policy "Auth delete featured media" on storage.objects for delete to authenticated
+  using (bucket_id in ('featured-banners','featured-videos') and (auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid');
+
+create table if not exists public.hub_feedback (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null check (kind in ('problem','request')),
+  game_name text not null default '' check (char_length(game_name) <= 120),
+  message text not null check (char_length(message) between 8 and 2000),
+  status text not null default 'new' check (status in ('new','reviewing','resolved')),
+  created_at timestamptz not null default now()
+);
+alter table public.hub_feedback enable row level security;
+revoke all on public.hub_feedback from anon, authenticated;
+grant insert on public.hub_feedback to service_role;
+grant select on public.hub_feedback to authenticated;
+grant update (status) on public.hub_feedback to authenticated;
+drop policy if exists "Authenticated admins read hub feedback" on public.hub_feedback;
+create policy "Authenticated admins read hub feedback" on public.hub_feedback for select to authenticated
+  using ((auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid');
+drop policy if exists "Authenticated admins update hub feedback" on public.hub_feedback;
+create policy "Authenticated admins update hub feedback" on public.hub_feedback for update to authenticated
+  using ((auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid')
+  with check ((auth.jwt() ->> 'email') = 'hub-admin@gamehub.invalid' and status in ('new','reviewing','resolved'));
+
+create table if not exists public.hub_feedback_rate_limits (rate_key text primary key, last_request_at timestamptz not null default now());
+alter table public.hub_feedback_rate_limits enable row level security;
+revoke all on public.hub_feedback_rate_limits from anon, authenticated;
+grant select, insert, update, delete on public.hub_feedback_rate_limits to service_role;
+create or replace function public.consume_hub_feedback_rate_limit(p_rate_key text, p_cooldown_seconds integer default 30)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare affected_rows integer;
+begin
+  insert into public.hub_feedback_rate_limits(rate_key,last_request_at) values(p_rate_key,now())
+  on conflict(rate_key) do update set last_request_at=excluded.last_request_at
+  where public.hub_feedback_rate_limits.last_request_at <= now()-make_interval(secs=>greatest(1,least(p_cooldown_seconds,3600)));
+  get diagnostics affected_rows = row_count;
+  delete from public.hub_feedback_rate_limits where last_request_at < now()-interval '2 days';
+  return affected_rows > 0;
+end;
+$$;
+revoke all on function public.consume_hub_feedback_rate_limit(text,integer) from public, anon, authenticated;
+grant execute on function public.consume_hub_feedback_rate_limit(text,integer) to service_role;
+
 `;
 
   let FEATURED=[];
@@ -418,46 +492,30 @@ create policy "Auth delete featured media" on storage.objects for delete to auth
     const lockBtn=document.getElementById("adminLockBtn");
     if(!openBtn)return;
 
-    let pwField=document.getElementById("adminAuthPass");
-    if(gate&&!pwField){
-      const lbl=document.createElement("label");
-      lbl.textContent="Password";
-      lbl.style.cssText="display:block;font-size:12px;color:var(--muted);margin:8px 0 6px;font-weight:600";
-      const inp=document.createElement("input");
-      inp.type="password"; inp.id="adminAuthPass"; inp.placeholder="Password"; inp.autocomplete="current-password";
-      inp.style.cssText="width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-size:14px;outline:none;margin-bottom:10px";
-      const emailEl=document.getElementById("adminPass");
-      if(emailEl&&emailEl.parentNode){
-        emailEl.parentNode.insertBefore(lbl, emailEl.nextSibling);
-        emailEl.parentNode.insertBefore(inp, lbl.nextSibling);
-      }
-      pwField=inp;
-    }
-
     openBtn.addEventListener("click",()=>{
       if(adminUnlocked&&accessToken){
         gate.style.display="none";panel.style.display="";
         renderAdminList();fillGameSelect();
+        if(window.__loadHubFeedbackAdmin)window.__loadHubFeedbackAdmin(accessToken);
         return;
       }
       gate.style.display="";panel.style.display="none";
       if(passInput){passInput.value="";passInput.focus();}
-      if(pwField) pwField.value="";
       if(err)err.classList.remove("on");
     });
     cancelGate&&cancelGate.addEventListener("click",()=>{gate.style.display="none";});
 
     async function tryUnlock(){
-      const email=(passInput&&passInput.value||"").trim();
-      const password=(pwField&&pwField.value)||"";
-      if(!email||!password){
-        if(err){err.textContent="Enter email and password";err.classList.add("on");}
+      const password=(passInput&&passInput.value)||"";
+      if(!password){
+        if(err){err.textContent="Enter the admin password";err.classList.add("on");}
         return;
       }
       try{
         if(err)err.classList.remove("on");
         unlockBtn.disabled=true;unlockBtn.textContent="…";
-        await authSignIn(email, password);
+        await authSignIn(ADMIN_AUTH_EMAIL, password);
+        if(passInput)passInput.value="";
         adminUnlocked=true;
         gate.style.display="none";
         panel.style.display="";
@@ -465,16 +523,17 @@ create policy "Auth delete featured media" on storage.objects for delete to auth
           if(!r.ok){ showSetup(); showAdminMsg(false,"Could not load featured table. Run the SQL setup below."); }
           else { showAdminMsg(true,"Admin unlocked."); }
           renderAdminList();fillGameSelect();
+          if(window.__loadHubFeedbackAdmin)window.__loadHubFeedbackAdmin(accessToken);
         });
       }catch(e){
         if(err){err.textContent=String(e.message||e);err.classList.add("on");}
       }finally{
+        if(passInput)passInput.value="";
         unlockBtn.disabled=false;unlockBtn.textContent="Unlock";
       }
     }
     unlockBtn&&unlockBtn.addEventListener("click",tryUnlock);
     if(passInput) passInput.addEventListener("keydown",e=>{if(e.key==="Enter")tryUnlock();});
-    if(pwField) pwField.addEventListener("keydown",e=>{if(e.key==="Enter")tryUnlock();});
 
     lockBtn&&lockBtn.addEventListener("click",async()=>{
       await authSignOut();
