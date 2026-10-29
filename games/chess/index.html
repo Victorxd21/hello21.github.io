@@ -45,6 +45,7 @@ main{width:100%;max-width:520px;padding:0 12px 24px;display:flex;flex-direction:
 .eval-label.top{top:4px;color:#eee}.eval-label.bot{bottom:4px;color:#111}
 .board-wrap{position:relative;flex:1;aspect-ratio:1;border-radius:8px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4);touch-action:none}
 #board{width:100%;height:100%;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);user-select:none;position:relative}
+#arrowLayer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:40}
 .sq{position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s}
 .sq.light{background:var(--light)}.sq.dark{background:var(--dark)}
 .sq.selected{background:var(--highlight)!important}
@@ -60,8 +61,19 @@ main{width:100%;max-width:520px;padding:0 12px 24px;display:flex;flex-direction:
 .sliding-piece{position:absolute;width:12.5%;height:12.5%;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:50;transition:left .22s cubic-bezier(.25,.1,.25,1),top .22s cubic-bezier(.25,.1,.25,1)}
 .sliding-piece img{width:88%;height:88%;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
 .opening{text-align:center;font-size:.8rem;color:var(--accent);font-weight:500;min-height:1.2em}
+.move-quality{text-align:center;font-size:.85rem;font-weight:600;min-height:1.2em;opacity:0;transition:opacity .2s}
+.move-quality.show{opacity:1}
+.move-quality.brilliant{color:#1baca6}
+.move-quality.great{color:#66bb6a}
+.move-quality.good{color:#8bc34a}
+.move-quality.inaccuracy{color:#ffc107}
+.move-quality.mistake{color:#ff9800}
+.move-quality.blunder{color:#ef5350}
 .status{text-align:center;font-size:.9rem;color:var(--muted);min-height:1.3em}
 .status.gameover{color:var(--ok);font-weight:600}
+.stats-bar{display:flex;gap:12px;justify-content:center;font-size:.75rem;color:var(--muted);flex-wrap:wrap}
+.stats-bar span{background:var(--panel);padding:4px 10px;border-radius:999px}
+.stats-bar b{color:var(--text)}
 .controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 button{font-family:inherit;font-size:.85rem;font-weight:600;padding:10px 16px;border:none;border-radius:10px;cursor:pointer;background:var(--panel2);color:var(--text);transition:background .15s,transform .1s;min-height:42px}
 button:active{transform:scale(.97)}
@@ -91,11 +103,23 @@ button.primary:hover{background:var(--accent2)}
 .promo-choices{display:flex;gap:8px;background:var(--panel);padding:12px;border-radius:12px}
 .promo-choices button{width:56px;height:56px;padding:4px;background:var(--panel2);display:flex;align-items:center;justify-content:center}
 .promo-choices button img{width:100%;height:100%;object-fit:contain}
+.puzzle-banner{background:linear-gradient(135deg,#1a237e,#0d47a1);border-radius:var(--radius);padding:10px 14px;text-align:center;font-size:.85rem}
+.puzzle-banner strong{display:block;font-size:.95rem;margin-bottom:2px}
 </style>
 </head>
 <body>
 <header><h1>♟ Chess</h1><span class="badge" id="modeBadge">Normal</span></header>
 <main>
+<div class="stats-bar" id="statsBar">
+  <span>W <b id="statW">0</b></span>
+  <span>D <b id="statD">0</b></span>
+  <span>L <b id="statL">0</b></span>
+  <span>Puzzles <b id="statP">0</b></span>
+</div>
+<div id="puzzleBanner" class="puzzle-banner" style="display:none">
+  <strong id="puzzleTitle">Mate in 2</strong>
+  <span id="puzzleHint">Find the winning move</span>
+</div>
 <div class="profiles"><div class="profile" id="profileTop">
 <div class="avatar" id="avatarTop"><div class="think-ring"></div><span class="sf-icon">🐟</span></div>
 <div class="info"><div class="name" id="nameTop">Stockfish</div><div class="sub" id="subTop">AI · Medium</div></div>
@@ -105,7 +129,11 @@ button.primary:hover{background:var(--accent2)}
 <div class="captured-row" id="capturedTop"></div>
 <div class="board-area">
 <div class="eval-bar" id="evalBar" title="Evaluation"><div class="eval-fill" id="evalFill" style="height:50%"></div><span class="eval-label top" id="evalTop"></span><span class="eval-label bot" id="evalBot"></span></div>
-<div class="board-wrap"><div id="board"></div><div class="promo-overlay" id="promoOverlay"><div class="promo-choices" id="promoChoices"></div></div></div>
+<div class="board-wrap">
+  <div id="board"></div>
+  <svg id="arrowLayer" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+  <div class="promo-overlay" id="promoOverlay"><div class="promo-choices" id="promoChoices"></div></div>
+</div>
 </div>
 <div class="captured-row" id="capturedBottom"></div>
 <div class="profiles"><div class="profile" id="profileBottom">
@@ -115,6 +143,7 @@ button.primary:hover{background:var(--accent2)}
 <div class="think-pulse"><span></span><span></span><span></span></div>
 </div></div>
 <div class="opening" id="openingName"></div>
+<div class="move-quality" id="moveQuality"></div>
 <div class="status" id="status">Your turn</div>
 <div class="moves-panel" id="moves"></div>
 <div class="controls">
@@ -132,6 +161,7 @@ button.primary:hover{background:var(--accent2)}
 <div class="mode-btn" data-mode="blitz"><div class="title">Blitz</div><div class="desc">3+2 · vs AI</div></div>
 <div class="mode-btn" data-mode="bullet"><div class="title">Bullet</div><div class="desc">1+1 · vs AI</div></div>
 <div class="mode-btn" data-mode="local"><div class="title">Local</div><div class="desc">10+5 · 2 players</div></div>
+<div class="mode-btn" data-mode="puzzle"><div class="title">Puzzle</div><div class="desc">Mate in 1–3</div></div>
 </div></div>
 <div class="section" id="colorSection"><label>Play as</label><div class="color-pick">
 <div class="color-btn selected" data-color="w"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wK.svg" alt="White"></div>
@@ -147,4 +177,5 @@ button.primary:hover{background:var(--accent2)}
 <div class="actions"><button id="btnCancel">Cancel</button><button class="primary" id="btnStart">Start</button></div>
 </div></div>
 <script src="game.js"></script>
-</body></html>
+</body>
+</html>
