@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#80d6d5">
+  <title>Fishing</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="world" aria-label="A small island surrounded by open ocean"></canvas>
+  <div class="topline">
+    <div class="brand"><span class="brand-mark">F</span><span>OPEN WATER</span></div>
+    <div class="wallet"><span class="coin">$</span><span id="coins">0</span><span class="wallet-divider"></span><span id="fishCount">0 fish</span></div>
+  </div>
+  <div class="map-panel" aria-label="Map and island direction">
+    <div class="map-heading"><span>CHART</span><span id="seaStatus">SHALLOWS</span></div>
+    <canvas id="map" width="180" height="180" aria-label="Map showing your location and the island"></canvas>
+    <div class="island-direction"><span class="direction-label">ISLAND</span><span id="islandArrow" aria-hidden="true">▲</span></div>
+  </div>
+  <div class="reticle" aria-hidden="true"><i></i></div>
+  <div class="status-pill" id="status">A quiet morning at sea</div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="interaction">
+    <button id="interactButton" type="button" class="game-button secondary" hidden></button>
+    <button id="actionButton" type="button" class="game-button primary" hidden></button>
+  </div>
+  <div class="desktop-help">W A S D move / steer <span>·</span> E interact <span>·</span> F cast / reel <span>·</span> Drag to look</div>
+  <div class="touch-controls" aria-label="Movement controls">
+    <div class="dpad">
+      <button type="button" data-key="w" aria-label="Forward">▲</button>
+      <button type="button" data-key="a" aria-label="Left">◀</button>
+      <button type="button" data-key="s" aria-label="Back">▼</button>
+      <button type="button" data-key="d" aria-label="Right">▶</button>
+    </div>
+  </div>
+  <script type="module" src="game.js"></script>
+</body>
+</html>

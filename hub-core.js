@@ -5,6 +5,7 @@
   const GAME_META={
     "angry-birds":{name:"Angry Birds",file:"index.html",icon:"🐦",tags:["arcade","physics"]},
     "blackjack":{name:"Blackjack",file:"index.html",icon:"🂡",tags:["card"]},
+    "fishing":{name:"Fishing",file:"index.html",icon:"🎣",tags:["3d","explore"]},
     "cat-game":{name:"Cat Game",file:"catUP.html",icon:"🐱",tags:["fun"]},
     "gartic":{name:"Gartic Phone",file:"index.html",icon:"✏️",tags:["multiplayer","draw"]},
     "gradess":{name:"Gradess",file:"login.html",icon:"📚",tags:["utility"]},
@@ -128,6 +129,7 @@
       try{localStorage.setItem(CACHE_GAMES_KEY,JSON.stringify(foundFolders));}catch(e){}
     }
 
+    foundFolders=[...new Set([...foundFolders,...Object.keys(GAME_META)])];
     const fromFolders=foundFolders.map(entryFromFolder);
     const seen=new Set(fromFolders.map(g=>(g.folder||"")+":"+(g.file||"")));
     const extras=ROOT_GAMES.filter(g=>!seen.has((g.folder||"")+":"+(g.file||"")));
