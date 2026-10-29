@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <title>Chess • hello21</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <style>
 :root{--bg:#0f1117;--panel:#1a1d27;--panel2:#222633;--text:#e8eaed;--muted:#9aa0a6;--accent:#5b8def;--accent2:#3d6fd4;--light:#f0d9b5;--dark:#b58863;--highlight:rgba(91,141,239,.45);--last:rgba(255,213,79,.35);--check:rgba(239,83,80,.55);--danger:#ef5350;--ok:#66bb6a;--radius:12px}
@@ -101,13 +101,27 @@ button.primary:hover{background:var(--accent2)}
 .promo-choices button img{width:100%;height:100%;object-fit:contain}
 .puzzle-banner{background:linear-gradient(135deg,#1a237e,#0d47a1);border-radius:var(--radius);padding:10px 14px;text-align:center;font-size:.85rem}
 .puzzle-banner strong{display:block;font-size:.95rem;margin-bottom:2px}
-.chat-layer{position:fixed;left:0;right:0;bottom:0;top:0;pointer-events:none;z-index:80;overflow:hidden}
-.chat-bubble{position:absolute;max-width:240px;padding:10px 14px;border-radius:16px 16px 16px 4px;background:#2a3142;color:var(--text);font-size:.82rem;line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.45);opacity:0;transform:translateY(12px) scale(.92);transition:opacity .25s,transform .25s;pointer-events:none}
-.chat-bubble.show{opacity:1;transform:translateY(0) scale(1)}
-.chat-bubble.sf{background:linear-gradient(135deg,#1e3a5f,#2a4a6f);border:1px solid rgba(91,141,239,.35)}
-.chat-bubble.player{background:linear-gradient(135deg,#1b3d2f,#234d3a);border:1px solid rgba(102,187,106,.35);border-radius:16px 16px 4px 16px}
-.chat-bubble .who{font-size:.65rem;font-weight:700;opacity:.7;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
 .engine-badge{font-size:.65rem;color:var(--muted);margin-left:6px}
+/* Undertale dialogue */
+.ut-box{
+  width:100%;max-width:520px;margin:0 auto 8px;
+  background:#000;border:4px solid #fff;border-radius:0;
+  display:none;align-items:stretch;gap:0;min-height:88px;
+  box-shadow:0 0 0 2px #000, 0 8px 24px rgba(0,0,0,.5);
+  font-family:'Press Start 2P',monospace;image-rendering:pixelated;
+}
+.ut-box.show{display:flex}
+.ut-face{
+  width:72px;flex-shrink:0;background:#111;border-right:3px solid #fff;
+  display:flex;align-items:center;justify-content:center;font-size:2rem;
+}
+.ut-body{flex:1;padding:12px 14px 10px;position:relative;min-width:0}
+.ut-name{font-size:.55rem;color:#ffb74d;margin-bottom:8px;letter-spacing:.04em}
+.ut-text{font-size:.62rem;line-height:1.65;color:#fff;word-break:break-word;min-height:2.8em}
+.ut-text .star{color:#fff;margin-right:6px}
+.ut-cursor{display:inline-block;width:8px;height:10px;background:#fff;margin-left:2px;vertical-align:middle;animation:utblink .6s steps(1) infinite}
+@keyframes utblink{50%{opacity:0}}
+.ut-skip{position:absolute;right:8px;bottom:6px;font-size:.45rem;color:#666}
 </style>
 </head>
 <body>
@@ -148,6 +162,14 @@ button.primary:hover{background:var(--accent2)}
 <div class="clock-time" id="timeBottom">10:00</div>
 <div class="think-pulse"><span></span><span></span><span></span></div>
 </div></div>
+<div class="ut-box" id="utBox">
+  <div class="ut-face" id="utFace">🐟</div>
+  <div class="ut-body">
+    <div class="ut-name">STOCKFISH</div>
+    <div class="ut-text" id="utText"></div>
+    <div class="ut-skip">tap to skip</div>
+  </div>
+</div>
 <div class="opening" id="openingName"></div>
 <div class="move-quality" id="moveQuality"></div>
 <div class="status" id="status">Your turn</div>
@@ -161,7 +183,6 @@ button.primary:hover{background:var(--accent2)}
 <button id="btnMute" title="Toggle sound">🔊</button>
 </div>
 </main>
-<div class="chat-layer" id="chatLayer"></div>
 <div class="modal-overlay" id="modal"><div class="modal">
 <h2>New Game</h2>
 <div class="section"><label>Mode</label><div class="mode-grid">
