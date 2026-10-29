@@ -809,6 +809,7 @@ a.feat-play:hover {
   #hubLoader .loader-orbit { animation: none !important; }
 }
 @media (max-width: 600px) {
+  .tag { min-height: 44px; }
   .content {
     padding: 25px 16px 30px;
   }

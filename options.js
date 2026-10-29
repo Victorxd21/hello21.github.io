@@ -1,7 +1,7 @@
 /*! Game Hub Options v3.8.0 */
 (function(){
   const OPT_KEY="hub_opts_v1";
-  const defaultOpts={trail:false,party:false,confetti:true,sound:false,fx:true,grid:true,cubes:true,parallax:true,motion:false,fps:false,hideDead:false,forceOk:false,season:"auto",timeOfDay:"auto"};
+  const defaultOpts={trail:false,party:false,confetti:true,sound:false,fx:true,grid:true,cubes:true,parallax:true,motion:false,fps:false,hideDead:false,forceOk:false,hideBanners:false,season:"auto",timeOfDay:"auto"};
   let opts=Object.assign({},defaultOpts);
   try{const s=localStorage.getItem(OPT_KEY);if(s)Object.assign(opts,JSON.parse(s));}catch(e){}
   function saveOpts(){try{localStorage.setItem(OPT_KEY,JSON.stringify(opts));}catch(e){}}
@@ -26,6 +26,8 @@
 .opt-btn:hover{background:rgba(167,139,250,.18);transform:translateY(-1px)}
 .opt-btn.danger:hover{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.4)}
 #fpsMeter{position:fixed;bottom:12px;left:12px;z-index:200;font:600 11px ui-monospace,monospace;color:var(--c);background:rgba(0,0,0,.45);border:1px solid var(--border);padding:4px 8px;border-radius:8px;display:none;pointer-events:none}
+body.hide-banner-ads .ad-banner-slot,body.hide-banner-ads #container-945189951d150e3c5774dfe14f298204{display:none!important}
+@media(max-width:600px){#optBtn{top:auto;bottom:calc(var(--dock-h) + env(safe-area-inset-bottom,0px) + 12px);right:12px}#optPanel{top:auto;bottom:calc(var(--dock-h) + env(safe-area-inset-bottom,0px) + 64px);right:12px;max-height:calc(100dvh - var(--dock-h) - env(safe-area-inset-bottom,0px) - 96px)}}
 body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 body.no-grid .bg .grid{display:none}
 body.no-fx #seasonFx,body.no-fx .bg .spark{display:none!important}
@@ -48,6 +50,8 @@ body.hide-dead .game.dead{display:none}
   <div class="opt-row"><label>Party mode<span class="hint">Extra wiggle on hover</span></label><button type="button" class="toggle" data-opt="party"></button></div>
   <div class="opt-row"><label>Click confetti<span class="hint">Burst when opening a game</span></label><button type="button" class="toggle" data-opt="confetti"></button></div>
   <div class="opt-row"><label>UI sounds<span class="hint">Soft clicks (WebAudio)</span></label><button type="button" class="toggle" data-opt="sound"></button></div>
+  <h3>Library & Ads</h3>
+  <div class="opt-row"><label>Hide banner ads<span class="hint">Collapse inline ad placements</span></label><button type="button" class="toggle" data-opt="hideBanners" aria-label="Hide banner ads" aria-pressed="false"></button></div>
   
   <h3>Atmosphere & Time</h3>
   <label style="font-size:11px;color:var(--muted);font-weight:700">Season Theme</label>
@@ -114,13 +118,17 @@ body.hide-dead .game.dead{display:none}
     document.body.classList.toggle("no-cubes",!opts.cubes);
     document.body.classList.toggle("no-parallax",!opts.parallax);
     document.body.classList.toggle("hide-dead",!!opts.hideDead);
+    document.body.classList.toggle("hide-banner-ads",!!opts.hideBanners);
     
     const fpsEl=document.getElementById("fpsMeter");
     if(fpsEl)fpsEl.style.display=opts.fps?"block":"none";
 
     document.querySelectorAll("#optPanel .toggle").forEach(t=>{
       const k=t.getAttribute("data-opt");
-      if(k in opts)t.classList.toggle("on",!!opts[k]);
+      if(k in opts){
+        t.classList.toggle("on",!!opts[k]);
+        t.setAttribute("aria-pressed",String(!!opts[k]));
+      }
     });
 
     const selS=document.getElementById("optSeason");
