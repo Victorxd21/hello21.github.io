@@ -13,9 +13,9 @@ body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--tex
 header{width:100%;max-width:520px;padding:14px 16px 8px;display:flex;align-items:center;justify-content:space-between}
 header h1{font-size:1.25rem;font-weight:700}
 header .badge{font-size:.7rem;background:var(--panel2);color:var(--muted);padding:4px 8px;border-radius:999px}
-main{width:100%;max-width:520px;padding:0 12px 24px;display:flex;flex-direction:column;gap:10px;flex:1}
+main{width:100%;max-width:520px;padding:0 12px 24px;display:flex;flex-direction:column;gap:10px;flex:1;position:relative}
 .profiles{display:flex;gap:8px}
-.profile{flex:1;background:var(--panel);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;gap:10px;border:2px solid transparent;transition:border-color .25s,background .25s;position:relative;overflow:hidden}
+.profile{flex:1;background:var(--panel);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;gap:10px;border:2px solid transparent;transition:border-color .25s,background .25s;position:relative;overflow:visible}
 .profile.active{border-color:var(--accent);background:var(--panel2)}
 .profile.thinking-active{border-color:#ffb74d}
 .profile .avatar{width:40px;height:40px;border-radius:50%;background:var(--panel2);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden}
@@ -63,12 +63,8 @@ main{width:100%;max-width:520px;padding:0 12px 24px;display:flex;flex-direction:
 .opening{text-align:center;font-size:.8rem;color:var(--accent);font-weight:500;min-height:1.2em}
 .move-quality{text-align:center;font-size:.85rem;font-weight:600;min-height:1.2em;opacity:0;transition:opacity .2s}
 .move-quality.show{opacity:1}
-.move-quality.brilliant{color:#1baca6}
-.move-quality.great{color:#66bb6a}
-.move-quality.good{color:#8bc34a}
-.move-quality.inaccuracy{color:#ffc107}
-.move-quality.mistake{color:#ff9800}
-.move-quality.blunder{color:#ef5350}
+.move-quality.brilliant{color:#1baca6}.move-quality.great{color:#66bb6a}.move-quality.good{color:#8bc34a}
+.move-quality.inaccuracy{color:#ffc107}.move-quality.mistake{color:#ff9800}.move-quality.blunder{color:#ef5350}
 .status{text-align:center;font-size:.9rem;color:var(--muted);min-height:1.3em}
 .status.gameover{color:var(--ok);font-weight:600}
 .stats-bar{display:flex;gap:12px;justify-content:center;font-size:.75rem;color:var(--muted);flex-wrap:wrap}
@@ -105,10 +101,20 @@ button.primary:hover{background:var(--accent2)}
 .promo-choices button img{width:100%;height:100%;object-fit:contain}
 .puzzle-banner{background:linear-gradient(135deg,#1a237e,#0d47a1);border-radius:var(--radius);padding:10px 14px;text-align:center;font-size:.85rem}
 .puzzle-banner strong{display:block;font-size:.95rem;margin-bottom:2px}
+.chat-layer{position:fixed;left:0;right:0;bottom:0;top:0;pointer-events:none;z-index:80;overflow:hidden}
+.chat-bubble{position:absolute;max-width:220px;padding:10px 14px;border-radius:16px 16px 16px 4px;background:#2a3142;color:var(--text);font-size:.82rem;line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.45);opacity:0;transform:translateY(12px) scale(.92);transition:opacity .25s,transform .25s;pointer-events:none}
+.chat-bubble.show{opacity:1;transform:translateY(0) scale(1)}
+.chat-bubble.sf{background:linear-gradient(135deg,#1e3a5f,#2a4a6f);border:1px solid rgba(91,141,239,.35)}
+.chat-bubble.player{background:linear-gradient(135deg,#1b3d2f,#234d3a);border:1px solid rgba(102,187,106,.35);border-radius:16px 16px 4px 16px}
+.chat-bubble .who{font-size:.65rem;font-weight:700;opacity:.7;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.engine-badge{font-size:.65rem;color:var(--muted);margin-left:6px}
 </style>
 </head>
 <body>
-<header><h1>♟ Chess</h1><span class="badge" id="modeBadge">Normal</span></header>
+<header>
+  <h1>♟ Chess <span class="engine-badge" id="engineBadge">loading…</span></h1>
+  <span class="badge" id="modeBadge">Normal</span>
+</header>
 <main>
 <div class="stats-bar" id="statsBar">
   <span>W <b id="statW">0</b></span>
@@ -154,6 +160,7 @@ button.primary:hover{background:var(--accent2)}
 <button id="btnMute" title="Toggle sound">🔊</button>
 </div>
 </main>
+<div class="chat-layer" id="chatLayer"></div>
 <div class="modal-overlay" id="modal"><div class="modal">
 <h2>New Game</h2>
 <div class="section"><label>Mode</label><div class="mode-grid">
@@ -169,10 +176,10 @@ button.primary:hover{background:var(--accent2)}
 <div class="color-btn" data-color="random">🎲</div>
 </div></div>
 <div class="section" id="diffSection"><label>AI Strength</label><div class="mode-grid">
-<div class="mode-btn selected" data-diff="1"><div class="title">Easy</div><div class="desc">Depth 1</div></div>
-<div class="mode-btn" data-diff="2"><div class="title">Medium</div><div class="desc">Depth 2</div></div>
-<div class="mode-btn" data-diff="3"><div class="title">Hard</div><div class="desc">Depth 3</div></div>
-<div class="mode-btn" data-diff="4"><div class="title">Master</div><div class="desc">Depth 4</div></div>
+<div class="mode-btn selected" data-diff="1"><div class="title">Easy</div><div class="desc">Depth 6</div></div>
+<div class="mode-btn" data-diff="2"><div class="title">Medium</div><div class="desc">Depth 10</div></div>
+<div class="mode-btn" data-diff="3"><div class="title">Hard</div><div class="desc">Depth 14</div></div>
+<div class="mode-btn" data-diff="4"><div class="title">Master</div><div class="desc">Depth 18</div></div>
 </div></div>
 <div class="actions"><button id="btnCancel">Cancel</button><button class="primary" id="btnStart">Start</button></div>
 </div></div>
