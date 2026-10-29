@@ -102,7 +102,7 @@ button.primary:hover{background:var(--accent2)}
 .puzzle-banner{background:linear-gradient(135deg,#1a237e,#0d47a1);border-radius:var(--radius);padding:10px 14px;text-align:center;font-size:.85rem}
 .puzzle-banner strong{display:block;font-size:.95rem;margin-bottom:2px}
 .chat-layer{position:fixed;left:0;right:0;bottom:0;top:0;pointer-events:none;z-index:80;overflow:hidden}
-.chat-bubble{position:absolute;max-width:220px;padding:10px 14px;border-radius:16px 16px 16px 4px;background:#2a3142;color:var(--text);font-size:.82rem;line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.45);opacity:0;transform:translateY(12px) scale(.92);transition:opacity .25s,transform .25s;pointer-events:none}
+.chat-bubble{position:absolute;max-width:240px;padding:10px 14px;border-radius:16px 16px 16px 4px;background:#2a3142;color:var(--text);font-size:.82rem;line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.45);opacity:0;transform:translateY(12px) scale(.92);transition:opacity .25s,transform .25s;pointer-events:none}
 .chat-bubble.show{opacity:1;transform:translateY(0) scale(1)}
 .chat-bubble.sf{background:linear-gradient(135deg,#1e3a5f,#2a4a6f);border:1px solid rgba(91,141,239,.35)}
 .chat-bubble.player{background:linear-gradient(135deg,#1b3d2f,#234d3a);border:1px solid rgba(102,187,106,.35);border-radius:16px 16px 4px 16px}
@@ -153,7 +153,8 @@ button.primary:hover{background:var(--accent2)}
 <div class="status" id="status">Your turn</div>
 <div class="moves-panel" id="moves"></div>
 <div class="controls">
-<button class="primary" id="btnNew">New Game</button>
+<button class="primary" id="btnMenu">Menu</button>
+<button id="btnNew">New Game</button>
 <button id="btnUndo">Undo</button>
 <button id="btnFlip">Flip</button>
 <button id="btnHint">Hint</button>
