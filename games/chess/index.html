@@ -66,42 +66,145 @@
       padding: 0 12px 24px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
       flex: 1;
     }
 
-    .clocks {
+    /* Profiles */
+    .profiles {
       display: flex;
       gap: 8px;
     }
-    .clock {
+    .profile {
       flex: 1;
       background: var(--panel);
       border-radius: var(--radius);
-      padding: 10px 14px;
+      padding: 10px 12px;
       display: flex;
-      flex-direction: column;
-      gap: 2px;
+      align-items: center;
+      gap: 10px;
       border: 2px solid transparent;
-      transition: border-color 0.2s, background 0.2s;
+      transition: border-color 0.25s, background 0.25s;
+      position: relative;
+      overflow: hidden;
     }
-    .clock.active {
+    .profile.active {
       border-color: var(--accent);
       background: var(--panel2);
     }
-    .clock .label {
+    .profile.thinking-active {
+      border-color: #ffb74d;
+    }
+    .profile .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--panel2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .profile .avatar img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+    }
+    .profile .avatar .sf-icon {
+      font-size: 1.3rem;
+    }
+    .profile .info {
+      flex: 1;
+      min-width: 0;
+    }
+    .profile .name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .profile .sub {
       font-size: 0.7rem;
       color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+      margin-top: 1px;
     }
-    .clock .time {
-      font-size: 1.4rem;
+    .profile .clock-time {
+      font-size: 1.15rem;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
     }
-    .clock.low .time { color: var(--danger); }
+    .profile.low .clock-time { color: var(--danger); }
 
+    /* Thinking dots on Stockfish avatar */
+    .think-ring {
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: #ffb74d;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .profile.thinking-active .think-ring {
+      opacity: 1;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Brain pulse when thinking */
+    .think-pulse {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      align-items: center;
+      gap: 3px;
+    }
+    .profile.thinking-active .think-pulse {
+      display: flex;
+    }
+    .think-pulse span {
+      width: 5px;
+      height: 5px;
+      background: #ffb74d;
+      border-radius: 50%;
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+    .think-pulse span:nth-child(2) { animation-delay: 0.15s; }
+    .think-pulse span:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Captured */
+    .captured-row {
+      display: flex;
+      gap: 2px;
+      min-height: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 0 2px;
+    }
+    .captured-row img {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+      opacity: 0.9;
+    }
+    .captured-row .adv {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-left: 4px;
+    }
+
+    /* Board */
     .board-wrap {
       position: relative;
       width: 100%;
@@ -120,6 +223,7 @@
       grid-template-columns: repeat(8, 1fr);
       grid-template-rows: repeat(8, 1fr);
       user-select: none;
+      position: relative;
     }
     .sq {
       position: relative;
@@ -127,7 +231,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: background 0.1s;
+      transition: background 0.12s;
     }
     .sq.light { background: var(--light); }
     .sq.dark { background: var(--dark); }
@@ -157,6 +261,10 @@
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
+      z-index: 2;
+    }
+    .sq img.piece.hidden {
+      opacity: 0;
     }
     .sq .coord {
       position: absolute;
@@ -164,29 +272,43 @@
       font-weight: 600;
       opacity: 0.55;
       pointer-events: none;
+      z-index: 1;
     }
     .sq .coord.file { bottom: 2px; right: 3px; }
     .sq .coord.rank { top: 2px; left: 3px; }
     .sq.light .coord { color: var(--dark); }
     .sq.dark .coord { color: var(--light); }
 
-    .captured {
+    /* Sliding piece overlay */
+    .sliding-piece {
+      position: absolute;
+      width: 12.5%;
+      height: 12.5%;
       display: flex;
-      gap: 2px;
-      min-height: 28px;
-      flex-wrap: wrap;
       align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 50;
+      transition: left 0.22s cubic-bezier(0.25, 0.1, 0.25, 1),
+                  top 0.22s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
-    .captured img {
-      width: 22px;
-      height: 22px;
+    .sliding-piece img {
+      width: 88%;
+      height: 88%;
       object-fit: contain;
-      opacity: 0.9;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.35));
     }
-    .captured .adv {
-      font-size: 0.8rem;
+
+    /* Status & controls */
+    .status {
+      text-align: center;
+      font-size: 0.9rem;
       color: var(--muted);
-      margin-left: 4px;
+      min-height: 1.3em;
+    }
+    .status.gameover {
+      color: var(--ok);
+      font-weight: 600;
     }
 
     .controls {
@@ -219,17 +341,21 @@
       cursor: not-allowed;
     }
 
-    .status {
-      text-align: center;
-      font-size: 0.9rem;
+    .moves-panel {
+      background: var(--panel);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      max-height: 90px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.5;
       color: var(--muted);
-      min-height: 1.3em;
     }
-    .status.gameover {
-      color: var(--ok);
-      font-weight: 600;
-    }
+    .moves-panel span { margin-right: 6px; }
+    .moves-panel .num { color: var(--text); font-weight: 500; }
 
+    /* Modal */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -260,9 +386,7 @@
       margin-bottom: 16px;
       text-align: center;
     }
-    .modal .section {
-      margin-bottom: 16px;
-    }
+    .modal .section { margin-bottom: 16px; }
     .modal .section label {
       display: block;
       font-size: 0.75rem;
@@ -292,10 +416,7 @@
     .mode-btn .title { font-weight: 600; font-size: 0.9rem; }
     .mode-btn .desc { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
 
-    .color-pick {
-      display: flex;
-      gap: 8px;
-    }
+    .color-pick { display: flex; gap: 8px; }
     .color-btn {
       flex: 1;
       padding: 10px;
@@ -308,51 +429,11 @@
       align-items: center;
       justify-content: center;
     }
-    .color-btn img {
-      width: 32px;
-      height: 32px;
-    }
+    .color-btn img { width: 32px; height: 32px; }
     .color-btn.selected { border-color: var(--accent); }
 
-    .modal .actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
+    .modal .actions { display: flex; gap: 8px; margin-top: 8px; }
     .modal .actions button { flex: 1; }
-
-    .moves-panel {
-      background: var(--panel);
-      border-radius: var(--radius);
-      padding: 10px 12px;
-      max-height: 100px;
-      overflow-y: auto;
-      font-size: 0.8rem;
-      font-variant-numeric: tabular-nums;
-      line-height: 1.5;
-      color: var(--muted);
-    }
-    .moves-panel span { margin-right: 6px; }
-    .moves-panel .num { color: var(--text); font-weight: 500; }
-
-    .thinking {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-    .thinking.show { display: flex; }
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid var(--panel2);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
     .promo-overlay {
       position: absolute;
@@ -361,7 +442,7 @@
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 20;
+      z-index: 60;
     }
     .promo-overlay.show { display: flex; }
     .promo-choices {
@@ -394,30 +475,50 @@
   </header>
 
   <main>
-    <div class="clocks">
-      <div class="clock" id="clockBlack">
-        <span class="label">Black</span>
-        <span class="time" id="timeBlack">10:00</span>
-      </div>
-      <div class="clock" id="clockWhite">
-        <span class="label">White</span>
-        <span class="time" id="timeWhite">10:00</span>
+    <!-- Top profile = opponent (Black side of board by default) -->
+    <div class="profiles">
+      <div class="profile" id="profileTop">
+        <div class="avatar" id="avatarTop">
+          <div class="think-ring"></div>
+          <span class="sf-icon" id="avatarTopIcon">🐟</span>
+        </div>
+        <div class="info">
+          <div class="name" id="nameTop">Stockfish</div>
+          <div class="sub" id="subTop">AI · Medium</div>
+        </div>
+        <div class="clock-time" id="timeTop">10:00</div>
+        <div class="think-pulse"><span></span><span></span><span></span></div>
       </div>
     </div>
 
-    <div class="captured" id="capturedWhite"></div>
+    <div class="captured-row" id="capturedTop"></div>
 
-    <div class="board-wrap">
+    <div class="board-wrap" id="boardWrap">
       <div id="board"></div>
       <div class="promo-overlay" id="promoOverlay">
         <div class="promo-choices" id="promoChoices"></div>
       </div>
     </div>
 
-    <div class="captured" id="capturedBlack"></div>
+    <div class="captured-row" id="capturedBottom"></div>
+
+    <!-- Bottom profile = you (White side by default) -->
+    <div class="profiles">
+      <div class="profile" id="profileBottom">
+        <div class="avatar" id="avatarBottom">
+          <div class="think-ring"></div>
+          <img id="avatarBottomImg" src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wK.svg" alt="You">
+        </div>
+        <div class="info">
+          <div class="name" id="nameBottom">You</div>
+          <div class="sub" id="subBottom">Player</div>
+        </div>
+        <div class="clock-time" id="timeBottom">10:00</div>
+        <div class="think-pulse"><span></span><span></span><span></span></div>
+      </div>
+    </div>
 
     <div class="status" id="status">Your turn</div>
-    <div class="thinking" id="thinking"><div class="spinner"></div> Thinking…</div>
 
     <div class="moves-panel" id="moves"></div>
 
@@ -467,22 +568,10 @@
       <div class="section" id="diffSection">
         <label>AI Strength</label>
         <div class="mode-grid">
-          <div class="mode-btn selected" data-diff="1">
-            <div class="title">Easy</div>
-            <div class="desc">Depth 1</div>
-          </div>
-          <div class="mode-btn" data-diff="2">
-            <div class="title">Medium</div>
-            <div class="desc">Depth 2</div>
-          </div>
-          <div class="mode-btn" data-diff="3">
-            <div class="title">Hard</div>
-            <div class="desc">Depth 3</div>
-          </div>
-          <div class="mode-btn" data-diff="4">
-            <div class="title">Master</div>
-            <div class="desc">Depth 4</div>
-          </div>
+          <div class="mode-btn selected" data-diff="1"><div class="title">Easy</div><div class="desc">Depth 1</div></div>
+          <div class="mode-btn" data-diff="2"><div class="title">Medium</div><div class="desc">Depth 2</div></div>
+          <div class="mode-btn" data-diff="3"><div class="title">Hard</div><div class="desc">Depth 3</div></div>
+          <div class="mode-btn" data-diff="4"><div class="title">Master</div><div class="desc">Depth 4</div></div>
         </div>
       </div>
 
@@ -494,11 +583,12 @@
   </div>
 
   <script>
-    // CBurnett SVG pieces (same set used by Lichess)
     const PIECE_BASE = 'https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/';
     function pieceSrc(color, type) {
       return PIECE_BASE + color + type.toUpperCase() + '.svg';
     }
+
+    const DIFF_LABELS = { 1: 'Easy', 2: 'Medium', 3: 'Hard', 4: 'Master' };
 
     let game = new Chess();
     let selected = null;
@@ -510,6 +600,7 @@
     let flipped = false;
     let gameOver = false;
     let thinking = false;
+    let animating = false;
 
     let timeWhite = 600000;
     let timeBlack = 600000;
@@ -517,9 +608,9 @@
     let lastTick = null;
 
     const boardEl = document.getElementById('board');
+    const boardWrap = document.getElementById('boardWrap');
     const statusEl = document.getElementById('status');
     const movesEl = document.getElementById('moves');
-    const thinkingEl = document.getElementById('thinking');
     const modeBadge = document.getElementById('modeBadge');
     const promoOverlay = document.getElementById('promoOverlay');
     const promoChoices = document.getElementById('promoChoices');
@@ -532,7 +623,6 @@
       q: [[-20,-10,-10,-5,-5,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,5,5,5,0,-10],[-5,0,5,5,5,5,0,-5],[0,0,5,5,5,5,0,-5],[-10,5,5,5,5,5,0,-10],[-10,0,5,0,0,0,0,-10],[-20,-10,-10,-5,-5,-10,-10,-20]],
       k: [[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-20,-30,-30,-40,-40,-30,-30,-20],[-10,-20,-20,-20,-20,-20,-20,-10],[20,20,0,0,0,0,20,20],[20,30,10,0,0,10,30,20]]
     };
-
     const VALUES = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
 
     function evaluate(g) {
@@ -544,15 +634,13 @@
         for (let c = 0; c < 8; c++) {
           const p = board[r][c];
           if (!p) continue;
-          const type = p.type;
-          const val = VALUES[type];
-          const table = PST[type];
+          const val = VALUES[p.type];
+          const table = PST[p.type];
           const pst = p.color === 'w' ? table[r][c] : table[7 - r][c];
           score += p.color === 'w' ? (val + pst) : -(val + pst);
         }
       }
-      const moves = g.moves().length;
-      score += (g.turn() === 'w' ? 1 : -1) * moves * 2;
+      score += (g.turn() === 'w' ? 1 : -1) * g.moves().length * 2;
       return score;
     }
 
@@ -610,7 +698,16 @@
       return String.fromCharCode(97 + file) + (rank + 1);
     }
 
-    function renderBoard() {
+    function sqToGrid(sq) {
+      const file = sq.charCodeAt(0) - 97;
+      const rank = parseInt(sq[1], 10) - 1;
+      const c = flipped ? 7 - file : file;
+      const r = flipped ? rank : 7 - rank;
+      return { r, c };
+    }
+
+    function renderBoard(skipPieces) {
+      // Keep existing squares if possible for animation, but simplest is full redraw then hide source
       boardEl.innerHTML = '';
       const isCheck = game.in_check();
       const turn = game.turn();
@@ -634,7 +731,7 @@
             if (piece) sq.classList.add('capture');
           }
 
-          if (piece) {
+          if (piece && !(skipPieces && skipPieces.has(name))) {
             const img = document.createElement('img');
             img.className = 'piece';
             img.src = pieceSrc(piece.color, piece.type);
@@ -664,10 +761,55 @@
       updateCaptured();
       updateStatus();
       updateClocksUI();
+      updateProfiles();
+    }
+
+    function animateMove(from, to, pieceColor, pieceType, callback) {
+      animating = true;
+      const fromGrid = sqToGrid(from);
+      const toGrid = sqToGrid(to);
+
+      // Hide the piece at destination temporarily (it will appear after slide)
+      // First render board without the moving piece on either square
+      const skip = new Set([from, to]);
+      // Put piece back on 'from' visually hidden? Better approach:
+      // render full board, then hide piece on 'from', show sliding clone
+
+      renderBoard();
+      // Hide piece that is now on 'to' (we already moved in game logic)
+      const toSq = boardEl.querySelector(`[data-sq="${to}"] img.piece`);
+      if (toSq) toSq.classList.add('hidden');
+
+      // Also ensure 'from' has no piece (already true after move)
+
+      const slider = document.createElement('div');
+      slider.className = 'sliding-piece';
+      const img = document.createElement('img');
+      img.src = pieceSrc(pieceColor, pieceType);
+      slider.appendChild(img);
+
+      // Position at start
+      slider.style.left = (fromGrid.c * 12.5) + '%';
+      slider.style.top = (fromGrid.r * 12.5) + '%';
+      boardEl.appendChild(slider);
+
+      // Force reflow then animate
+      slider.offsetHeight;
+      requestAnimationFrame(() => {
+        slider.style.left = (toGrid.c * 12.5) + '%';
+        slider.style.top = (toGrid.r * 12.5) + '%';
+      });
+
+      setTimeout(() => {
+        slider.remove();
+        if (toSq) toSq.classList.remove('hidden');
+        animating = false;
+        if (callback) callback();
+      }, 240);
     }
 
     function onSquareClick(sq) {
-      if (gameOver || thinking) return;
+      if (gameOver || thinking || animating) return;
       if (mode !== 'local' && game.turn() !== playerColor) return;
 
       if (selected) {
@@ -702,25 +844,33 @@
         return;
       }
 
+      const from = moveObj.from;
+      const to = moveObj.to;
+      const piece = game.get(from);
+      if (!piece) return;
+
       const move = game.move(moveObj);
       if (!move) return;
 
       lastMove = move;
       selected = null;
       possibleMoves = [];
-      renderBoard();
-      updateMovesList();
 
-      if (game.game_over()) {
-        endGame();
-        return;
-      }
+      animateMove(from, to, piece.color, piece.type, () => {
+        renderBoard();
+        updateMovesList();
 
-      lastTick = Date.now();
+        if (game.game_over()) {
+          endGame();
+          return;
+        }
 
-      if (mode !== 'local') {
-        setTimeout(aiMove, 150);
-      }
+        lastTick = Date.now();
+
+        if (mode !== 'local') {
+          setTimeout(aiMove, 120);
+        }
+      });
     }
 
     function showPromotion(moveObj) {
@@ -742,26 +892,107 @@
       promoOverlay.classList.add('show');
     }
 
+    function setThinking(on) {
+      thinking = on;
+      updateProfiles();
+    }
+
     function aiMove() {
       if (game.game_over() || mode === 'local') return;
-      thinking = true;
-      thinkingEl.classList.add('show');
-      statusEl.textContent = 'AI is thinking…';
+      setThinking(true);
+      statusEl.textContent = 'Stockfish is thinking…';
 
       setTimeout(() => {
         const best = getBestMove(aiDepth);
-        thinking = false;
-        thinkingEl.classList.remove('show');
+        setThinking(false);
 
         if (best) {
+          const piece = game.get(best.from);
           const move = game.move(best);
           lastMove = move;
-          renderBoard();
-          updateMovesList();
-          lastTick = Date.now();
-          if (game.game_over()) endGame();
+
+          animateMove(best.from, best.to, piece.color, piece.type, () => {
+            renderBoard();
+            updateMovesList();
+            lastTick = Date.now();
+            if (game.game_over()) endGame();
+          });
         }
-      }, 50);
+      }, 80);
+    }
+
+    function updateProfiles() {
+      const isLocal = mode === 'local';
+      const topIsWhite = flipped; // when flipped, white is on top
+
+      // Determine who is top/bottom
+      let topName, topSub, bottomName, bottomSub;
+      let topIsAI, bottomIsAI;
+
+      if (isLocal) {
+        topName = topIsWhite ? 'White' : 'Black';
+        bottomName = topIsWhite ? 'Black' : 'White';
+        topSub = 'Player';
+        bottomSub = 'Player';
+        topIsAI = false;
+        bottomIsAI = false;
+      } else {
+        // AI is opponent
+        const playerOnBottom = (playerColor === 'w' && !flipped) || (playerColor === 'b' && flipped);
+        if (playerOnBottom) {
+          bottomName = 'You';
+          bottomSub = 'Player';
+          topName = 'Stockfish';
+          topSub = 'AI · ' + (DIFF_LABELS[aiDepth] || 'Medium');
+          topIsAI = true;
+          bottomIsAI = false;
+        } else {
+          topName = 'You';
+          topSub = 'Player';
+          bottomName = 'Stockfish';
+          bottomSub = 'AI · ' + (DIFF_LABELS[aiDepth] || 'Medium');
+          topIsAI = false;
+          bottomIsAI = true;
+        }
+      }
+
+      document.getElementById('nameTop').textContent = topName;
+      document.getElementById('subTop').textContent = topSub;
+      document.getElementById('nameBottom').textContent = bottomName;
+      document.getElementById('subBottom').textContent = bottomSub;
+
+      // Avatars
+      const topColor = topIsWhite ? 'w' : 'b';
+      const bottomColor = topIsWhite ? 'b' : 'w';
+
+      const avatarTop = document.getElementById('avatarTop');
+      const avatarBottom = document.getElementById('avatarBottom');
+
+      if (topIsAI) {
+        avatarTop.innerHTML = '<div class="think-ring"></div><span class="sf-icon">🐟</span>';
+      } else {
+        avatarTop.innerHTML = `<div class="think-ring"></div><img src="${pieceSrc(topColor, 'k')}" alt="">`;
+      }
+      if (bottomIsAI) {
+        avatarBottom.innerHTML = '<div class="think-ring"></div><span class="sf-icon">🐟</span>';
+      } else {
+        avatarBottom.innerHTML = `<div class="think-ring"></div><img src="${pieceSrc(bottomColor, 'k')}" alt="">`;
+      }
+
+      // Active turn highlight
+      const turn = game.turn();
+      const topTurn = (topIsWhite && turn === 'w') || (!topIsWhite && turn === 'b');
+      const bottomTurn = !topTurn;
+
+      const profileTop = document.getElementById('profileTop');
+      const profileBottom = document.getElementById('profileBottom');
+
+      profileTop.classList.toggle('active', !gameOver && topTurn && !thinking);
+      profileBottom.classList.toggle('active', !gameOver && bottomTurn && !thinking);
+
+      // Thinking animation on AI profile
+      profileTop.classList.toggle('thinking-active', thinking && topIsAI);
+      profileBottom.classList.toggle('thinking-active', thinking && bottomIsAI);
     }
 
     function updateCaptured() {
@@ -783,25 +1014,19 @@
         }
       });
 
-      const order = { q: 0, r: 1, b: 2, n: 3, p: 4 };
-      whiteCap.sort((a, b) => {
-        const ta = a.slice(-5, -4).toLowerCase();
-        const tb = b.slice(-5, -4).toLowerCase();
-        return (order[ta] ?? 5) - (order[tb] ?? 5);
-      });
-      blackCap.sort((a, b) => {
-        const ta = a.slice(-5, -4).toLowerCase();
-        const tb = b.slice(-5, -4).toLowerCase();
-        return (order[ta] ?? 5) - (order[tb] ?? 5);
-      });
+      const topIsWhite = flipped;
+      const topCaps = topIsWhite ? whiteCap : blackCap;
+      const bottomCaps = topIsWhite ? blackCap : whiteCap;
+      const topAdv = topIsWhite ? (material < 0 ? Math.abs(material)/100 : 0) : (material > 0 ? material/100 : 0);
+      const bottomAdv = topIsWhite ? (material > 0 ? material/100 : 0) : (material < 0 ? Math.abs(material)/100 : 0);
 
-      document.getElementById('capturedWhite').innerHTML =
-        whiteCap.map(src => `<img src="${src}" alt="">`).join('') +
-        (material < 0 ? `<span class="adv">+${Math.abs(material) / 100}</span>` : '');
+      document.getElementById('capturedTop').innerHTML =
+        topCaps.map(src => `<img src="${src}" alt="">`).join('') +
+        (topAdv ? `<span class="adv">+${topAdv}</span>` : '');
 
-      document.getElementById('capturedBlack').innerHTML =
-        blackCap.map(src => `<img src="${src}" alt="">`).join('') +
-        (material > 0 ? `<span class="adv">+${material / 100}</span>` : '');
+      document.getElementById('capturedBottom').innerHTML =
+        bottomCaps.map(src => `<img src="${src}" alt="">`).join('') +
+        (bottomAdv ? `<span class="adv">+${bottomAdv}</span>` : '');
     }
 
     function updateStatus() {
@@ -819,7 +1044,7 @@
         if (mode === 'local') {
           statusEl.textContent = (game.turn() === 'w' ? 'White' : 'Black') + ' to move';
         } else {
-          statusEl.textContent = game.turn() === playerColor ? 'Your turn' : 'AI turn';
+          statusEl.textContent = game.turn() === playerColor ? 'Your turn' : 'Stockfish turn';
         }
         statusEl.classList.remove('gameover');
       }
@@ -841,7 +1066,9 @@
     function endGame() {
       gameOver = true;
       stopClock();
+      setThinking(false);
       updateStatus();
+      updateProfiles();
     }
 
     function formatTime(ms) {
@@ -853,21 +1080,22 @@
     }
 
     function updateClocksUI() {
-      document.getElementById('timeWhite').textContent = formatTime(timeWhite);
-      document.getElementById('timeBlack').textContent = formatTime(timeBlack);
-      const cw = document.getElementById('clockWhite');
-      const cb = document.getElementById('clockBlack');
-      cw.classList.toggle('active', !gameOver && game.turn() === 'w');
-      cb.classList.toggle('active', !gameOver && game.turn() === 'b');
-      cw.classList.toggle('low', timeWhite < 30000);
-      cb.classList.toggle('low', timeBlack < 30000);
+      const topIsWhite = flipped;
+      const topTime = topIsWhite ? timeWhite : timeBlack;
+      const bottomTime = topIsWhite ? timeBlack : timeWhite;
+
+      document.getElementById('timeTop').textContent = formatTime(topTime);
+      document.getElementById('timeBottom').textContent = formatTime(bottomTime);
+
+      document.getElementById('profileTop').classList.toggle('low', topTime < 30000);
+      document.getElementById('profileBottom').classList.toggle('low', bottomTime < 30000);
     }
 
     function startClock() {
       stopClock();
       lastTick = Date.now();
       clockInterval = setInterval(() => {
-        if (gameOver || thinking) return;
+        if (gameOver || thinking || animating) return;
         const now = Date.now();
         const delta = now - lastTick;
         lastTick = now;
@@ -879,6 +1107,7 @@
             stopClock();
             statusEl.textContent = 'Black wins on time!';
             statusEl.classList.add('gameover');
+            updateProfiles();
           }
         } else {
           timeBlack -= delta;
@@ -888,6 +1117,7 @@
             stopClock();
             statusEl.textContent = 'White wins on time!';
             statusEl.classList.add('gameover');
+            updateProfiles();
           }
         }
         updateClocksUI();
@@ -899,13 +1129,8 @@
       clockInterval = null;
     }
 
-    function openModal() {
-      document.getElementById('modal').classList.add('show');
-    }
-
-    function closeModal() {
-      document.getElementById('modal').classList.remove('show');
-    }
+    function openModal() { document.getElementById('modal').classList.add('show'); }
+    function closeModal() { document.getElementById('modal').classList.remove('show'); }
 
     function startNewGame() {
       const modeBtn = document.querySelector('.mode-btn[data-mode].selected');
@@ -939,6 +1164,7 @@
       lastMove = null;
       gameOver = false;
       thinking = false;
+      animating = false;
       flipped = playerColor === 'b';
       statusEl.classList.remove('gameover');
 
@@ -948,7 +1174,7 @@
       startClock();
 
       if (mode !== 'local' && playerColor === 'b') {
-        setTimeout(aiMove, 300);
+        setTimeout(aiMove, 350);
       }
     }
 
@@ -957,7 +1183,7 @@
     document.getElementById('btnStart').addEventListener('click', startNewGame);
 
     document.getElementById('btnUndo').addEventListener('click', () => {
-      if (thinking || game.history().length === 0) return;
+      if (thinking || animating || game.history().length === 0) return;
       game.undo();
       if (mode !== 'local' && game.history().length > 0) game.undo();
       lastMove = game.history({ verbose: true }).slice(-1)[0] || null;
@@ -971,18 +1197,17 @@
     });
 
     document.getElementById('btnFlip').addEventListener('click', () => {
+      if (animating) return;
       flipped = !flipped;
       renderBoard();
     });
 
     document.getElementById('btnHint').addEventListener('click', () => {
-      if (thinking || gameOver || (mode !== 'local' && game.turn() !== playerColor)) return;
-      thinking = true;
-      thinkingEl.classList.add('show');
+      if (thinking || animating || gameOver || (mode !== 'local' && game.turn() !== playerColor)) return;
+      setThinking(true);
       setTimeout(() => {
         const best = getBestMove(Math.max(2, aiDepth));
-        thinking = false;
-        thinkingEl.classList.remove('show');
+        setThinking(false);
         if (best) {
           selected = best.from;
           possibleMoves = [best];
