@@ -51,6 +51,7 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
 .about-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
 .about-links a{color:var(--a);font-weight:700;font-size:13px;text-decoration:none}
 .ad-banner-slot{display:flex;justify-content:center;max-width:100%;overflow:hidden;margin:16px auto}
+@media(max-width:600px){.ad-banner-slot{width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw)}}
 </style>
 </head>
 <body>
@@ -118,11 +119,12 @@ body.season-christmas{--a:#ef4444;--b:#22c55e;--c:#fbbf24;--d:#f87171;--glow:rgb
   <div id="root"></div>
   <aside class="ad-banner-slot" aria-label="Advertisement">
     <script>
+      const isPhoneAd = window.matchMedia('(max-width: 600px)').matches;
       atOptions = {
         'key' : '0b495554d8c2e993957a941f36b687a6',
         'format' : 'iframe',
-        'height' : 60,
-        'width' : 468,
+        'height' : isPhoneAd ? 50 : 60,
+        'width' : isPhoneAd ? 320 : 468,
         'params' : {}
       };
     </script>
