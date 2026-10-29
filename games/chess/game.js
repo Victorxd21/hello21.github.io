@@ -5,66 +5,11 @@ const DIFF_DEPTH={1:6,2:10,3:14,4:18};
 const DIFF_MOVETIME={1:300,2:600,3:1200,4:2500};
 const PIECE_NAME={p:'pawn',n:'knight',b:'bishop',r:'rook',q:'queen',k:'king'};
 const PIECE_CAP={p:'pawn',n:'knight',b:'bishop',r:'rook',q:'queen',k:'king'};
-
-const OPENINGS={'e4':"King's Pawn",'e4 e5':'Open Game','e4 e5 Nf3':"King's Knight",'e4 e5 Nf3 Nc6':"King's Knight",'e4 e5 Nf3 Nc6 Bb5':'Ruy Lopez','e4 e5 Nf3 Nc6 Bc4':'Italian Game','e4 e5 Nf3 Nc6 Bc4 Bc5':'Giuoco Piano','e4 e5 Nf3 Nc6 d4':'Scotch Game','e4 e5 Nf3 Nf6':"Petrov's Defense",'e4 e5 f4':"King's Gambit",'e4 c5':'Sicilian Defense','e4 c5 Nf3':'Sicilian Defense','e4 c5 Nf3 d6':'Sicilian Defense','e4 c5 Nf3 Nc6':'Sicilian Defense','e4 c6':'Caro-Kann','e4 e6':'French Defense','e4 d5':'Scandinavian','d4':"Queen's Pawn",'d4 d5':'Closed Game','d4 d5 c4':"Queen's Gambit",'d4 d5 c4 e6':'QGD","d4 d5 c4 c6':'Slav Defense','d4 Nf6':'Indian Defense','d4 Nf6 c4 g6':"King's Indian",'d4 Nf6 c4 e6 Nc3 Bb4':'Nimzo-Indian','c4':'English Opening','Nf3':'Réti Opening'};
-
+const OPENINGS={'e4':"King's Pawn",'e4 e5':'Open Game','e4 e5 Nf3':"King's Knight",'e4 e5 Nf3 Nc6':"King's Knight",'e4 e5 Nf3 Nc6 Bb5':'Ruy Lopez','e4 e5 Nf3 Nc6 Bc4':'Italian Game','e4 e5 Nf3 Nc6 Bc4 Bc5':'Giuoco Piano','e4 e5 Nf3 Nc6 d4':'Scotch Game','e4 e5 Nf3 Nf6':"Petrov's Defense",'e4 e5 f4':"King's Gambit",'e4 c5':'Sicilian Defense','e4 c5 Nf3':'Sicilian Defense','e4 c5 Nf3 d6':'Sicilian Defense','e4 c5 Nf3 Nc6':'Sicilian Defense','e4 c6':'Caro-Kann','e4 e6':'French Defense','e4 d5':'Scandinavian','d4':"Queen's Pawn",'d4 d5':'Closed Game','d4 d5 c4':"Queen's Gambit",'d4 d5 c4 e6':'QGD','d4 d5 c4 c6':'Slav Defense','d4 Nf6':'Indian Defense','d4 Nf6 c4 g6':"King's Indian",'d4 Nf6 c4 e6 Nc3 Bb4':'Nimzo-Indian','c4':'English Opening','Nf3':'Réti Opening'};
 const PUZZLES=[{fen:'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4',sol:['Qxf7#'],title:'Mate in 1',hint:"Scholar's mate"},{fen:'rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2',sol:['Qh4#'],title:'Mate in 1',hint:"Fool's mate"},{fen:'6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1',sol:['Rd8#'],title:'Mate in 1',hint:'Back rank'},{fen:'6k1/5ppp/8/8/8/5Q2/5PPP/6K1 w - - 0 1',sol:['Qf8#'],title:'Mate in 1',hint:'Queen on 8th'},{fen:'6k1/6pp/8/8/8/8/6PP/R5K1 w - - 0 1',sol:['Ra8#'],title:'Mate in 1',hint:'Rook on 8th'},{fen:'7k/5Q2/6K1/8/8/8/8/8 w - - 0 1',sol:['Qf8#'],title:'Mate in 1',hint:'K+Q mate'},{fen:'2r3k1/5ppp/8/8/8/8/5PPP/2R3K1 w - - 0 1',sol:['Rc8+','Rxc8','Rxc8#'],title:'Mate in 2',hint:'Back rank'},{fen:'5rk1/5ppp/8/8/8/8/1Q3PPP/6K1 w - - 0 1',sol:['Qb8','Rxb8','Rxb8#'],title:'Mate in 2',hint:'Queen sac'}];
-
 const CHAT={brilliant:["Whoa. That was sharp.","Okay, respect.","Didn't see that coming…","Brilliant. I'm impressed.","You're cooking."],great:["Nice find.","Strong move.","Good eye.","Clean."],blunder:["Oof… that hurts.","I'll take the gift.","Hmm. Are you sure?","That might be a problem.","Free material? Don't mind if I do."],mistake:["Inaccuracy spotted.","A bit loose there.","I can work with that.","Not ideal."],win:["GG. Well played.","Victory. Rematch?","The fish wins this one."],lose:["You got me. Nice game.","Outplayed. Respect.","I'll study that one…"]};
 function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
-
-function describeMove(move,who){
-  const name=PIECE_NAME[move.piece]||'piece';
-  const from=move.from,to=move.to;
-  const isSF=who==='sf';
-  const your=isSF?'your':'my';
-  const my=isSF?'my':'your';
-  if(move.flags&&(move.flags.includes('k')||move.flags.includes('q'))){
-    const side=move.flags.includes('k')?'kingside':'queenside';
-    return isSF?`Castling ${side}.`:`You castle ${side}.`;
-  }
-  if(move.promotion){
-    const promo=PIECE_NAME[move.promotion]||'queen';
-    if(move.captured){
-      const cap=PIECE_CAP[move.captured]||'piece';
-      return isSF?`Promoting — ${name} takes ${your} ${cap} on ${to}, becomes a ${promo}.`:`You promote: ${name} takes ${my} ${cap} on ${to} → ${promo}.`;
-    }
-    return isSF?`${name.charAt(0).toUpperCase()+name.slice(1)} ${from}→${to}, promotes to ${promo}.`:`You push the ${name} to ${to} and promote to ${promo}.`;
-  }
-  if(move.captured){
-    const cap=PIECE_CAP[move.captured]||'piece';
-    if(move.flags&&move.flags.includes('e')) return isSF?`En passant! ${name} takes ${your} pawn on ${to}.`:`En passant — you take ${my} pawn on ${to}.`;
-    const lines=isSF?[
-      `${name.charAt(0).toUpperCase()+name.slice(1)} takes ${your} ${cap} on ${to}.`,
-      `Snacking on ${your} ${cap} (${from}→${to}).`,
-      `I'll take that ${cap} on ${to}.`,
-      `${name.charAt(0).toUpperCase()+name.slice(1)} from ${from} captures on ${to}.`
-    ]:[
-      `You take ${my} ${cap} with the ${name} (${from}→${to}).`,
-      `Your ${name} captures ${my} ${cap} on ${to}.`,
-      `${name.charAt(0).toUpperCase()+name.slice(1)} takes on ${to}.`
-    ];
-    return pick(lines);
-  }
-  if(move.san&&move.san.includes('#')){
-    return isSF?`${name.charAt(0).toUpperCase()+name.slice(1)} to ${to} — checkmate.`:`${name.charAt(0).toUpperCase()+name.slice(1)} to ${to} — checkmate!`;
-  }
-  if(move.san&&move.san.includes('+')){
-    return isSF?`${name.charAt(0).toUpperCase()+name.slice(1)} ${from}→${to}. Check!`:`Your ${name} to ${to}. Check!`;
-  }
-  const lines=isSF?[
-    `${name.charAt(0).toUpperCase()+name.slice(1)} to ${to}.`,
-    `Moving the ${name}: ${from}→${to}.`,
-    `${name.charAt(0).toUpperCase()+name.slice(1)} from ${from} to ${to}.`,
-    `Playing ${move.san}.`
-  ]:[
-    `You move the ${name} ${from}→${to}.`,
-    `Your ${name} goes to ${to}.`,
-    `${name.charAt(0).toUpperCase()+name.slice(1)} to ${to} (${move.san}).`
-  ];
-  return pick(lines);
-}
-
+function describeMove(move,who){const name=PIECE_NAME[move.piece]||'piece';const from=move.from,to=move.to;const isSF=who==='sf';const your=isSF?'your':'my';const my=isSF?'my':'your';if(move.flags&&(move.flags.includes('k')||move.flags.includes('q'))){const side=move.flags.includes('k')?'kingside':'queenside';return isSF?'Castling '+side+'.':'You castle '+side+'.'}if(move.promotion){const promo=PIECE_NAME[move.promotion]||'queen';if(move.captured){const cap=PIECE_CAP[move.captured]||'piece';return isSF?'Promoting — '+name+' takes '+your+' '+cap+' on '+to+', becomes a '+promo+'.':'You promote: '+name+' takes '+my+' '+cap+' on '+to+' → '+promo+'.'}return isSF?name.charAt(0).toUpperCase()+name.slice(1)+' '+from+'→'+to+', promotes to '+promo+'.':'You push the '+name+' to '+to+' and promote to '+promo+'.'}if(move.captured){const cap=PIECE_CAP[move.captured]||'piece';if(move.flags&&move.flags.includes('e'))return isSF?'En passant! '+name+' takes '+your+' pawn on '+to+'.':'En passant — you take '+my+' pawn on '+to+'.';const lines=isSF?[name.charAt(0).toUpperCase()+name.slice(1)+' takes '+your+' '+cap+' on '+to+'.','Snacking on '+your+' '+cap+' ('+from+'→'+to+').','I\'ll take that '+cap+' on '+to+'.',name.charAt(0).toUpperCase()+name.slice(1)+' from '+from+' captures on '+to+'.']:['You take '+my+' '+cap+' with the '+name+' ('+from+'→'+to+').','Your '+name+' captures '+my+' '+cap+' on '+to+'.',name.charAt(0).toUpperCase()+name.slice(1)+' takes on '+to+'.'];return pick(lines)}if(move.san&&move.san.includes('#'))return isSF?name.charAt(0).toUpperCase()+name.slice(1)+' to '+to+' — checkmate.':name.charAt(0).toUpperCase()+name.slice(1)+' to '+to+' — checkmate!';if(move.san&&move.san.includes('+'))return isSF?name.charAt(0).toUpperCase()+name.slice(1)+' '+from+'→'+to+'. Check!':'Your '+name+' to '+to+'. Check!';const lines=isSF?[name.charAt(0).toUpperCase()+name.slice(1)+' to '+to+'.','Moving the '+name+': '+from+'→'+to+'.',name.charAt(0).toUpperCase()+name.slice(1)+' from '+from+' to '+to+'.','Playing '+move.san+'.']:['You move the '+name+' '+from+'→'+to+'.','Your '+name+' goes to '+to+'.',name.charAt(0).toUpperCase()+name.slice(1)+' to '+to+' ('+move.san+').'];return pick(lines)}
 let audioCtx=null,muted=false;
 function ensureAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)}
 function beep(freq,dur,type,vol){if(muted)return;try{ensureAudio();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type||'sine';o.frequency.value=freq;g.gain.value=vol||0.08;g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur)}catch(e){}}
@@ -74,18 +19,15 @@ function sndCheck(){beep(600,.1,'sine',.08);setTimeout(()=>beep(800,.12,'sine',.
 function sndWin(){beep(523,.12,'sine',.09);setTimeout(()=>beep(659,.12,'sine',.09),130);setTimeout(()=>beep(784,.2,'sine',.09),260)}
 function sndLose(){beep(300,.15,'sawtooth',.07);setTimeout(()=>beep(200,.25,'sawtooth',.06),150)}
 function sndBrilliant(){beep(880,.08,'sine',.08);setTimeout(()=>beep(1100,.15,'sine',.08),80)}
-
 const STATS_KEY='chess_hello21_stats';
 function loadStats(){try{return JSON.parse(localStorage.getItem(STATS_KEY))||{w:0,d:0,l:0,p:0}}catch(e){return{w:0,d:0,l:0,p:0}}}
 function saveStats(s){localStorage.setItem(STATS_KEY,JSON.stringify(s))}
 function updateStatsUI(){const s=loadStats();['statW','statD','statL','statP'].forEach((id,i)=>{const k=['w','d','l','p'][i];document.getElementById(id).textContent=s[k]})}
 function recordResult(result){const s=loadStats();if(result==='w')s.w++;else if(result==='d')s.d++;else if(result==='l')s.l++;else if(result==='p')s.p++;saveStats(s);updateStatsUI()}
-
 let sfWorker=null,sfReady=false,sfSearching=false,sfResolve=null;
 const SF_URL='https://cdn.jsdelivr.net/npm/stockfish@16.0.0/src/stockfish-nnue-16-single.js';
 function initStockfish(){const badge=document.getElementById('engineBadge');try{sfWorker=new Worker(SF_URL);sfWorker.onmessage=function(e){const line=typeof e.data==='string'?e.data:String(e.data);if(line==='uciok'||line.indexOf('uciok')>=0){sfWorker.postMessage('setoption name Use NNUE value true');sfWorker.postMessage('isready')}if(line==='readyok'||line.indexOf('readyok')>=0){sfReady=true;badge.textContent='Stockfish WASM';badge.style.color='#66bb6a'}if(line.indexOf('bestmove')===0&&sfResolve){const parts=line.split(/\s+/);const bm=parts[1];const resolver=sfResolve;sfResolve=null;sfSearching=false;resolver(bm==='(none)'?null:bm)}};sfWorker.onerror=function(){badge.textContent='fallback AI';badge.style.color='#ff9800';sfReady=false};sfWorker.postMessage('uci')}catch(err){badge.textContent='fallback AI';badge.style.color='#ff9800';sfReady=false}}
 function sfGo(fen,depth,movetime){return new Promise((resolve)=>{if(!sfReady||!sfWorker){resolve(null);return}if(sfSearching){try{sfWorker.postMessage('stop')}catch(e){}}sfSearching=true;sfResolve=resolve;sfWorker.postMessage('ucinewgame');sfWorker.postMessage('position fen '+fen);if(movetime)sfWorker.postMessage('go movetime '+movetime);else sfWorker.postMessage('go depth '+depth);setTimeout(()=>{if(sfResolve===resolve){try{sfWorker.postMessage('stop')}catch(e){}sfResolve=null;sfSearching=false;resolve(null)}},Math.max(4000,(movetime||1000)+2500))})}
-
 const PST={p:[[0,0,0,0,0,0,0,0],[50,50,50,50,50,50,50,50],[10,10,20,30,30,20,10,10],[5,5,10,25,25,10,5,5],[0,0,0,20,20,0,0,0],[5,-5,-10,0,0,-10,-5,5],[5,10,10,-20,-20,10,10,5],[0,0,0,0,0,0,0,0]],n:[[-50,-40,-30,-30,-30,-30,-40,-50],[-40,-20,0,0,0,0,-20,-40],[-30,0,10,15,15,10,0,-30],[-30,5,15,20,20,15,5,-30],[-30,0,15,20,20,15,0,-30],[-30,5,10,15,15,10,5,-30],[-40,-20,0,5,5,0,-20,-40],[-50,-40,-30,-30,-30,-30,-40,-50]],b:[[-20,-10,-10,-10,-10,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,10,10,5,0,-10],[-10,5,5,10,10,5,5,-10],[-10,0,10,10,10,10,0,-10],[-10,10,10,10,10,10,10,-10],[-10,5,0,0,0,0,5,-10],[-20,-10,-10,-10,-10,-10,-10,-20]],r:[[0,0,0,0,0,0,0,0],[5,10,10,10,10,10,10,5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[0,0,0,5,5,0,0,0]],q:[[-20,-10,-10,-5,-5,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,5,5,5,0,-10],[-5,0,5,5,5,5,0,-5],[0,0,5,5,5,5,0,-5],[-10,5,5,5,5,5,0,-10],[-10,0,5,0,0,0,0,-10],[-20,-10,-10,-5,-5,-10,-10,-20]],k:[[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-20,-30,-30,-40,-40,-30,-30,-20],[-10,-20,-20,-20,-20,-20,-20,-10],[20,20,0,0,0,0,20,20],[20,30,10,0,0,10,30,20]]};
 const VALUES={p:100,n:320,b:330,r:500,q:900,k:20000};
 function evaluate(g){if(g.in_checkmate())return g.turn()==='w'?-99999:99999;if(g.in_draw())return 0;let score=0;const board=g.board();for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];if(!p)continue;const val=VALUES[p.type],table=PST[p.type];const pst=p.color==='w'?table[r][c]:table[7-r][c];score+=p.color==='w'?(val+pst):-(val+pst)}score+=(g.turn()==='w'?1:-1)*g.moves().length*2;return score}
@@ -94,7 +36,6 @@ function getBestMoveFallback(depth){const moves=game.moves({verbose:true});if(!m
 function rateMove(playedMove,beforeFen){const g=new Chess(beforeFen);const before=evaluate(g);const isWhite=g.turn()==='w';const moves=g.moves({verbose:true});let bestScore=isWhite?-Infinity:Infinity;for(const m of moves){g.move(m);const sc=evaluate(g);g.undo();if(isWhite?sc>bestScore:sc<bestScore)bestScore=sc}g.move(playedMove);const after=evaluate(g);const bestDelta=isWhite?(bestScore-before):(before-bestScore);const playDelta=isWhite?(after-before):(before-after);const loss=bestDelta-playDelta;if(loss<=10&&playDelta>150)return 'brilliant';if(loss<=20)return 'great';if(loss<=50)return 'good';if(loss<=120)return 'inaccuracy';if(loss<=250)return 'mistake';return 'blunder'}
 function showQuality(label){qualityEl.className='move-quality show '+label;const names={brilliant:'!! Brilliant',great:'! Great',good:'Good',inaccuracy:'?! Inaccuracy',mistake:'? Mistake',blunder:'?? Blunder'};qualityEl.textContent=names[label]||label;if(label==='brilliant')sndBrilliant();setTimeout(()=>qualityEl.classList.remove('show'),2200);if(label==='brilliant')showChat('sf',pick(CHAT.brilliant));else if(label==='great')showChat('sf',pick(CHAT.great));else if(label==='blunder')showChat('sf',pick(CHAT.blunder));else if(label==='mistake')showChat('sf',pick(CHAT.mistake))}
 function showChat(who,text){const layer=document.getElementById('chatLayer');const bubble=document.createElement('div');bubble.className='chat-bubble '+who;const whoEl=document.createElement('div');whoEl.className='who';whoEl.textContent=who==='sf'?'Stockfish':'You';bubble.appendChild(whoEl);bubble.appendChild(document.createTextNode(text));const topProf=document.getElementById('profileTop');const botProf=document.getElementById('profileBottom');const rect=(who==='sf'?topProf:botProf).getBoundingClientRect();if(who==='sf'){bubble.style.left=Math.min(window.innerWidth-240,Math.max(12,rect.left))+'px';bubble.style.top=(rect.bottom+8)+'px'}else{bubble.style.left=Math.min(window.innerWidth-240,Math.max(12,rect.left+40))+'px';bubble.style.bottom=(window.innerHeight-rect.top+8)+'px';bubble.style.top='auto'}layer.appendChild(bubble);requestAnimationFrame(()=>bubble.classList.add('show'));setTimeout(()=>{bubble.classList.remove('show');setTimeout(()=>bubble.remove(),300)},3200)}
-
 let game=new Chess(),selected=null,possibleMoves=[],lastMove=null;
 let playerColor='w',mode='normal',aiDepth=2,flipped=false;
 let gameOver=false,thinking=false,animating=false;
@@ -109,7 +50,6 @@ const promoChoices=document.getElementById('promoChoices');
 const openingEl=document.getElementById('openingName');
 const arrowLayer=document.getElementById('arrowLayer');
 const qualityEl=document.getElementById('moveQuality');
-
 function updateEvalBar(){if(puzzleMode){document.getElementById('evalFill').style.height='50%';return}const score=evaluate(game);let pct=50+Math.max(-48,Math.min(48,score/20));document.getElementById('evalFill').style.height=pct+'%';const label=Math.abs(score)>9000?'M':(Math.abs(score)/100).toFixed(1);const sign=score>50?'+':score<-50?'-':'';if(score>=0){document.getElementById('evalBot').textContent=sign+label;document.getElementById('evalTop').textContent=''}else{document.getElementById('evalTop').textContent='-'+label;document.getElementById('evalBot').textContent=''}}
 function updateOpening(){if(puzzleMode){openingEl.textContent='';return}const hist=game.history();let name='';for(let len=Math.min(hist.length,12);len>=1;len--){const key=hist.slice(0,len).join(' ');if(OPENINGS[key]){name=OPENINGS[key];break}}openingEl.textContent=name||''}
 function sqName(r,c){const file=flipped?7-c:c,rank=flipped?r:7-r;return String.fromCharCode(97+file)+(rank+1)}
