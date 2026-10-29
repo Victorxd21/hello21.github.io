@@ -39,7 +39,6 @@
       overflow-x: hidden;
     }
 
-    /* Header */
     header {
       width: 100%;
       max-width: 520px;
@@ -61,7 +60,6 @@
       border-radius: 999px;
     }
 
-    /* Main layout */
     main {
       width: 100%;
       max-width: 520px;
@@ -72,7 +70,6 @@
       flex: 1;
     }
 
-    /* Clocks */
     .clocks {
       display: flex;
       gap: 8px;
@@ -105,7 +102,6 @@
     }
     .clock.low .time { color: var(--danger); }
 
-    /* Board */
     .board-wrap {
       position: relative;
       width: 100%;
@@ -130,7 +126,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: clamp(1.6rem, 9vw, 2.8rem);
       cursor: pointer;
       transition: background 0.1s;
     }
@@ -146,6 +141,7 @@
       height: 28%;
       border-radius: 50%;
       background: rgba(0,0,0,0.22);
+      pointer-events: none;
     }
     .sq.possible.capture::after {
       width: 88%;
@@ -153,6 +149,14 @@
       background: transparent;
       border: 4px solid rgba(0,0,0,0.22);
       border-radius: 50%;
+    }
+    .sq img.piece {
+      width: 88%;
+      height: 88%;
+      object-fit: contain;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
     }
     .sq .coord {
       position: absolute;
@@ -166,17 +170,18 @@
     .sq.light .coord { color: var(--dark); }
     .sq.dark .coord { color: var(--light); }
 
-    /* Captured pieces */
     .captured {
       display: flex;
-      gap: 4px;
+      gap: 2px;
       min-height: 28px;
       flex-wrap: wrap;
       align-items: center;
     }
-    .captured span {
-      font-size: 1.1rem;
-      opacity: 0.85;
+    .captured img {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+      opacity: 0.9;
     }
     .captured .adv {
       font-size: 0.8rem;
@@ -184,7 +189,6 @@
       margin-left: 4px;
     }
 
-    /* Controls */
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -215,7 +219,6 @@
       cursor: not-allowed;
     }
 
-    /* Status */
     .status {
       text-align: center;
       font-size: 0.9rem;
@@ -227,7 +230,6 @@
       font-weight: 600;
     }
 
-    /* Modal */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -296,13 +298,19 @@
     }
     .color-btn {
       flex: 1;
-      padding: 12px;
+      padding: 10px;
       border-radius: 10px;
       background: var(--panel2);
       border: 2px solid transparent;
       text-align: center;
       cursor: pointer;
-      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .color-btn img {
+      width: 32px;
+      height: 32px;
     }
     .color-btn.selected { border-color: var(--accent); }
 
@@ -313,7 +321,6 @@
     }
     .modal .actions button { flex: 1; }
 
-    /* Move list */
     .moves-panel {
       background: var(--panel);
       border-radius: var(--radius);
@@ -328,7 +335,6 @@
     .moves-panel span { margin-right: 6px; }
     .moves-panel .num { color: var(--text); font-weight: 500; }
 
-    /* Thinking indicator */
     .thinking {
       display: none;
       align-items: center;
@@ -348,7 +354,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Promotion dialog */
     .promo-overlay {
       position: absolute;
       inset: 0;
@@ -367,11 +372,18 @@
       border-radius: 12px;
     }
     .promo-choices button {
-      font-size: 2rem;
       width: 56px;
       height: 56px;
-      padding: 0;
+      padding: 4px;
       background: var(--panel2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .promo-choices button img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
   </style>
 </head>
@@ -417,7 +429,6 @@
     </div>
   </main>
 
-  <!-- New Game Modal -->
   <div class="modal-overlay" id="modal">
     <div class="modal">
       <h2>New Game</h2>
@@ -447,8 +458,8 @@
       <div class="section" id="colorSection">
         <label>Play as</label>
         <div class="color-pick">
-          <div class="color-btn selected" data-color="w">♔</div>
-          <div class="color-btn" data-color="b">♚</div>
+          <div class="color-btn selected" data-color="w"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wK.svg" alt="White"></div>
+          <div class="color-btn" data-color="b"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bK.svg" alt="Black"></div>
           <div class="color-btn" data-color="random">🎲</div>
         </div>
       </div>
@@ -483,25 +494,23 @@
   </div>
 
   <script>
-    // ─── Piece symbols ───────────────────────────────────────
-    const PIECES = {
-      wP: '♙', wN: '♘', wB: '♗', wR: '♖', wQ: '♕', wK: '♔',
-      bP: '♟', bN: '♞', bB: '♝', bR: '♜', bQ: '♛', bK: '♚'
-    };
+    // CBurnett SVG pieces (same set used by Lichess)
+    const PIECE_BASE = 'https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/';
+    function pieceSrc(color, type) {
+      return PIECE_BASE + color + type.toUpperCase() + '.svg';
+    }
 
-    // ─── Game state ──────────────────────────────────────────
     let game = new Chess();
     let selected = null;
     let possibleMoves = [];
     let lastMove = null;
     let playerColor = 'w';
-    let mode = 'normal';       // normal | blitz | bullet | local
+    let mode = 'normal';
     let aiDepth = 2;
     let flipped = false;
     let gameOver = false;
     let thinking = false;
 
-    // Clocks (ms)
     let timeWhite = 600000;
     let timeBlack = 600000;
     let clockInterval = null;
@@ -515,44 +524,13 @@
     const promoOverlay = document.getElementById('promoOverlay');
     const promoChoices = document.getElementById('promoChoices');
 
-    // ─── Evaluation tables (piece-square) ────────────────────
     const PST = {
-      p: [
-        [0,0,0,0,0,0,0,0],[50,50,50,50,50,50,50,50],
-        [10,10,20,30,30,20,10,10],[5,5,10,25,25,10,5,5],
-        [0,0,0,20,20,0,0,0],[5,-5,-10,0,0,-10,-5,5],
-        [5,10,10,-20,-20,10,10,5],[0,0,0,0,0,0,0,0]
-      ],
-      n: [
-        [-50,-40,-30,-30,-30,-30,-40,-50],[-40,-20,0,0,0,0,-20,-40],
-        [-30,0,10,15,15,10,0,-30],[-30,5,15,20,20,15,5,-30],
-        [-30,0,15,20,20,15,0,-30],[-30,5,10,15,15,10,5,-30],
-        [-40,-20,0,5,5,0,-20,-40],[-50,-40,-30,-30,-30,-30,-40,-50]
-      ],
-      b: [
-        [-20,-10,-10,-10,-10,-10,-10,-20],[-10,0,0,0,0,0,0,-10],
-        [-10,0,5,10,10,5,0,-10],[-10,5,5,10,10,5,5,-10],
-        [-10,0,10,10,10,10,0,-10],[-10,10,10,10,10,10,10,-10],
-        [-10,5,0,0,0,0,5,-10],[-20,-10,-10,-10,-10,-10,-10,-20]
-      ],
-      r: [
-        [0,0,0,0,0,0,0,0],[5,10,10,10,10,10,10,5],
-        [-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],
-        [-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],
-        [-5,0,0,0,0,0,0,-5],[0,0,0,5,5,0,0,0]
-      ],
-      q: [
-        [-20,-10,-10,-5,-5,-10,-10,-20],[-10,0,0,0,0,0,0,-10],
-        [-10,0,5,5,5,5,0,-10],[-5,0,5,5,5,5,0,-5],
-        [0,0,5,5,5,5,0,-5],[-10,5,5,5,5,5,0,-10],
-        [-10,0,5,0,0,0,0,-10],[-20,-10,-10,-5,-5,-10,-10,-20]
-      ],
-      k: [
-        [-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],
-        [-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],
-        [-20,-30,-30,-40,-40,-30,-30,-20],[-10,-20,-20,-20,-20,-20,-20,-10],
-        [20,20,0,0,0,0,20,20],[20,30,10,0,0,10,30,20]
-      ]
+      p: [[0,0,0,0,0,0,0,0],[50,50,50,50,50,50,50,50],[10,10,20,30,30,20,10,10],[5,5,10,25,25,10,5,5],[0,0,0,20,20,0,0,0],[5,-5,-10,0,0,-10,-5,5],[5,10,10,-20,-20,10,10,5],[0,0,0,0,0,0,0,0]],
+      n: [[-50,-40,-30,-30,-30,-30,-40,-50],[-40,-20,0,0,0,0,-20,-40],[-30,0,10,15,15,10,0,-30],[-30,5,15,20,20,15,5,-30],[-30,0,15,20,20,15,0,-30],[-30,5,10,15,15,10,5,-30],[-40,-20,0,5,5,0,-20,-40],[-50,-40,-30,-30,-30,-30,-40,-50]],
+      b: [[-20,-10,-10,-10,-10,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,10,10,5,0,-10],[-10,5,5,10,10,5,5,-10],[-10,0,10,10,10,10,0,-10],[-10,10,10,10,10,10,10,-10],[-10,5,0,0,0,0,5,-10],[-20,-10,-10,-10,-10,-10,-10,-20]],
+      r: [[0,0,0,0,0,0,0,0],[5,10,10,10,10,10,10,5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[0,0,0,5,5,0,0,0]],
+      q: [[-20,-10,-10,-5,-5,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,5,5,5,0,-10],[-5,0,5,5,5,5,0,-5],[0,0,5,5,5,5,0,-5],[-10,5,5,5,5,5,0,-10],[-10,0,5,0,0,0,0,-10],[-20,-10,-10,-5,-5,-10,-10,-20]],
+      k: [[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-20,-30,-30,-40,-40,-30,-30,-20],[-10,-20,-20,-20,-20,-20,-20,-10],[20,20,0,0,0,0,20,20],[20,30,10,0,0,10,30,20]]
     };
 
     const VALUES = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
@@ -560,7 +538,6 @@
     function evaluate(g) {
       if (g.in_checkmate()) return g.turn() === 'w' ? -99999 : 99999;
       if (g.in_draw()) return 0;
-
       let score = 0;
       const board = g.board();
       for (let r = 0; r < 8; r++) {
@@ -574,7 +551,6 @@
           score += p.color === 'w' ? (val + pst) : -(val + pst);
         }
       }
-      // Slight mobility bonus
       const moves = g.moves().length;
       score += (g.turn() === 'w' ? 1 : -1) * moves * 2;
       return score;
@@ -582,11 +558,8 @@
 
     function minimax(g, depth, alpha, beta, maximizing) {
       if (depth === 0 || g.game_over()) return evaluate(g);
-
       const moves = g.moves({ verbose: true });
-      // Simple move ordering: captures first
       moves.sort((a, b) => (b.captured ? 1 : 0) - (a.captured ? 1 : 0));
-
       if (maximizing) {
         let maxEval = -Infinity;
         for (const m of moves) {
@@ -615,14 +588,10 @@
     function getBestMove(depth) {
       const moves = game.moves({ verbose: true });
       if (!moves.length) return null;
-
-      // Order captures first
       moves.sort((a, b) => (b.captured ? 1 : 0) - (a.captured ? 1 : 0));
-
       const isMax = game.turn() === 'w';
       let best = null;
       let bestScore = isMax ? -Infinity : Infinity;
-
       for (const m of moves) {
         game.move(m);
         const score = minimax(game, depth - 1, -Infinity, Infinity, !isMax);
@@ -635,7 +604,6 @@
       return best;
     }
 
-    // ─── Board rendering ─────────────────────────────────────
     function sqName(r, c) {
       const file = flipped ? 7 - c : c;
       const rank = flipped ? r : 7 - r;
@@ -667,10 +635,14 @@
           }
 
           if (piece) {
-            sq.textContent = PIECES[piece.color + piece.type.toUpperCase()];
+            const img = document.createElement('img');
+            img.className = 'piece';
+            img.src = pieceSrc(piece.color, piece.type);
+            img.alt = piece.color + piece.type;
+            img.draggable = false;
+            sq.appendChild(img);
           }
 
-          // Coordinates
           if (c === 0) {
             const rank = document.createElement('span');
             rank.className = 'coord rank';
@@ -725,7 +697,6 @@
     }
 
     function doMove(moveObj) {
-      // Handle promotion
       if (moveObj.flags.includes('p') && !moveObj.promotion) {
         showPromotion(moveObj);
         return;
@@ -745,11 +716,9 @@
         return;
       }
 
-      // Switch clock
       lastTick = Date.now();
 
       if (mode !== 'local') {
-        // AI turn
         setTimeout(aiMove, 150);
       }
     }
@@ -760,7 +729,10 @@
       promoChoices.innerHTML = '';
       choices.forEach(p => {
         const btn = document.createElement('button');
-        btn.textContent = PIECES[color + p.toUpperCase()];
+        const img = document.createElement('img');
+        img.src = pieceSrc(color, p);
+        img.alt = p;
+        btn.appendChild(img);
         btn.onclick = () => {
           promoOverlay.classList.remove('show');
           doMove({ ...moveObj, promotion: p });
@@ -776,10 +748,8 @@
       thinkingEl.classList.add('show');
       statusEl.textContent = 'AI is thinking…';
 
-      // Yield to UI
       setTimeout(() => {
-        const depth = aiDepth;
-        const best = getBestMove(depth);
+        const best = getBestMove(aiDepth);
         thinking = false;
         thinkingEl.classList.remove('show');
 
@@ -789,13 +759,11 @@
           renderBoard();
           updateMovesList();
           lastTick = Date.now();
-
           if (game.game_over()) endGame();
         }
       }, 50);
     }
 
-    // ─── Captured pieces ─────────────────────────────────────
     function updateCaptured() {
       const history = game.history({ verbose: true });
       const whiteCap = [];
@@ -806,29 +774,36 @@
         if (m.captured) {
           const val = VALUES[m.captured] || 0;
           if (m.color === 'w') {
-            blackCap.push(PIECES['b' + m.captured.toUpperCase()]);
+            blackCap.push(pieceSrc('b', m.captured));
             material += val;
           } else {
-            whiteCap.push(PIECES['w' + m.captured.toUpperCase()]);
+            whiteCap.push(pieceSrc('w', m.captured));
             material -= val;
           }
         }
       });
 
-      const order = { '♛': 0, '♜': 1, '♝': 2, '♞': 3, '♟': 4, '♕': 0, '♖': 1, '♗': 2, '♘': 3, '♙': 4 };
-      whiteCap.sort((a, b) => (order[a] ?? 5) - (order[b] ?? 5));
-      blackCap.sort((a, b) => (order[a] ?? 5) - (order[b] ?? 5));
+      const order = { q: 0, r: 1, b: 2, n: 3, p: 4 };
+      whiteCap.sort((a, b) => {
+        const ta = a.slice(-5, -4).toLowerCase();
+        const tb = b.slice(-5, -4).toLowerCase();
+        return (order[ta] ?? 5) - (order[tb] ?? 5);
+      });
+      blackCap.sort((a, b) => {
+        const ta = a.slice(-5, -4).toLowerCase();
+        const tb = b.slice(-5, -4).toLowerCase();
+        return (order[ta] ?? 5) - (order[tb] ?? 5);
+      });
 
       document.getElementById('capturedWhite').innerHTML =
-        whiteCap.map(p => `<span>${p}</span>`).join('') +
+        whiteCap.map(src => `<img src="${src}" alt="">`).join('') +
         (material < 0 ? `<span class="adv">+${Math.abs(material) / 100}</span>` : '');
 
       document.getElementById('capturedBlack').innerHTML =
-        blackCap.map(p => `<span>${p}</span>`).join('') +
+        blackCap.map(src => `<img src="${src}" alt="">`).join('') +
         (material > 0 ? `<span class="adv">+${material / 100}</span>` : '');
     }
 
-    // ─── Status & moves ──────────────────────────────────────
     function updateStatus() {
       if (gameOver) return;
       if (game.in_checkmate()) {
@@ -841,9 +816,8 @@
         statusEl.textContent = (game.turn() === 'w' ? 'White' : 'Black') + ' is in check';
         statusEl.classList.remove('gameover');
       } else {
-        const turn = game.turn() === 'w' ? 'White' : 'Black';
         if (mode === 'local') {
-          statusEl.textContent = turn + ' to move';
+          statusEl.textContent = (game.turn() === 'w' ? 'White' : 'Black') + ' to move';
         } else {
           statusEl.textContent = game.turn() === playerColor ? 'Your turn' : 'AI turn';
         }
@@ -870,7 +844,6 @@
       updateStatus();
     }
 
-    // ─── Clocks ──────────────────────────────────────────────
     function formatTime(ms) {
       if (ms < 0) ms = 0;
       const totalSec = Math.ceil(ms / 1000);
@@ -882,7 +855,6 @@
     function updateClocksUI() {
       document.getElementById('timeWhite').textContent = formatTime(timeWhite);
       document.getElementById('timeBlack').textContent = formatTime(timeBlack);
-
       const cw = document.getElementById('clockWhite');
       const cb = document.getElementById('clockBlack');
       cw.classList.toggle('active', !gameOver && game.turn() === 'w');
@@ -893,16 +865,12 @@
 
     function startClock() {
       stopClock();
-      if (mode === 'local' && !document.querySelector('[data-mode="local"].selected')) {
-        // clocks always run in timed modes
-      }
       lastTick = Date.now();
       clockInterval = setInterval(() => {
         if (gameOver || thinking) return;
         const now = Date.now();
         const delta = now - lastTick;
         lastTick = now;
-
         if (game.turn() === 'w') {
           timeWhite -= delta;
           if (timeWhite <= 0) {
@@ -931,7 +899,6 @@
       clockInterval = null;
     }
 
-    // ─── New Game ────────────────────────────────────────────
     function openModal() {
       document.getElementById('modal').classList.add('show');
     }
@@ -952,7 +919,6 @@
       const diffBtn = document.querySelector('.mode-btn[data-diff].selected');
       aiDepth = diffBtn ? parseInt(diffBtn.dataset.diff) : 2;
 
-      // Time controls
       if (mode === 'blitz') {
         timeWhite = timeBlack = 3 * 60 * 1000;
         modeBadge.textContent = 'Blitz 3+0';
@@ -981,13 +947,11 @@
       updateMovesList();
       startClock();
 
-      // If player is black, AI moves first
       if (mode !== 'local' && playerColor === 'b') {
         setTimeout(aiMove, 300);
       }
     }
 
-    // ─── Event listeners ─────────────────────────────────────
     document.getElementById('btnNew').addEventListener('click', openModal);
     document.getElementById('btnCancel').addEventListener('click', closeModal);
     document.getElementById('btnStart').addEventListener('click', startNewGame);
@@ -995,7 +959,7 @@
     document.getElementById('btnUndo').addEventListener('click', () => {
       if (thinking || game.history().length === 0) return;
       game.undo();
-      if (mode !== 'local' && game.history().length > 0) game.undo(); // undo AI move too
+      if (mode !== 'local' && game.history().length > 0) game.undo();
       lastMove = game.history({ verbose: true }).slice(-1)[0] || null;
       selected = null;
       possibleMoves = [];
@@ -1028,7 +992,6 @@
       }, 50);
     });
 
-    // Mode selection
     document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.mode-btn[data-mode]').forEach(b => b.classList.remove('selected'));
@@ -1053,7 +1016,6 @@
       });
     });
 
-    // Init
     openModal();
   </script>
 </body>
