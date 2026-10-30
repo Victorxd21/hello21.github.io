@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chess</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel">
+        <div class="header-row">
+          <div>
+            <p class="eyebrow">Game hub</p>
+            <h1>Chess</h1>
+          </div>
+          <button id="resetBtn" class="reset-btn" type="button">Reset</button>
+        </div>
+
+        <div class="status-row">
+          <span class="status-label">Turn</span>
+          <span id="turnIndicator" class="turn-indicator">White</span>
+        </div>
+
+        <div id="board" class="board" aria-label="Chess board" role="grid"></div>
+      </section>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
