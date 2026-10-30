@@ -16,9 +16,27 @@ header h1{font-size:1.25rem;font-weight:700}
 header .badge{font-size:.7rem;background:var(--panel2);color:var(--muted);padding:4px 8px;border-radius:999px}
 main{width:100%;max-width:520px;padding:0 12px 24px;display:flex;flex-direction:column;gap:10px;flex:1;position:relative}
 .profiles{display:flex;gap:8px}
-.profile{flex:1;background:var(--panel);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;gap:10px;border:2px solid transparent;transition:border-color .25s,background .25s,transform .2s;position:relative;overflow:visible}
+.profile{flex:1;background:var(--panel);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;gap:10px;border:2px solid transparent;overflow:hidden;min-height:56px;position:relative}
 .profile.active{border-color:var(--accent);background:var(--panel2)}
 .profile.thinking-active{border-color:#ffb74d}
+.profile .avatar{width:40px;height:40px;border-radius:50%;background:var(--panel2);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden}
+.profile .avatar img{width:28px!important;height:28px!important;max-width:28px!important;max-height:28px!important;object-fit:contain;display:block}
+.profile .avatar .sf-icon{font-size:1.3rem;line-height:1}
+.profile .info{flex:1;min-width:0}
+.profile .name{font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile .sub{font-size:.7rem;color:var(--muted);margin-top:1px}
+.profile .clock-time{font-size:1.15rem;font-weight:700;font-variant-numeric:tabular-nums;flex-shrink:0}
+.think-ring{position:absolute;inset:-3px;border-radius:50%;border:2px solid transparent;border-top-color:#ffb74d;opacity:0}
+.profile.thinking-active .think-ring{opacity:1;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.think-pulse{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:none;gap:3px}
+.profile.thinking-active .think-pulse{display:flex}
+.think-pulse span{width:5px;height:5px;background:#ffb74d;border-radius:50%}
+.captured-row{display:flex;gap:2px;min-height:24px;flex-wrap:wrap;align-items:center;padding:0 2px}
+.captured-row img{width:20px;height:20px;object-fit:contain;opacity:.9}
+.board-area{display:flex;gap:8px;align-items:stretch;max-width:480px;width:100%;margin:0 auto}
+.eval-bar{width:14px;border-radius:8px;background:#333;overflow:hidden;position:relative;flex-shrink:0;min-height:100%}
+.eval-fill{position:absolute;bottom:0;left:0;right:0;background:#eee;height:50%}
 .board-wrap{position:relative;flex:1;aspect-ratio:1;border-radius:8px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4);touch-action:none}
 #board{width:100%;height:100%;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);user-select:none;position:relative}
 #arrowLayer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:40}
@@ -78,14 +96,7 @@ main{width:100%;max-width:520px;padding:0 12px 24px;display:flex;flex-direction:
 button{font-family:inherit;font-size:.85rem;font-weight:600;padding:10px 16px;border:none;border-radius:10px;cursor:pointer;background:var(--panel2);color:var(--text);min-height:42px}
 button.primary{background:var(--accent);color:#fff}
 .controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-.profile .avatar{width:40px;height:40px;border-radius:50%;background:var(--panel2);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
-.profile .name{font-weight:600;font-size:.9rem}
-.profile .sub{font-size:.7rem;color:var(--muted)}
-.profile .clock-time{font-size:1.15rem;font-weight:700;font-variant-numeric:tabular-nums}
-.profile{flex:1;background:var(--panel);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;gap:10px;border:2px solid transparent}
 .board-area{display:flex;gap:8px;align-items:stretch;max-width:480px;width:100%;margin:0 auto}
-.eval-bar{width:14px;border-radius:8px;background:#333;overflow:hidden;position:relative;flex-shrink:0;min-height:100%}
-.eval-fill{position:absolute;bottom:0;left:0;right:0;background:#eee;height:50%}
 .status{text-align:center;font-size:.9rem;color:var(--muted)}
 .stats-bar{display:flex;gap:12px;justify-content:center;font-size:.75rem;color:var(--muted);flex-wrap:wrap}
 .stats-bar span{background:var(--panel);padding:4px 10px;border-radius:999px}
@@ -117,18 +128,10 @@ button.primary{background:var(--accent);color:#fff}
 .promo-choices{display:flex;gap:8px;background:var(--panel);padding:12px;border-radius:12px}
 .promo-choices button{width:56px;height:56px;padding:4px;background:var(--panel2)}
 .promo-choices button img{width:100%;height:100%;object-fit:contain}
-.captured-row{display:flex;gap:2px;min-height:24px;flex-wrap:wrap;align-items:center;padding:0 2px}
-.captured-row img{width:20px;height:20px;object-fit:contain;opacity:.9}
 .opening{text-align:center;font-size:.8rem;color:var(--accent);font-weight:500;min-height:1.2em}
 .move-quality{text-align:center;font-size:.85rem;font-weight:600;min-height:1.2em;opacity:0}
 .move-quality.show{opacity:1}
 .move-quality.brilliant{color:#1baca6}.move-quality.great{color:#66bb6a}.move-quality.blunder{color:#ef5350}
-.think-ring{position:absolute;inset:-3px;border-radius:50%;border:2px solid transparent;border-top-color:#ffb74d;opacity:0}
-.profile.thinking-active .think-ring{opacity:1;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.think-pulse{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:none;gap:3px}
-.profile.thinking-active .think-pulse{display:flex}
-.think-pulse span{width:5px;height:5px;background:#ffb74d;border-radius:50%}
 .sq .coord{position:absolute;font-size:.55rem;font-weight:600;opacity:.55;pointer-events:none;z-index:1}
 .sq .coord.file{bottom:2px;right:3px}.sq .coord.rank{top:2px;left:3px}
 .puzzle-banner{background:linear-gradient(135deg,#1a237e,#0d47a1);border-radius:var(--radius);padding:10px 14px;text-align:center;font-size:.85rem}
@@ -249,6 +252,6 @@ button.primary{background:var(--accent);color:#fff}
 </div>
 <div class="actions"><button class="primary" id="btnSettingsClose" style="flex:1">Done</button></div>
 </div></div>
-<script src="game.js?v=8"></script>
+<script src="game.js?v=9"></script>
 </body>
 </html>
