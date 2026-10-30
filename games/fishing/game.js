@@ -26,9 +26,12 @@ scene.background = new THREE.Color('#8dd9dc');
 scene.fog = new THREE.FogExp2('#9bdfe0', 0.0016);
 
 const camera = new THREE.PerspectiveCamera(57, window.innerWidth / window.innerHeight, 0.1, 1100);
-let cameraYaw = 1.9;
-let cameraPitch = 0.37;
-let cameraDistance = 11;
+let cameraYaw = Math.PI;
+let cameraPitch = 0;
+let dragging = false;
+let pointerLocked = false;
+let lastPointer = { x: 0, y: 0 };
+camera.rotation.order = 'YXZ';
 
 scene.add(new THREE.HemisphereLight('#e9fff0', '#56796b', 2.0));
 const sun = new THREE.DirectionalLight('#fff0ce', 3.1);
@@ -55,7 +58,7 @@ const materials = {
   dark: new THREE.MeshStandardMaterial({ color: '#43534a', roughness: .9 }),
 };
 
-const waterGeometry = new THREE.PlaneGeometry(1200, 1200, 90, 90);
+const waterGeometry = new THREE.PlaneGeometry(2400, 2400, 90, 90);
 waterGeometry.rotateX(-Math.PI / 2);
 const waterPositions = waterGeometry.attributes.position;
 const waterBase = waterPositions.array.slice();
@@ -68,6 +71,7 @@ scene.add(water);
 
 const island = new THREE.Group();
 scene.add(island);
+const islandColliders = [];
 
 function addMesh(parent, geometry, material, position, scale, castShadow = true) {
   const mesh = new THREE.Mesh(geometry, material);
@@ -83,6 +87,7 @@ addMesh(island, new THREE.SphereGeometry(1, 48, 28), materials.sand, [0, -2.7, 0
 addMesh(island, new THREE.SphereGeometry(1, 44, 24), materials.grass, [0, -1.3, -0.5], [12.4, 4.1, 10.1]);
 
 function addPalm(x, z, height, lean, leafMaterial = materials.leaf) {
+  islandColliders.push({ x, z, radius: .48 });
   const tree = new THREE.Group();
   tree.position.set(x, 0, z);
   tree.rotation.z = lean;
@@ -118,6 +123,7 @@ for (let index = 0; index < 10; index += 1) {
   const angle = index * 2.2;
   const x = Math.cos(angle) * (8.5 + (index % 3));
   const z = Math.sin(angle) * (7.2 + (index % 2));
+  islandColliders.push({ x, z, radius: .62 });
   addMesh(island, new THREE.DodecahedronGeometry(.55 + (index % 3) * .18, 0), new THREE.MeshStandardMaterial({ color: index % 2 ? '#9caa8c' : '#c3b28e', roughness: 1 }), [x, .15, z], [1.3, .7, .9]);
 }
 
@@ -129,6 +135,7 @@ for (let index = 0; index < 9; index += 1) {
 }
 for (const x of [-1.35, 1.35]) {
   for (const z of [0, 3.7, 7.35]) {
+    islandColliders.push({ x, z: dock.position.z + z, radius: .3 });
     addMesh(dock, new THREE.CylinderGeometry(.13, .16, 1.5, 8), materials.trunk, [x, -.22, z], [1, 1, 1]);
   }
 }
@@ -136,6 +143,7 @@ for (const x of [-1.35, 1.35]) {
 const seller = new THREE.Group();
 seller.position.set(3.45, .05, 4.7);
 island.add(seller);
+islandColliders.push({ x: seller.position.x, z: seller.position.z, radius: 1.05 });
 addMesh(seller, new THREE.BoxGeometry(2.2, .22, .9), materials.wood, [0, 1.05, 0]);
 addMesh(seller, new THREE.BoxGeometry(.16, 2.1, .16), materials.trunk, [-.88, 1.1, 0]);
 addMesh(seller, new THREE.BoxGeometry(.16, 2.1, .16), materials.trunk, [.88, 1.1, 0]);
@@ -190,6 +198,14 @@ addMesh(boat, new THREE.BoxGeometry(1.65, .15, .54), materials.wood, [0, .36, 2.
 addMesh(boat, new THREE.BoxGeometry(.16, .24, .16), materials.wood, [-.7, .27, 2.5]);
 addMesh(boat, new THREE.BoxGeometry(.16, .24, .16), materials.wood, [.7, .27, 2.5]);
 addMesh(boat, new THREE.BoxGeometry(1.3, .12, .15), materials.woodLight, [0, .4, 2.5]);
+addMesh(boat, new THREE.CylinderGeometry(.07, .1, .7, 10), materials.dark, [0, .72, 1.05]);
+const helmWheel = addMesh(boat, new THREE.TorusGeometry(.27, .035, 8, 24), materials.woodLight, [0, 1.08, 1.05]);
+for (let spoke = 0; spoke < 4; spoke += 1) {
+  const angle = spoke * Math.PI / 2;
+  const wheelSpoke = addMesh(boat, new THREE.BoxGeometry(.24, .035, .035), materials.woodLight, [Math.cos(angle) * .1, 1.08 + Math.sin(angle) * .1, 1.05]);
+  wheelSpoke.rotation.z = angle;
+}
+addMesh(boat, new THREE.BoxGeometry(1.25, .12, .18), materials.wood, [0, .53, 1.95]);
 
 const rodGroup = new THREE.Group();
 rodGroup.position.set(.56, .4, 1.68);
@@ -200,21 +216,18 @@ rodTip.position.set(-.56, 2.03, 0);
 rodGroup.add(rodTip);
 boat.add(rodGroup);
 
-const avatar = new THREE.Group();
-scene.add(avatar);
-const skinMaterial = new THREE.MeshStandardMaterial({ color: '#d9a77d', roughness: .85 });
-const shirtMaterial = new THREE.MeshStandardMaterial({ color: '#dd7657', roughness: .8 });
-const pantsMaterial = new THREE.MeshStandardMaterial({ color: '#3d5a58', roughness: .9 });
-addMesh(avatar, new THREE.CapsuleGeometry(.34, .77, 4, 8), shirtMaterial, [0, 1.13, 0], [1, 1, .72]);
-addMesh(avatar, new THREE.SphereGeometry(.24, 16, 12), skinMaterial, [0, 1.86, 0], [1, 1.05, 1]);
-addMesh(avatar, new THREE.CylinderGeometry(.09, .11, .45, 8), pantsMaterial, [-.16, .34, 0], [1, 1, 1]);
-addMesh(avatar, new THREE.CylinderGeometry(.09, .11, .45, 8), pantsMaterial, [.16, .34, 0], [1, 1, 1]);
-const armLeft = addMesh(avatar, new THREE.CylinderGeometry(.08, .1, .55, 8), shirtMaterial, [-.39, 1.3, -.02], [1, 1, 1]);
-const armRight = addMesh(avatar, new THREE.CylinderGeometry(.08, .1, .55, 8), shirtMaterial, [.39, 1.3, -.02], [1, 1, 1]);
-armLeft.rotation.z = -.25;
-armRight.rotation.z = .25;
-avatar.visible = false;
-avatar.rotation.y = Math.PI;
+const handRig = new THREE.Group();
+camera.add(handRig);
+const sleeveMaterial = new THREE.MeshStandardMaterial({ color: '#dc795c', roughness: .88 });
+const gloveMaterial = new THREE.MeshStandardMaterial({ color: '#d7a47b', roughness: .9 });
+const leftSleeve = addMesh(handRig, new THREE.CapsuleGeometry(.09, .38, 4, 8), sleeveMaterial, [-.29, -.37, -.5], [1, 1, 1]);
+leftSleeve.rotation.z = -.58;
+const rightSleeve = addMesh(handRig, new THREE.CapsuleGeometry(.09, .38, 4, 8), sleeveMaterial, [.32, -.35, -.48], [1, 1, 1]);
+rightSleeve.rotation.z = .58;
+addMesh(handRig, new THREE.SphereGeometry(.095, 12, 10), gloveMaterial, [-.12, -.3, -.47], [1, .8, 1]);
+addMesh(handRig, new THREE.SphereGeometry(.095, 12, 10), gloveMaterial, [.19, -.3, -.46], [1, .8, 1]);
+handRig.visible = false;
+scene.add(camera);
 
 const bobber = new THREE.Group();
 const bobberBall = new THREE.Mesh(new THREE.SphereGeometry(.16, 12, 10), new THREE.MeshStandardMaterial({ color: '#f4eac4', roughness: .4 }));
@@ -248,18 +261,18 @@ const fishTypes = [
 ];
 
 const player = new THREE.Vector3(0, 0, 8.15);
+const boatLocalPlayer = new THREE.Vector3(0, 0, .8);
 const inventory = [];
 const keys = new Set();
 let mode = 'walk';
 let hasRod = false;
+let boatSpeed = 0;
 let fishingState = 'idle';
 let fishingTimer = 0;
 let biteWindow = 0;
 let fishingPoint = new THREE.Vector3();
 let coins = 0;
 let toastTimeout = 0;
-let dragging = false;
-let lastPointer = { x: 0, y: 0 };
 let statusClock = 0;
 let waterClock = 0;
 
@@ -283,18 +296,13 @@ function islandDistance() {
 }
 
 function boatForward() {
-  return new THREE.Vector3(Math.sin(boat.rotation.y), 0, -Math.cos(boat.rotation.y));
+  return new THREE.Vector3(-Math.sin(boat.rotation.y), 0, -Math.cos(boat.rotation.y));
 }
 
 function updateModeVisibility() {
-  avatar.visible = mode === 'walk';
-  boat.userData.occupied = mode === 'boat';
-  if (mode === 'walk' && rodGroup.parent === avatar) {
-    avatar.remove(rodGroup);
-    boat.add(rodGroup);
-    rodGroup.position.set(.56, .4, 1.68);
-    rodGroup.rotation.set(0, 0, 0);
-  }
+  boat.userData.occupied = mode === 'sail';
+  handRig.visible = hasRod && mode !== 'walk';
+  rodGroup.visible = mode !== 'walk';
 }
 
 function updateButtons() {
@@ -302,29 +310,37 @@ function updateButtons() {
   const sellerDistance = distanceTo(player.x, player.z, seller.position.x, seller.position.z);
   let prompt = '';
   let showInteract = false;
-  if (mode === 'walk' && distanceTo(player.x, player.z, boat.position.x, boat.position.z) < 4.8) {
-    prompt = 'BOARD THE BOAT';
+  if (mode === 'walk' && islandDistance() < 24 && distanceTo(player.x, player.z, boat.position.x, boat.position.z) < 4.2) {
+    prompt = 'STEP ABOARD';
     showInteract = true;
   } else if (mode === 'walk' && sellerDistance < 3.7) {
     prompt = inventory.length ? `SELL ${inventory.length} FISH` : 'FISH BUYER';
     showInteract = inventory.length > 0;
-  } else if (mode === 'boat' && !hasRod) {
-    prompt = 'PICK UP FISHING ROD';
-    showInteract = true;
-  } else if (mode === 'boat' && dockDistance < 8.2) {
-    prompt = 'STEP ASHORE';
-    showInteract = true;
+  } else if (mode === 'boatWalk') {
+    const helm = boat.localToWorld(new THREE.Vector3(0, 0, 1.48));
+    const rod = rodGroup.parent === boat ? rodGroup.getWorldPosition(new THREE.Vector3()) : null;
+    const exit = boat.localToWorld(new THREE.Vector3(0, 0, 2.1));
+    if (rod && !hasRod && player.distanceTo(rod) < 1.35) {
+      prompt = 'PICK UP FISHING ROD';
+      showInteract = true;
+    } else if (dockDistance < 10 && player.distanceTo(exit) < 1.55 && isWalkable(exit.x, exit.z)) {
+      prompt = 'STEP ASHORE';
+      showInteract = true;
+    } else if (player.distanceTo(helm) < 1.45) {
+      prompt = 'TAKE THE HELM';
+      showInteract = true;
+    }
   }
   interactButton.hidden = !showInteract;
   interactButton.textContent = prompt;
-  actionButton.hidden = mode !== 'boat' || !hasRod;
+  actionButton.hidden = mode !== 'sail' || !hasRod;
   if (fishingState === 'bite') actionButton.textContent = 'REEL IN NOW';
   else if (fishingState === 'waiting') actionButton.textContent = 'BRING IN LINE';
   else actionButton.textContent = 'CAST YOUR LINE';
-  if (mode === 'boat' && islandDistance() > 19) {
+  if (mode === 'sail' && islandDistance() > 19) {
     seaStatus.textContent = 'OPEN WATER';
     statusElement.textContent = fishingState === 'waiting' ? 'Watching the line' : fishingState === 'bite' ? 'A fish is on the line!' : 'Open water · cast anywhere';
-  } else if (mode === 'boat') {
+  } else if (mode === 'sail' || mode === 'boatWalk') {
     seaStatus.textContent = 'SHALLOWS';
     statusElement.textContent = 'The island is just ahead';
   } else {
@@ -344,7 +360,7 @@ function weightedFish() {
 }
 
 function castOrReel() {
-  if (mode !== 'boat' || !hasRod) return;
+  if (mode !== 'sail' || !hasRod) return;
   if (islandDistance() <= 19) {
     showToast('Sail a little farther out to find the fish.');
     return;
@@ -401,37 +417,62 @@ function interact() {
   const sellerDistance = distanceTo(player.x, player.z, seller.position.x, seller.position.z);
   const boatDistance = distanceTo(player.x, player.z, boat.position.x, boat.position.z);
   const dockDistance = distanceTo(player.x, player.z, 0, 10.2);
-  if (mode === 'walk' && boatDistance < 4.8) {
-    mode = 'boat';
-    player.set(boat.position.x, 0, boat.position.z);
+  if (mode === 'walk' && islandDistance() < 24 && boatDistance < 4.2) {
+    mode = 'boatWalk';
+    boatLocalPlayer.set(0, 0, -.2);
+    syncBoatWalkPosition();
+    cameraYaw = boat.rotation.y;
     updateModeVisibility();
-    showToast('A good day to be out on the water.');
+    showToast('You stepped aboard. Walk to the helm to set off.');
   } else if (mode === 'walk' && sellerDistance < 3.7) {
     sellCatch();
-  } else if (mode === 'boat' && !hasRod) {
-    hasRod = true;
-    updateModeVisibility();
-    showToast('Fishing rod picked up. Find open water to cast.');
-  } else if (mode === 'boat' && dockDistance < 8.2) {
+  } else if (mode === 'boatWalk') {
+    const rodPosition = rodGroup.parent === boat ? rodGroup.getWorldPosition(new THREE.Vector3()) : null;
+    const helmPosition = boat.localToWorld(new THREE.Vector3(0, 0, 1.48));
+    const exitPosition = boat.localToWorld(new THREE.Vector3(0, 0, 2.1));
+    if (!hasRod && rodPosition && player.distanceTo(rodPosition) < 1.35) {
+      hasRod = true;
+      boat.remove(rodGroup);
+      camera.add(rodGroup);
+      rodGroup.position.set(.34, -.39, -.67);
+      rodGroup.rotation.set(.1, -.25, -.55);
+      rodGroup.scale.setScalar(.34);
+      updateModeVisibility();
+      showToast('Fishing rod picked up. Walk to the helm when you are ready.');
+    } else if (dockDistance < 10 && player.distanceTo(exitPosition) < 1.55 && isWalkable(exitPosition.x, exitPosition.z)) {
+      mode = 'walk';
+      player.set(exitPosition.x, groundHeightAt(exitPosition.x, exitPosition.z), exitPosition.z);
+      cameraYaw = boat.rotation.y;
+      updateModeVisibility();
+      showToast('Back on the island. The fish buyer is nearby.');
+    } else if (player.distanceTo(helmPosition) < 1.45) {
+      mode = 'sail';
+      cameraYaw = boat.rotation.y;
+      updateModeVisibility();
+      showToast('At the helm. Steer with A and D.');
+    }
+  } else if (mode === 'sail' && dockDistance < 10) {
     if (fishingState !== 'idle') {
       fishingState = 'idle';
       bobber.visible = false;
       fishingLine.visible = false;
       ripple.visible = false;
     }
-    mode = 'walk';
-    player.set(boat.position.x, 0, boat.position.z - 1.1);
-    avatar.position.set(player.x, groundHeightAt(player.x, player.z), player.z);
+    mode = 'boatWalk';
+    boatLocalPlayer.set(0, 0, -.2);
+    syncBoatWalkPosition();
     updateModeVisibility();
-    showToast('Back on the island. The fish buyer is nearby.');
+    showToast('You left the helm. Walk to the pier to step ashore.');
   }
   updateButtons();
 }
 
 function isWalkable(x, z) {
-  const islandLand = (x * x) / (14.2 * 14.2) + ((z + .2) * (z + .2)) / (11.8 * 11.8) < 1;
-  const onDock = Math.abs(x) < 2.3 && z > 6.3 && z < 16.5;
-  return islandLand || onDock;
+  const islandLand = (x * x) / (14 * 14) + ((z + .2) * (z + .2)) / (11.7 * 11.7) < 1;
+  const onDock = Math.abs(x) < 1.48 && z > 6.25 && z < 15.15;
+  if (!islandLand && !onDock) return false;
+  if (islandColliders.some((obstacle) => distanceTo(x, z, obstacle.x, obstacle.z) < obstacle.radius + .32)) return false;
+  return true;
 }
 
 function updateWalking(dt) {
@@ -441,18 +482,27 @@ function updateWalking(dt) {
   const moveX = -Math.sin(cameraYaw) * forward + Math.cos(cameraYaw) * sideways;
   const moveZ = -Math.cos(cameraYaw) * forward - Math.sin(cameraYaw) * sideways;
   const length = Math.hypot(moveX, moveZ) || 1;
-  const nextX = player.x + moveX / length * 4.3 * dt;
-  const nextZ = player.z + moveZ / length * 4.3 * dt;
-  if (isWalkable(nextX, nextZ)) {
-    player.x = nextX;
-    player.z = nextZ;
-    avatar.rotation.y = Math.atan2(-moveX, -moveZ);
-    avatar.position.set(player.x, groundHeightAt(player.x, player.z), player.z);
+  const speed = 3.4 * dt;
+  if (mode === 'boatWalk') {
+    const delta = new THREE.Vector3(moveX / length * speed, 0, moveZ / length * speed);
+    delta.applyQuaternion(boat.quaternion.clone().invert());
+    const nextX = boatLocalPlayer.x + delta.x;
+    const nextZ = boatLocalPlayer.z + delta.z;
+    if (nextX > -.7 && nextX < .7 && nextZ > -.35 && nextZ < 1.82) {
+      boatLocalPlayer.set(nextX, 0, nextZ);
+      syncBoatWalkPosition();
+    }
+    return;
   }
+  const nextX = player.x + moveX / length * speed;
+  const nextZ = player.z + moveZ / length * speed;
+  if (isWalkable(nextX, player.z)) player.x = nextX;
+  if (isWalkable(player.x, nextZ)) player.z = nextZ;
+  player.y = groundHeightAt(player.x, player.z);
 }
 
 function groundHeightAt(x, z) {
-  if (Math.abs(x) < 2.3 && z > 6.3 && z < 16.5) return .5;
+  if (Math.abs(x) < 1.48 && z > 6.25 && z < 15.15) return .5;
   const grassRadius = 1 - (x * x) / (12.4 * 12.4) - ((z + .5) * (z + .5)) / (10.1 * 10.1);
   const sandRadius = 1 - (x * x) / (15.8 * 15.8) - (z * z) / (13.5 * 13.5);
   const grassHeight = grassRadius > 0 ? -1.3 + 4.1 * Math.sqrt(grassRadius) : -Infinity;
@@ -463,30 +513,31 @@ function groundHeightAt(x, z) {
 function updateBoat(dt) {
   const throttle = (keys.has('w') ? 1 : 0) - (keys.has('s') ? 1 : 0);
   const steering = (keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0);
-  boat.rotation.y += steering * dt * (throttle < 0 ? -1 : 1) * .78;
+  const turn = steering * dt * (boatSpeed < 0 ? -1 : 1) * .78;
+  boat.rotation.y += turn;
+  cameraYaw += turn;
+  boatSpeed = THREE.MathUtils.damp(boatSpeed, throttle * 12, throttle ? 1.7 : 1.1, dt);
   const forward = boatForward();
-  const speed = throttle * 11;
-  const nextX = boat.position.x + forward.x * speed * dt;
-  const nextZ = boat.position.z + forward.z * speed * dt;
+  const nextX = boat.position.x + forward.x * boatSpeed * dt;
+  const nextZ = boat.position.z + forward.z * boatSpeed * dt;
   const onIsland = (nextX * nextX) / (14.7 * 14.7) + ((nextZ + .2) * (nextZ + .2)) / (12.2 * 12.2) < 1;
-  if (!onIsland && Math.hypot(nextX, nextZ) < 650) {
+  if (!onIsland) {
     boat.position.x = nextX;
     boat.position.z = nextZ;
   }
   boat.position.y = .15 + Math.sin(waterClock * 1.7 + boat.position.x * .1) * .12;
-  player.set(boat.position.x, 0, boat.position.z);
+  syncBoatWalkPosition();
 }
 
-function updateCamera(dt) {
-  const target = mode === 'boat' ? boat.position : player;
-  const horizontal = cameraDistance * Math.cos(cameraPitch);
-  const desired = new THREE.Vector3(
-    target.x + Math.sin(cameraYaw) * horizontal,
-    target.y + cameraDistance * Math.sin(cameraPitch) + 1.25,
-    target.z + Math.cos(cameraYaw) * horizontal,
-  );
-  camera.position.lerp(desired, 1 - Math.exp(-dt * 4.5));
-  camera.lookAt(target.x, target.y + 1.15, target.z);
+function syncBoatWalkPosition() {
+  const world = boat.localToWorld(boatLocalPlayer.clone());
+  player.set(world.x, boat.position.y, world.z);
+}
+
+function updateCamera() {
+  if (mode === 'sail') camera.position.copy(boat.localToWorld(new THREE.Vector3(0, 1.2, 1.35)));
+  else camera.position.set(player.x, player.y + 1.58, player.z);
+  camera.rotation.set(cameraPitch, cameraYaw, 0, 'YXZ');
 }
 
 function drawMap() {
@@ -524,7 +575,7 @@ function drawMap() {
   context.lineWidth = 2.2;
   context.beginPath();
   context.moveTo(playerX, playerY);
-  context.lineTo(playerX + Math.sin(boat.rotation.y) * 11, playerY - Math.cos(boat.rotation.y) * 11);
+  context.lineTo(playerX - Math.sin(cameraYaw) * 11, playerY - Math.cos(cameraYaw) * 11);
   context.stroke();
   context.fillStyle = 'rgba(243,255,245,.72)';
   context.font = '10px monospace';
@@ -577,10 +628,10 @@ function updateHud() {
 
 function animate() {
   requestAnimationFrame(animate);
-  const dt = Math.min(renderer.info ? .04 : .04, clock.getDelta());
+  const dt = Math.min(.04, clock.getDelta());
   waterClock += dt;
-  if (mode === 'walk') updateWalking(dt);
-  else updateBoat(dt);
+  if (mode === 'sail') updateBoat(dt);
+  else updateWalking(dt);
   updateFishing(dt);
   updateCamera(dt);
   if (statusClock >= .12) {
@@ -588,10 +639,12 @@ function animate() {
     statusClock = 0;
   }
   statusClock += dt;
+  water.position.x = player.x;
+  water.position.z = player.z;
   for (let index = 0; index < waterPositions.count; index += 1) {
     const offset = index * 3;
-    const x = waterBase[offset];
-    const z = waterBase[offset + 2];
+    const x = waterBase[offset] + water.position.x;
+    const z = waterBase[offset + 2] + water.position.z;
     waterPositions.array[offset + 1] = waterBase[offset + 1] + Math.sin(x * .045 + waterClock * 1.25) * .16 + Math.sin((z + x * .45) * .055 + waterClock * .8) * .12;
   }
   waterPositions.needsUpdate = true;
@@ -638,23 +691,28 @@ interactButton.addEventListener('click', interact);
 actionButton.addEventListener('click', castOrReel);
 
 canvas.addEventListener('pointerdown', (event) => {
+  if (event.pointerType === 'mouse' && canvas.requestPointerLock && !pointerLocked) {
+    canvas.requestPointerLock();
+    return;
+  }
   dragging = true;
   lastPointer = { x: event.clientX, y: event.clientY };
   canvas.setPointerCapture(event.pointerId);
 });
+document.addEventListener('pointerlockchange', () => {
+  pointerLocked = document.pointerLockElement === canvas;
+  dragging = false;
+});
 canvas.addEventListener('pointermove', (event) => {
-  if (!dragging) return;
-  const dx = event.clientX - lastPointer.x;
-  const dy = event.clientY - lastPointer.y;
-  cameraYaw -= dx * .005;
-  cameraPitch = THREE.MathUtils.clamp(cameraPitch + dy * .003, .13, 1.05);
+  if (!dragging && !pointerLocked) return;
+  const dx = pointerLocked ? event.movementX : event.clientX - lastPointer.x;
+  const dy = pointerLocked ? event.movementY : event.clientY - lastPointer.y;
+  cameraYaw -= dx * .0025;
+  cameraPitch = THREE.MathUtils.clamp(cameraPitch - dy * .0025, -1.25, 1.25);
   lastPointer = { x: event.clientX, y: event.clientY };
 });
 canvas.addEventListener('pointerup', () => { dragging = false; });
 canvas.addEventListener('pointercancel', () => { dragging = false; });
-canvas.addEventListener('wheel', (event) => {
-  cameraDistance = THREE.MathUtils.clamp(cameraDistance + event.deltaY * .008, 6, 20);
-}, { passive: true });
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -664,7 +722,7 @@ window.addEventListener('resize', () => {
 });
 
 formatFishCount();
-avatar.position.set(player.x, groundHeightAt(player.x, player.z), player.z);
+player.y = groundHeightAt(player.x, player.z);
 updateModeVisibility();
 updateHud();
 animate();
