@@ -1,11 +1,8 @@
 (async()=>{
-const n=8;
+const n=31;
 const parts=[];
-for(let i=0;i<n;i++){
-  parts.push(await(await fetch('g'+i+'.txt?v=6')).text());
-}
-const js=atob(parts.join(''));
+for(let i=0;i<n;i++) parts.push(await(await fetch('p'+i+'.txt?v=7')).text());
 const s=document.createElement('script');
-s.textContent=js;
+s.textContent=atob(parts.join(''));
 document.body.appendChild(s);
 })();
