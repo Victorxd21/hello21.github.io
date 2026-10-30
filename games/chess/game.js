@@ -16,6 +16,15 @@
     "if(piece.type==='k'||piece.type==='q'){const cos=(onlineMode?(piece.color===myColorOnline?myCosmetic:oppCosmetic):myCosmetic);if(cos&&cos.cls)img.classList.add(cos.cls)}sq.appendChild(img)}",
     "if(piece.type==='k'||piece.type==='q'){const cos=(onlineMode?(piece.color===myColorOnline?myCosmetic:oppCosmetic):myCosmetic);if(cos&&cos.cls){img.classList.add(cos.cls);sq.classList.add('fx-'+cos.id)}}sq.appendChild(img)}"
   );
+  // null-safe eval labels
+  js=js.replace(
+    "document.getElementById('evalBot').textContent=sign+label;document.getElementById('evalTop').textContent=''",
+    "const eb=document.getElementById('evalBot');const et=document.getElementById('evalTop');if(eb)eb.textContent=sign+label;if(et)et.textContent=''"
+  );
+  js=js.replace(
+    "document.getElementById('evalTop').textContent='-'+label;document.getElementById('evalBot').textContent=''",
+    "const et2=document.getElementById('evalTop');const eb2=document.getElementById('evalBot');if(et2)et2.textContent='-'+label;if(eb2)eb2.textContent=''"
+  );
   const s=document.createElement('script');
   s.textContent=js;
   document.body.appendChild(s);
