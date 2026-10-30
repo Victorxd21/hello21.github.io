@@ -1,7 +1,11 @@
 (async()=>{
-const a=await(await fetch('game-a.js?v=5')).text();
-const b=await(await fetch('game-b.js?v=5')).text();
+const n=8;
+const parts=[];
+for(let i=0;i<n;i++){
+  parts.push(await(await fetch('g'+i+'.txt?v=6')).text());
+}
+const js=atob(parts.join(''));
 const s=document.createElement('script');
-s.textContent=a+b;
+s.textContent=js;
 document.body.appendChild(s);
 })();
