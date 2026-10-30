@@ -22,57 +22,65 @@
     "const et2=document.getElementById('evalTop');const eb2=document.getElementById('evalBot');if(et2)et2.textContent='-'+label;if(eb2)eb2.textContent=''"
   );
 
-  const introCode = `
-function playMatchIntro(done){
-  const el=document.getElementById('matchIntro');
-  if(!el||!settings.anim){if(done)done();return}
-  document.getElementById('introNameTop').textContent=document.getElementById('nameTop')?.textContent||'Stockfish';
-  document.getElementById('introSubTop').textContent=document.getElementById('subTop')?.textContent||'AI';
-  document.getElementById('introNameBot').textContent=document.getElementById('nameBottom')?.textContent||'You';
-  document.getElementById('introSubBot').textContent=document.getElementById('subBottom')?.textContent||'Player';
-  const avTop=document.getElementById('introAvatarTop');
-  const avBot=document.getElementById('introAvatarBot');
-  if(document.getElementById('avatarTop')?.querySelector('.sf-icon')) avTop.innerHTML='🐟';
-  else {const img=document.getElementById('avatarTop')?.querySelector('img');avTop.innerHTML=img?('<img src="'+img.src+'" alt="">'):'♟';}
-  const botImg=document.getElementById('avatarBottom')?.querySelector('img');
-  avBot.innerHTML=botImg?('<img src="'+botImg.src+'" alt="">'):'<img src="'+pieceSrc(playerColor||'w','k')+'" alt="">';
-  const bTop=document.getElementById('introBannerTop');
-  const bBot=document.getElementById('introBannerBot');
-  const vs=document.getElementById('introVs');
-  const fight=document.getElementById('introFight');
-  bTop.className='intro-banner top';
-  bBot.className='intro-banner bot';
-  vs.className='intro-vs';
-  fight.className='intro-fight';
-  el.classList.add('show');
-  setTimeout(()=>fight.classList.add('show'),900);
-  setTimeout(()=>{bTop.classList.add('exit-top');bBot.classList.add('exit-bot');vs.classList.add('exit');},1400);
-  setTimeout(()=>{el.classList.remove('show');flyInPieces();if(done)done();},1850);
-}
-function flyInPieces(){
-  if(!settings.anim||!boardEl)return;
-  const imgs=boardEl.querySelectorAll('img.piece');
-  imgs.forEach((img)=>{
-    const sq=img.closest('.sq');if(!sq||!sq.dataset.sq)return;
-    const file=sq.dataset.sq.charCodeAt(0)-97;
-    const rank=parseInt(sq.dataset.sq[1],10);
-    const fromBottom=rank<=2;
-    img.style.setProperty('--fx',((file-3.5)*40)+'px');
-    img.style.setProperty('--fy',fromBottom?'140px':'-140px');
-    img.classList.remove('fly-in');
-    void img.offsetWidth;
-    img.style.animationDelay=((Math.abs(file-3.5)*28+(fromBottom?0:50))|0)+'ms';
-    img.classList.add('fly-in');
-  });
-  setTimeout(()=>{imgs.forEach(img=>{img.classList.remove('fly-in');img.style.animationDelay='';});},950);
-}
-`;
+  const introCode = [
+    'function playMatchIntro(done){',
+    '  const el=document.getElementById("matchIntro");',
+    '  if(!el||!settings.anim){if(done)done();return}',
+    '  var nTop=document.getElementById("nameTop");',
+    '  var sTop=document.getElementById("subTop");',
+    '  var nBot=document.getElementById("nameBottom");',
+    '  var sBot=document.getElementById("subBottom");',
+    '  document.getElementById("introNameTop").textContent=nTop?nTop.textContent:"Stockfish";',
+    '  document.getElementById("introSubTop").textContent=sTop?sTop.textContent:"AI";',
+    '  document.getElementById("introNameBot").textContent=nBot?nBot.textContent:"You";',
+    '  document.getElementById("introSubBot").textContent=sBot?sBot.textContent:"Player";',
+    '  var avTop=document.getElementById("introAvatarTop");',
+    '  var avBot=document.getElementById("introAvatarBot");',
+    '  var aTop=document.getElementById("avatarTop");',
+    '  if(aTop&&aTop.querySelector(".sf-icon")) avTop.innerHTML="🐟";',
+    '  else {var img=aTop&&aTop.querySelector("img");avTop.innerHTML=img?("<img src=\""+img.src+"\" alt=\"\">"):"♟";}',
+    '  var botImg=document.getElementById("avatarBottom");botImg=botImg&&botImg.querySelector("img");',
+    '  avBot.innerHTML=botImg?("<img src=\""+botImg.src+"\" alt=\"\">"):("<img src=\""+pieceSrc(playerColor||"w","k")+"\" alt=\"\">");',
+    '  var bTop=document.getElementById("introBannerTop");',
+    '  var bBot=document.getElementById("introBannerBot");',
+    '  var vs=document.getElementById("introVs");',
+    '  var fight=document.getElementById("introFight");',
+    '  bTop.className="intro-banner top";',
+    '  bBot.className="intro-banner bot";',
+    '  vs.className="intro-vs";',
+    '  fight.className="intro-fight";',
+    '  el.classList.add("show");',
+    '  setTimeout(function(){fight.classList.add("show");},900);',
+    '  setTimeout(function(){bTop.classList.add("exit-top");bBot.classList.add("exit-bot");vs.classList.add("exit");},1400);',
+    '  setTimeout(function(){el.classList.remove("show");flyInPieces();if(done)done();},1850);',
+    '}',
+    'function flyInPieces(){',
+    '  if(!settings.anim||!boardEl)return;',
+    '  var imgs=boardEl.querySelectorAll("img.piece");',
+    '  for(var i=0;i<imgs.length;i++){',
+    '    var img=imgs[i];',
+    '    var sq=img.closest(".sq");if(!sq||!sq.dataset.sq)continue;',
+    '    var file=sq.dataset.sq.charCodeAt(0)-97;',
+    '    var rank=parseInt(sq.dataset.sq[1],10);',
+    '    var fromBottom=rank<=2;',
+    '    img.style.setProperty("--fx",((file-3.5)*40)+"px");',
+    '    img.style.setProperty("--fy",fromBottom?"140px":"-140px");',
+    '    img.classList.remove("fly-in");',
+    '    void img.offsetWidth;',
+    '    img.style.animationDelay=((Math.abs(file-3.5)*28+(fromBottom?0:50))|0)+"ms";',
+    '    img.classList.add("fly-in");',
+    '  }',
+    '  setTimeout(function(){for(var j=0;j<imgs.length;j++){imgs[j].classList.remove("fly-in");imgs[j].style.animationDelay="";}},950);',
+    '}',
+  ].join('\n');
   js=js.replace('function startNewGame(){', introCode+'\nfunction startNewGame(){');
   js=js.replace(
     "closeModal();renderBoard();updateMovesList();startClock();updateStatsUI();if(mode!=='local'&&playerColor==='b')setTimeout(aiMove,400)}",
-    "closeModal();renderBoard();updateMovesList();startClock();updateStatsUI();playMatchIntro(()=>{if(mode!=='local'&&playerColor==='b')setTimeout(aiMove,400)});"
+    "closeModal();renderBoard();updateMovesList();startClock();updateStatsUI();playMatchIntro(function(){if(mode!=='local'&&playerColor==='b')setTimeout(aiMove,400);});}"
   );
 
+  // syntax guard
+  try { new Function(js); } catch(e){ console.error('patch syntax', e); js=await(await fetch(url)).text(); }
   const s=document.createElement('script');
   s.textContent=js;
   document.body.appendChild(s);
