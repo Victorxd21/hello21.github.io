@@ -37,6 +37,20 @@
 
   js = js.replace(/setTimeout\(aiMove,(\d+)\)/g, "setTimeout(function(){if(window.__clashSkipAi){window.__clashSkipAi=false;return;}aiMove();},$1)");
 
+  // Defer online match start to lobby countdown
+  js = js.replace(
+    "if(others.length&&!oppConnected){oppConnected=true;const meta=state[others[0]][0];if(meta&&meta.cosmetic){oppCosmetic=COSMETICS.find(c=>c.id===meta.cosmetic)||COSMETICS[0]}status.textContent='Opponent joined!';status.className='online-status ok';setOnlineBanner('Room '+roomCode+' · Online','ok');channel.send({type:'broadcast',event:'start',payload:{fen:game.fen(),hostCosmetic:myCosmetic.id}})}",
+    "if(others.length&&!oppConnected){oppConnected=true;const meta=state[others[0]][0];if(meta&&meta.cosmetic){oppCosmetic=COSMETICS.find(c=>c.id===meta.cosmetic)||COSMETICS[0]}status.textContent='Opponent joined!';status.className='online-status ok';setOnlineBanner('Room '+roomCode+' · Online','ok');if(typeof window.__onOnlineOpponentJoined==='function')window.__onOnlineOpponentJoined()}"
+  );
+  js = js.replace(
+    "channel.on('broadcast',{event:'start'},({payload})=>{if(payload&&payload.hostCosmetic){oppCosmetic=COSMETICS.find(c=>c.id===payload.hostCosmetic)||COSMETICS[0]}if(payload&&payload.fen){game=new Chess(payload.fen)}playerColor='b';flipped=true;renderBoard();channel.send({type:'broadcast',event:'sync',payload:{cosmetic:myCosmetic.id}})}",
+    "channel.on('broadcast',{event:'start'},({payload})=>{if(payload&&payload.hostCosmetic){oppCosmetic=COSMETICS.find(c=>c.id===payload.hostCosmetic)||COSMETICS[0]}if(payload&&payload.fen){game=new Chess(payload.fen)}if(payload&&payload.mode)mode=payload.mode;if(payload&&payload.timeWhite)timeWhite=payload.timeWhite;if(payload&&payload.timeBlack)timeBlack=payload.timeBlack;if(payload&&payload.increment!=null)increment=payload.increment;playerColor='b';flipped=true;channel.send({type:'broadcast',event:'sync',payload:{cosmetic:myCosmetic.id}});if(typeof window.__onOnlineLobbyStart==='function')window.__onOnlineLobbyStart(payload);else renderBoard()}"
+  );
+  js = js.replace(
+    "const isLocal=btn.dataset.mode==='local',isPuzzle=btn.dataset.mode==='puzzle',isOnline=btn.dataset.mode==='online';document.getElementById('colorSection').style.display=(isLocal||isPuzzle||isOnline)?'none':'';document.getElementById('diffSection').style.display=(isLocal||isPuzzle||isOnli",
+    "const isLocal=btn.dataset.mode==='local',isPuzzle=btn.dataset.mode==='puzzle',isOnline=false;document.getElementById('colorSection').style.display=(isLocal||isPuzzle||isOnline)?'none':'';document.getElementById('diffSection').style.display=(isLocal||isPuzzle||isOnli"
+  );
+
   var intro = [
     "function playMatchIntro(done){",
     "  try {",
@@ -145,6 +159,11 @@
   clashScript.src = 'clash-addon.js?v=6';
   clashScript.onload = function () { console.log('clash addon v6 loaded'); };
   document.body.appendChild(clashScript);
+
+  var onlineScript = document.createElement('script');
+  onlineScript.src = 'online-lobby.js?v=1';
+  onlineScript.onload = function () { console.log('online lobby loaded'); };
+  document.body.appendChild(onlineScript);
 
   setTimeout(function () {
     var modal = document.getElementById('modal');
