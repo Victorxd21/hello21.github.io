@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Forsaken: Bot Survival</title>
+<style>
+:root{--red:#e43b46;--panel:rgba(10,13,20,.88);--line:rgba(255,255,255,.14);--muted:#aab2c0}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b11;color:#fff;font-family:Inter,system-ui,Arial,sans-serif;touch-action:none}
+canvas{display:block;width:100%;height:100%}button{font:inherit;color:white;background:#202938;border:1px solid var(--line);border-radius:12px;padding:11px 16px;font-weight:700}
+button:active{transform:scale(.97)}button.primary{background:var(--red);border-color:#ff737a}
+#menu{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 30%,rgba(80,23,32,.45),transparent 55%),linear-gradient(135deg,#090d14,#151923)}
+.panel{width:min(680px,92vw);max-height:92vh;overflow:auto;padding:clamp(20px,4vw,38px);border:1px solid var(--line);border-radius:22px;background:var(--panel);box-shadow:0 25px 100px #000a}
+h1{font-size:clamp(34px,7vw,64px);letter-spacing:.08em;margin:0 0 4px;font-weight:950}h1 span{color:var(--red)}.sub{color:var(--muted);margin:0 0 24px}
+.row{display:flex;gap:12px;flex-wrap:wrap}.choice{flex:1;min-width:145px;text-align:left;padding:15px}.choice.selected{border:2px solid var(--red);background:#401b25}.choice strong{display:block;font-size:17px}.choice small{display:block;color:#c0c7d2;margin-top:5px;line-height:1.35}
+.section{margin:20px 0 9px;font-size:12px;color:#9ca8b8;letter-spacing:.15em;font-weight:800}
+#start{width:100%;margin-top:22px;padding:15px;font-size:17px}
+#hud{position:fixed;inset:0;z-index:3;pointer-events:none;display:none}
+.top{position:absolute;top:env(safe-area-inset-top,12px);left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.hudbox{background:#090d16cc;border:1px solid var(--line);border-radius:12px;padding:9px 12px;backdrop-filter:blur(8px);font-size:13px}
+#timer{font-weight:900;font-size:21px;font-variant-numeric:tabular-nums}#objective{max-width:48vw;color:#dbe3ee}
+#bars{position:absolute;left:14px;bottom:calc(14px + env(safe-area-inset-bottom));width:190px}
+.barlabel{display:flex;justify-content:space-between;font-size:11px;color:#d4dbe5;margin:7px 0 4px}.bar{height:8px;background:#28303d;border-radius:8px;overflow:hidden}.fill{height:100%;width:100%;background:#69d39b;transition:width .1s}.fill.stamina{background:#65b8f3}
+#toast{position:absolute;top:18%;left:50%;transform:translateX(-50%);background:#0b101bdc;border:1px solid var(--line);padding:10px 15px;border-radius:12px;font-weight:700;text-align:center;opacity:0;transition:opacity .2s}
+#centerMsg{position:absolute;inset:0;display:none;place-items:center;background:#05070bbd;pointer-events:auto}
+#centerMsg .panel{text-align:center;width:min(480px,90vw)}
+#mobile{display:none;position:absolute;inset:0;pointer-events:none}
+#stickBase{position:absolute;left:22px;bottom:calc(28px + env(safe-area-inset-bottom));width:128px;height:128px;border-radius:50%;background:#dce7ff18;border:1px solid #ffffff35;pointer-events:auto}
+#stick{position:absolute;width:54px;height:54px;border-radius:50%;background:#dce7ff66;border:1px solid #ffffff80;left:36px;top:36px}
+#lookZone{position:absolute;right:0;top:20%;width:55%;height:55%;pointer-events:auto}
+#mobileButtons{position:absolute;right:18px;bottom:calc(22px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:flex-end;pointer-events:auto}
+.mobbtn{width:66px;height:66px;border-radius:50%;background:#151e2ddd;border:1px solid #ffffff55;display:grid;place-items:center;font-size:11px;text-align:center;padding:5px}
+.mobbtn.big{width:78px;height:78px;background:#8e2632e8}
+#interactHint{position:absolute;left:50%;bottom:22%;transform:translateX(-50%);font-size:13px;background:#080c14cc;padding:8px 13px;border-radius:9px;border:1px solid var(--line);white-space:nowrap}
+#crosshair{position:absolute;left:50%;top:50%;width:7px;height:7px;border:1px solid #ffffffaa;border-radius:50%;transform:translate(-50%,-50%)}
+@media (pointer:coarse){#mobile{display:block}#bars{bottom:calc(165px + env(safe-area-inset-bottom));width:145px}.top{top:calc(8px + env(safe-area-inset-top))}.hudbox{font-size:11px;padding:7px 9px}}
+@media (max-width:480px){.panel{padding:20px}.choice{min-width:125px}.sub{font-size:13px}}
+</style>
+</head>
+<body>
+<div id="menu">
+ <div class="panel">
+  <h1>FORSAKEN<span>.</span></h1>
+  <p class="sub">BOT SURVIVAL — browser prototype</p>
+  <div class="section">CHOOSE YOUR SIDE</div>
+  <div class="row">
+   <button class="choice selected" id="survivorMode"><strong>Survivor</strong><small>Complete generators, avoid the killer, and survive until time runs out.</small></button>
+   <button class="choice" id="killerMode"><strong>Killer</strong><small>Hunt the bot survivors before they finish the objectives.</small></button>
+  </div>
+  <div class="section">CHOOSE YOUR KILLER</div>
+  <div class="row">
+   <button class="choice selected" id="coolChoice"><strong>c00lkid</strong><small>Quick pressure and a short disruption burst.</small></button>
+   <button class="choice" id="jasonChoice"><strong>Jason / Slasher</strong><small>Slower movement with a heavy melee hit.</small></button>
+  </div>
+  <p class="sub" style="margin:18px 0 0">Four survivor bots • 3D arena • keyboard, mouse, and touch controls</p>
+  <button class="primary" id="start">START MATCH</button>
+ </div>
+</div>
+<div id="hud">
+ <div class="top">
+  <div class="hudbox"><div style="color:#aab2c0;font-size:10px;letter-spacing:.12em">MATCH TIME</div><div id="timer">03:00</div></div>
+  <div class="hudbox" id="objective">Repair generators: 0 / 4</div>
+  <div class="hudbox" id="role">SURVIVOR</div>
+ </div>
+ <div id="bars">
+  <div class="barlabel"><span>HEALTH</span><span id="healthText">100</span></div><div class="bar"><div class="fill" id="healthFill"></div></div>
+  <div class="barlabel"><span>STAMINA</span><span id="staminaText">100</span></div><div class="bar"><div class="fill stamina" id="staminaFill"></div></div>
+ </div>
+ <div id="toast"></div><div id="crosshair"></div>
+ <div id="mobile">
+  <div id="stickBase"><div id="stick"></div></div><div id="lookZone"></div>
+  <div id="mobileButtons">
+   <button class="mobbtn" id="interactBtn">INTERACT</button>
+   <button class="mobbtn" id="sprintBtn">SPRINT</button>
+   <button class="mobbtn big" id="actionBtn">ATTACK</button>
+  </div>
+ </div>
+ <div id="interactHint">WASD move • Shift sprint • E interact • Click attack</div>
+ <div id="centerMsg"><div class="panel"><h1 id="endTitle">MATCH OVER</h1><p id="endText" class="sub"></p><button class="primary" id="again">PLAY AGAIN</button></div></div>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const $=id=>document.getElementById(id);
+let mode='survivor', killerType='cool', started=false, ended=false;
+$('survivorMode').onclick=()=>{mode='survivor';$('survivorMode').classList.add('selected');$('killerMode').classList.remove('selected')};
+$('killerMode').onclick=()=>{mode='killer';$('killerMode').classList.add('selected');$('survivorMode').classList.remove('selected')};
+$('coolChoice').onclick=()=>{killerType='cool';$('coolChoice').classList.add('selected');$('jasonChoice').classList.remove('selected')};
+$('jasonChoice').onclick=()=>{killerType='jason';$('jasonChoice').classList.add('selected');$('coolChoice').classList.remove('selected')};
+
+let scene,camera,renderer,clock,player,killer,bots=[],gens=[],walls=[],keys={},yaw=0,pitch=.25;
+let health=100,stamina=100,timeLeft=180,done=0,attackCD=0,toastTimer=0,matchResult='';
+const arena=24, moveVec=new THREE.Vector3(), camOffset=new THREE.Vector3();
+const mat=(color,rough=.85)=>new THREE.MeshStandardMaterial({color,roughness:rough});
+const mats={floor:mat(0x242b31),wall:mat(0x343c45),red:mat(0x8f2635),blue:mat(0x3c8cae),green:mat(0x4eae79),gold:mat(0xe0b64f),dark:mat(0x11151c),skin:mat(0xd2a47c),white:mat(0xd7dce4)};
+function box(w,h,d,material,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
+function makePerson(name,color,x,z,isKiller=false){
+ const g=new THREE.Group();scene.add(g);g.position.set(x,0,z);
+ const body=new THREE.Mesh(new THREE.CapsuleGeometry(.42,.72,4,8),mat(color));body.position.y=1.05;body.castShadow=true;g.add(body);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.29,12,10),mat(isKiller&&killerType==='jason'?0x9a9a9a:0xd1a27d));head.position.y=1.82;head.castShadow=true;g.add(head);
+ const legs=new THREE.Mesh(new THREE.BoxGeometry(.55,.55,.38),mat(0x20232b));legs.position.set(0,.35,0);g.add(legs);
+ if(isKiller){const blade=new THREE.Mesh(new THREE.BoxGeometry(.09,.9,.12),mat(0xc7d0d9,.35));blade.position.set(.5,1.05,0);blade.rotation.z=-.25;g.add(blade)}
+ return {name,group:g,hp:100,alive:true,speed:isKiller?3.5:2.5,stun:0,repair:0,attackCD:0,angle:0};
+}
+function addTree(x,z){const trunk=box(.55,2,.55,mats.wall,x,1,z);const crown=new THREE.Mesh(new THREE.ConeGeometry(1.5,3,7),mat(0x263d35));crown.position.set(x,3,z);crown.castShadow=true;scene.add(crown)}
+function setup(){
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,25,58);
+ camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,100);renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.appendChild(renderer.domElement);
+ scene.add(new THREE.HemisphereLight(0x9bb7d2,0x1b1d20,1.4));const sun=new THREE.DirectionalLight(0xffe2c2,2);sun.position.set(-8,18,7);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+ const ground=new THREE.Mesh(new THREE.PlaneGeometry(80,80),mats.floor);ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+ // Boundary walls and cover
+ for(let i=-arena;i<=arena;i+=2){box(1.8,2.8,1.8,mats.wall,i,1.4,-arena);box(1.8,2.8,1.8,mats.wall,i,1.4,arena);box(1.8,2.8,1.8,mats.wall,-arena,1.4,i);box(1.8,2.8,1.8,mats.wall,arena,1.4,i)}
+ for(const [x,z] of [[-9,-7],[8,-9],[-7,9],[10,7],[0,-12],[0,12],[-13,0],[13,0]]){box(2.2,2.5,2.2,mats.wall,x,1.25,z)}
+ for(const [x,z] of [[-17,-15],[17,-15],[-17,15],[17,15],[-18,0],[18,0]])addTree(x,z);
+ // generators
+ const positions=[[-13,-12],[13,-12],[-13,12],[13,12]];
+ gens=positions.map((p,i)=>{const g=new THREE.Group();g.position.set(p[0],0,p[1]);scene.add(g);
+  const base=new THREE.Mesh(new THREE.BoxGeometry(1.5,.5,1.1),mat(0x4b535d));base.position.y=.3;g.add(base);
+  const core=new THREE.Mesh(new THREE.CylinderGeometry(.25,.3,.9,8),mat(0x6f91a8));core.position.y=1;g.add(core);
+  const light=new THREE.PointLight(0x5ca8ff,1.4,5);light.position.y=2;g.add(light);
+  return {group:g,progress:0,done:false,light};
+ });
+ player=makePerson('You',mode==='killer'?0x9a2737:0x3d8eac,0,0,mode==='killer');
+ bots=[];
+ if(mode==='survivor'){
+   killer=makePerson(killerType==='cool'?'c00lkid':'Jason',killerType==='cool'?0xb32640:0x292d34,2,-2,true);
+   for(let i=0;i<4;i++)bots.push(makePerson(['Noob','Bacon','Guest','Builder'][i],[0xd6b14b,0x9b724e,0x6885a5,0x65a879][i],[-5,5,-6,6][i],[-5,-5,5,5][i]));
+ } else {
+   killer=player;
+   for(let i=0;i<4;i++)bots.push(makePerson(['Noob','Bacon','Guest','Builder'][i],[0xd6b14b,0x9b724e,0x6885a5,0x65a879][i],[-5,5,-6,6][i],[-5,-5,5,5][i]));
+ }
+ walls=[];
+ // obstacle collision boxes
+ for(const o of scene.children){if(o.isMesh&&o.geometry.type==='BoxGeometry'&&o.position.y>0.8&&o.position.y<3)walls.push(o)}
+ clock=new THREE.Clock(); yaw=0;pitch=.22;
+}
+function toast(msg){$('toast').textContent=msg;$('toast').style.opacity=1;toastTimer=2}
+function nearestGen(){let best=null,dist=3.2;for(const g of gens){if(g.done)continue;const d=player.group.position.distanceTo(g.group.position);if(d<dist){best=g;dist=d}}return best}
+function updateHUD(){
+ $('timer').textContent=`${String(Math.floor(timeLeft/60)).padStart(2,'0')}:${String(Math.floor(timeLeft%60)).padStart(2,'0')}`;
+ $('objective').textContent=mode==='survivor'?`Generators: ${done} / 4`:`Survivors remaining: ${bots.filter(b=>b.alive).length} / 4`;
+ $('role').textContent=mode==='survivor'?'SURVIVOR':(killerType==='cool'?'c00lkid':'JASON');
+ $('healthText').textContent=Math.max(0,Math.round(health));$('healthFill').style.width=Math.max(0,health)+'%';
+ $('staminaText').textContent=Math.round(stamina);$('staminaFill').style.width=stamina+'%';
+ const g=nearestGen();$('interactHint').textContent=mode==='survivor'?(g?'Press E / INTERACT to repair generator':'WASD / joystick move • Shift / SPRINT run'):'Click / ATTACK to strike nearby survivors';
+}
+function moveEntity(ent,dx,dz,dt){
+ const p=ent.group.position;let nx=p.x+dx*dt,nz=p.z+dz*dt;
+ nx=Math.max(-arena+2,Math.min(arena-2,nx));nz=Math.max(-arena+2,Math.min(arena-2,nz));
+ // soft collision against large cover
+ for(const o of walls){if(o.geometry.parameters?.width>1.5){const x=o.position.x,z=o.position.z;if(Math.abs(nx-x)<1.55&&Math.abs(nz-z)<1.55){if(Math.abs(p.x-x)>Math.abs(p.z-z))nx=p.x;else nz=p.z}}}
+ p.x=nx;p.z=nz;if(Math.hypot(dx,dz)>.05)ent.group.rotation.y=Math.atan2(dx,dz);
+}
+function nearestSurvivor(from){let best=null,d=1e9;for(const b of (mode==='killer'?bots:[player,...bots])){if(b===killer||!b.alive)continue;const n=from.group.position.distanceTo(b.group.position);if(n<d){d=n;best=b}}return best}
+function strike(attacker,target){
+ if(!target||!target.alive||attacker.attackCD>0)return;
+ const d=attacker.group.position.distanceTo(target.group.position);
+ if(d<2.2){target.hp-=killerType==='jason'?48:32;target.stun=.55;toast(`${target.name} was hit!`);if(target.hp<=0){target.alive=false;target.group.visible=false;toast(`${target.name} was eliminated`)}}
+ attacker.attackCD=killerType==='jason'?1.5:.95;
+}
+function interact(){
+ if(mode==='survivor'){
+  const g=nearestGen();if(g){g.progress+=.12;if(g.progress>=1){g.progress=1;g.done=true;done++;g.light.color.setHex(0x53ff9a);toast('Generator completed!')}else toast('Repairing...')}
+ }else{const t=nearestSurvivor(player);strike(player,t)}
+}
+function aiUpdate(dt){
+ // Survivor bots seek unfinished generators, occasionally evade killer
+ for(const b of bots){if(!b.alive||b===player)continue;
+  if(mode==='killer'){
+   const threat=killer.group.position;let target=gens.filter(g=>!g.done).sort((a,c)=>b.group.position.distanceTo(a.group.position)-b.group.position.distanceTo(c.group.position))[0];
+   const d=b.group.position.distanceTo(threat);let dx,dz;
+   if(d<8){dx=b.group.position.x-threat.x;dz=b.group.position.z-threat.z}else if(target){dx=target.group.position.x-b.group.position.x;dz=target.group.position.z-b.group.position.z; if(b.group.position.distanceTo(target.group.position)<2.1){target.progress+=dt*.09;if(target.progress>=1&&!target.done){target.done=true;done++;toast('A bot completed a generator')}}}else{dx=0;dz=0}
+   const l=Math.hypot(dx,dz)||1;moveEntity(b,dx/l, dz/l,dt*b.speed);
+  }else{
+   const target=gens.filter(g=>!g.done).sort((a,c)=>b.group.position.distanceTo(a.group.position)-b.group.position.distanceTo(c.group.position))[0];
+   if(target){const dx=target.group.position.x-b.group.position.x,dz=target.group.position.z-b.group.position.z,l=Math.hypot(dx,dz)||1;moveEntity(b,dx/l,dz/l,dt*b.speed*.75);if(l<2.2){target.progress+=dt*.055;if(target.progress>=1&&!target.done){target.progress=1;target.done=true;done++;toast('A survivor bot completed a generator')}}}
+  }
+ }
+ // Killer bot hunts player and survivor bots
+ if(mode==='survivor'&&killer.alive){
+  const target=nearestSurvivor(killer);
+  if(target){const dx=target.group.position.x-killer.group.position.x,dz=target.group.position.z-killer.group.position.z,l=Math.hypot(dx,dz)||1;moveEntity(killer,dx/l,dz/l,dt*killer.speed*(killerType==='cool'?1.25:0.85));killer.attackCD=Math.max(0,killer.attackCD-dt);if(l<1.9&&killer.attackCD<=0){strike(killer,target);if(target===player){health-=killerType==='jason'?48:32;if(health<=0)finish(false)}}}
+ }
+}
+function finish(win){if(ended)return;ended=true;$('endTitle').textContent=win?'YOU SURVIVED':'MATCH OVER';$('endText').textContent=win?'The survivors held out until the timer expired.':(mode==='survivor'?'The killer caught you.':'The survivors escaped the hunt.');$('centerMsg').style.display='grid'}
+function update(dt){
+ if(!started||ended)return;timeLeft-=dt;if(timeLeft<=0){timeLeft=0;finish(mode==='survivor'||done>=4)}
+ attackCD=Math.max(0,attackCD-dt);if(player.stun>0)player.stun-=dt;
+ let ix=0,iz=0;
+ if(keys.KeyW||keys.ArrowUp)iz-=1;if(keys.KeyS||keys.ArrowDown)iz+=1;if(keys.KeyA||keys.ArrowLeft)ix-=1;if(keys.KeyD||keys.ArrowRight)ix+=1;
+ ix+=touchMove.x;iz+=touchMove.y;const len=Math.hypot(ix,iz);if(len>1){ix/=len;iz/=len}
+ const sprint=(keys.ShiftLeft||touchSprint)&&stamina>1&&mode==='survivor';const speed=player.speed*(sprint?1.65:1);
+ if(sprint&&len>.1)stamina=Math.max(0,stamina-dt*24);else stamina=Math.min(100,stamina+dt*17);
+ if(player.stun<=0){const c=Math.cos(yaw),s=Math.sin(yaw);const dx=(ix*c+iz*s),dz=(-ix*s+iz*c);moveEntity(player,dx,dz,dt*speed)}
+ if(mode==='survivor'){
+  const g=nearestGen();if(g&&keys.KeyE){g.progress+=dt*.24;if(g.progress>=1&&!g.done){g.done=true;g.progress=1;done++;toast('Generator completed!')}}
+  if(g&&touchInteract){g.progress+=dt*.2;if(g.progress>=1&&!g.done){g.done=true;g.progress=1;done++;toast('Generator completed!')}}
+ }
+ if(touchAttack){if(mode==='killer'){const t=nearestSurvivor(player);if(t&&player.attackCD<=0){strike(player,t);player.attackCD=killerType==='jason'?1.5:.95}}else if(player.group.position.distanceTo(killer.group.position)<2.1&&player.attackCD<=0){health-=10;player.attackCD=1;toast('You were struck!')}}
+ aiUpdate(dt);
+ // Camera follow
+ const p=player.group.position;const dist=mode==='killer'?6.2:6.8;
+ const desired=new THREE.Vector3(p.x+Math.sin(yaw)*dist*Math.cos(pitch),p.y+2.3+Math.sin(pitch)*dist,p.z+Math.cos(yaw)*dist*Math.cos(pitch));
+ camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(p.x,p.y+1.15,p.z);
+ if(mode==='survivor'&&killer.group.position.distanceTo(player.group.position)<1.5&&killer.attackCD>0.7)health=Math.max(0,health);
+ if(health<=0&&mode==='survivor')finish(false);
+ if(mode==='killer'&&bots.every(b=>!b.alive))finish(true);
+ if(done>=4&&mode==='survivor')finish(true);
+ if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)$('toast').style.opacity=0}
+ updateHUD();
+}
+function loop(){requestAnimationFrame(loop);const dt=Math.min(clock?clock.getDelta():0,.05);update(dt);if(renderer)renderer.render(scene,camera)}
+let touchMove={x:0,y:0},touchSprint=false,touchInteract=false,touchAttack=false;
+$('start').onclick=()=>{ $('menu').style.display='none';$('hud').style.display='block';setup();started=true;loop();};
+$('again').onclick=()=>location.reload();
+addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyE'&&!e.repeat)interact();if(e.code==='Space'&&mode==='killer'&&!e.repeat){const t=nearestSurvivor(player);strike(player,t)}});
+addEventListener('keyup',e=>keys[e.code]=false);
+addEventListener('resize',()=>{if(camera&&renderer){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}});
+renderer?.domElement?.addEventListener('click',()=>{if(mode==='killer'){const t=nearestSurvivor(player);strike(player,t)}});
+let lookPointer=null,lastX=0,lastY=0;
+$('lookZone').addEventListener('pointerdown',e=>{lookPointer=e.pointerId;lastX=e.clientX;lastY=e.clientY;$('lookZone').setPointerCapture(e.pointerId)});
+$('lookZone').addEventListener('pointermove',e=>{if(lookPointer!==e.pointerId)return;yaw-=(e.clientX-lastX)*.006;pitch=Math.max(-.15,Math.min(.85,pitch+(e.clientY-lastY)*.004));lastX=e.clientX;lastY=e.clientY});
+$('lookZone').addEventListener('pointerup',()=>lookPointer=null);
+const base=$('stickBase'),stick=$('stick');let stickId=null,center={x:0,y:0};
+base.addEventListener('pointerdown',e=>{stickId=e.pointerId;center={x:base.getBoundingClientRect().left+64,y:base.getBoundingClientRect().top+64};base.setPointerCapture(e.pointerId);moveStick(e)});
+base.addEventListener('pointermove',e=>{if(e.pointerId===stickId)moveStick(e)});
+function moveStick(e){let dx=e.clientX-center.x,dy=e.clientY-center.y,l=Math.hypot(dx,dy),m=42;if(l>m){dx=dx/l*m;dy=dy/l*m}stick.style.transform=`translate(${dx}px,${dy}px)`;touchMove={x:dx/m,y:dy/m}}
+function resetStick(){stickId=null;stick.style.transform='';touchMove={x:0,y:0}}
+base.addEventListener('pointerup',resetStick);base.addEventListener('pointercancel',resetStick);
+$('sprintBtn').addEventListener('pointerdown',()=>touchSprint=true);['pointerup','pointercancel','pointerleave'].forEach(ev=>$('sprintBtn').addEventListener(ev,()=>touchSprint=false));
+$('interactBtn').addEventListener('pointerdown',()=>{if(mode==='survivor')interact();else{const t=nearestSurvivor(player);strike(player,t)}});
+$('actionBtn').addEventListener('pointerdown',()=>{if(mode==='killer'){const t=nearestSurvivor(player);strike(player,t)}else{touchSprint=true}});
+$('actionBtn').addEventListener('pointerup',()=>touchSprint=false);
+</script>
+</body></html>
