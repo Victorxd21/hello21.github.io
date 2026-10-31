@@ -10,37 +10,31 @@
     return;
   }
 
-  // Null-safe eval bar
   js = js.replace(
     "function updateEvalBar(){if(!settings.eval||puzzleMode){document.getElementById('evalFill').style.height='50%';return}const score=evaluate(game);let pct=50+Math.max(-48,Math.min(48,score/20));document.getElementById('evalFill').style.height=pct+'%';const label=Math.abs(score)>9000?'M':(Math.abs(score)/100).toFixed(1);const sign=score>50?'+':score<-50?'-':'';if(score>=0){document.getElementById('evalBot').textContent=sign+label;document.getElementById('evalTop').textContent=''}else{document.getElementById('evalTop').textContent='-'+label;document.getElementById('evalBot').textContent=''}",
     "function updateEvalBar(){var fill=document.getElementById('evalFill');if(!settings.eval||puzzleMode){if(fill)fill.style.height='50%';return}var score=evaluate(game);var pct=50+Math.max(-48,Math.min(48,score/20));if(fill)fill.style.height=pct+'%';var label=Math.abs(score)>9000?'M':(Math.abs(score)/100).toFixed(1);var sign=score>50?'+':score<-50?'-':'';var eb=document.getElementById('evalBot');var et=document.getElementById('evalTop');if(score>=0){if(eb)eb.textContent=sign+label;if(et)et.textContent=''}else{if(et)et.textContent='-'+label;if(eb)eb.textContent=''}"
   );
 
-  // Cosmetics while sliding
   js = js.replace(
     "const slider=document.createElement('div');slider.className='sliding-piece';const img=document.createElement('img');img.src=pieceSrc(pieceColor,pieceType);slider.appendChild(img);",
     "const slider=document.createElement('div');slider.className='sliding-piece';const img=document.createElement('img');img.src=pieceSrc(pieceColor,pieceType);if(pieceType==='k'||pieceType==='q'){var cos=(onlineMode?(pieceColor===myColorOnline?myCosmetic:oppCosmetic):myCosmetic);if(cos&&cos.cls){img.classList.add(cos.cls);slider.classList.add('fx-'+cos.id)}}slider.appendChild(img);"
   );
 
-  // Null-safe puzzleBanner (was crashing Start)
   js = js.replace(
     "document.getElementById('puzzleBanner').style.display='none';",
     "var _pb=document.getElementById('puzzleBanner');if(_pb)_pb.style.display='none';"
   );
 
-  // Safe init
   js = js.replace(
     "initStockfish();\nfillCosmeticGrid();\ninitSupabase();\napplySettingsUI();\nupdateStatsUI();\nrenderBoard();\nopenModal();",
     "try{initStockfish()}catch(e){console.warn(e)}\ntry{fillCosmeticGrid()}catch(e){console.warn(e)}\ntry{initSupabase()}catch(e){console.warn(e)}\ntry{applySettingsUI()}catch(e){console.warn(e)}\ntry{updateStatsUI()}catch(e){console.warn(e)}\ntry{renderBoard()}catch(e){console.warn(e)}\nopenModal();"
   );
 
-  // AI timeout
   js = js.replace(
     "if(!best&&sfReady){const uci=await sfGo(game.fen(),depth,mt,skill,elo);",
     "if(!best&&sfReady){var uci=null;try{uci=await Promise.race([sfGo(game.fen(),depth,mt,skill,elo),new Promise(function(r){setTimeout(function(){r(null)},mt+2000)})])}catch(e){uci=null}"
   );
 
-  // Clash Royale intro
   var intro = [
     'function playMatchIntro(done){',
     '  try {',
@@ -118,12 +112,6 @@
     "closeModal();renderBoard();updateMovesList();startClock();updateStatsUI();playMatchIntro(function(){if(mode!=='local'&&playerColor==='b')setTimeout(aiMove,400);});}"
   );
 
-  // Wrap startNewGame body in try/catch via patching the listener
-  js = js.replace(
-    "document.getElementById('btnStart').addEventListener('click',startNewGame);",
-    "document.getElementById('btnStart').addEventListener('click',function(){try{startNewGame()}catch(err){console.error('startNewGame',err);alert('Could not start: '+err.message)}});"
-  );
-
   try {
     new Function(js);
   } catch (e) {
@@ -137,6 +125,27 @@
   var s = document.createElement('script');
   s.textContent = js;
   document.body.appendChild(s);
+
+  // Extra robust Start binding for mobile (click + touch)
+  function bindStart() {
+    var btn = document.getElementById('btnStart');
+    if (!btn || btn.dataset.bound === '1') return;
+    btn.dataset.bound = '1';
+    function go(ev) {
+      if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+      try {
+        if (typeof startNewGame === 'function') startNewGame();
+        else console.error('startNewGame missing');
+      } catch (err) {
+        console.error('startNewGame', err);
+        alert('Could not start: ' + (err && err.message ? err.message : err));
+      }
+    }
+    btn.addEventListener('click', go, { passive: false });
+    btn.addEventListener('touchend', go, { passive: false });
+  }
+  setTimeout(bindStart, 100);
+  setTimeout(bindStart, 800);
 
   setTimeout(function () {
     var modal = document.getElementById('modal');
