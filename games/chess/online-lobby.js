@@ -1,9 +1,9 @@
-// ===== ONLINE LOBBY + ONLINE-AS-OPTION v2 =====
+// ===== ONLINE LOBBY + ONLINE-AS-OPTION v3 =====
 (function setupOnlineLobby() {
   if (!document.getElementById('onlineLobbyStyles')) {
     var st = document.createElement('style');
     st.id = 'onlineLobbyStyles';
-    st.textContent = '.online-toggle-row{display:flex;align-items:center}.online-toggle{display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border-radius:12px;border:2px solid var(--panel2);background:var(--panel2);color:var(--text);cursor:pointer;font:inherit}.online-toggle[aria-pressed="true"]{border-color:var(--accent);background:rgba(91,141,239,.15)}.online-toggle .ot-knob{width:44px;height:26px;border-radius:13px;background:#3a4155;position:relative;flex-shrink:0;transition:.2s}.online-toggle .ot-knob::after{content:\'\';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#9aa3b5;transition:.2s}.online-toggle[aria-pressed="true"] .ot-knob{background:var(--accent)}.online-toggle[aria-pressed="true"] .ot-knob::after{left:21px;background:#fff}.online-toggle .ot-label{font-size:.9rem;font-weight:600}.match-lobby{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:rgba(6,8,14,.88);backdrop-filter:blur(10px);padding:16px}.match-lobby.show{display:flex}.lobby-card{width:min(420px,100%);background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:22px 18px 18px;box-shadow:0 20px 60px rgba(0,0,0,.5)}.lobby-code-wrap{text-align:center;margin-bottom:18px}.lobby-code-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}.lobby-code{font-size:2rem;font-weight:800;letter-spacing:.28em;margin:6px 0;color:var(--accent)}.lobby-code-hint{font-size:.75rem;color:var(--muted)}.lobby-vs-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 16px}.lobby-player{flex:1;text-align:center;padding:12px 8px;border-radius:14px;background:var(--panel2)}.lobby-pieces{display:flex;justify-content:center;gap:4px;margin-bottom:8px;min-height:36px}.lobby-pieces img{width:32px;height:32px;object-fit:contain}.lobby-avatar{width:48px;height:48px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;background:linear-gradient(135deg,#3d4f7a,#5b8def);color:#fff}.lobby-avatar.empty{background:#2a3142;color:var(--muted)}.lobby-avatar.ready{background:linear-gradient(135deg,#2d6a4f,#52b788)}.lobby-name{font-weight:700;font-size:.95rem}.lobby-sub{font-size:.75rem;color:var(--muted);margin-top:2px}.lobby-center{width:88px;text-align:center;flex-shrink:0}.lobby-vs{font-weight:800;font-size:1.1rem;opacity:.5;letter-spacing:.1em}.lobby-wait{font-size:.8rem;color:var(--muted);margin-top:6px}.lobby-wait .dots::after{content:\'\';animation:lobbyDots 1.2s steps(4,end) infinite}@keyframes lobbyDots{0%{content:\'\'}25%{content:\'.\'}50%{content:\'..\'}75%{content:\'...\'}}.lobby-countdown{font-size:2.4rem;font-weight:800;color:var(--accent);line-height:1;margin-top:4px}.lobby-countdown.pulse{animation:lobbyPulse .45s ease}@keyframes lobbyPulse{0%{transform:scale(.7);opacity:.4}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}.lobby-cancel{width:100%;margin-top:8px;padding:12px;border-radius:12px;border:none;background:var(--panel2);color:var(--text);font-weight:600;cursor:pointer}';
+    st.textContent = '.online-toggle-row{display:flex;align-items:center}.online-toggle{display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border-radius:12px;border:2px solid var(--panel2);background:var(--panel2);color:var(--text);cursor:pointer;font:inherit}.online-toggle[aria-pressed="true"]{border-color:var(--accent);background:rgba(91,141,239,.15)}.online-toggle .ot-knob{width:44px;height:26px;border-radius:13px;background:#3a4155;position:relative;flex-shrink:0;transition:.2s}.online-toggle .ot-knob::after{content:\'\';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#9aa3b5;transition:.2s}.online-toggle[aria-pressed="true"] .ot-knob{background:var(--accent)}.online-toggle[aria-pressed="true"] .ot-knob::after{left:21px;background:#fff}.online-toggle .ot-label{font-size:.9rem;font-weight:600}.match-lobby{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:rgba(6,8,14,.88);backdrop-filter:blur(10px);padding:16px}.match-lobby.show{display:flex}.lobby-card{width:min(420px,100%);background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:22px 18px 18px;box-shadow:0 20px 60px rgba(0,0,0,.5)}.lobby-code-wrap{text-align:center;margin-bottom:18px}.lobby-code-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}.lobby-code{font-size:2rem;font-weight:800;letter-spacing:.28em;margin:6px 0;color:var(--accent)}.lobby-code-hint{font-size:.75rem;color:var(--muted)}.lobby-vs-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 16px}.lobby-player{flex:1;text-align:center;padding:12px 8px;border-radius:14px;background:var(--panel2)}.lobby-pieces{display:flex;justify-content:center;gap:4px;margin-bottom:8px;min-height:36px}.lobby-pieces img{width:32px;height:32px;object-fit:contain}.lobby-avatar{width:48px;height:48px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;background:linear-gradient(135deg,#3d4f7a,#5b8def);color:#fff}.lobby-avatar.empty{background:#2a3142;color:var(--muted)}.lobby-avatar.ready{background:linear-gradient(135deg,#2d6a4f,#52b788)}.lobby-name{font-weight:700;font-size:.95rem}.lobby-sub{font-size:.75rem;color:var(--muted);margin-top:2px}.lobby-center{width:88px;text-align:center;flex-shrink:0}.lobby-vs{font-weight:800;font-size:1.1rem;opacity:.5;letter-spacing:.1em}.lobby-wait{font-size:.8rem;color:var(--muted);margin-top:6px}.lobby-wait .dots::after{content:\'\';animation:lobbyDots 1.2s steps(4,end) infinite}@keyframes lobbyDots{0%{content:\'\'}25%{content:\'.\'}50%{content:\'..\'}75%{content:\'...\'}}.lobby-countdown{font-size:2.4rem;font-weight:800;color:var(--accent);line-height:1;margin-top:4px}.lobby-countdown.pulse{animation:lobbyPulse .45s ease}@keyframes lobbyPulse{0%{transform:scale(.7);opacity:.4}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}.lobby-cancel{width:100%;margin-top:8px;padding:12px;border-radius:12px;border:none;background:var(--panel2);color:var(--text);font-weight:600;cursor:pointer}.lobby-start{width:100%;margin-top:10px;padding:14px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:1.05rem;cursor:pointer;display:none}.lobby-start.show{display:block}.lobby-start:disabled{opacity:.5;cursor:not-allowed}.lobby-toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-120%);background:#1b4332;color:#b7e4c7;border:1px solid #52b788;padding:12px 18px;border-radius:12px;font-weight:600;font-size:.9rem;z-index:200;transition:transform .35s cubic-bezier(.2,.9,.2,1),opacity .35s;opacity:0;pointer-events:none;box-shadow:0 8px 28px rgba(0,0,0,.4)}.lobby-toast.show{transform:translateX(-50%) translateY(0);opacity:1}.lobby-status-line{text-align:center;font-size:.8rem;color:var(--muted);margin-top:6px;min-height:1.2em}';
     document.head.appendChild(st);
   }
 
@@ -31,7 +31,13 @@
     lob.id = 'matchLobby';
     lob.className = 'match-lobby';
     lob.setAttribute('aria-hidden', 'true');
-    lob.innerHTML = '<div class="lobby-card"><div class="lobby-code-wrap" id="lobbyCodeWrap" style="display:none"><div class="lobby-code-label">Room code</div><div class="lobby-code" id="lobbyCode">------</div><div class="lobby-code-hint">Share this with your friend</div></div><div class="lobby-vs-row"><div class="lobby-player host"><div class="lobby-pieces" id="lobbyPiecesLeft"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wK.svg" alt=""><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wQ.svg" alt=""></div><div class="lobby-avatar" id="lobbyAvatarLeft">You</div><div class="lobby-name" id="lobbyNameLeft">You</div><div class="lobby-sub" id="lobbySubLeft">White</div></div><div class="lobby-center"><div class="lobby-vs" id="lobbyVs">VS</div><div class="lobby-countdown" id="lobbyCountdown" hidden></div><div class="lobby-wait" id="lobbyWait">Waiting<span class="dots"></span></div></div><div class="lobby-player guest"><div class="lobby-pieces" id="lobbyPiecesRight"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bK.svg" alt=""><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bQ.svg" alt=""></div><div class="lobby-avatar empty" id="lobbyAvatarRight">?</div><div class="lobby-name" id="lobbyNameRight">Opponent</div><div class="lobby-sub" id="lobbySubRight">Black</div></div></div><button type="button" class="lobby-cancel" id="lobbyCancelBtn">Cancel</button></div>';
+    lob.innerHTML = '<div class="lobby-card"><div class="lobby-code-wrap" id="lobbyCodeWrap" style="display:none"><div class="lobby-code-label">Room code</div><div class="lobby-code" id="lobbyCode">------</div><div class="lobby-code-hint">Share this with your friend</div></div><div class="lobby-vs-row"><div class="lobby-player host"><div class="lobby-pieces" id="lobbyPiecesLeft"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wK.svg" alt=""><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wQ.svg" alt=""></div><div class="lobby-avatar" id="lobbyAvatarLeft">You</div><div class="lobby-name" id="lobbyNameLeft">You</div><div class="lobby-sub" id="lobbySubLeft">White</div></div><div class="lobby-center"><div class="lobby-vs" id="lobbyVs">VS</div><div class="lobby-countdown" id="lobbyCountdown" hidden></div><div class="lobby-wait" id="lobbyWait">Waiting<span class="dots"></span></div></div><div class="lobby-player guest"><div class="lobby-pieces" id="lobbyPiecesRight"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bK.svg" alt=""><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bQ.svg" alt=""></div><div class="lobby-avatar empty" id="lobbyAvatarRight">?</div><div class="lobby-name" id="lobbyNameRight">Opponent</div><div class="lobby-sub" id="lobbySubRight">Black</div></div></div><div class="lobby-status-line" id="lobbyStatusLine"></div><button type="button" class="lobby-start" id="lobbyStartBtn">Start match</button><button type="button" class="lobby-cancel" id="lobbyCancelBtn">Cancel</button></div>';
+    if (!document.getElementById('lobbyToast')) {
+      var toast = document.createElement('div');
+      toast.id = 'lobbyToast';
+      toast.className = 'lobby-toast';
+      document.body.appendChild(toast);
+    }
     document.body.appendChild(lob);
   }
 
@@ -232,7 +238,25 @@
       if (typeof stopClock === 'function') stopClock();
       if (typeof renderBoard === 'function') renderBoard();
       showLobby(false, roomCode);
-      if (statusEl) statusEl.textContent = 'Waiting for match…';
+      if (statusEl) statusEl.textContent = 'Waiting for host…';
+      setLobbyStatus('Connected — waiting for host to start');
+      try {
+        if (channel) {
+          channel.on('broadcast', { event: 'lobby_go' }, function (msg) {
+            if (isHost) return;
+            var payload = (msg && msg.payload) || {};
+            setLobbyOpponentJoined();
+            if (payload.mode) mode = payload.mode;
+            if (payload.timeWhite) timeWhite = payload.timeWhite;
+            if (payload.timeBlack) timeBlack = payload.timeBlack;
+            if (payload.increment != null) increment = payload.increment;
+            if (payload.fen) { try { game = new Chess(payload.fen); } catch (e) {} }
+            showToast('Host started the match!');
+            setLobbyStatus('Match starting…');
+            if (!countdownOn) runCountdown(payload.secs || 5, function () { beginMatchAfterLobby(); });
+          });
+        }
+      } catch (e) {}
     } else {
       await createRoom();
       playerColor = 'w'; flipped = false; myColorOnline = 'w';
@@ -272,8 +296,35 @@
     window.startOnlineGame = startOnlineWithMode;
   }
 
-  window.__onOnlineOpponentJoined = function () {
-    setLobbyOpponentJoined();
+  function showToast(msg) {
+    var t = document.getElementById('lobbyToast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'lobbyToast';
+      t.className = 'lobby-toast';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('show');
+    try { if (navigator.vibrate) navigator.vibrate(80); } catch (e) {}
+    clearTimeout(showToast._tm);
+    showToast._tm = setTimeout(function () { t.classList.remove('show'); }, 3500);
+  }
+  function setLobbyStatus(msg) {
+    var el = document.getElementById('lobbyStatusLine');
+    if (el) el.textContent = msg || '';
+  }
+  function showStartButton(on) {
+    var btn = document.getElementById('lobbyStartBtn');
+    if (!btn) return;
+    btn.classList.toggle('show', !!on);
+    btn.disabled = !on;
+  }
+  function hostStartMatch() {
+    if (!isHost || countdownOn) return;
+    if (!oppConnected) { setLobbyStatus('Wait for opponent to join'); return; }
+    showStartButton(false);
+    setLobbyStatus('Starting…');
     try {
       if (channel) {
         channel.send({ type: 'broadcast', event: 'lobby_go', payload: {
@@ -293,6 +344,16 @@
       } catch (e) {}
       beginMatchAfterLobby();
     });
+  }
+  window.__onOnlineOpponentJoined = function () {
+    setLobbyOpponentJoined();
+    showToast('Opponent joined the room!');
+    setLobbyStatus('Opponent ready — press Start');
+    showStartButton(true);
+    var wait = document.getElementById('lobbyWait');
+    if (wait) wait.style.display = 'none';
+    var vs = document.getElementById('lobbyVs');
+    if (vs) vs.style.opacity = '1';
   };
 
   window.__onOnlineLobbyStart = function (payload) {
@@ -303,7 +364,32 @@
       if (payload.timeBlack) timeBlack = payload.timeBlack;
       if (payload.increment != null) increment = payload.increment;
     }
-    if (!countdownOn) runCountdown(5, function () { beginMatchAfterLobby(); });
+    if (!countdownOn) {
+      setLobbyStatus('Match starting…');
+      showStartButton(false);
+      runCountdown(5, function () { beginMatchAfterLobby(); });
+    }
+  };
+
+  function bindStartBtn() {
+    var btn = document.getElementById('lobbyStartBtn');
+    if (!btn || btn._bound) return;
+    btn._bound = true;
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      hostStartMatch();
+    });
+  }
+  bindStartBtn();
+  setInterval(bindStartBtn, 1000);
+
+  var _showLobbyOrig = showLobby;
+  showLobby = function (asHost, code) {
+    _showLobbyOrig(asHost, code);
+    showStartButton(false);
+    if (asHost) setLobbyStatus('Share the code — waiting for opponent');
+    else setLobbyStatus('Connected — waiting for host to start');
+    bindStartBtn();
   };
 
   console.log('online lobby ready');
