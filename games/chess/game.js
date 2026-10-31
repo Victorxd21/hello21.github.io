@@ -126,29 +126,44 @@
   s.textContent = js;
   document.body.appendChild(s);
 
-  // Extra robust Start binding for mobile (click + touch)
-  function bindStart() {
-    var btn = document.getElementById('btnStart');
+  function safeStart(ev) {
+    if (ev) { try { ev.preventDefault(); ev.stopPropagation(); } catch (e) {} }
+    try {
+      if (typeof startNewGame === 'function') startNewGame();
+      else alert('Game still loading, try again');
+    } catch (err) {
+      console.error(err);
+      alert('Could not start: ' + (err && err.message ? err.message : err));
+    }
+  }
+  function safeCancel(ev) {
+    if (ev) { try { ev.preventDefault(); ev.stopPropagation(); } catch (e) {} }
+    try {
+      if (typeof closeModal === 'function') closeModal();
+      else {
+        var m = document.getElementById('modal');
+        if (m) m.classList.remove('show');
+      }
+    } catch (e) {}
+  }
+  function bindBtn(id, fn) {
+    var btn = document.getElementById(id);
     if (!btn || btn.dataset.bound === '1') return;
     btn.dataset.bound = '1';
-    function go(ev) {
-      if (ev) { ev.preventDefault(); ev.stopPropagation(); }
-      try {
-        if (typeof startNewGame === 'function') startNewGame();
-        else console.error('startNewGame missing');
-      } catch (err) {
-        console.error('startNewGame', err);
-        alert('Could not start: ' + (err && err.message ? err.message : err));
-      }
-    }
-    btn.addEventListener('click', go, { passive: false });
-    btn.addEventListener('touchend', go, { passive: false });
+    btn.addEventListener('click', fn, { passive: false });
+    btn.addEventListener('touchend', fn, { passive: false });
   }
-  setTimeout(bindStart, 100);
-  setTimeout(bindStart, 800);
+  function bindAll() {
+    bindBtn('btnStart', safeStart);
+    bindBtn('btnStartTop', safeStart);
+    bindBtn('btnCancel', safeCancel);
+    bindBtn('btnCancelTop', safeCancel);
+  }
+  setTimeout(bindAll, 100);
+  setTimeout(bindAll, 700);
 
   setTimeout(function () {
     var modal = document.getElementById('modal');
     if (modal && !modal.classList.contains('show')) modal.classList.add('show');
-  }, 600);
+  }, 500);
 })();
