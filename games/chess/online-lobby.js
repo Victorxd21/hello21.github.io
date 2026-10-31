@@ -1,4 +1,4 @@
-// ===== ONLINE LOBBY + ONLINE-AS-OPTION v3 =====
+// ===== ONLINE LOBBY v4 =====
 (function setupOnlineLobby() {
   if (!document.getElementById('onlineLobbyStyles')) {
     var st = document.createElement('style');
@@ -208,94 +208,6 @@
   var cancelBtn = $('lobbyCancelBtn');
   if (cancelBtn) cancelBtn.addEventListener('click', cancelLobby);
 
-  async function startOnlineWithMode() {
-    if (typeof ensureAudio === 'function') ensureAudio();
-    if (typeof leaveRoom === 'function') leaveRoom();
-    puzzleMode = false;
-    onlineMode = true;
-    var pb = $('puzzleBanner');
-    if (pb) pb.style.display = 'none';
-    var evalBar = $('evalBar');
-    if (evalBar) evalBar.style.opacity = '1';
-    var modeBtn = document.querySelector('.mode-btn[data-mode].selected');
-    mode = modeBtn ? modeBtn.dataset.mode : 'normal';
-    if (mode === 'local' || mode === 'puzzle') mode = 'normal';
-    applyModeTimes(mode);
-    game = new Chess();
-    selected = null; possibleMoves = []; lastMove = null;
-    gameOver = false; thinking = false; animating = false;
-    if (statusEl) statusEl.classList.remove('gameover');
-    if (openingEl) openingEl.textContent = '';
-    if (qualityEl) qualityEl.classList.remove('show');
-    var onlineType = (document.querySelector('.mode-btn[data-online].selected') || {}).dataset.online || 'create';
-    var asHost = onlineType !== 'join';
-    if (!asHost) {
-      var code = ($('joinCodeInput') && $('joinCodeInput').value) || '';
-      var ok = await joinRoom(code);
-      if (!ok) return;
-      playerColor = 'b'; flipped = true; myColorOnline = 'b';
-      if (typeof closeModal === 'function') closeModal();
-      if (typeof stopClock === 'function') stopClock();
-      if (typeof renderBoard === 'function') renderBoard();
-      showLobby(false, roomCode);
-      if (statusEl) statusEl.textContent = 'Waiting for host…';
-      setLobbyStatus('Connected — waiting for host to start');
-      try {
-        if (channel) {
-          channel.on('broadcast', { event: 'lobby_go' }, function (msg) {
-            if (isHost) return;
-            var payload = (msg && msg.payload) || {};
-            setLobbyOpponentJoined();
-            if (payload.mode) mode = payload.mode;
-            if (payload.timeWhite) timeWhite = payload.timeWhite;
-            if (payload.timeBlack) timeBlack = payload.timeBlack;
-            if (payload.increment != null) increment = payload.increment;
-            if (payload.fen) { try { game = new Chess(payload.fen); } catch (e) {} }
-            showToast('Host started the match!');
-            setLobbyStatus('Match starting…');
-            if (!countdownOn) runCountdown(payload.secs || 5, function () { beginMatchAfterLobby(); });
-          });
-        }
-      } catch (e) {}
-    } else {
-      await createRoom();
-      playerColor = 'w'; flipped = false; myColorOnline = 'w';
-      if (typeof closeModal === 'function') closeModal();
-      if (typeof stopClock === 'function') stopClock();
-      if (typeof renderBoard === 'function') renderBoard();
-      showLobby(true, roomCode);
-      if (statusEl) statusEl.textContent = 'Waiting for opponent…';
-    }
-  }
-
-  var _start = window.startNewGame;
-  window.startNewGame = function () {
-    var modeBtn = document.querySelector('.mode-btn[data-mode].selected');
-    var m = modeBtn ? modeBtn.dataset.mode : 'normal';
-    if (m === 'online') {
-      wantOnline = true;
-      m = 'normal';
-      if (modeBtn) modeBtn.classList.remove('selected');
-      var n = document.querySelector('.mode-btn[data-mode="normal"]');
-      if (n) n.classList.add('selected');
-    }
-    if (wantOnline && m !== 'local' && m !== 'puzzle') {
-      startOnlineWithMode();
-      return;
-    }
-    hideLobby();
-    return _start.apply(this, arguments);
-  };
-  window.__startChess = function (e) {
-    if (e) { try { e.preventDefault(); } catch (x) {} }
-    try { window.startNewGame(); }
-    catch (err) { console.error(err); alert('Start error: ' + (err && err.message ? err.message : err)); }
-  };
-  if (typeof startOnlineGame === 'function') {
-    startOnlineGame = startOnlineWithMode;
-    window.startOnlineGame = startOnlineWithMode;
-  }
-
   function showToast(msg) {
     var t = document.getElementById('lobbyToast');
     if (!t) {
@@ -345,15 +257,160 @@
       beginMatchAfterLobby();
     });
   }
+
+  async function startOnlineWithMode() {
+    if (typeof ensureAudio === 'function') ensureAudio();
+    if (typeof leaveRoom === 'function') leaveRoom();
+    puzzleMode = false;
+    onlineMode = true;
+    var pb = $('puzzleBanner');
+    if (pb) pb.style.display = 'none';
+    var evalBar = $('evalBar');
+    if (evalBar) evalBar.style.opacity = '1';
+    var modeBtn = document.querySelector('.mode-btn[data-mode].selected');
+    mode = modeBtn ? modeBtn.dataset.mode : 'normal';
+    if (mode === 'local' || mode === 'puzzle') mode = 'normal';
+    applyModeTimes(mode);
+    game = new Chess();
+    selected = null; possibleMoves = []; lastMove = null;
+    gameOver = false; thinking = false; animating = false;
+    if (statusEl) statusEl.classList.remove('gameover');
+    if (openingEl) openingEl.textContent = '';
+    if (qualityEl) qualityEl.classList.remove('show');
+    var onlineType = (document.querySelector('.mode-btn[data-online].selected') || {}).dataset.online || 'create';
+    var asHost = onlineType !== 'join';
+    if (!asHost) {
+      var code = ($('joinCodeInput') && $('joinCodeInput').value) || '';
+      var ok = await joinRoom(code);
+      if (!ok) return;
+      playerColor = 'b'; flipped = true; myColorOnline = 'b';
+      if (typeof closeModal === 'function') closeModal();
+      if (typeof stopClock === 'function') stopClock();
+      if (typeof renderBoard === 'function') renderBoard();
+      showLobby(false, roomCode);
+      if (statusEl) statusEl.textContent = 'Waiting for host…';
+      setLobbyStatus('Connected — waiting for host to start');
+      try {
+        if (channel) {
+          setTimeout(function () {
+            try {
+              channel.send({
+                type: 'broadcast',
+                event: 'player_joined',
+                payload: { cosmetic: (myCosmetic && myCosmetic.id) || 'classic', role: 'guest' }
+              });
+            } catch (e) {}
+          }, 400);
+          var pings = 0;
+          var pingIv = setInterval(function () {
+            pings += 1;
+            if (pings > 8 || countdownOn) { clearInterval(pingIv); return; }
+            try {
+              channel.send({
+                type: 'broadcast',
+                event: 'player_joined',
+                payload: { cosmetic: (myCosmetic && myCosmetic.id) || 'classic', role: 'guest' }
+              });
+            } catch (e) {}
+          }, 1500);
+          channel.on('broadcast', { event: 'lobby_go' }, function (msg) {
+            if (isHost) return;
+            var payload = (msg && msg.payload) || {};
+            setLobbyOpponentJoined();
+            if (payload.mode) mode = payload.mode;
+            if (payload.timeWhite) timeWhite = payload.timeWhite;
+            if (payload.timeBlack) timeBlack = payload.timeBlack;
+            if (payload.increment != null) increment = payload.increment;
+            if (payload.fen) { try { game = new Chess(payload.fen); } catch (e) {} }
+            showToast('Host started the match!');
+            setLobbyStatus('Match starting…');
+            if (!countdownOn) runCountdown(payload.secs || 5, function () { beginMatchAfterLobby(); });
+          });
+        }
+      } catch (e) {}
+    } else {
+      await createRoom();
+      playerColor = 'w'; flipped = false; myColorOnline = 'w';
+      if (typeof closeModal === 'function') closeModal();
+      if (typeof stopClock === 'function') stopClock();
+      if (typeof renderBoard === 'function') renderBoard();
+      showLobby(true, roomCode);
+      if (statusEl) statusEl.textContent = 'Waiting for opponent…';
+      setLobbyStatus('Share the code — waiting for opponent');
+      try {
+        if (channel) {
+          channel.on('broadcast', { event: 'player_joined' }, function (msg) {
+            var payload = (msg && msg.payload) || {};
+            if (payload.cosmetic && typeof COSMETICS !== 'undefined') {
+              oppCosmetic = COSMETICS.find(function (c) { return c.id === payload.cosmetic; }) || COSMETICS[0];
+            }
+            oppConnected = true;
+            if (typeof window.__onOnlineOpponentJoined === 'function') window.__onOnlineOpponentJoined();
+          });
+          if (window.__lobbyPoll) clearInterval(window.__lobbyPoll);
+          window.__lobbyPoll = setInterval(function () {
+            if (!isHost || !channel || countdownOn) return;
+            var lobEl = document.getElementById('matchLobby');
+            if (!(lobEl && lobEl.classList.contains('show'))) {
+              clearInterval(window.__lobbyPoll);
+              return;
+            }
+            try {
+              var state = channel.presenceState() || {};
+              var keys = Object.keys(state);
+              var others = keys.filter(function (k) { return k !== 'host'; });
+              var startBtn = document.getElementById('lobbyStartBtn');
+              if (others.length && startBtn && !startBtn.classList.contains('show')) {
+                oppConnected = true;
+                if (typeof window.__onOnlineOpponentJoined === 'function') window.__onOnlineOpponentJoined();
+              }
+            } catch (e) {}
+          }, 1000);
+        }
+      } catch (e) { console.warn(e); }
+    }
+  }
+
+  var _start = window.startNewGame;
+  window.startNewGame = function () {
+    var modeBtn = document.querySelector('.mode-btn[data-mode].selected');
+    var m = modeBtn ? modeBtn.dataset.mode : 'normal';
+    if (m === 'online') {
+      wantOnline = true;
+      m = 'normal';
+      if (modeBtn) modeBtn.classList.remove('selected');
+      var n = document.querySelector('.mode-btn[data-mode="normal"]');
+      if (n) n.classList.add('selected');
+    }
+    if (wantOnline && m !== 'local' && m !== 'puzzle') {
+      startOnlineWithMode();
+      return;
+    }
+    hideLobby();
+    return _start.apply(this, arguments);
+  };
+  window.__startChess = function (e) {
+    if (e) { try { e.preventDefault(); } catch (x) {} }
+    try { window.startNewGame(); }
+    catch (err) { console.error(err); alert('Start error: ' + (err && err.message ? err.message : err)); }
+  };
+  if (typeof startOnlineGame === 'function') {
+    startOnlineGame = startOnlineWithMode;
+    window.startOnlineGame = startOnlineWithMode;
+  }
+
   window.__onOnlineOpponentJoined = function () {
+    var startBtn = document.getElementById('lobbyStartBtn');
+    var already = startBtn && startBtn.classList.contains('show');
     setLobbyOpponentJoined();
-    showToast('Opponent joined the room!');
+    if (!already) showToast('Opponent joined the room!');
     setLobbyStatus('Opponent ready — press Start');
     showStartButton(true);
     var wait = document.getElementById('lobbyWait');
     if (wait) wait.style.display = 'none';
     var vs = document.getElementById('lobbyVs');
     if (vs) vs.style.opacity = '1';
+    oppConnected = true;
   };
 
   window.__onOnlineLobbyStart = function (payload) {
@@ -392,5 +449,5 @@
     bindStartBtn();
   };
 
-  console.log('online lobby ready');
+  console.log('online lobby v4 ready');
 })();
