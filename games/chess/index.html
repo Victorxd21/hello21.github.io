@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#0f1117;--panel:#1a1d27;--panel2:#222633;--text:#e8eaed;--muted:#9aa0a6;--accent:#5b8def;--light:#f0d9b5;--dark:#b58863;--highlight:rgba(91,141,239,.45);--last:rgba(255,213,79,.35);--check:rgba(239,83,80,.55);--danger:#ef5350;--ok:#66bb6a;--radius:12px}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:rgba(91,141,239,.3)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
 header{width:100%;max-width:520px;padding:14px 16px 8px;display:flex;align-items:center;justify-content:space-between}
 header h1{font-size:1.25rem;font-weight:700}
@@ -44,20 +44,20 @@ main{width:100%;max-width:520px;padding:0 12px 24px;display:flex;flex-direction:
 .sq.possible::after{content:'';position:absolute;width:28%;height:28%;border-radius:50%;background:rgba(0,0,0,.22)}
 .sq.possible.capture::after{width:88%;height:88%;background:transparent;border:4px solid rgba(0,0,0,.22);border-radius:50%}
 .controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-button{font-family:inherit;font-size:.9rem;font-weight:600;padding:12px 16px;border:none;border-radius:10px;cursor:pointer;background:var(--panel2);color:var(--text);min-height:48px;touch-action:manipulation}
+button{touch-action:manipulation;font-family:inherit;font-size:.85rem;font-weight:600;padding:10px 16px;border:none;border-radius:10px;cursor:pointer;background:var(--panel2);color:var(--text);min-height:48px}
 button.primary{background:var(--accent);color:#fff}
 .status{text-align:center;font-size:.9rem;color:var(--muted)}
 .stats-bar{display:flex;gap:12px;justify-content:center;font-size:.75rem;color:var(--muted);flex-wrap:wrap}
 .stats-bar span{background:var(--panel);padding:4px 10px;border-radius:999px}
 .moves-panel{background:var(--panel);border-radius:var(--radius);padding:10px 12px;max-height:90px;overflow-y:auto;font-size:.8rem;color:var(--muted)}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:flex-end;justify-content:center;z-index:300;padding:0;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:flex-end;justify-content:center;z-index:500;padding:0;opacity:0;pointer-events:none;transition:opacity .2s}
 .modal-overlay.show{opacity:1;pointer-events:auto}
 @media(min-width:480px){.modal-overlay{align-items:center;padding:16px}}
-.modal{background:var(--panel);border-radius:16px 16px 0 0;padding:16px 16px 0;width:100%;max-width:420px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.modal{background:var(--panel);border-radius:16px 16px 0 0;padding:16px 16px 0;width:100%;max-width:420px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;position:relative}
 @media(min-width:480px){.modal{border-radius:16px}}
 .modal h2{font-size:1.2rem;margin-bottom:10px;text-align:center;flex-shrink:0}
-.modal-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px;min-height:0}
-.modal .section{margin-bottom:14px}
+.modal-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0;padding-bottom:8px}
+.modal .section{margin-bottom:16px}
 .modal .section label{display:block;font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
 .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .mode-btn{padding:12px 8px;border-radius:10px;background:var(--panel2);border:2px solid transparent;text-align:center;cursor:pointer}
@@ -65,14 +65,14 @@ button.primary{background:var(--accent);color:#fff}
 .mode-btn .title{font-weight:600;font-size:.9rem}
 .mode-btn .desc{font-size:.7rem;color:var(--muted);margin-top:2px}
 .color-pick{display:flex;gap:8px}
-.color-btn{flex:1;padding:10px;border-radius:10px;background:var(--panel2);border:2px solid transparent;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:48px}
+.color-btn{flex:1;padding:10px;border-radius:10px;background:var(--panel2);border:2px solid transparent;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .color-btn.selected{border-color:var(--accent)}
 .color-btn img{width:32px;height:32px}
-.modal .actions{display:flex;gap:10px;padding:12px 0 18px;flex-shrink:0;background:var(--panel);z-index:10}
+.modal .actions{display:flex;gap:10px;padding:12px 0;flex-shrink:0;background:var(--panel);z-index:20;position:relative}
 .modal .actions.top-actions{border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:4px;padding-top:0}
-.modal .actions.bottom-actions{border-top:1px solid rgba(255,255,255,.1);position:sticky;bottom:0}
+.modal .actions.bottom-actions{border-top:1px solid rgba(255,255,255,.1);position:sticky;bottom:0;padding-bottom:max(12px,env(safe-area-inset-bottom))}
 .modal .actions button{flex:1;min-height:52px;font-size:1.05rem}
-#btnStart,#btnStartTop{background:var(--accent)!important;color:#fff!important}
+#btnStart,#btnStartTop{background:var(--accent)!important;color:#fff!important;position:relative;z-index:30}
 .cosmetic-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .cosmetic-btn{padding:12px 6px;border-radius:10px;background:var(--panel2);border:2px solid transparent;text-align:center;cursor:pointer;font-size:.75rem}
 .cosmetic-btn.selected{border-color:var(--accent)}
@@ -104,7 +104,7 @@ button.primary{background:var(--accent);color:#fff}
 .sq .coord{position:absolute;font-size:.55rem;font-weight:600;opacity:.55;pointer-events:none}
 .sq .coord.file{bottom:2px;right:3px}.sq .coord.rank{top:2px;left:3px}
 .match-intro{position:fixed;inset:0;z-index:200;background:radial-gradient(ellipse at center,#1a237e 0%,#0a0c12 70%);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;overflow:hidden;pointer-events:none}
-.match-intro.show{display:flex;pointer-events:auto}
+.match-intro.show{display:flex}
 .intro-banner{display:flex;align-items:center;gap:14px;background:linear-gradient(90deg,#1a1d27,#2a2f3d);border:3px solid #fff;border-radius:14px;padding:14px 22px;min-width:260px;max-width:90vw;opacity:0}
 .intro-banner.top{transform:translateX(-120%);animation:bannerInLeft .55s cubic-bezier(.2,.9,.2,1) .15s forwards}
 .intro-banner.bot{transform:translateX(120%);animation:bannerInRight .55s cubic-bezier(.2,.9,.2,1) .35s forwards}
@@ -114,7 +114,7 @@ button.primary{background:var(--accent);color:#fff}
 .intro-banner.exit-bot{animation:bannerOutRight .4s ease-in forwards}
 @keyframes bannerOutLeft{to{transform:translateX(-140%);opacity:0}}
 @keyframes bannerOutRight{to{transform:translateX(140%);opacity:0}}
-.intro-avatar{width:52px;height:52px;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:#ffd54f}
+.intro-avatar{width:52px;height:52px;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:#ffd54f;overflow:hidden}
 .intro-name{font-weight:700;font-size:1.05rem}
 .intro-sub{font-size:.75rem;color:#9aa0a6}
 .intro-vs{font-size:1.6rem;font-weight:800;color:#ffd54f;opacity:0;transform:scale(.5);animation:vsPop .4s cubic-bezier(.2,1.4,.3,1) .55s forwards}
@@ -195,11 +195,11 @@ button.primary{background:var(--accent);color:#fff}
   </div>
   <div class="intro-fight" id="introFight">PLAY!</div>
 </div>
-<div class="modal-overlay" id="modal"><div class="modal">
+<div class="modal-overlay show" id="modal"><div class="modal">
 <h2>New Game</h2>
 <div class="actions top-actions">
-  <button type="button" id="btnCancelTop">Cancel</button>
-  <button type="button" class="primary" id="btnStartTop">Start</button>
+  <button type="button" id="btnCancelTop" onclick="window.__startCancel&&window.__startCancel(event)">Cancel</button>
+  <button type="button" class="primary" id="btnStartTop" onclick="window.__startChess&&window.__startChess(event)">Start</button>
 </div>
 <div class="modal-scroll">
 <div class="section"><label>Mode</label><div class="mode-grid">
@@ -236,8 +236,8 @@ button.primary{background:var(--accent);color:#fff}
 </div>
 </div>
 <div class="actions bottom-actions">
-  <button type="button" id="btnCancel">Cancel</button>
-  <button type="button" class="primary" id="btnStart">Start</button>
+  <button type="button" id="btnCancel" onclick="window.__startCancel&&window.__startCancel(event)">Cancel</button>
+  <button type="button" class="primary" id="btnStart" onclick="window.__startChess&&window.__startChess(event)">Start</button>
 </div>
 </div></div>
 <div class="modal-overlay" id="settingsModal"><div class="modal">
@@ -254,6 +254,33 @@ button.primary{background:var(--accent);color:#fff}
 </div></div>
 <div class="actions bottom-actions"><button type="button" class="primary" id="btnSettingsClose" style="flex:1">Done</button></div>
 </div></div>
-<script src="game.js?v=19"></script>
+<script>
+(function(){
+  var last=0;
+  function go(e){
+    if(e){try{e.preventDefault();e.stopPropagation()}catch(x){}}
+    var now=Date.now();
+    if(now-last<400)return; // debounce double fire from click+touch
+    last=now;
+    try{
+      if(typeof startNewGame==='function'){ startNewGame(); return; }
+      alert('Still loading… wait 1s and tap Start again');
+    }catch(err){
+      console.error(err);
+      alert('Start error: '+(err&&err.message?err.message:err));
+    }
+  }
+  function cancel(e){
+    if(e){try{e.preventDefault();e.stopPropagation()}catch(x){}}
+    try{
+      if(typeof closeModal==='function') closeModal();
+      else { var m=document.getElementById('modal'); if(m) m.classList.remove('show'); }
+    }catch(x){}
+  }
+  window.__startChess=go;
+  window.__startCancel=cancel;
+})();
+</script>
+<script src="game.js?v=18"></script>
 </body>
 </html>
