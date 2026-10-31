@@ -1,10 +1,11 @@
-// ===== CLASH MODE ADDON v3 =====
+// ===== CLASH MODE ADDON v5 =====
 (function setupClash() {
   var MAX = 10, RATE = 4000, COST = { freeze: 4, rage: 5 };
   var clash = {
     elixirW: 5, elixirB: 5, lastTick: 0, timer: null,
     frozen: {}, rageSq: null, rageLeft: 0, targeting: null,
-    blockAi: false
+    blockAi: false,
+    aiBusy: false
   };
   window.__clashSkipAi = false;
   window.__clash = clash;
@@ -90,7 +91,7 @@
   function initClash() {
     clash.elixirW = 5; clash.elixirB = 5;
     clash.frozen = {}; clash.rageSq = null; clash.rageLeft = 0;
-    clash.targeting = null; clash.blockAi = false;
+    clash.targeting = null; clash.blockAi = false; clash.aiBusy = false;
     window.__clashSkipAi = false;
     showUI(true); startElixir();
     setHint('Clash — spells only on your turn');
@@ -99,7 +100,7 @@
   function endClash() {
     stopElixir(); showUI(false);
     clash.frozen = {}; clash.rageSq = null; clash.rageLeft = 0;
-    clash.targeting = null; clash.blockAi = false;
+    clash.targeting = null; clash.blockAi = false; clash.aiBusy = false;
     window.__clashSkipAi = false;
   }
 
@@ -306,7 +307,7 @@
         clash.rageLeft = 0;
         clash.rageSq = null;
         clash.blockAi = false;
-        // Let the normal doMove animation callback fire AI once only
+        clash.aiBusy = false;
         window.__clashSkipAi = false;
         setHint('');
         afterColorMoved(mover);
@@ -396,53 +397,67 @@
         return;
       }
       if (window.__clashSkipAi) {
-        window.__clashSkipAi = false;
+        if (!(clash.blockAi && clash.rageLeft > 0)) {
+          window.__clashSkipAi = false;
+        }
         if (typeof setThinking === 'function') setThinking(false);
         thinking = false;
         return;
       }
 
-      var aiColor = side();
-      if (mode !== 'local' && aiColor === playerColor) {
-        var opp = playerColor === 'w' ? 'b' : 'w';
-        forceSideToMove(opp);
-        aiColor = side();
-        if (aiColor === playerColor) {
-          if (typeof setThinking === 'function') setThinking(false);
-          return;
-        }
+      if (mode !== 'local' && side() === playerColor) {
+        if (typeof setThinking === 'function') setThinking(false);
+        thinking = false;
+        return;
       }
 
-      if (clash.rageLeft > 0 && clash.rageSq) {
-        var ms = legalFrom(clash.rageSq);
-        if (ms.length) {
-          if (typeof setThinking === 'function') setThinking(true);
-          var choice = ms.find(function (m) { return m.captured; }) || ms[Math.floor(Math.random() * ms.length)];
-          setTimeout(function () {
-            if (typeof setThinking === 'function') setThinking(false);
-            doMove(choice);
-          }, 350);
-          return;
-        }
-        clash.rageLeft = 0; clash.rageSq = null; clash.blockAi = false;
+      if (clash.aiBusy) {
+        if (typeof setThinking === 'function') setThinking(false);
+        thinking = false;
+        return;
       }
+      clash.aiBusy = true;
+      var unlock = function () {
+        setTimeout(function () { clash.aiBusy = false; }, 700);
+      };
 
-      aiMaybeSpell();
-
-      if (clash.rageLeft === 2 && clash.rageSq && side() !== playerColor) {
-        var ms2 = legalFrom(clash.rageSq);
-        if (ms2.length) {
-          if (typeof setThinking === 'function') setThinking(true);
-          var choice2 = ms2.find(function (m) { return m.captured; }) || ms2[0];
-          setTimeout(function () {
-            if (typeof setThinking === 'function') setThinking(false);
-            doMove(choice2);
-          }, 400);
-          return;
+      try {
+        if (clash.rageLeft > 0 && clash.rageSq) {
+          var ms = legalFrom(clash.rageSq);
+          if (ms.length) {
+            if (typeof setThinking === 'function') setThinking(true);
+            var choice = ms.find(function (m) { return m.captured; }) || ms[Math.floor(Math.random() * ms.length)];
+            setTimeout(function () {
+              if (typeof setThinking === 'function') setThinking(false);
+              try { doMove(choice); } finally { unlock(); }
+            }, 350);
+            return;
+          }
+          clash.rageLeft = 0; clash.rageSq = null; clash.blockAi = false;
         }
-      }
 
-      return _ai.apply(this, arguments);
+        aiMaybeSpell();
+
+        if (clash.rageLeft === 2 && clash.rageSq && side() !== playerColor) {
+          var ms2 = legalFrom(clash.rageSq);
+          if (ms2.length) {
+            if (typeof setThinking === 'function') setThinking(true);
+            var choice2 = ms2.find(function (m) { return m.captured; }) || ms2[0];
+            setTimeout(function () {
+              if (typeof setThinking === 'function') setThinking(false);
+              try { doMove(choice2); } finally { unlock(); }
+            }, 400);
+            return;
+          }
+        }
+
+        var ret = await _ai.apply(this, arguments);
+        unlock();
+        return ret;
+      } catch (err) {
+        unlock();
+        throw err;
+      }
     };
     window.aiMove = aiMove;
   }
