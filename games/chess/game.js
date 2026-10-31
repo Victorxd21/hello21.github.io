@@ -142,8 +142,8 @@
   document.body.appendChild(s);
 
   var clashScript = document.createElement('script');
-  clashScript.src = 'clash-addon.js?v=5';
-  clashScript.onload = function () { console.log('clash addon v5 loaded'); };
+  clashScript.src = 'clash-addon.js?v=6';
+  clashScript.onload = function () { console.log('clash addon v6 loaded'); };
   document.body.appendChild(clashScript);
 
   setTimeout(function () {
