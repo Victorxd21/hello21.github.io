@@ -27,7 +27,7 @@
 
   js = js.replace(
     "initStockfish();\nfillCosmeticGrid();\ninitSupabase();\napplySettingsUI();\nupdateStatsUI();\nrenderBoard();\nopenModal();",
-    "try{initStockfish()}catch(e){console.warn(e)}\ntry{fillCosmeticGrid()}catch(e){console.warn(e)}\ntry{initSupabase()}catch(e){console.warn(e)}\ntry{applySettingsUI()}catch(e){console.warn(e)}\ntry{updateStatsUI()}catch(e){console.warn(e)}\ntry{renderBoard()}catch(e){console.warn(e)}\nopenModal();\nwindow.startNewGame=startNewGame;window.closeModal=closeModal;window.openModal=openModal;"
+    "try{initStockfish()}catch(e){console.warn(e)}\ntry{fillCosmeticGrid()}catch(e){console.warn(e)}\ntry{initSupabase()}catch(e){console.warn(e)}\ntry{applySettingsUI()}catch(e){console.warn(e)}\ntry{updateStatsUI()}catch(e){console.warn(e)}\ntry{renderBoard()}catch(e){console.warn(e)}\nopenModal();\nwindow.startNewGame=startNewGame;window.closeModal=closeModal;window.openModal=openModal;window.onSquareClick=onSquareClick;window.doMove=doMove;window.renderBoard=renderBoard;"
   );
 
   js = js.replace(
@@ -125,7 +125,7 @@
   js = js.replace('function startNewGame(){', intro + '\nfunction startNewGame(){');
   js = js.replace(
     "closeModal();renderBoard();updateMovesList();startClock();updateStatsUI();if(mode!=='local'&&playerColor==='b')setTimeout(aiMove,400)}",
-    "closeModal();renderBoard();updateMovesList();startClock();updateStatsUI();playMatchIntro(function(){if(mode!=='local'&&playerColor==='b')setTimeout(aiMove,400);});}"
+    "closeModal();renderBoard();updateMovesList();startClock();updateStatsUI();playMatchIntro(function(){if(mode!=='local'&&mode!=='clash'&&playerColor==='b')setTimeout(aiMove,400);if(mode==='clash'&&playerColor==='b')setTimeout(aiMove,400);});}"
   );
 
   try {
@@ -133,14 +133,375 @@
   } catch (e) {
     console.error('patch syntax error, using unpatched', e);
     js = await (await fetch(url)).text();
-    js = js.replace("document.getElementById('evalBot').textContent", "(document.getElementById('evalBot')||{}).textContent");
-    js = js.replace("document.getElementById('evalTop').textContent", "(document.getElementById('evalTop')||{}).textContent");
-    js = js.replace("document.getElementById('puzzleBanner').style.display='none';", "var _pb=document.getElementById('puzzleBanner');if(_pb)_pb.style.display='none';");
   }
 
   var s = document.createElement('script');
   s.textContent = js;
   document.body.appendChild(s);
+
+  // ===== CLASH MODE ADDON =====
+  (function setupClash(){
+    var CLASH_MAX = 10;
+    var CLASH_RATE_MS = 4000;
+    var COST = { freeze: 4, rage: 5 };
+    var clash = {
+      on: false,
+      elixirW: 5,
+      elixirB: 5,
+      lastTick: 0,
+      timer: null,
+      frozen: {},
+      rageSq: null,
+      ragePending: false,
+      spellTargeting: null
+    };
+
+    function isClash(){ return typeof mode !== 'undefined' && mode === 'clash'; }
+
+    function showClashUI(show){
+      ['elixirRowTop','elixirRowBot','spellsBtn'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.classList.toggle('show', !!show);
+      });
+      if (!show) {
+        var p = document.getElementById('spellsPanel');
+        if (p) p.classList.remove('show');
+        var h = document.getElementById('clashHint');
+        if (h) { h.classList.remove('show'); h.textContent = ''; }
+        var sb = document.getElementById('spellsBtn');
+        if (sb) sb.classList.remove('active');
+      }
+      updateElixirUI();
+    }
+
+    function updateElixirUI(){
+      if (!isClash()) return;
+      var flippedView = (typeof flipped !== 'undefined' && flipped);
+      var topColor = (typeof playerColor !== 'undefined' && playerColor === 'w') ? 'b' : 'w';
+      var botColor = (typeof playerColor !== 'undefined') ? playerColor : 'w';
+      if (typeof mode !== 'undefined' && mode === 'local') {
+        topColor = flippedView ? 'w' : 'b';
+        botColor = flippedView ? 'b' : 'w';
+      }
+      var eTop = topColor === 'w' ? clash.elixirW : clash.elixirB;
+      var eBot = botColor === 'w' ? clash.elixirW : clash.elixirB;
+      var ft = document.getElementById('elixirFillTop');
+      var fb = document.getElementById('elixirFillBot');
+      var nt = document.getElementById('elixirTop');
+      var nb = document.getElementById('elixirBot');
+      if (ft) ft.style.width = (eTop / CLASH_MAX * 100) + '%';
+      if (fb) fb.style.width = (eBot / CLASH_MAX * 100) + '%';
+      if (nt) nt.textContent = Math.floor(eTop);
+      if (nb) nb.textContent = Math.floor(eBot);
+    }
+
+    function startElixir(){
+      stopElixir();
+      clash.lastTick = Date.now();
+      clash.timer = setInterval(function(){
+        if (!isClash() || (typeof gameOver !== 'undefined' && gameOver)) return;
+        var now = Date.now();
+        var dt = now - clash.lastTick;
+        if (dt >= CLASH_RATE_MS) {
+          var steps = Math.floor(dt / CLASH_RATE_MS);
+          clash.lastTick += steps * CLASH_RATE_MS;
+          clash.elixirW = Math.min(CLASH_MAX, clash.elixirW + steps);
+          clash.elixirB = Math.min(CLASH_MAX, clash.elixirB + steps);
+          updateElixirUI();
+        }
+      }, 200);
+    }
+    function stopElixir(){
+      if (clash.timer) { clearInterval(clash.timer); clash.timer = null; }
+    }
+
+    function myElixir(){
+      var c = (typeof game !== 'undefined' && game) ? game.turn() : 'w';
+      return c === 'w' ? clash.elixirW : clash.elixirB;
+    }
+    function spendElixir(color, n){
+      if (color === 'w') clash.elixirW = Math.max(0, clash.elixirW - n);
+      else clash.elixirB = Math.max(0, clash.elixirB - n);
+      updateElixirUI();
+    }
+
+    function setHint(msg){
+      var h = document.getElementById('clashHint');
+      if (!h) return;
+      if (!msg) { h.classList.remove('show'); h.textContent = ''; return; }
+      h.textContent = msg;
+      h.classList.add('show');
+    }
+
+    function cancelSpell(){
+      clash.spellTargeting = null;
+      var p = document.getElementById('spellsPanel');
+      if (p) p.classList.remove('show');
+      var sb = document.getElementById('spellsBtn');
+      if (sb) sb.classList.remove('active');
+      document.querySelectorAll('.spell-card').forEach(function(c){ c.classList.remove('selected'); });
+      setHint('');
+    }
+
+    function initClash(){
+      clash.on = true;
+      clash.elixirW = 5;
+      clash.elixirB = 5;
+      clash.frozen = {};
+      clash.rageSq = null;
+      clash.ragePending = false;
+      clash.spellTargeting = null;
+      showClashUI(true);
+      startElixir();
+      setHint('Clash mode — gather elixir & cast spells');
+      setTimeout(function(){ setHint(''); }, 2500);
+    }
+
+    function endClash(){
+      clash.on = false;
+      stopElixir();
+      showClashUI(false);
+      clash.frozen = {};
+      clash.rageSq = null;
+      clash.ragePending = false;
+    }
+
+    function onTurnEnded(colorJustMoved){
+      Object.keys(clash.frozen).forEach(function(sq){
+        var f = clash.frozen[sq];
+        if (!f) return;
+        if (f.color === colorJustMoved) {
+          f.turnsLeft -= 1;
+          if (f.turnsLeft <= 0) delete clash.frozen[sq];
+        }
+      });
+    }
+
+    function filterMoves(moves){
+      if (!moves) return moves;
+      return moves.filter(function(m){
+        if (clash.frozen[m.from] && clash.frozen[m.from].turnsLeft > 0) return false;
+        return true;
+      });
+    }
+
+    function paintClashSquares(){
+      if (!isClash() || typeof boardEl === 'undefined' || !boardEl) return;
+      boardEl.querySelectorAll('.sq').forEach(function(el){
+        el.classList.remove('frozen');
+        var img = el.querySelector('img.piece');
+        if (img) img.classList.remove('raged');
+        var s = el.dataset.sq;
+        if (s && clash.frozen[s] && clash.frozen[s].turnsLeft > 0) el.classList.add('frozen');
+        if (s && clash.rageSq === s && img) img.classList.add('raged');
+      });
+    }
+
+    // Wrap core functions
+    if (typeof onSquareClick === 'function') {
+      var _onSq = onSquareClick;
+      onSquareClick = function(sq){
+        if (isClash() && clash.spellTargeting) {
+          var piece = game.get(sq);
+          var turn = game.turn();
+          if (clash.spellTargeting === 'freeze') {
+            if (!piece || piece.color === turn) { setHint('Freeze: tap an enemy piece'); return; }
+            if (myElixir() < COST.freeze) { setHint('Not enough elixir'); cancelSpell(); return; }
+            spendElixir(turn, COST.freeze);
+            clash.frozen[sq] = { color: piece.color, turnsLeft: 2 };
+            setHint('Frozen ' + sq.toUpperCase() + ' for 2 turns');
+            cancelSpell();
+            if (typeof renderBoard === 'function') renderBoard();
+            paintClashSquares();
+            return;
+          }
+          if (clash.spellTargeting === 'rage') {
+            if (!piece || piece.color !== turn) { setHint('Rage: tap one of your pieces'); return; }
+            if (myElixir() < COST.rage) { setHint('Not enough elixir'); cancelSpell(); return; }
+            spendElixir(turn, COST.rage);
+            clash.rageSq = sq;
+            clash.ragePending = false;
+            setHint('Rage on ' + sq.toUpperCase() + ' — move it to play twice');
+            cancelSpell();
+            selected = sq;
+            possibleMoves = filterMoves(game.moves({ square: sq, verbose: true }));
+            if (typeof renderBoard === 'function') renderBoard();
+            paintClashSquares();
+            return;
+          }
+        }
+        if (isClash()) {
+          var p = game.get(sq);
+          if (p && clash.frozen[sq] && clash.frozen[sq].turnsLeft > 0) {
+            setHint('That piece is frozen!');
+            return;
+          }
+          if (clash.ragePending && clash.rageSq) {
+            if (selected) {
+              var mv = (possibleMoves || []).find(function(m){ return m.to === sq; });
+              if (mv) { doMove(mv); return; }
+              return;
+            }
+            if (sq !== clash.rageSq) {
+              setHint('Rage: you must move ' + clash.rageSq.toUpperCase());
+              return;
+            }
+          }
+        }
+        _onSq(sq);
+        if (isClash() && possibleMoves) {
+          possibleMoves = filterMoves(possibleMoves);
+          if (typeof renderBoard === 'function') renderBoard();
+          paintClashSquares();
+        }
+      };
+      window.onSquareClick = onSquareClick;
+    }
+
+    if (typeof doMove === 'function') {
+      var _do = doMove;
+      doMove = function(moveObj){
+        if (!isClash()) return _do.apply(this, arguments);
+        var from = moveObj.from;
+        if (clash.frozen[from] && clash.frozen[from].turnsLeft > 0) {
+          if (typeof playerColor !== 'undefined' && game.turn() !== playerColor) {
+            var legal = filterMoves(game.moves({ verbose: true }));
+            if (legal.length) return _do.call(this, legal[Math.floor(Math.random() * legal.length)]);
+          }
+          setHint('That piece is frozen!');
+          return;
+        }
+        if (clash.ragePending && clash.rageSq && from !== clash.rageSq) {
+          setHint('Rage: only ' + clash.rageSq.toUpperCase());
+          return;
+        }
+        var mover = game.turn();
+        var wasRageFirst = (clash.rageSq && from === clash.rageSq && !clash.ragePending);
+        var to = moveObj.to;
+        var result = _do.apply(this, arguments);
+        if (clash.frozen[to]) delete clash.frozen[to];
+
+        if (wasRageFirst && !game.game_over()) {
+          try {
+            var parts = game.fen().split(' ');
+            if (parts[1] !== mover) {
+              parts[1] = mover;
+              game.load(parts.join(' '));
+            }
+          } catch (e) { console.warn(e); }
+          clash.ragePending = true;
+          clash.rageSq = to;
+          selected = to;
+          possibleMoves = filterMoves(game.moves({ square: to, verbose: true }));
+          setHint('Rage! Move ' + to.toUpperCase() + ' again');
+          if (statusEl) statusEl.textContent = 'Rage — move again';
+          if (typeof renderBoard === 'function') renderBoard();
+          paintClashSquares();
+          return result;
+        }
+
+        if (clash.ragePending) {
+          clash.ragePending = false;
+          clash.rageSq = null;
+          onTurnEnded(mover);
+          setHint('');
+        } else {
+          onTurnEnded(mover);
+        }
+        paintClashSquares();
+        updateElixirUI();
+        return result;
+      };
+      window.doMove = doMove;
+    }
+
+    if (typeof renderBoard === 'function') {
+      var _rb = renderBoard;
+      renderBoard = function(){
+        var r = _rb.apply(this, arguments);
+        paintClashSquares();
+        return r;
+      };
+      window.renderBoard = renderBoard;
+    }
+
+    // UI
+    var spellsBtn = document.getElementById('spellsBtn');
+    var spellsPanel = document.getElementById('spellsPanel');
+    if (spellsBtn) {
+      spellsBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        if (!isClash()) return;
+        if (typeof gameOver !== 'undefined' && gameOver) return;
+        if (mode !== 'local' && typeof playerColor !== 'undefined' && game.turn() !== playerColor) {
+          setHint('Wait for your turn');
+          return;
+        }
+        var open = spellsPanel && spellsPanel.classList.toggle('show');
+        spellsBtn.classList.toggle('active', !!open);
+        if (!open) cancelSpell();
+      });
+    }
+    document.querySelectorAll('.spell-card').forEach(function(card){
+      card.addEventListener('click', function(){
+        if (!isClash()) return;
+        var sp = card.dataset.spell;
+        var cost = COST[sp] || 99;
+        if (myElixir() < cost) { setHint('Need ' + cost + ' elixir'); return; }
+        document.querySelectorAll('.spell-card').forEach(function(c){ c.classList.remove('selected'); });
+        card.classList.add('selected');
+        clash.spellTargeting = sp;
+        if (spellsPanel) spellsPanel.classList.remove('show');
+        if (spellsBtn) spellsBtn.classList.remove('active');
+        if (sp === 'freeze') setHint('Freeze: tap an enemy piece (' + cost + ' elixir)');
+        else if (sp === 'rage') setHint('Rage: tap your piece (' + cost + ' elixir)');
+      });
+    });
+
+    document.querySelectorAll('.mode-btn[data-mode]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        setTimeout(function(){
+          var sel = document.querySelector('.mode-btn[data-mode].selected');
+          var m = sel ? sel.dataset.mode : '';
+          var cs = document.getElementById('colorSection');
+          var ds = document.getElementById('diffSection');
+          var os = document.getElementById('onlineSection');
+          if (m === 'clash') {
+            if (cs) cs.style.display = '';
+            if (ds) ds.style.display = '';
+            if (os) os.style.display = 'none';
+          }
+        }, 0);
+      });
+    });
+
+    var _start = window.startNewGame || startNewGame;
+    window.startNewGame = function(){
+      var modeBtn = document.querySelector('.mode-btn[data-mode].selected');
+      var m = modeBtn ? modeBtn.dataset.mode : 'normal';
+      if (m !== 'clash') endClash();
+      _start.apply(this, arguments);
+      if (m === 'clash') {
+        try {
+          mode = 'clash';
+          var mb = document.getElementById('modeBadge');
+          if (mb) mb.textContent = 'Clash';
+          if (typeof timeWhite !== 'undefined') {
+            if (!timeWhite) timeWhite = 10 * 60 * 1000;
+            if (!timeBlack) timeBlack = 10 * 60 * 1000;
+          }
+          initClash();
+        } catch (e) { console.warn(e); }
+      }
+    };
+    window.__startChess = function(e){
+      if (e) { try { e.preventDefault(); } catch (x) {} }
+      try { window.startNewGame(); }
+      catch (err) { console.error(err); alert('Start error: ' + (err && err.message ? err.message : err)); }
+    };
+
+    window.__clash = clash;
+  })();
 
   setTimeout(function () {
     var modal = document.getElementById('modal');
