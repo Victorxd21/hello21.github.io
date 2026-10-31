@@ -126,41 +126,16 @@
   s.textContent = js;
   document.body.appendChild(s);
 
-  function safeStart(ev) {
-    if (ev) { try { ev.preventDefault(); ev.stopPropagation(); } catch (e) {} }
-    try {
-      if (typeof startNewGame === 'function') startNewGame();
-      else alert('Game still loading, try again');
-    } catch (err) {
-      console.error(err);
-      alert('Could not start: ' + (err && err.message ? err.message : err));
-    }
-  }
-  function safeCancel(ev) {
-    if (ev) { try { ev.preventDefault(); ev.stopPropagation(); } catch (e) {} }
-    try {
-      if (typeof closeModal === 'function') closeModal();
-      else {
-        var m = document.getElementById('modal');
-        if (m) m.classList.remove('show');
-      }
-    } catch (e) {}
-  }
-  function bindBtn(id, fn) {
-    var btn = document.getElementById(id);
-    if (!btn || btn.dataset.bound === '1') return;
-    btn.dataset.bound = '1';
-    btn.addEventListener('click', fn, { passive: false });
-    btn.addEventListener('touchend', fn, { passive: false });
-  }
-  function bindAll() {
-    bindBtn('btnStart', safeStart);
-    bindBtn('btnStartTop', safeStart);
-    bindBtn('btnCancel', safeCancel);
-    bindBtn('btnCancelTop', safeCancel);
-  }
-  setTimeout(bindAll, 100);
-  setTimeout(bindAll, 700);
+  // Expose for inline HTML handlers (mobile taps)
+  try {
+    window.startNewGame = startNewGame;
+    window.closeModal = closeModal;
+    window.__startChess = function (e) {
+      if (e) { try { e.preventDefault(); } catch (x) {} }
+      try { startNewGame(); }
+      catch (err) { console.error(err); alert('Start error: ' + (err && err.message ? err.message : err)); }
+    };
+  } catch (e) { console.warn('expose', e); }
 
   setTimeout(function () {
     var modal = document.getElementById('modal');
