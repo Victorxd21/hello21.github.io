@@ -160,7 +160,7 @@
   document.body.appendChild(clashScript);
 
   var onlineScript = document.createElement('script');
-  onlineScript.src = 'online-lobby.js?v=2';
+  onlineScript.src = 'online-lobby.js?v=3';
   onlineScript.onload = function () { console.log('online lobby loaded'); };
   document.body.appendChild(onlineScript);
 
