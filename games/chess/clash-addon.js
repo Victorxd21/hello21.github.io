@@ -306,6 +306,7 @@
         clash.rageLeft = 0;
         clash.rageSq = null;
         clash.blockAi = false;
+        // Let the normal doMove animation callback fire AI once only
         window.__clashSkipAi = false;
         setHint('');
         afterColorMoved(mover);
@@ -314,11 +315,6 @@
         if (mode !== 'local' && !game.game_over()) {
           var expect = (mover === 'w') ? 'b' : 'w';
           if (side() !== expect) forceSideToMove(expect);
-          setTimeout(function () {
-            if (!clash.blockAi && typeof aiMove === 'function' && !game.game_over()) {
-              aiMove();
-            }
-          }, 450);
         }
         return ret;
       }
