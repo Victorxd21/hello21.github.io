@@ -27,7 +27,7 @@
 
   js = js.replace(
     "initStockfish();\nfillCosmeticGrid();\ninitSupabase();\napplySettingsUI();\nupdateStatsUI();\nrenderBoard();\nopenModal();",
-    "try{initStockfish()}catch(e){console.warn(e)}\ntry{fillCosmeticGrid()}catch(e){console.warn(e)}\ntry{initSupabase()}catch(e){console.warn(e)}\ntry{applySettingsUI()}catch(e){console.warn(e)}\ntry{updateStatsUI()}catch(e){console.warn(e)}\ntry{renderBoard()}catch(e){console.warn(e)}\nopenModal();"
+    "try{initStockfish()}catch(e){console.warn(e)}\ntry{fillCosmeticGrid()}catch(e){console.warn(e)}\ntry{initSupabase()}catch(e){console.warn(e)}\ntry{applySettingsUI()}catch(e){console.warn(e)}\ntry{updateStatsUI()}catch(e){console.warn(e)}\ntry{renderBoard()}catch(e){console.warn(e)}\nopenModal();\nwindow.startNewGame=startNewGame;window.closeModal=closeModal;window.openModal=openModal;"
   );
 
   js = js.replace(
@@ -125,17 +125,6 @@
   var s = document.createElement('script');
   s.textContent = js;
   document.body.appendChild(s);
-
-  // Expose for inline HTML handlers (mobile taps)
-  try {
-    window.startNewGame = startNewGame;
-    window.closeModal = closeModal;
-    window.__startChess = function (e) {
-      if (e) { try { e.preventDefault(); } catch (x) {} }
-      try { startNewGame(); }
-      catch (err) { console.error(err); alert('Start error: ' + (err && err.message ? err.message : err)); }
-    };
-  } catch (e) { console.warn('expose', e); }
 
   setTimeout(function () {
     var modal = document.getElementById('modal');
