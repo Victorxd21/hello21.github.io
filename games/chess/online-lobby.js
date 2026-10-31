@@ -1,9 +1,43 @@
-// ===== ONLINE LOBBY + ONLINE-AS-OPTION v1 =====
+// ===== ONLINE LOBBY + ONLINE-AS-OPTION v2 =====
 (function setupOnlineLobby() {
+  if (!document.getElementById('onlineLobbyStyles')) {
+    var st = document.createElement('style');
+    st.id = 'onlineLobbyStyles';
+    st.textContent = '.online-toggle-row{display:flex;align-items:center}.online-toggle{display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border-radius:12px;border:2px solid var(--panel2);background:var(--panel2);color:var(--text);cursor:pointer;font:inherit}.online-toggle[aria-pressed="true"]{border-color:var(--accent);background:rgba(91,141,239,.15)}.online-toggle .ot-knob{width:44px;height:26px;border-radius:13px;background:#3a4155;position:relative;flex-shrink:0;transition:.2s}.online-toggle .ot-knob::after{content:\'\';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#9aa3b5;transition:.2s}.online-toggle[aria-pressed="true"] .ot-knob{background:var(--accent)}.online-toggle[aria-pressed="true"] .ot-knob::after{left:21px;background:#fff}.online-toggle .ot-label{font-size:.9rem;font-weight:600}.match-lobby{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:rgba(6,8,14,.88);backdrop-filter:blur(10px);padding:16px}.match-lobby.show{display:flex}.lobby-card{width:min(420px,100%);background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:22px 18px 18px;box-shadow:0 20px 60px rgba(0,0,0,.5)}.lobby-code-wrap{text-align:center;margin-bottom:18px}.lobby-code-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}.lobby-code{font-size:2rem;font-weight:800;letter-spacing:.28em;margin:6px 0;color:var(--accent)}.lobby-code-hint{font-size:.75rem;color:var(--muted)}.lobby-vs-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 16px}.lobby-player{flex:1;text-align:center;padding:12px 8px;border-radius:14px;background:var(--panel2)}.lobby-pieces{display:flex;justify-content:center;gap:4px;margin-bottom:8px;min-height:36px}.lobby-pieces img{width:32px;height:32px;object-fit:contain}.lobby-avatar{width:48px;height:48px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;background:linear-gradient(135deg,#3d4f7a,#5b8def);color:#fff}.lobby-avatar.empty{background:#2a3142;color:var(--muted)}.lobby-avatar.ready{background:linear-gradient(135deg,#2d6a4f,#52b788)}.lobby-name{font-weight:700;font-size:.95rem}.lobby-sub{font-size:.75rem;color:var(--muted);margin-top:2px}.lobby-center{width:88px;text-align:center;flex-shrink:0}.lobby-vs{font-weight:800;font-size:1.1rem;opacity:.5;letter-spacing:.1em}.lobby-wait{font-size:.8rem;color:var(--muted);margin-top:6px}.lobby-wait .dots::after{content:\'\';animation:lobbyDots 1.2s steps(4,end) infinite}@keyframes lobbyDots{0%{content:\'\'}25%{content:\'.\'}50%{content:\'..\'}75%{content:\'...\'}}.lobby-countdown{font-size:2.4rem;font-weight:800;color:var(--accent);line-height:1;margin-top:4px}.lobby-countdown.pulse{animation:lobbyPulse .45s ease}@keyframes lobbyPulse{0%{transform:scale(.7);opacity:.4}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}.lobby-cancel{width:100%;margin-top:8px;padding:12px;border-radius:12px;border:none;background:var(--panel2);color:var(--text);font-weight:600;cursor:pointer}';
+    document.head.appendChild(st);
+  }
+
+  document.querySelectorAll('.mode-btn[data-mode="online"]').forEach(function (b) {
+    b.style.display = 'none';
+    b.classList.remove('selected');
+  });
+
+  if (!document.getElementById('onlineToggle')) {
+    var onlineSec = document.getElementById('onlineSection');
+    var wrap = document.createElement('div');
+    wrap.className = 'section';
+    wrap.id = 'onlineToggleSection';
+    wrap.innerHTML = '<label>Play Online</label><div class="online-toggle-row"><button type="button" class="online-toggle" id="onlineToggle" aria-pressed="false"><span class="ot-knob"></span><span class="ot-label" id="onlineToggleLabel">Off · vs AI</span></button></div>';
+    if (onlineSec && onlineSec.parentNode) onlineSec.parentNode.insertBefore(wrap, onlineSec);
+  }
+  var onlineSec2 = document.getElementById('onlineSection');
+  if (onlineSec2) {
+    var lab0 = onlineSec2.querySelector('label');
+    if (lab0) lab0.textContent = 'Room';
+  }
+
+  if (!document.getElementById('matchLobby')) {
+    var lob = document.createElement('div');
+    lob.id = 'matchLobby';
+    lob.className = 'match-lobby';
+    lob.setAttribute('aria-hidden', 'true');
+    lob.innerHTML = '<div class="lobby-card"><div class="lobby-code-wrap" id="lobbyCodeWrap" style="display:none"><div class="lobby-code-label">Room code</div><div class="lobby-code" id="lobbyCode">------</div><div class="lobby-code-hint">Share this with your friend</div></div><div class="lobby-vs-row"><div class="lobby-player host"><div class="lobby-pieces" id="lobbyPiecesLeft"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wK.svg" alt=""><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/wQ.svg" alt=""></div><div class="lobby-avatar" id="lobbyAvatarLeft">You</div><div class="lobby-name" id="lobbyNameLeft">You</div><div class="lobby-sub" id="lobbySubLeft">White</div></div><div class="lobby-center"><div class="lobby-vs" id="lobbyVs">VS</div><div class="lobby-countdown" id="lobbyCountdown" hidden></div><div class="lobby-wait" id="lobbyWait">Waiting<span class="dots"></span></div></div><div class="lobby-player guest"><div class="lobby-pieces" id="lobbyPiecesRight"><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bK.svg" alt=""><img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/bQ.svg" alt=""></div><div class="lobby-avatar empty" id="lobbyAvatarRight">?</div><div class="lobby-name" id="lobbyNameRight">Opponent</div><div class="lobby-sub" id="lobbySubRight">Black</div></div></div><button type="button" class="lobby-cancel" id="lobbyCancelBtn">Cancel</button></div>';
+    document.body.appendChild(lob);
+  }
+
   var wantOnline = false;
   var lobbyTimer = null;
   var countdownOn = false;
-
   function $(id) { return document.getElementById(id); }
 
   function setWantOnline(on) {
@@ -23,25 +57,13 @@
     var isLocal = m === 'local';
     var isPuzzle = m === 'puzzle';
     var onlineType = (document.querySelector('.mode-btn[data-online].selected') || {}).dataset.online || 'create';
-
     var colorSec = $('colorSection');
     var diffSec = $('diffSection');
     var onlineToggleSec = $('onlineToggleSection');
-
-    if (onlineToggleSec) {
-      onlineToggleSec.style.display = (isLocal || isPuzzle) ? 'none' : '';
-    }
-    if (isLocal || isPuzzle) {
-      if (wantOnline) setWantOnline(false);
-    }
-
-    if (colorSec) {
-      colorSec.style.display = (isLocal || isPuzzle || wantOnline) ? 'none' : '';
-    }
-    if (diffSec) {
-      diffSec.style.display = (isLocal || isPuzzle || wantOnline) ? 'none' : '';
-    }
-
+    if (onlineToggleSec) onlineToggleSec.style.display = (isLocal || isPuzzle) ? 'none' : '';
+    if ((isLocal || isPuzzle) && wantOnline) setWantOnline(false);
+    if (colorSec) colorSec.style.display = (isLocal || isPuzzle || wantOnline) ? 'none' : '';
+    if (diffSec) diffSec.style.display = (isLocal || isPuzzle || wantOnline) ? 'none' : '';
     var createUI = $('createRoomUI');
     var joinUI = $('joinRoomUI');
     if (createUI) createUI.style.display = (wantOnline && onlineType === 'create') ? '' : 'none';
@@ -55,11 +77,8 @@
       setWantOnline(!(tog.getAttribute('aria-pressed') === 'true'));
     });
   }
-
   document.querySelectorAll('.mode-btn[data-mode]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      setTimeout(refreshModeSections, 0);
-    });
+    btn.addEventListener('click', function () { setTimeout(refreshModeSections, 0); });
   });
   document.querySelectorAll('.mode-btn[data-online]').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -71,23 +90,10 @@
   setWantOnline(false);
 
   function applyModeTimes(m) {
-    if (m === 'blitz') {
-      timeWhite = timeBlack = 3 * 60 * 1000;
-      increment = 2000;
-      if (modeBadge) modeBadge.textContent = 'Online Blitz';
-    } else if (m === 'bullet') {
-      timeWhite = timeBlack = 60 * 1000;
-      increment = 1000;
-      if (modeBadge) modeBadge.textContent = 'Online Bullet';
-    } else if (m === 'clash') {
-      timeWhite = timeBlack = 10 * 60 * 1000;
-      increment = 5000;
-      if (modeBadge) modeBadge.textContent = 'Online Clash';
-    } else {
-      timeWhite = timeBlack = 10 * 60 * 1000;
-      increment = 5000;
-      if (modeBadge) modeBadge.textContent = 'Online';
-    }
+    if (m === 'blitz') { timeWhite = timeBlack = 3 * 60 * 1000; increment = 2000; if (modeBadge) modeBadge.textContent = 'Online Blitz'; }
+    else if (m === 'bullet') { timeWhite = timeBlack = 60 * 1000; increment = 1000; if (modeBadge) modeBadge.textContent = 'Online Bullet'; }
+    else if (m === 'clash') { timeWhite = timeBlack = 10 * 60 * 1000; increment = 5000; if (modeBadge) modeBadge.textContent = 'Online Clash'; }
+    else { timeWhite = timeBlack = 10 * 60 * 1000; increment = 5000; if (modeBadge) modeBadge.textContent = 'Online'; }
   }
 
   function showLobby(asHost, code) {
@@ -95,22 +101,18 @@
     if (!el) return;
     el.classList.add('show');
     el.setAttribute('aria-hidden', 'false');
-
     var codeWrap = $('lobbyCodeWrap');
     if (codeWrap) codeWrap.style.display = asHost ? '' : 'none';
     if (code && $('lobbyCode')) $('lobbyCode').textContent = code;
-
     var leftYou = asHost;
     $('lobbyNameLeft').textContent = leftYou ? 'You' : 'Opponent';
     $('lobbySubLeft').textContent = 'White';
     $('lobbyAvatarLeft').textContent = leftYou ? 'You' : '?';
     $('lobbyAvatarLeft').className = 'lobby-avatar' + (leftYou ? '' : ' empty');
-
     $('lobbyNameRight').textContent = leftYou ? 'Opponent' : 'You';
     $('lobbySubRight').textContent = 'Black';
     $('lobbyAvatarRight').textContent = leftYou ? '?' : 'You';
     $('lobbyAvatarRight').className = 'lobby-avatar' + (leftYou ? ' empty' : '');
-
     $('lobbyWait').hidden = false;
     $('lobbyWait').style.display = '';
     $('lobbyCountdown').hidden = true;
@@ -129,8 +131,7 @@
   }
 
   function setLobbyOpponentJoined() {
-    var asHost = !!isHost;
-    if (asHost) {
+    if (isHost) {
       $('lobbyAvatarRight').textContent = 'P2';
       $('lobbyAvatarRight').className = 'lobby-avatar ready';
       $('lobbyNameRight').textContent = 'Opponent';
@@ -184,29 +185,22 @@
       if (typeof startClock === 'function') startClock();
       if (typeof updateStatsUI === 'function') updateStatsUI();
       if (statusEl) {
-        statusEl.textContent = (typeof playerColor !== 'undefined' && playerColor === 'w') ? 'Your turn' : 'Opponent turn';
+        statusEl.textContent = (playerColor === 'w') ? 'Your turn' : 'Opponent turn';
         statusEl.classList.remove('gameover');
       }
-      if (typeof playMatchIntro === 'function' && settings && settings.anim) {
-        playMatchIntro(function () {});
-      }
+      if (typeof playMatchIntro === 'function' && settings && settings.anim) playMatchIntro(function () {});
     } catch (e) { console.warn(e); }
   }
 
   function cancelLobby() {
     hideLobby();
-    try {
-      if (typeof leaveRoom === 'function') leaveRoom();
-    } catch (e) {}
+    try { if (typeof leaveRoom === 'function') leaveRoom(); } catch (e) {}
     onlineMode = false;
     oppConnected = false;
     if (typeof openModal === 'function') openModal();
   }
-
   var cancelBtn = $('lobbyCancelBtn');
   if (cancelBtn) cancelBtn.addEventListener('click', cancelLobby);
-
-  function applyModeTimesAndInit() {}
 
   async function startOnlineWithMode() {
     if (typeof ensureAudio === 'function') ensureAudio();
@@ -217,34 +211,23 @@
     if (pb) pb.style.display = 'none';
     var evalBar = $('evalBar');
     if (evalBar) evalBar.style.opacity = '1';
-
     var modeBtn = document.querySelector('.mode-btn[data-mode].selected');
     mode = modeBtn ? modeBtn.dataset.mode : 'normal';
     if (mode === 'local' || mode === 'puzzle') mode = 'normal';
-
     applyModeTimes(mode);
-
     game = new Chess();
-    selected = null;
-    possibleMoves = [];
-    lastMove = null;
-    gameOver = false;
-    thinking = false;
-    animating = false;
+    selected = null; possibleMoves = []; lastMove = null;
+    gameOver = false; thinking = false; animating = false;
     if (statusEl) statusEl.classList.remove('gameover');
     if (openingEl) openingEl.textContent = '';
     if (qualityEl) qualityEl.classList.remove('show');
-
     var onlineType = (document.querySelector('.mode-btn[data-online].selected') || {}).dataset.online || 'create';
     var asHost = onlineType !== 'join';
-
     if (!asHost) {
       var code = ($('joinCodeInput') && $('joinCodeInput').value) || '';
       var ok = await joinRoom(code);
       if (!ok) return;
-      playerColor = 'b';
-      flipped = true;
-      myColorOnline = 'b';
+      playerColor = 'b'; flipped = true; myColorOnline = 'b';
       if (typeof closeModal === 'function') closeModal();
       if (typeof stopClock === 'function') stopClock();
       if (typeof renderBoard === 'function') renderBoard();
@@ -252,9 +235,7 @@
       if (statusEl) statusEl.textContent = 'Waiting for match…';
     } else {
       await createRoom();
-      playerColor = 'w';
-      flipped = false;
-      myColorOnline = 'w';
+      playerColor = 'w'; flipped = false; myColorOnline = 'w';
       if (typeof closeModal === 'function') closeModal();
       if (typeof stopClock === 'function') stopClock();
       if (typeof renderBoard === 'function') renderBoard();
@@ -284,12 +265,8 @@
   window.__startChess = function (e) {
     if (e) { try { e.preventDefault(); } catch (x) {} }
     try { window.startNewGame(); }
-    catch (err) {
-      console.error(err);
-      alert('Start error: ' + (err && err.message ? err.message : err));
-    }
+    catch (err) { console.error(err); alert('Start error: ' + (err && err.message ? err.message : err)); }
   };
-
   if (typeof startOnlineGame === 'function') {
     startOnlineGame = startOnlineWithMode;
     window.startOnlineGame = startOnlineWithMode;
@@ -299,36 +276,19 @@
     setLobbyOpponentJoined();
     try {
       if (channel) {
-        channel.send({
-          type: 'broadcast',
-          event: 'lobby_go',
-          payload: {
-            mode: mode,
-            timeWhite: timeWhite,
-            timeBlack: timeBlack,
-            increment: increment,
-            fen: game.fen(),
-            hostCosmetic: (myCosmetic && myCosmetic.id) || 'classic',
-            secs: 5
-          }
-        });
+        channel.send({ type: 'broadcast', event: 'lobby_go', payload: {
+          mode: mode, timeWhite: timeWhite, timeBlack: timeBlack, increment: increment,
+          fen: game.fen(), hostCosmetic: (myCosmetic && myCosmetic.id) || 'classic', secs: 5
+        }});
       }
     } catch (e) {}
     runCountdown(5, function () {
       try {
         if (channel) {
-          channel.send({
-            type: 'broadcast',
-            event: 'start',
-            payload: {
-              fen: game.fen(),
-              hostCosmetic: (myCosmetic && myCosmetic.id) || 'classic',
-              mode: mode,
-              timeWhite: timeWhite,
-              timeBlack: timeBlack,
-              increment: increment
-            }
-          });
+          channel.send({ type: 'broadcast', event: 'start', payload: {
+            fen: game.fen(), hostCosmetic: (myCosmetic && myCosmetic.id) || 'classic',
+            mode: mode, timeWhite: timeWhite, timeBlack: timeBlack, increment: increment
+          }});
         }
       } catch (e) {}
       beginMatchAfterLobby();
@@ -343,9 +303,7 @@
       if (payload.timeBlack) timeBlack = payload.timeBlack;
       if (payload.increment != null) increment = payload.increment;
     }
-    if (!countdownOn) {
-      runCountdown(5, function () { beginMatchAfterLobby(); });
-    }
+    if (!countdownOn) runCountdown(5, function () { beginMatchAfterLobby(); });
   };
 
   console.log('online lobby ready');
