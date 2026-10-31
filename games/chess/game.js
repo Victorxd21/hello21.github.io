@@ -27,80 +27,86 @@
     "initStockfish();\nfillCosmeticGrid();\ninitSupabase();\napplySettingsUI();\nupdateStatsUI();\nrenderBoard();\nopenModal();",
     "try{initStockfish()}catch(e){console.warn(e)}\ntry{fillCosmeticGrid()}catch(e){console.warn(e)}\ntry{initSupabase()}catch(e){console.warn(e)}\ntry{applySettingsUI()}catch(e){console.warn(e)}\ntry{updateStatsUI()}catch(e){console.warn(e)}\ntry{renderBoard()}catch(e){console.warn(e)}\nopenModal();"
   );
-  js = js.replace(
-    "initStockfish();fillCosmeticGrid();initSupabase();applySettingsUI();updateStatsUI();renderBoard();openModal();",
-    "try{initStockfish()}catch(e){}try{fillCosmeticGrid()}catch(e){}try{initSupabase()}catch(e){}try{applySettingsUI()}catch(e){}try{updateStatsUI()}catch(e){}try{renderBoard()}catch(e){}openModal();"
-  );
 
-  // AI timeout fallback
+  // AI timeout
   js = js.replace(
     "if(!best&&sfReady){const uci=await sfGo(game.fen(),depth,mt,skill,elo);",
     "if(!best&&sfReady){var uci=null;try{uci=await Promise.race([sfGo(game.fen(),depth,mt,skill,elo),new Promise(function(r){setTimeout(function(){r(null)},mt+2000)})])}catch(e){uci=null}"
   );
 
-  // === Clash Royale match intro ===
+  // Clash Royale intro - simple, no nested HTML strings
   var intro = [
     'function playMatchIntro(done){',
-    '  try{',
-    '    var el=document.getElementById("matchIntro");',
-    '    if(!el||!(settings&&settings.anim)){if(done)done();return}',
-    '    var nTop=document.getElementById("nameTop"); var sTop=document.getElementById("subTop");',
-    '    var nBot=document.getElementById("nameBottom"); var sBot=document.getElementById("subBottom");',
-    '    var a;',
-    '    a=document.getElementById("introNameTop"); if(a)a.textContent=nTop?nTop.textContent:"Stockfish";',
-    '    a=document.getElementById("introSubTop"); if(a)a.textContent=sTop?sTop.textContent:"AI";',
-    '    a=document.getElementById("introNameBot"); if(a)a.textContent=nBot?nBot.textContent:"You";',
-    '    a=document.getElementById("introSubBot"); if(a)a.textContent=sBot?sBot.textContent:"Player";',
-    '    var avTop=document.getElementById("introAvatarTop");',
-    '    var avBot=document.getElementById("introAvatarBot");',
-    '    var aTop=document.getElementById("avatarTop");',
-    '    if(avTop){',
-    '      if(aTop&&aTop.querySelector(".sf-icon")) avTop.innerHTML="🐟";',
-    '      else { var im=aTop&&aTop.querySelector("img"); avTop.innerHTML=im?("<img src=\""+im.src+"\" alt=\"\">"):"♟"; }',
-    '    }',
-    '    if(avBot){',
-    '      var be=document.getElementById("avatarBottom"); var bi=be&&be.querySelector("img");',
-    '      avBot.innerHTML=bi?("<img src=\""+bi.src+"\" alt=\"\">"):("<img src=\""+pieceSrc(playerColor||"w","k")+"\" alt=\"\">");',
-    '    }',
-    '    var bTop=document.getElementById("introBannerTop");',
-    '    var bBot=document.getElementById("introBannerBot");',
-    '    var vs=document.getElementById("introVs");',
-    '    var fight=document.getElementById("introFight");',
-    '    if(bTop)bTop.className="intro-banner top";',
-    '    if(bBot)bBot.className="intro-banner bot";',
-    '    if(vs)vs.className="intro-vs";',
-    '    if(fight)fight.className="intro-fight";',
+    '  try {',
+    '    var el = document.getElementById("matchIntro");',
+    '    if (!el || !(settings && settings.anim)) { if (done) done(); return; }',
+    '    var nTop = document.getElementById("nameTop");',
+    '    var sTop = document.getElementById("subTop");',
+    '    var nBot = document.getElementById("nameBottom");',
+    '    var sBot = document.getElementById("subBottom");',
+    '    var t;',
+    '    t = document.getElementById("introNameTop"); if (t) t.textContent = nTop ? nTop.textContent : "Stockfish";',
+    '    t = document.getElementById("introSubTop"); if (t) t.textContent = sTop ? sTop.textContent : "AI";',
+    '    t = document.getElementById("introNameBot"); if (t) t.textContent = nBot ? nBot.textContent : "You";',
+    '    t = document.getElementById("introSubBot"); if (t) t.textContent = sBot ? sBot.textContent : "Player";',
+    '    var avTop = document.getElementById("introAvatarTop");',
+    '    var avBot = document.getElementById("introAvatarBot");',
+    '    if (avTop) avTop.textContent = "🐟";',
+    '    if (avBot) avBot.textContent = "♟";',
+    '    var bTop = document.getElementById("introBannerTop");',
+    '    var bBot = document.getElementById("introBannerBot");',
+    '    var vs = document.getElementById("introVs");',
+    '    var fight = document.getElementById("introFight");',
+    '    if (bTop) bTop.className = "intro-banner top";',
+    '    if (bBot) bBot.className = "intro-banner bot";',
+    '    if (vs) vs.className = "intro-vs";',
+    '    if (fight) fight.className = "intro-fight";',
     '    el.classList.add("show");',
-    '    setTimeout(function(){ if(fight)fight.classList.add("show"); },900);',
-    '    setTimeout(function(){ if(bTop)bTop.classList.add("exit-top"); if(bBot)bBot.classList.add("exit-bot"); if(vs)vs.classList.add("exit"); },1400);',
-    '    setTimeout(function(){ el.classList.remove("show"); flyInPieces(); if(done)done(); },1850);',
-    '  }catch(err){ console.warn("intro",err); if(done)done(); }',
+    '    setTimeout(function () { if (fight) fight.classList.add("show"); }, 900);',
+    '    setTimeout(function () {',
+    '      if (bTop) bTop.classList.add("exit-top");',
+    '      if (bBot) bBot.classList.add("exit-bot");',
+    '      if (vs) vs.classList.add("exit");',
+    '    }, 1400);',
+    '    setTimeout(function () {',
+    '      el.classList.remove("show");',
+    '      flyInPieces();',
+    '      if (done) done();',
+    '    }, 1850);',
+    '  } catch (err) {',
+    '    console.warn("intro", err);',
+    '    if (done) done();',
+    '  }',
     '}',
     'function flyInPieces(){',
-    '  try{',
-    '    if(!(settings&&settings.anim)||!boardEl)return;',
-    '    var imgs=boardEl.querySelectorAll("img.piece");',
-    '    for(var i=0;i<imgs.length;i++){',
-    '      var img=imgs[i];',
-    '      var sq=img.closest(".sq"); if(!sq||!sq.dataset.sq)continue;',
-    '      var file=sq.dataset.sq.charCodeAt(0)-97;',
-    '      var rank=parseInt(sq.dataset.sq[1],10);',
-    '      var fromBottom=rank<=2;',
-    '      img.style.setProperty("--fx",((file-3.5)*40)+"px");',
-    '      img.style.setProperty("--fy",fromBottom?"140px":"-140px");',
+    '  try {',
+    '    if (!(settings && settings.anim) || !boardEl) return;',
+    '    var imgs = boardEl.querySelectorAll("img.piece");',
+    '    for (var i = 0; i < imgs.length; i++) {',
+    '      var img = imgs[i];',
+    '      var sq = img.closest(".sq");',
+    '      if (!sq || !sq.dataset.sq) continue;',
+    '      var file = sq.dataset.sq.charCodeAt(0) - 97;',
+    '      var rank = parseInt(sq.dataset.sq[1], 10);',
+    '      var fromBottom = rank <= 2;',
+    '      img.style.setProperty("--fx", ((file - 3.5) * 40) + "px");',
+    '      img.style.setProperty("--fy", fromBottom ? "140px" : "-140px");',
     '      img.classList.remove("fly-in");',
     '      void img.offsetWidth;',
-    '      img.style.animationDelay=((Math.abs(file-3.5)*28+(fromBottom?0:50))|0)+"ms";',
+    '      img.style.animationDelay = ((Math.abs(file - 3.5) * 28 + (fromBottom ? 0 : 50)) | 0) + "ms";',
     '      img.classList.add("fly-in");',
     '    }',
-    '    setTimeout(function(){ for(var j=0;j<imgs.length;j++){ imgs[j].classList.remove("fly-in"); imgs[j].style.animationDelay=""; } },950);',
-    '  }catch(err){ console.warn("flyIn",err); }',
+    '    setTimeout(function () {',
+    '      for (var j = 0; j < imgs.length; j++) {',
+    '        imgs[j].classList.remove("fly-in");',
+    '        imgs[j].style.animationDelay = "";',
+    '      }',
+    '    }, 950);',
+    '  } catch (err) { console.warn("flyIn", err); }',
     '}',
   ].join('\n');
 
   js = js.replace('function startNewGame(){', intro + '\nfunction startNewGame(){');
-
-  // Hook AFTER board renders. Keep the closing } of startNewGame!
   js = js.replace(
     "closeModal();renderBoard();updateMovesList();startClock();updateStatsUI();if(mode!=='local'&&playerColor==='b')setTimeout(aiMove,400)}",
     "closeModal();renderBoard();updateMovesList();startClock();updateStatsUI();playMatchIntro(function(){if(mode!=='local'&&playerColor==='b')setTimeout(aiMove,400);});}"
@@ -111,8 +117,8 @@
   } catch (e) {
     console.error('patch syntax error, using unpatched', e);
     js = await (await fetch(url)).text();
-    js = js.replace("document.getElementById('evalBot').textContent","(document.getElementById('evalBot')||{}).textContent");
-    js = js.replace("document.getElementById('evalTop').textContent","(document.getElementById('evalTop')||{}).textContent");
+    js = js.replace("document.getElementById('evalBot').textContent", "(document.getElementById('evalBot')||{}).textContent");
+    js = js.replace("document.getElementById('evalTop').textContent", "(document.getElementById('evalTop')||{}).textContent");
   }
 
   var s = document.createElement('script');
