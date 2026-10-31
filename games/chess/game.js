@@ -37,7 +37,6 @@
 
   js = js.replace(/setTimeout\(aiMove,(\d+)\)/g, "setTimeout(function(){if(window.__clashSkipAi){window.__clashSkipAi=false;return;}aiMove();},$1)");
 
-  // Defer online match start to lobby countdown
   js = js.replace(
     "if(others.length&&!oppConnected){oppConnected=true;const meta=state[others[0]][0];if(meta&&meta.cosmetic){oppCosmetic=COSMETICS.find(c=>c.id===meta.cosmetic)||COSMETICS[0]}status.textContent='Opponent joined!';status.className='online-status ok';setOnlineBanner('Room '+roomCode+' · Online','ok');channel.send({type:'broadcast',event:'start',payload:{fen:game.fen(),hostCosmetic:myCosmetic.id}})}",
     "if(others.length&&!oppConnected){oppConnected=true;const meta=state[others[0]][0];if(meta&&meta.cosmetic){oppCosmetic=COSMETICS.find(c=>c.id===meta.cosmetic)||COSMETICS[0]}status.textContent='Opponent joined!';status.className='online-status ok';setOnlineBanner('Room '+roomCode+' · Online','ok');if(typeof window.__onOnlineOpponentJoined==='function')window.__onOnlineOpponentJoined()}"
@@ -161,7 +160,7 @@
   document.body.appendChild(clashScript);
 
   var onlineScript = document.createElement('script');
-  onlineScript.src = 'online-lobby.js?v=1';
+  onlineScript.src = 'online-lobby.js?v=2';
   onlineScript.onload = function () { console.log('online lobby loaded'); };
   document.body.appendChild(onlineScript);
 
