@@ -94,6 +94,7 @@ button.primary{background:var(--accent);color:#fff}
 .promo-choices button img{width:100%;height:100%;object-fit:contain}
 .online-status{font-size:.8rem;color:var(--muted);text-align:center}
 #joinCodeInput{width:100%;padding:12px;border-radius:10px;border:2px solid var(--panel2);background:var(--panel2);color:var(--text);font-size:1.1rem;text-align:center;letter-spacing:.15em;font-family:monospace}
+.puzzle-banner{background:linear-gradient(135deg,#1a237e,#0d47a1);border-radius:var(--radius);padding:10px 14px;text-align:center;font-size:.85rem}
 .sq .coord{position:absolute;font-size:.55rem;font-weight:600;opacity:.55;pointer-events:none}
 .sq .coord.file{bottom:2px;right:3px}.sq .coord.rank{top:2px;left:3px}
 .match-intro{position:fixed;inset:0;z-index:200;background:radial-gradient(ellipse at center,#1a237e 0%,#0a0c12 70%);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;overflow:hidden}
@@ -108,7 +109,6 @@ button.primary{background:var(--accent);color:#fff}
 @keyframes bannerOutLeft{to{transform:translateX(-140%);opacity:0}}
 @keyframes bannerOutRight{to{transform:translateX(140%);opacity:0}}
 .intro-avatar{width:52px;height:52px;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:#ffd54f;overflow:hidden}
-.intro-avatar img{width:36px;height:36px;object-fit:contain}
 .intro-name{font-weight:700;font-size:1.05rem}
 .intro-sub{font-size:.75rem;color:#9aa0a6}
 .intro-vs{font-size:1.6rem;font-weight:800;color:#ffd54f;opacity:0;transform:scale(.5);animation:vsPop .4s cubic-bezier(.2,1.4,.3,1) .55s forwards}
@@ -135,6 +135,7 @@ button.primary{background:var(--accent);color:#fff}
   <span>L <b id="statL">0</b></span>
   <span>Puzzles <b id="statP">0</b></span>
 </div>
+<div id="puzzleBanner" class="puzzle-banner" style="display:none"></div>
 <div class="profiles"><div class="profile" id="profileTop">
 <div class="avatar" id="avatarTop"><span class="sf-icon">SF</span></div>
 <div class="info"><div class="name" id="nameTop">Stockfish</div><div class="sub" id="subTop">AI · Medium</div></div>
@@ -238,6 +239,6 @@ button.primary{background:var(--accent);color:#fff}
 </div>
 <div class="actions"><button class="primary" id="btnSettingsClose" style="flex:1">Done</button></div>
 </div></div>
-<script src="game.js?v=16"></script>
+<script src="game.js?v=17"></script>
 </body>
 </html>
