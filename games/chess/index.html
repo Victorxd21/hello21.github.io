@@ -30,7 +30,7 @@ main{width:100%;max-width:520px;padding:0 12px 24px;display:flex;flex-direction:
 .eval-fill{position:absolute;bottom:0;left:0;right:0;background:#eee;height:50%;transition:height .3s}
 .eval-label{position:absolute;left:50%;transform:translateX(-50%);font-size:.55rem;font-weight:700;z-index:2}
 .eval-label.top{top:4px;color:#eee}.eval-label.bot{bottom:4px;color:#111}
-.board-wrap{position:relative;flex:1;aspect-ratio:1;border-radius:8px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4);touch-action:none}
+.board-wrap{position:relative;flex:1;aspect-ratio:1;border-radius:8px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4);touch-action:none;transform-origin:center center}
 #board{width:100%;height:100%;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);user-select:none;position:relative}
 #arrowLayer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:40}
 .sq{position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer}
@@ -103,27 +103,32 @@ button.primary{background:var(--accent);color:#fff}
 .puzzle-banner{background:linear-gradient(135deg,#1a237e,#0d47a1);border-radius:var(--radius);padding:10px 14px;text-align:center;font-size:.85rem}
 .sq .coord{position:absolute;font-size:.55rem;font-weight:600;opacity:.55;pointer-events:none}
 .sq .coord.file{bottom:2px;right:3px}.sq .coord.rank{top:2px;left:3px}
-.match-intro{position:fixed;inset:0;z-index:200;background:radial-gradient(ellipse at center,#1a237e 0%,#0a0c12 70%);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;overflow:hidden;pointer-events:none}
+.match-intro{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;gap:22px;overflow:hidden;pointer-events:none;background:rgba(8,12,24,.55)}
 .match-intro.show{display:flex}
-.intro-banner{display:flex;align-items:center;gap:14px;background:linear-gradient(90deg,#1a1d27,#2a2f3d);border:3px solid #fff;border-radius:14px;padding:14px 22px;min-width:260px;max-width:90vw;opacity:0}
-.intro-banner.top{transform:translateX(-120%);animation:bannerInLeft .55s cubic-bezier(.2,.9,.2,1) .15s forwards}
-.intro-banner.bot{transform:translateX(120%);animation:bannerInRight .55s cubic-bezier(.2,.9,.2,1) .35s forwards}
+.board-wrap.intro-zoom{transform:scale(.82);transition:transform 3s cubic-bezier(.2,.7,.2,1)}
+.board-wrap.intro-zoom-in{transform:scale(1)}
+.intro-banner{display:flex;align-items:center;gap:14px;background:linear-gradient(90deg,#1a1d27,#2a2f3d);border:3px solid #fff;border-radius:14px;padding:14px 22px;min-width:260px;max-width:90vw;opacity:0;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+.intro-banner.top{transform:translateX(-130%);animation:bannerInLeft .55s cubic-bezier(.2,.9,.2,1) .1s forwards}
+.intro-banner.bot{transform:translateX(130%);animation:bannerInRight .55s cubic-bezier(.2,.9,.2,1) .28s forwards}
 @keyframes bannerInLeft{to{transform:translateX(0);opacity:1}}
 @keyframes bannerInRight{to{transform:translateX(0);opacity:1}}
-.intro-banner.exit-top{animation:bannerOutLeft .4s ease-in forwards}
-.intro-banner.exit-bot{animation:bannerOutRight .4s ease-in forwards}
-@keyframes bannerOutLeft{to{transform:translateX(-140%);opacity:0}}
-@keyframes bannerOutRight{to{transform:translateX(140%);opacity:0}}
-.intro-avatar{width:52px;height:52px;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:#ffd54f;overflow:hidden}
+.intro-banner.exit-up{animation:bannerOutUp .55s cubic-bezier(.4,0,.6,1) forwards}
+.intro-banner.exit-down{animation:bannerOutDown .55s cubic-bezier(.4,0,.6,1) forwards}
+@keyframes bannerOutUp{to{transform:translateY(-160%);opacity:0}}
+@keyframes bannerOutDown{to{transform:translateY(160%);opacity:0}}
+.intro-avatar{width:52px;height:52px;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:#ffd54f;overflow:hidden;flex-shrink:0}
 .intro-name{font-weight:700;font-size:1.05rem}
 .intro-sub{font-size:.75rem;color:#9aa0a6}
-.intro-vs{font-size:1.6rem;font-weight:800;color:#ffd54f;opacity:0;transform:scale(.5);animation:vsPop .4s cubic-bezier(.2,1.4,.3,1) .55s forwards}
+.intro-vs{font-size:1.8rem;font-weight:800;color:#ffd54f;opacity:0;transform:scale(.4);animation:vsPop .45s cubic-bezier(.2,1.4,.3,1) .45s forwards;letter-spacing:.12em;text-shadow:0 0 18px rgba(255,213,79,.45)}
 @keyframes vsPop{to{opacity:1;transform:scale(1)}}
-.intro-vs.exit{animation:vsFade .3s ease forwards}
-@keyframes vsFade{to{opacity:0;transform:scale(1.4)}}
-.intro-fight{position:absolute;font-size:2.4rem;font-weight:900;color:#fff;opacity:0;transform:scale(.3)}
-.intro-fight.show{animation:fightPop .55s cubic-bezier(.2,1.5,.3,1) forwards}
-@keyframes fightPop{0%{opacity:0;transform:scale(.3)}50%{opacity:1;transform:scale(1.15)}100%{opacity:0;transform:scale(1.4)}}
+.intro-vs.exit{animation:vsShrink .5s cubic-bezier(.4,0,.6,1) forwards}
+@keyframes vsShrink{to{opacity:0;transform:scale(.15)}}
+.intro-fight{position:absolute;display:flex;gap:.06em;font-size:2.6rem;font-weight:900;color:#fff;letter-spacing:.08em;opacity:0;pointer-events:none;text-shadow:0 0 28px rgba(91,141,239,.75),0 3px 0 #3d6fd4}
+.intro-fight.show{opacity:1}
+.intro-fight .ch{display:inline-block;transform:translateY(0);animation:letterWave .55s cubic-bezier(.2,1.4,.3,1) both}
+.intro-fight.fade{animation:fightFade .9s ease forwards}
+@keyframes letterWave{0%{transform:translateY(28px);opacity:0}45%{transform:translateY(-10px);opacity:1}100%{transform:translateY(0);opacity:1}}
+@keyframes fightFade{to{opacity:0;transform:scale(1.15)}}
 .sq img.piece.fly-in{animation:pieceFly .45s cubic-bezier(.2,.8,.2,1) both}
 @keyframes pieceFly{from{opacity:0;transform:translate(var(--fx),var(--fy)) scale(.4)}to{opacity:1;transform:translate(0,0) scale(1)}}
 </style>
@@ -193,7 +198,7 @@ button.primary{background:var(--accent);color:#fff}
     <div class="intro-avatar" id="introAvatarBot">You</div>
     <div class="intro-info"><div class="intro-name" id="introNameBot">You</div><div class="intro-sub" id="introSubBot">Player</div></div>
   </div>
-  <div class="intro-fight" id="introFight">PLAY!</div>
+  <div class="intro-fight" id="introFight"></div>
 </div>
 <div class="modal-overlay show" id="modal"><div class="modal">
 <h2>New Game</h2>
@@ -260,7 +265,7 @@ button.primary{background:var(--accent);color:#fff}
   function go(e){
     if(e){try{e.preventDefault();e.stopPropagation()}catch(x){}}
     var now=Date.now();
-    if(now-last<400)return; // debounce double fire from click+touch
+    if(now-last<400)return;
     last=now;
     try{
       if(typeof startNewGame==='function'){ startNewGame(); return; }
@@ -281,6 +286,6 @@ button.primary{background:var(--accent);color:#fff}
   window.__startCancel=cancel;
 })();
 </script>
-<script src="game.js?v=18"></script>
+<script src="game.js?v=20"></script>
 </body>
 </html>
