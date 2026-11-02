@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#101923" />
+    <title>Game Hub</title>
+    <meta name="description" content="Browse, discover, and play a rich collection of 2D and 3D browser games, with interactive physics, game guides, categories, themes, and instant gameplay." />
+    <meta property="og:title" content="Game Hub" />
+    <meta property="og:description" content="Browse, discover, and play a rich collection of 2D and 3D browser games, with interactive physics, game guides, categories, themes, and instant gameplay." />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" href="./assets/game-hub-icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./assets/game-hub-icon.svg" />
+
+    <!-- Trailing slash normalization for GitHub Pages project subpaths -->
+    <script>
+      (function() {
+        var p = window.location.pathname;
+        if (p && !p.endsWith('/') && !p.split('/').pop().includes('.')) {
+          window.location.replace(p + '/' + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index.css">
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- Development entry (Vite dev server compiles this dynamically in local development) -->
+
+    
+  </body>
+</html>

@@ -11,49 +11,71 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="icon" href="/game-hub-icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/game-hub-icon.svg" />
+    <link rel="icon" href="./game-hub-icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./game-hub-icon.svg" />
+
+    <!-- Trailing slash normalization for GitHub Pages project subpaths -->
+    <script>
+      (function() {
+        var p = window.location.pathname;
+        if (p && !p.endsWith('/') && !p.split('/').pop().includes('.')) {
+          window.location.replace(p + '/' + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
 
-    <!-- Development server entry -->
+    <!-- Development entry (Vite dev server compiles this dynamically in local development) -->
     <script type="module" src="/src/main.tsx"></script>
 
-    <!-- Static Production Fallback (for GitHub Pages serving directly from repository root) -->
+    <!-- Production fallback (Loads pre-built bundle when served statically from GitHub Pages branch root) -->
     <script>
       (function() {
-        var fallbackLoaded = false;
-        function loadFallback() {
-          if (fallbackLoaded) return;
+        if (window.__hub_prod_initialized__) return;
+
+        function initProdBundle() {
+          if (window.__hub_prod_initialized__) return;
           var root = document.getElementById('root');
+          // If already rendered by Vite dev server, exit
           if (root && root.children && root.children.length > 0) return;
-          fallbackLoaded = true;
+          // If Vite dev client is present, do not interfere
+          if (window.__vite_plugin_react_preamble_installed__) return;
 
-          var link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = './dist/assets/index.css';
-          document.head.appendChild(link);
+          window.__hub_prod_initialized__ = true;
 
+          // Load compiled CSS if not already attached
+          if (!document.getElementById('hub-bundle-css')) {
+            var link = document.createElement('link');
+            link.id = 'hub-bundle-css';
+            link.rel = 'stylesheet';
+            link.crossOrigin = 'anonymous';
+            link.href = './assets/index.css';
+            document.head.appendChild(link);
+          }
+
+          // Load compiled JS module
           var script = document.createElement('script');
+          script.id = 'hub-bundle-js';
           script.type = 'module';
           script.crossOrigin = 'anonymous';
-          script.src = './dist/assets/index.js';
+          script.src = './assets/index.js';
           document.body.appendChild(script);
         }
 
-        window.addEventListener('error', function(event) {
-          if (event && (
-            (event.filename && event.filename.includes('main.tsx')) ||
-            (event.message && (event.message.includes('main.tsx') || event.message.includes('MIME type') || event.message.includes('Failed to resolve module')))
-          )) {
-            loadFallback();
-          }
+        // On GitHub Pages, loading /src/main.tsx fails immediately because GitHub Pages serves static files without compiling TSX
+        window.addEventListener('error', function() {
+          initProdBundle();
         }, true);
 
-        setTimeout(function() {
-          loadFallback();
-        }, 700);
+        // Immediate check for static host environments (github.io or non-vite ports)
+        var host = window.location.hostname || '';
+        if (host.includes('github.io') || window.location.protocol === 'file:') {
+          setTimeout(initProdBundle, 40);
+        } else {
+          setTimeout(initProdBundle, 350);
+        }
       })();
     </script>
   </body>

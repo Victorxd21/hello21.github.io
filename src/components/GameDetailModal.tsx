@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Game } from '../types/game';
 import {
   X,
@@ -37,13 +37,28 @@ export const GameDetailModal: React.FC<GameDetailModalProps> = ({
     setIframeKey(0);
   }, [game]);
 
+  const relativeGamePath = game
+    ? game.folder
+      ? `games/${game.folder}/${game.file}`
+      : `games/${game.file}`
+    : '';
+
+  let resolvedGameUrl = `./${relativeGamePath}`;
+  if (typeof window !== 'undefined' && game) {
+    try {
+      let baseHref = window.location.href;
+      const urlObj = new URL(baseHref);
+      if (!urlObj.pathname.endsWith('/') && !urlObj.pathname.split('/').pop()?.includes('.')) {
+        urlObj.pathname += '/';
+        baseHref = urlObj.href;
+      }
+      resolvedGameUrl = new URL(relativeGamePath, baseHref).href;
+    } catch {
+      resolvedGameUrl = `./${relativeGamePath}`;
+    }
+  }
+
   if (!game) return null;
-
-  const relativeGamePath = game.folder
-    ? `games/${game.folder}/${game.file}`
-    : `games/${game.file}`;
-
-  const gamePath = `./${relativeGamePath}`;
 
   const handleStartPlay = () => {
     if (soundEnabled) playUiSound('pop');
@@ -54,8 +69,7 @@ export const GameDetailModal: React.FC<GameDetailModalProps> = ({
   const handleOpenNewTab = () => {
     if (soundEnabled) playUiSound('click');
     onRecordPlay(game.id);
-    const targetUrl = new URL(gamePath, window.location.href).href;
-    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    window.open(resolvedGameUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleReload = () => {
@@ -103,7 +117,7 @@ export const GameDetailModal: React.FC<GameDetailModalProps> = ({
             <span className="text-xl shrink-0">{game.icon}</span>
             <div className="truncate">
               <h3 className="text-sm sm:text-base font-bold text-white truncate">{game.name}</h3>
-              <p className="text-[11px] text-slate-400 font-mono truncate">{gamePath}</p>
+              <p className="text-[11px] text-slate-400 font-mono truncate">{relativeGamePath}</p>
             </div>
           </div>
 
@@ -151,7 +165,7 @@ export const GameDetailModal: React.FC<GameDetailModalProps> = ({
           <div className="flex-1 w-full h-full bg-black relative">
             <iframe
               key={iframeKey}
-              src={gamePath}
+              src={resolvedGameUrl}
               title={game.name}
               className="w-full h-full border-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; cross-origin-isolated"
