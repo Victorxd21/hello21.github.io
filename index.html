@@ -16,6 +16,45 @@
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Development server entry -->
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Static Production Fallback (for GitHub Pages serving directly from repository root) -->
+    <script>
+      (function() {
+        var fallbackLoaded = false;
+        function loadFallback() {
+          if (fallbackLoaded) return;
+          var root = document.getElementById('root');
+          if (root && root.children && root.children.length > 0) return;
+          fallbackLoaded = true;
+
+          var link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = './dist/assets/index.css';
+          document.head.appendChild(link);
+
+          var script = document.createElement('script');
+          script.type = 'module';
+          script.crossOrigin = 'anonymous';
+          script.src = './dist/assets/index.js';
+          document.body.appendChild(script);
+        }
+
+        window.addEventListener('error', function(event) {
+          if (event && (
+            (event.filename && event.filename.includes('main.tsx')) ||
+            (event.message && (event.message.includes('main.tsx') || event.message.includes('MIME type') || event.message.includes('Failed to resolve module')))
+          )) {
+            loadFallback();
+          }
+        }, true);
+
+        setTimeout(function() {
+          loadFallback();
+        }, 700);
+      })();
+    </script>
   </body>
 </html>

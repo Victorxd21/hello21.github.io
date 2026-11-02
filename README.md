@@ -29,3 +29,17 @@ npm run dev
 ```
 
 The application runs on `http://localhost:3000`.
+
+## GitHub Pages Deployment
+
+This repository is configured to build and deploy to GitHub Pages without a white screen error:
+
+1. **Option A: GitHub Actions (Recommended & Automatic)**
+   - Go to your repository on GitHub: **Settings** -> **Pages**.
+   - Under **Build and deployment** -> **Source**, choose **GitHub Actions**.
+   - Push your code to `main` or `master`. The included `.github/workflows/deploy.yml` workflow will automatically compile Vite, run tests, and publish the site.
+
+2. **Option B: Deploy from Branch (Root `/`)**
+   - If your repository is set to **Deploy from a branch** -> `main` / `master` -> `/ (root)`, the root `index.html` has a built-in static loader that automatically loads the pre-compiled production bundle in `dist/assets/`, preventing the uncompiled TypeScript white screen.
+   - Run `npm run build` before committing if you use this method so `dist/` is always up to date.
+
