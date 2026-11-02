@@ -39,6 +39,9 @@ jobs:
       - name: Build Game Hub
         run: npm run build
 
+      - name: Copy static game assets to dist
+        run: node scripts/copy-assets.js
+
       - name: Ensure .nojekyll in dist
         run: touch dist/.nojekyll
 

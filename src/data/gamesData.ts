@@ -11,12 +11,12 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'A psychological monochrome 3D survival horror experience. Hide in closets, avoid the creature, listen closely, and find keys to escape.',
     controls: 'WASD to move · Shift to run · Space/L2 to hold breath · E to interact · F for flashlight',
-    banner: '/game-art/heads/banner.svg',
+    banner: './game-art/heads/banner.svg',
     photos: [
-      '/games/Monochrome/Photos/IMG_0860.jpeg',
-      '/games/Monochrome/Photos/IMG_0889.webp',
-      '/pics/IMG_0315.jpeg',
-      '/pics/IMG_0338.jpeg'
+      './games/Monochrome/Photos/IMG_0860.jpeg',
+      './games/Monochrome/Photos/IMG_0889.webp',
+      './pics/IMG_0315.jpeg',
+      './pics/IMG_0338.jpeg'
     ],
     views: 0
   },
@@ -30,8 +30,8 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Survive the decommissioned facility. Monitor security feeds, conserve battery, and pulse lights to temporarily stun PROTO-01.',
     controls: 'WASD to move · Shift sprint · E interact · F flashlight · G pulse light · Tab tablet/cameras',
-    banner: '/game-art/werewolf/banner.svg',
-    photos: ['/pics/IMG_0340.jpeg', '/pics/IMG_0341.jpeg'],
+    banner: './game-art/werewolf/banner.svg',
+    photos: ['./pics/IMG_0340.jpeg', './pics/IMG_0341.jpeg'],
     views: 0
   },
   {
@@ -44,8 +44,8 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'A dense atmospheric forest at night. Fix your truck or find an alternate exit while Siren Head stalks the mist.',
     controls: 'WASD walk · Shift sprint · C crouch · Space jump · F flashlight · E interact · M map · I inventory',
-    banner: '/game-art/heads/banner.svg',
-    photos: ['/pics/IMG_0360.jpeg', '/pics/IMG_0425.jpeg'],
+    banner: './game-art/heads/banner.svg',
+    photos: ['./pics/IMG_0360.jpeg', './pics/IMG_0425.jpeg'],
     views: 0
   },
   {
@@ -58,7 +58,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Classic Super Mario Bros platforming enhanced with real-time Matter.js destructible wooden structures and pig targets.',
     controls: 'Arrow keys to move · X to jump · Z to run · Push and climb wooden physics towers',
-    banner: '/game-art/cat-game/banner.svg',
+    banner: './game-art/cat-game/banner.svg',
     views: 0
   },
   {
@@ -71,7 +71,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'High-velocity 3D rocket car soccer. Features dynamic ball physics, boosting, jumps, aerial acrobatics, and room lobbies.',
     controls: 'WASD drive · Shift boost · Space jump/flip · R reset · C camera',
-    banner: '/game-art/royale/banner.svg',
+    banner: './game-art/royale/banner.svg',
     views: 0
   },
   {
@@ -84,8 +84,8 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Realistic 3D driving across diverse maps including Forest Highway, Sakura Road, Coastal Vista, and Horizon Island.',
     controls: 'WASD to drive · Space handbrake · Shift boost · C switch camera · R reset car · M change map',
-    banner: '/game-art/royale/banner.svg',
-    photos: ['/pics/IMG_0455.jpeg', '/pics/IMG_0457.jpeg'],
+    banner: './game-art/royale/banner.svg',
+    photos: ['./pics/IMG_0455.jpeg', './pics/IMG_0457.jpeg'],
     views: 0
   },
   {
@@ -98,7 +98,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Drive a reinforced chase truck into tornadic supercells, intercept lightning bolts for score multipliers, and manage fuel.',
     controls: 'WASD / Arrows to drive · Touch D-pad supported · Camera toggle in HUD',
-    banner: '/game-art/storm-chaser/banner.svg',
+    banner: './game-art/storm-chaser/banner.svg',
     views: 0
   },
   {
@@ -112,7 +112,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Piloting a spacecraft around real satellite Earth. Explore cities, mountain ranges, and oceans in true 3D orbital space.',
     controls: 'W/S thrust · A/D yaw · Up/Down pitch · Q/E roll · Space boost · R reset',
-    banner: '/game-art/live-earth/banner.svg',
+    banner: './game-art/live-earth/banner.svg',
     views: 0
   },
   {
@@ -125,7 +125,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Master chess with Stockfish AI evaluation, tactical puzzle mode, real-time multiplayer, and innovative Clash Elixir Spells.',
     controls: 'Click piece to select square · Click destination · Spell buttons to freeze or rage pieces',
-    banner: '/game-art/royale/banner.svg',
+    banner: './game-art/royale/banner.svg',
     views: 0
   },
   {
@@ -138,7 +138,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Authentic multiplayer UNO table with full rules: Skips, Reverses, Draw Twos, Wild Draw Fours, and calling UNO before your last card.',
     controls: 'Click matching color or number · Click Draw pile if no match · Hit UNO button with 1 card left',
-    banner: '/game-art/heads/banner.svg',
+    banner: './game-art/heads/banner.svg',
     views: 0
   },
   {
@@ -151,7 +151,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Write secret sentences, draw what you see, and describe what was drawn. Experience hilarious chain evolutions in the Museum.',
     controls: 'Mouse / stylus to draw · Color palette and brush sizes in toolbar · Keyboard to write descriptions',
-    banner: '/game-art/garticphone/banner.svg',
+    banner: './game-art/garticphone/banner.svg',
     views: 0
   },
   {
@@ -164,7 +164,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Asymmetrical multiplayer survival horror. Survivors fix 5 generators and escape; the Killer builds Malice and hunts them down.',
     controls: 'WASD move · Shift sprint · E interact/repair · Q/F abilities · Space QTE checks',
-    banner: '/game-art/werewolf/banner.svg',
+    banner: './game-art/werewolf/banner.svg',
     views: 0
   },
   {
@@ -177,7 +177,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'High-speed anime martial combat simulator. String together punches, mid-air down slams, uppercuts, and unleash Domain Expansion.',
     controls: 'WASD move · Mouse look · Space double jump · Left Click M1 punch · 1-4 skills · F block · G awaken',
-    banner: '/game-art/werewolf/banner.svg',
+    banner: './game-art/werewolf/banner.svg',
     views: 0
   },
   {
@@ -190,7 +190,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Sail a small boat into open waters, read the nautical chart, cast your fishing line, reel in rare fish, and sell your catch.',
     controls: 'WASD steer boat · Mouse drag look · E interact · F cast & reel line',
-    banner: '/game-art/live-earth/banner.svg',
+    banner: './game-art/live-earth/banner.svg',
     views: 0
   },
   {
@@ -203,7 +203,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Procedural physics demolition. Pull back on the slingshot, adjust trajectory angle and power, and topple pig fortifications.',
     controls: 'Drag mouse / touch from slingshot to aim · Release to fire',
-    banner: '/game-art/cat-game/banner.svg',
+    banner: './game-art/cat-game/banner.svg',
     views: 0
   },
   {
@@ -216,7 +216,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Multiplayer casino table with green felt, chip stacks, dealer AI, Hit, Stand, and Double Down options.',
     controls: 'Buttons on table: Hit, Stand, Double, Deal',
-    banner: '/game-art/heads/banner.svg',
+    banner: './game-art/heads/banner.svg',
     views: 0
   },
   {
@@ -228,7 +228,7 @@ export const INITIAL_GAMES: Game[] = [
     tags: ['fun', 'arcade'],
     description: 'Guide the nimble cat leaping higher and higher across cloud platforms while collecting fish treats.',
     controls: 'Arrow keys / A & D to bounce left and right',
-    banner: '/game-art/cat-game/banner.svg',
+    banner: './game-art/cat-game/banner.svg',
     views: 0
   },
   {
@@ -241,7 +241,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       '3D procedural voxel block world. Mine terrain, select building materials from the hotbar, and craft structures.',
     controls: 'WASD move · Mouse look · Left click mine · Right click place · Number keys 1-9 hotbar',
-    banner: '/game-art/live-earth/banner.svg',
+    banner: './game-art/live-earth/banner.svg',
     views: 0
   },
   {
@@ -254,7 +254,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Step into a living third-person 3D city simulator. Features day-to-night lighting, roaming pedestrians, cars, and parks.',
     controls: 'WASD walk · Mouse look orbit · Shift sprint · C camera angle · Space jump · F sit on benches',
-    banner: '/game-art/live-earth/banner.svg',
+    banner: './game-art/live-earth/banner.svg',
     views: 0
   },
   {
@@ -267,7 +267,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Undertale homage featuring overworld exploration and bullet-hell soul dodging battle mechanics against the Training Dummy.',
     controls: 'Arrow keys to move soul in battle box · Z/Enter select · X cancel',
-    banner: '/game-art/heads/banner.svg',
+    banner: './game-art/heads/banner.svg',
     views: 0
   },
   {
@@ -280,7 +280,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Slither across the arena, ingest glowing food particles, grow your snake body, and trap competitors into collision.',
     controls: 'Mouse cursor guides direction · Hold left click or Space to boost speed',
-    banner: '/game-art/slitherIO/banner.svg',
+    banner: './game-art/slitherIO/banner.svg',
     views: 0
   },
   {
@@ -292,7 +292,7 @@ export const INITIAL_GAMES: Game[] = [
     tags: ['arcade', 'classic'],
     description: 'The definitive retro arcade snake experience with smooth 60fps movement and difficulty curves.',
     controls: 'Arrow keys or WASD to navigate',
-    banner: '/game-art/snake/banner.svg',
+    banner: './game-art/snake/banner.svg',
     views: 0
   },
   {
@@ -304,7 +304,7 @@ export const INITIAL_GAMES: Game[] = [
     tags: ['battle', 'action'],
     description: 'Fast-paced top-down battle royale deathmatch. Loot weapons, stay inside the shrinking zone, and be #1.',
     controls: 'WASD move · Mouse aim and shoot',
-    banner: '/game-art/royale/banner.svg',
+    banner: './game-art/royale/banner.svg',
     views: 0
   },
   {
@@ -316,7 +316,7 @@ export const INITIAL_GAMES: Game[] = [
     tags: ['multiplayer', 'party'],
     description: 'Classic party deduction game: Villagers must uncover and vote out the hidden Werewolves before dawn.',
     controls: 'Mouse click / touch to vote and interact with role cards',
-    banner: '/game-art/werewolf/banner.svg',
+    banner: './game-art/werewolf/banner.svg',
     views: 0
   },
   {
@@ -329,7 +329,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Interactive geospatial globe featuring real-time flight tracking, weather radar clouds, seismic activity, and city lights.',
     controls: 'Left drag orbit · Right drag tilt · Scroll zoom · Search bar to fly to cities',
-    banner: '/game-art/live-earth/banner.svg',
+    banner: './game-art/live-earth/banner.svg',
     views: 0
   },
   {
@@ -342,7 +342,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Interactive 3D procedural character physics demo with walking animations, sunny dynamic skies, and bouncing ragdoll models.',
     controls: 'Mouse drag orbit · Scroll zoom · Buttons to add/clear people',
-    banner: '/game-art/heads/banner.svg',
+    banner: './game-art/heads/banner.svg',
     views: 0
   },
   {
@@ -355,7 +355,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'A 2D planar creature trapped on the curved surface of 3D polygonal geometries with dual 2D raycast / 3D camera viewpoints.',
     controls: 'Left/Right arrows turn · Up/Down walk along curved 3D mesh surface',
-    banner: '/game-art/heads/banner.svg',
+    banner: './game-art/heads/banner.svg',
     views: 0
   },
   {
@@ -368,7 +368,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Upload audio files or enter mathematical expressions like Math.sin(x * 50) to transform mathematical curves into sound synthesis.',
     controls: 'Type mathematical formula · Click Play Math Graph to listen to the waveform',
-    banner: '/game-art/heads/banner.svg',
+    banner: './game-art/heads/banner.svg',
     views: 0
   },
   {
@@ -381,7 +381,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Faithful recreation of vertical mobile video feeds with interactive likes, comments, bookmarking, and custom profile editing.',
     controls: 'Scroll feed · Tap heart to like · Tap comments to reply',
-    banner: '/game-art/heads/banner.svg',
+    banner: './game-art/heads/banner.svg',
     views: 0
   },
   {
@@ -394,7 +394,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Student educational portal simulator showcasing report cards, grade averages, attendance tracking, and schedules.',
     controls: 'Enter student credentials or click demo login',
-    banner: '/game-art/heads/banner.svg',
+    banner: './game-art/heads/banner.svg',
     views: 0
   },
   {
@@ -407,7 +407,7 @@ export const INITIAL_GAMES: Game[] = [
     description:
       'Interactive emulator and deep technical breakdown of the Windows OOBE FirstLogonAnim system (swiping gestures and color cycling).',
     controls: 'Mouse/touch gesture simulator · Speed and theme controls',
-    banner: '/game-art/heads/banner.svg',
+    banner: './game-art/heads/banner.svg',
     views: 0
   },
   {
@@ -420,7 +420,7 @@ export const INITIAL_GAMES: Game[] = [
     notByMe: true,
     description: 'Wobbly 2-player ragdoll basketball. One button controls jumping and shooting as court conditions randomly alter.',
     controls: 'Up Arrow / W to jump and throw ball',
-    banner: '/game-art/royale/banner.svg',
+    banner: './game-art/royale/banner.svg',
     views: 0
   }
 ];

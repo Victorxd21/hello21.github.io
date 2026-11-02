@@ -39,9 +39,11 @@ export const GameDetailModal: React.FC<GameDetailModalProps> = ({
 
   if (!game) return null;
 
-  const gamePath = game.folder
-    ? `/games/${game.folder}/${game.file}`
-    : `/games/${game.file}`;
+  const relativeGamePath = game.folder
+    ? `games/${game.folder}/${game.file}`
+    : `games/${game.file}`;
+
+  const gamePath = `./${relativeGamePath}`;
 
   const handleStartPlay = () => {
     if (soundEnabled) playUiSound('pop');
@@ -52,7 +54,8 @@ export const GameDetailModal: React.FC<GameDetailModalProps> = ({
   const handleOpenNewTab = () => {
     if (soundEnabled) playUiSound('click');
     onRecordPlay(game.id);
-    window.open(gamePath, '_blank', 'noopener,noreferrer');
+    const targetUrl = new URL(gamePath, window.location.href).href;
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleReload = () => {
