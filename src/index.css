@@ -1,0 +1,273 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg: #0b111a;
+    --bg2: #101a26;
+    --panel: rgba(18, 28, 42, 0.85);
+    --border: rgba(102, 192, 244, 0.14);
+    --border-strong: rgba(102, 192, 244, 0.48);
+    --text: #f0f6fc;
+    --muted: #8b9bb4;
+    --a: #38bdf8;
+    --b: #818cf8;
+    --c: #c084fc;
+    --d: #34d399;
+    --glow: rgba(56, 189, 248, 0.35);
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+/* Season palettes */
+body.season-halloween {
+  --a: #ff8c42;
+  --b: #9b30ff;
+  --c: #ffb347;
+  --d: #22c55e;
+  --glow: rgba(255, 140, 66, 0.45);
+  background-color: #0b0714;
+}
+
+body.season-winter {
+  --a: #93c5fd;
+  --b: #60a5fa;
+  --c: #e0f2fe;
+  --d: #a5b4fc;
+  --glow: rgba(147, 197, 253, 0.4);
+  background-color: #050a12;
+}
+
+body.season-spring {
+  --a: #86efac;
+  --b: #4ade80;
+  --c: #f9a8d4;
+  --d: #a7f3d0;
+  --glow: rgba(134, 239, 172, 0.4);
+  background-color: #060d09;
+}
+
+body.season-summer {
+  --a: #fbbf24;
+  --b: #f59e0b;
+  --c: #38bdf8;
+  --d: #fb923c;
+  --glow: rgba(251, 191, 36, 0.4);
+  background-color: #0a080d;
+}
+
+body.season-autumn {
+  --a: #fb923c;
+  --b: #ea580c;
+  --c: #fbbf24;
+  --d: #c2410c;
+  --glow: rgba(251, 146, 60, 0.45);
+  background-color: #0d0806;
+}
+
+body.season-christmas {
+  --a: #ef4444;
+  --b: #22c55e;
+  --c: #fbbf24;
+  --d: #f87171;
+  --glow: rgba(239, 68, 68, 0.4);
+  background-color: #09060b;
+}
+
+/* Animated GH Logo with shifting colors and gentle float */
+@keyframes ghShiftColor {
+  0% {
+    background-position: 0% 50%;
+    transform: translateY(0px) rotate(0deg);
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.5), 0 0 32px rgba(56, 189, 248, 0.2);
+  }
+  25% {
+    transform: translateY(-2px) rotate(2.5deg);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.55), 0 0 40px rgba(168, 85, 247, 0.25);
+  }
+  50% {
+    background-position: 100% 50%;
+    transform: translateY(1.5px) rotate(-2deg);
+    box-shadow: 0 0 24px rgba(236, 72, 153, 0.55), 0 0 48px rgba(236, 72, 153, 0.25);
+  }
+  75% {
+    transform: translateY(-1.5px) rotate(1.5deg);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.55), 0 0 40px rgba(59, 130, 246, 0.25);
+  }
+  100% {
+    background-position: 0% 50%;
+    transform: translateY(0px) rotate(0deg);
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.5), 0 0 32px rgba(56, 189, 248, 0.2);
+  }
+}
+
+.gh-logo-animated {
+  background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc, #f43f5e, #34d399, #38bdf8);
+  background-size: 300% 300%;
+  animation: ghShiftColor 7s ease-in-out infinite;
+}
+
+/* Main page cool appearing animation */
+@keyframes coolAppear {
+  0% {
+    opacity: 0;
+    transform: translateY(32px) scale(0.97);
+    filter: blur(8px);
+  }
+  50% {
+    opacity: 0.85;
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.page-appear {
+  animation: coolAppear 1.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Pretty background aurora lights */
+.pretty-aurora-bg {
+  background: 
+    radial-gradient(circle at 50% -10%, rgba(56, 189, 248, 0.16) 0%, transparent 55%),
+    radial-gradient(circle at 10% 25%, rgba(129, 140, 248, 0.14) 0%, transparent 45%),
+    radial-gradient(circle at 90% 45%, rgba(192, 132, 252, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 30% 75%, rgba(52, 211, 153, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 80% 90%, rgba(244, 63, 94, 0.09) 0%, transparent 40%);
+}
+
+@keyframes auroraPulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.08) translateY(-12px);
+  }
+}
+
+.animate-aurora {
+  animation: auroraPulse 10s ease-in-out infinite;
+}
+
+/* Atmospheric weather animations */
+@keyframes fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(105vh) rotate(360deg);
+    opacity: 0.2;
+  }
+}
+
+@keyframes fallSway {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(50vh) translateX(40px) rotate(180deg);
+  }
+  100% {
+    transform: translateY(105vh) translateX(-30px) rotate(360deg);
+    opacity: 0.2;
+  }
+}
+
+@keyframes floatBat {
+  0% {
+    transform: translateX(-10vw) translateY(0);
+  }
+  50% {
+    transform: translateX(50vw) translateY(-20px);
+  }
+  100% {
+    transform: translateX(110vw) translateY(10px);
+  }
+}
+
+@keyframes partyWiggle {
+  0%, 100% {
+    transform: translateY(-6px) scale(1.03) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.05) rotate(1.5deg);
+  }
+}
+
+.animate-fall {
+  animation: fall linear infinite;
+}
+
+.animate-fall-sway {
+  animation: fallSway ease-in-out infinite;
+}
+
+.animate-float-bat {
+  animation: floatBat linear infinite;
+}
+
+.party-wiggle:hover {
+  animation: partyWiggle 0.45s ease infinite;
+}
+
+@keyframes ghRotate {
+  0% {
+    transform: rotate(0deg) perspective(600px) rotateY(0deg);
+  }
+  50% {
+    transform: rotate(180deg) perspective(600px) rotateY(180deg);
+  }
+  100% {
+    transform: rotate(360deg) perspective(600px) rotateY(360deg);
+  }
+}
+
+.animate-gh-rotate {
+  animation: ghRotate 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform-style: preserve-3d;
+}
+
+@keyframes targetHighlight {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(34, 211, 238, 0.85), 0 0 30px rgba(34, 211, 238, 0.7);
+    transform: scale(1.04);
+  }
+}
+
+.highlight-jump {
+  animation: targetHighlight 0.85s ease-in-out 3;
+  border-color: #22d3ee !important;
+  z-index: 30 !important;
+}
+
+/* Background perspective grid */
+.retro-grid {
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Radial ambient orbs */
+.bg-ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}

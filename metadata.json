@@ -1,0 +1,8 @@
+{
+  "name": "Game Hub",
+  "description": "Browse, discover, and play a rich collection of 2D and 3D browser games, with interactive physics, game guides, categories, themes, and instant gameplay.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
