@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0e17" />
+  <title>File ↔ PNG — Pack any file into a PNG</title>
+  <meta name="description" content="Pack any file into a PNG image and extract it later. Works offline in your browser. Upload or scan with camera." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">📦</span>
+        <div>
+          <h1>File ↔ PNG</h1>
+          <p class="tagline">Pack any file into a PNG • Extract it later</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- Mode tabs -->
+      <div class="tabs">
+        <button class="tab active" data-mode="encode" id="tab-encode">Compress → PNG</button>
+        <button class="tab" data-mode="decode" id="tab-decode">Scan / Extract</button>
+      </div>
+
+      <!-- ENCODE PANEL -->
+      <section id="panel-encode" class="panel active">
+        <div class="card drop-zone" id="encode-drop">
+          <input type="file" id="encode-file" hidden />
+          <div class="drop-content">
+            <div class="drop-icon">⬆️</div>
+            <p class="drop-title">Drop any file here</p>
+            <p class="drop-sub">or click to browse</p>
+            <button class="btn btn-primary" id="btn-pick-file">Choose File</button>
+          </div>
+        </div>
+
+        <div id="encode-info" class="info-box hidden">
+          <div class="file-meta">
+            <span class="file-name" id="encode-filename">—</span>
+            <span class="file-size" id="encode-filesize">—</span>
+          </div>
+          <button class="btn btn-ghost" id="btn-clear-encode">Clear</button>
+        </div>
+
+        <div class="actions" id="encode-actions">
+          <button class="btn btn-primary btn-lg" id="btn-encode" disabled>
+            Compress into PNG
+          </button>
+        </div>
+
+        <div id="encode-result" class="result hidden">
+          <h3>PNG Ready</h3>
+          <div class="preview-wrap">
+            <img id="encode-preview" alt="Encoded PNG preview" />
+            <button class="btn-icon fullscreen-btn" id="btn-fullscreen-encode" title="Full screen">⛶</button>
+          </div>
+          <div class="result-meta">
+            <span id="encode-png-size">—</span>
+            <span id="encode-dims">—</span>
+          </div>
+          <div class="result-actions">
+            <a class="btn btn-primary" id="btn-download-png" download="packed.png">Download PNG</a>
+            <button class="btn btn-ghost" id="btn-preview-fs">View Full Screen</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- DECODE PANEL -->
+      <section id="panel-decode" class="panel">
+        <div class="card drop-zone" id="decode-drop">
+          <input type="file" id="decode-file" accept="image/png,image/*" hidden />
+          <div class="drop-content">
+            <div class="drop-icon">🔍</div>
+            <p class="drop-title">Drop a PNG here</p>
+            <p class="drop-sub">or click to browse</p>
+            <div class="btn-row">
+              <button class="btn btn-primary" id="btn-pick-png">Choose PNG</button>
+              <button class="btn btn-secondary" id="btn-camera">Open Camera</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Camera view -->
+        <div id="camera-view" class="camera-view hidden">
+          <video id="camera-video" autoplay playsinline muted></video>
+          <canvas id="camera-canvas" class="hidden"></canvas>
+          <div class="camera-controls">
+            <button class="btn btn-primary" id="btn-capture">Capture & Scan</button>
+            <button class="btn btn-ghost" id="btn-close-camera">Close</button>
+          </div>
+        </div>
+
+        <div id="decode-info" class="info-box hidden">
+          <div class="file-meta">
+            <span class="file-name" id="decode-filename">—</span>
+            <span class="file-size" id="decode-filesize">—</span>
+          </div>
+          <button class="btn btn-ghost" id="btn-clear-decode">Clear</button>
+        </div>
+
+        <div class="actions" id="decode-actions">
+          <button class="btn btn-primary btn-lg" id="btn-decode" disabled>
+            Extract File
+          </button>
+        </div>
+
+        <div id="decode-result" class="result hidden">
+          <h3>File Extracted</h3>
+          <div class="extracted-meta">
+            <p><strong>Name:</strong> <span id="extracted-name">—</span></p>
+            <p><strong>Size:</strong> <span id="extracted-size">—</span></p>
+            <p><strong>Type:</strong> <span id="extracted-type">—</span></p>
+          </div>
+          <div class="result-actions">
+            <a class="btn btn-primary" id="btn-download-file">Download File</a>
+          </div>
+        </div>
+
+        <div id="decode-preview-wrap" class="preview-wrap hidden">
+          <img id="decode-preview" alt="Scanned PNG" />
+          <button class="btn-icon fullscreen-btn" id="btn-fullscreen-decode" title="Full screen">⛶</button>
+        </div>
+      </section>
+
+      <!-- Status / errors -->
+      <div id="status" class="status"></div>
+    </main>
+
+    <footer class="footer">
+      <p>All processing happens in your browser. Nothing is uploaded.</p>
+      <p class="hint">Magic header: <code>F2PNG1</code> • Works offline</p>
+    </footer>
+  </div>
+
+  <!-- Fullscreen overlay -->
+  <div id="fs-overlay" class="fs-overlay hidden">
+    <button class="fs-close" id="btn-fs-close">✕</button>
+    <img id="fs-img" alt="Full screen preview" />
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
